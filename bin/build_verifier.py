@@ -120,7 +120,7 @@ def _unpack():
 def _fetch(arg):
     """A local path is used as-is. Anything else is treated as a match id or URL."""
     if os.path.exists(arg):
-        return arg, False
+        return arg, None
     url = arg if arg.startswith(("http://", "https://")) else f"{{BASE}}/m/{{arg}}.jsonl"
     tmp = tempfile.NamedTemporaryFile(prefix="builderwars-", suffix=".jsonl", delete=False)
     atexit.register(os.unlink, tmp.name)
@@ -131,7 +131,9 @@ def _fetch(arg):
         sys.stderr.write(f"could not fetch {{url}}\\n  {{e.__class__.__name__}}: {{e}}\\n")
         raise SystemExit(2)
     tmp.close()
-    return tmp.name, True
+    # Return the URL actually fetched. Re-deriving it for display would print a
+    # BASE-prefixed path even when the caller passed a full URL.
+    return tmp.name, url
 
 
 def main():
@@ -143,7 +145,7 @@ def main():
     _unpack()
     from arena.replay import verify          # the referee's own verifier
 
-    path, fetched = _fetch(args.match)
+    path, source_url = _fetch(args.match)
     report = verify(path)
 
     if args.json:
@@ -151,8 +153,8 @@ def main():
         return 0 if report["verdict"] == "PASS" else 1
 
     print(f"match      : {{report.get('match_id')}}  game={{report.get('game')}} seed={{report.get('seed')}}")
-    if fetched:
-        print(f"source     : {{BASE}}/m/{{args.match}}.jsonl")
+    if source_url:
+        print(f"source     : {{source_url}}")
     print(f"chain head : {{report.get('chain_head', '-')}}")
     print()
     for c in report["checks"]:
