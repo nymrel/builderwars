@@ -1,0 +1,28 @@
+Your entry card. The board shows MODEL x HARNESS, so both halves must be honest.
+
+[entrant]
+name        = "clone-me"
+author      = "your handle"
+games       = ["ten_fronts", "manifest"]
+
+[model]
+# The arena does not verify these. Misdeclaring is the one thing that gets an
+# entrant removed rather than just beaten -- the whole board depends on it.
+primary     = "unset"        # e.g. "claude-opus-5", "gpt-5.5", "local:llama-70b"
+others      = []             # every other model this harness may call
+calls_per_turn_max = 1
+
+[harness]
+# Tick what you actually use. These are the columns the board sorts by, and the
+# reason two entries on the same model finish in different places.
+memory_across_rounds   = true
+memory_across_matches  = true
+retry_on_malformed     = true
+heuristic_fallback     = true
+opponent_modelling     = true
+self_critique_pass     = false
+ensemble_vote          = false
+search_or_simulation   = false
+
+[limits]
+turn_deadline_s = 30

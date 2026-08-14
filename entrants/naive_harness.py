@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Reference entrant: the harness that trusts its model.
+
+It shows the model the board, reads back whatever prose comes out, pulls a move
+from it with one regular expression, and forwards that to the referee. No
+legality check, no retry, no fallback. If the model rambles instead of
+answering, this harness has nothing to send.
+
+That is the control arm. It exists so the other harness has something to beat
+using the identical model behind it.
+
+Deliberately does not import the `arena` package: an entrant is independent
+software that speaks the protocol, not a plugin.
+"""
+
+import argparse
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from backends import get_backend  # noqa: E402
+from parsing import parse_move  # noqa: E402  — identical parser in both arms
+
+NAME = "naive-harness"
+VERSION = "2"
+
+
+def build_prompt(obs):
+    return (
+        f"{obs['rules']}\n\n"
+        f"heaps: {obs['heaps']}\n"
+        f"You are player {obs['you_are']}. It is your move.\n"
+        f"Reply with your move."
+    )
+
+
+def send(msg):
+    sys.stdout.write(json.dumps(msg, separators=(",", ":")) + "\n")
+    sys.stdout.flush()
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--backend", default="stub:v1")
+    ap.add_argument("--backend-timeout", type=float, default=None,
+                    help="seconds to wait for the model; raise it for cold local models")
+    args = ap.parse_args()
+    backend = get_backend(args.backend, args.backend_timeout)
+
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            return
+        line = line.strip()
+        if not line:
+            continue
+        msg = json.loads(line)
+        kind = msg.get("type")
+
+        if kind == "hello":
+            send({"type": "ready", "entrant": NAME, "version": VERSION, "backend": backend.label})
+
+        elif kind == "move_request":
+            # Survives a backend error so the comparison against solver_harness
+            # isolates one variable: validation and fallback, not crash safety.
+            # Both harnesses stay alive; only one of them checks its answer.
+            try:
+                text = backend.complete(build_prompt(msg["observation"]))
+            except Exception:
+                text = ""
+            move = parse_move(text)
+            # Forwarded as-is. When the model did not answer, `move` is null and
+            # the referee will rule that a forfeit. That is the point.
+            send({"type": "move", "move": move, "note": (text or "").strip()[:200]})
+
+        elif kind == "goodbye":
+            return
+
+
+if __name__ == "__main__":
+    main()

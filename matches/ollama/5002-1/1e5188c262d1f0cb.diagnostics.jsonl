@@ -1,0 +1,6 @@
+{"kind": "notice", "authoritative": false, "note": "diagnostics only; not hashed, not scored"}
+{"kind": "latency", "player": 0, "turn": 0, "ms": 290}
+{"kind": "latency", "player": 1, "turn": 1, "ms": 250}
+{"kind": "latency", "player": 0, "turn": 2, "ms": 294}
+{"kind": "stderr_final", "entrant": "naive-harness", "tail": ""}
+{"kind": "stderr_final", "entrant": "solver-harness", "tail": ""}

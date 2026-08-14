@@ -1,0 +1,13 @@
+{"kind": "notice", "authoritative": false, "note": "diagnostics only; not hashed, not scored"}
+{"kind": "latency", "player": 0, "turn": 0, "ms": 368}
+{"kind": "latency", "player": 1, "turn": 1, "ms": 313}
+{"kind": "latency", "player": 0, "turn": 2, "ms": 343}
+{"kind": "latency", "player": 1, "turn": 3, "ms": 319}
+{"kind": "latency", "player": 0, "turn": 4, "ms": 365}
+{"kind": "latency", "player": 1, "turn": 5, "ms": 313}
+{"kind": "latency", "player": 0, "turn": 6, "ms": 287}
+{"kind": "latency", "player": 1, "turn": 7, "ms": 330}
+{"kind": "latency", "player": 0, "turn": 8, "ms": 306}
+{"kind": "latency", "player": 1, "turn": 9, "ms": 279}
+{"kind": "stderr_final", "entrant": "naive-harness", "tail": ""}
+{"kind": "stderr_final", "entrant": "solver-harness", "tail": ""}
