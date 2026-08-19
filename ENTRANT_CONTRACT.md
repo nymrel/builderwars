@@ -112,23 +112,50 @@ matches it is worth the entire win rate.
   **claim**. The engine cannot witness a model and never asserts one; every
   result carries `model_attested: false`.
 
-## What the sandbox does and does not do
+## Isolation profile and admission
 
-Shipped verbatim into every transcript header from `arena/sandbox.py:POLICY`, so
-a result can never imply an isolation guarantee the host did not provide.
+The current executor is named `process`. It is **process-isolated and
+capability-unconfined**. Use it only for entrant code the operator already trusts
+to run on the host.
 
-**Enforced:** separate OS process · isolated scratch cwd · env allowlist · no
-inherited file handles · transcript path withheld · per-move wall-clock timeout ·
-stdout line and total size caps · stderr captured and capped · killed on timeout
-and at match end.
+Every new transcript commits the exact versioned profile from
+`arena/isolation.py` under `header.body.isolation`.
 
-**NOT enforced in v1 — stated plainly:** network egress blocking · filesystem
-confinement (cwd is set, not chrooted) · CPU and memory limits.
+**Enforced:** separate OS process · isolated scratch cwd · environment allowlist ·
+closed inherited file descriptors · transcript path withheld · per-move
+wall-clock timeout · stdout line and total-size caps · bounded stderr capture ·
+process termination on timeout and match end.
 
-Those three need an OS-level jail (container, cgroup, or a Windows job object
-plus a firewall profile). Until that ships, a match against an untrusted entrant
-is isolated **in process but not in capability**. Do not describe v1 as sandboxed
-without that qualifier.
+**Explicitly unenforced:** network egress blocking · filesystem confinement
+outside the scratch cwd · CPU limit · memory limit · process-count limit ·
+host-credential boundary.
+
+A scratch cwd is not a chroot. An environment allowlist does not stop a process
+from reading host files it can access. A wall-clock timeout is not a cgroup or a
+Windows job object.
+
+If your operating rule requires an OS capability boundary, require it:
+
+```bash
+python bin/run_match.py \
+  --seed 7 \
+  --entrant path/to/entrant-a.py \
+  --entrant path/to/entrant-b.py \
+  --require-capability-isolation
+```
+
+No capability-isolated executor exists yet. That command exits `2` with bounded
+JSON and `match_started:false` **before** game loading, output/transcript/scratch
+creation, or entrant construction. It does not silently fall back to process
+mode. `run_series.py` applies the same preflight before its first match.
+
+An unknown execution mode also refuses rather than falling back. The refusal
+records the exact requested mode and whether capability isolation was actually
+required.
+
+Do not describe process mode as an OS sandbox, capability boundary, or safe place
+for hostile external entrants. The complete machine contract, replay behavior,
+legacy compatibility, and future executor gate are in `docs/ISOLATION.md`.
 
 ---
 
@@ -206,8 +233,12 @@ python bin/verify_replay.py matches/<id>.jsonl
 
 **A PASS proves:** the transcript is unaltered · the opening follows from the
 seed · every move ruling reproduces · every position follows from the last · the
-winner follows from referee state rather than anyone's claim · the verifying
-engine is byte-identical to the refereeing one (reported separately).
+winner follows from referee state rather than anyone's claim · the isolation
+declaration has a known, non-overstated process profile · the verifying engine
+is byte-identical to the refereeing one (reported separately).
 
-**A PASS does not prove:** which model produced a move, or any wall-clock event.
-Both caveats travel inside the report rather than sitting in a doc.
+**A PASS does not prove:** which model produced a move · any wall-clock event ·
+that the host actually enforced the recorded process controls · network,
+filesystem, CPU, memory, process-count, or host-credential confinement.
+
+Those caveats travel inside the report rather than sitting only in this file.
