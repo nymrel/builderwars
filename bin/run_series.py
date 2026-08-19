@@ -12,10 +12,16 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
 from arena.match import run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
+from entrant_admission import (  # noqa: E402
+    EntrantAdmissionError,
+    require_entry_admission,
+    unconfined_warning,
+)
 
 
 def manifest(script, backend, backend_timeout=None):
@@ -49,12 +55,34 @@ def main():
     ap.add_argument("--backend-timeout", type=float, default=None,
                     help="seconds an entrant waits for its model. Cold local models "
                          "exceed 60s routinely, and a timeout looks like a loss.")
+    ap.add_argument(
+        "--allow-unconfined-entrants",
+        action="store_true",
+        help=(
+            "explicitly admit entrant files outside the repository's entrants/ directory; "
+            "v1 does not confine their network, filesystem, CPU, or memory access"
+        ),
+    )
     args = ap.parse_args()
+
+    try:
+        admission = require_entry_admission(
+            [args.a, args.b],
+            repository_root=ROOT,
+            allow_unconfined=args.allow_unconfined_entrants,
+        )
+    except EntrantAdmissionError as exc:
+        ap.error(str(exc))
+
+    warning = unconfined_warning(admission)
+    if warning:
+        print(warning, file=sys.stderr)
+    entrant_a, entrant_b = (record["path"] for record in admission)
 
     backend_a = args.backend_a or args.backend
     backend_b = args.backend_b or args.backend
-    a = manifest(args.a, backend_a, args.backend_timeout)
-    b = manifest(args.b, backend_b, args.backend_timeout)
+    a = manifest(entrant_a, backend_a, args.backend_timeout)
+    b = manifest(entrant_b, backend_b, args.backend_timeout)
     tally = {a["name"]: 0, b["name"]: 0, "void": 0}
     move_source = {}
     reasons = {}
