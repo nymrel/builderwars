@@ -13,13 +13,16 @@ What a PASS proves:
     genuinely illegal
   - each recorded position follows from the previous one under the stated rules
   - the recorded winner follows from the state history, not from anyone's say-so
+  - the recorded isolation declaration has a known, non-overstated shape
   - the engine that verified is byte-identical to the engine that refereed
-    (reported separately; a mismatch does not silently pass)
+    (reported separately; a mismatch does not silently disappear)
 
 What a PASS does NOT prove:
   - that a move came from the model the entrant claimed. The engine never
     contacts a model, so it cannot witness one. Results carry `model_attested:
     false` for this reason.
+  - that the host enforced the process controls named by the transcript. Replay
+    validates the recorded profile and engine code; it is not OS telemetry.
   - wall-clock events. A timeout is a recorded fact about the machine the match
     ran on; replay verifies the adjudication that followed it, not the timing.
 """
@@ -29,8 +32,126 @@ import random
 from .canonical import digest
 from .games import load as load_game
 from .integrity import engine_digest
+from .isolation import validate_isolation_profile
 from .scoring import referee_projection, score
 from .transcript import first, load, verify_chain
+
+_LEGACY_ENFORCED = frozenset(
+    {
+        "separate_os_process",
+        "cwd_isolated_scratch_dir",
+        "env_allowlist",
+        "no_inherited_file_handles",
+        "transcript_path_withheld",
+        "per_move_wall_clock_timeout",
+        "stdout_line_size_cap",
+        "stdout_total_size_cap",
+        "stderr_captured_and_capped",
+        "kill_on_timeout_and_at_match_end",
+    }
+)
+_LEGACY_UNENFORCED = frozenset(
+    {
+        "network_egress_blocking",
+        "filesystem_confinement",
+        "cpu_and_memory_limits",
+    }
+)
+
+
+def _legacy_control_names(values, label):
+    if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
+        raise ValueError(f"legacy {label} controls must be an array of strings")
+    names = {item.split(" ", 1)[0] for item in values}
+    return names
+
+
+def _legacy_isolation_profile(policy):
+    """Translate the exact v1 transcript policy without upgrading its claim.
+
+    Published transcripts predate the versioned isolation profile and carry
+    `sandbox_policy`. They remain verifiable, but the report labels them legacy
+    and capability-unconfined. Missing legacy caveats are a verification failure
+    rather than an invitation to infer stronger isolation.
+    """
+
+    if not isinstance(policy, dict):
+        raise ValueError("legacy sandbox policy must be an object")
+    enforced = _legacy_control_names(policy.get("enforced"), "enforced")
+    unenforced = _legacy_control_names(policy.get("unenforced_v1"), "unenforced")
+    missing_enforced = sorted(_LEGACY_ENFORCED - enforced)
+    missing_unenforced = sorted(_LEGACY_UNENFORCED - unenforced)
+    if missing_enforced:
+        raise ValueError(
+            "legacy policy omits enforced controls: " + ", ".join(missing_enforced)
+        )
+    if missing_unenforced:
+        raise ValueError(
+            "legacy policy omits capability limitations: " + ", ".join(missing_unenforced)
+        )
+    return {
+        "schema": "nymrel.builderwars.isolation.legacy-v1",
+        "source": "legacy-sandbox-policy",
+        "recorded_policy_digest": digest(policy),
+        "mode": "process",
+        "executor": "python-subprocess",
+        "capability_isolation": False,
+        "trusted_entrants_only": True,
+        "enforced": {name: True for name in sorted(_LEGACY_ENFORCED)},
+        "unenforced": {
+            "network_egress_blocking": False,
+            "filesystem_confinement": False,
+            "cpu_limit": False,
+            "memory_limit": False,
+        },
+        "claim": (
+            "Legacy process-isolated and capability-unconfined transcript. "
+            "The recorded policy explicitly left network, filesystem, CPU, and "
+            "memory confinement unenforced."
+        ),
+    }
+
+
+def _verify_isolation_header(header, report, note):
+    current = header.get("isolation")
+    legacy = header.get("sandbox_policy")
+    if current is not None and legacy is not None:
+        note(
+            "isolation_profile",
+            False,
+            "header contains both current and legacy isolation declarations",
+        )
+        return False
+    if current is not None:
+        try:
+            report["isolation"] = validate_isolation_profile(current)
+        except Exception as exc:
+            note(
+                "isolation_profile",
+                False,
+                f"invalid current isolation profile: {exc}",
+            )
+            return False
+        note("isolation_profile", True, "current versioned process profile")
+        return True
+    if legacy is not None:
+        try:
+            report["isolation"] = _legacy_isolation_profile(legacy)
+        except Exception as exc:
+            note(
+                "isolation_profile",
+                False,
+                f"invalid legacy isolation policy: {exc}",
+            )
+            return False
+        note(
+            "isolation_profile",
+            True,
+            "legacy transcript; capability limitations were preserved explicitly",
+        )
+        return True
+    note("isolation_profile", False, "header contains no isolation declaration")
+    return False
 
 
 def verify(transcript_path):
@@ -38,6 +159,7 @@ def verify(transcript_path):
         "transcript": str(transcript_path),
         "chain_ok": False,
         "engine_digest_match": None,
+        "isolation_profile_ok": False,
         "setup_ok": False,
         "moves_ok": False,
         "states_ok": False,
@@ -57,8 +179,8 @@ def verify(transcript_path):
 
     try:
         records = load(transcript_path)
-    except Exception as e:
-        report["errors"].append(f"could not read transcript: {e}")
+    except Exception as exc:
+        report["errors"].append(f"could not read transcript: {exc}")
         return report
 
     if not records:
@@ -83,6 +205,9 @@ def verify(transcript_path):
     report["seed"] = h.get("seed")
     report["game"] = h.get("game", {}).get("name")
 
+    isolation_ok = _verify_isolation_header(h, report, note)
+    report["isolation_profile_ok"] = isolation_ok
+
     # 2. is the verifying engine the refereeing engine?
     mine = engine_digest()
     theirs = h.get("engine", {}).get("digest")
@@ -97,8 +222,8 @@ def verify(transcript_path):
 
     try:
         game = load_game(h["game"]["name"])
-    except Exception as e:
-        report["errors"].append(f"unknown game: {e}")
+    except Exception as exc:
+        report["errors"].append(f"unknown game: {exc}")
         return report
     if game.VERSION != h["game"].get("version"):
         note("game_version", False, f"transcript wants {h['game'].get('version')}, have {game.VERSION}")
@@ -136,8 +261,8 @@ def verify(transcript_path):
                     if not setup_ok:
                         states_ok = False
                 else:
-                    match_ = digest(computed) == body["state_digest"]
-                    if not match_:
+                    matches = digest(computed) == body["state_digest"]
+                    if not matches:
                         states_ok = False
                         note(
                             f"state_after_turn_{body.get('turn')}",
@@ -168,11 +293,11 @@ def verify(transcript_path):
 
             elif kind == "engine_error":
                 report["engine_error_recorded"] = body.get("detail")
-    except Exception as e:
+    except Exception as exc:
         note(
             "replay_execution",
             False,
-            f"replaying this transcript raised {e.__class__.__name__}: {e}",
+            f"replaying this transcript raised {exc.__class__.__name__}: {exc}",
         )
         report["verdict"] = "FAIL"
         return report
@@ -196,8 +321,8 @@ def verify(transcript_path):
     # 5. recompute the score from referee state, ignoring the recorded result
     try:
         recomputed = score(referee_projection(records), game)
-    except Exception as e:
-        note("score_recomputation", False, f"{e.__class__.__name__}: {e}")
+    except Exception as exc:
+        note("score_recomputation", False, f"{exc.__class__.__name__}: {exc}")
         report["verdict"] = "FAIL"
         return report
     report["recomputed"] = recomputed
@@ -205,8 +330,8 @@ def verify(transcript_path):
         note("result_present", False, "no result record")
         return report
     rb = recorded_result["body"]
-    report["recorded"] = {k: rb.get(k) for k in ("winner", "reason", "moves", "points", "decisive")}
-    same = all(recomputed[k] == rb.get(k) for k in ("winner", "reason", "moves", "points", "decisive"))
+    report["recorded"] = {key: rb.get(key) for key in ("winner", "reason", "moves", "points", "decisive")}
+    same = all(recomputed[key] == rb.get(key) for key in ("winner", "reason", "moves", "points", "decisive"))
     report["result_matches_recomputation"] = same
     note(
         "recorded_result_follows_from_state",
@@ -216,6 +341,7 @@ def verify(transcript_path):
 
     passed = (
         report["chain_ok"]
+        and isolation_ok
         and setup_ok
         and states_ok
         and moves_ok
@@ -230,13 +356,22 @@ def verify(transcript_path):
         "every move ruling reproduces under this engine's rules",
         "every position follows from the previous one",
         "the recorded winner follows from state, not from any entrant's claim",
+        "the isolation declaration has a known non-overstated process profile",
     ]
     report["does_not_prove"] = [
         "which model produced any move (the engine never contacts a model; "
         f"model_attested={h.get('attestation', {}).get('model_attested')})",
         "wall-clock events such as timeouts, which are recorded facts about the "
         "machine the match ran on",
+        "that the host actually enforced the recorded process controls; replay "
+        "validates the declaration and engine code, not OS telemetry",
     ]
+    isolation = report.get("isolation")
+    if isinstance(isolation, dict) and isolation.get("capability_isolation") is False:
+        report["does_not_prove"].append(
+            "network egress, filesystem, CPU, memory, process-count, or host-credential "
+            "confinement; this transcript is process-isolated and capability-unconfined"
+        )
     if not report["engine_digest_match"]:
         report["does_not_prove"].append(
             "that the refereeing engine matched this one — the engine digests differ, "
