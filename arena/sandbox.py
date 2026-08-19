@@ -5,10 +5,11 @@ entire coupling. It shares no memory with the referee, cannot import it, is not
 told where the transcript lives, and its working directory is a scratch dir
 created for the match.
 
-Honesty about what "sandbox" means here matters more than the word does, so the
-policy is enumerated and shipped into the transcript header. See POLICY below.
-A result should never imply an isolation guarantee the host did not actually
-provide.
+The historical module name is retained for protocol compatibility. This module
+is not an OS sandbox: network, host-filesystem, CPU, memory, process-count, and
+host-credential confinement remain unenforced in process mode. The canonical
+machine-readable boundary lives in `arena.isolation` and is committed to every
+new transcript.
 """
 
 import json
@@ -17,49 +18,26 @@ import queue
 import shutil
 import subprocess
 import threading
+from copy import deepcopy
+
+from .isolation import PROCESS_ISOLATION
 
 # Passed through so a subprocess can start at all on Windows and POSIX. None of
-# these carry model access.
-#
-# USERPROFILE / LOCALAPPDATA / APPDATA are here because real CLI tools need them
-# to find their own config and data. Probed 2026-08-14: without USERPROFILE,
-# `ollama` dies with `panic: %userprofile% is not defined` before reading a
-# prompt, which would block every CLI-based entrant on Windows. They widen what
-# an entrant can locate on disk, but v1 already declares filesystem confinement
-# unenforced below, so this removes no guarantee we actually make. Tighten this
-# list and the OS-level jail together, not separately.
+# the base names themselves carry model access, but USERPROFILE / LOCALAPPDATA /
+# APPDATA can help an entrant locate host files. The process isolation profile
+# therefore states filesystem and host-credential confinement as unenforced.
+# Tighten this list and the OS-level executor together, not separately.
 _BASE_ENV_KEYS = (
     "PATH", "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "TEMP", "TMP",
     "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOMEDRIVE", "HOMEPATH",
     "HOME", "LANG", "LC_ALL", "TZ",
 )
 
-POLICY = {
-    "protocol": "arena/1",
-    "enforced": [
-        "separate_os_process (no shared memory or imports with the referee)",
-        "cwd_isolated_scratch_dir (entrant is started in a per-match scratch dir)",
-        "env_allowlist (only base OS vars plus names the entrant manifest declares)",
-        "no_inherited_file_handles (close_fds)",
-        "transcript_path_withheld (entrant is never told where the record is written)",
-        "per_move_wall_clock_timeout (exceeded -> forfeit)",
-        "stdout_line_size_cap",
-        "stdout_total_size_cap",
-        "stderr_captured_and_capped",
-        "kill_on_timeout_and_at_match_end",
-    ],
-    "unenforced_v1": [
-        "network_egress_blocking (an entrant CAN reach the network; not restricted by the host in v1)",
-        "filesystem_confinement (cwd is set, not chrooted; an entrant CAN read outside it)",
-        "cpu_and_memory_limits (no job object / cgroup applied in v1)",
-    ],
-    "note": (
-        "The unenforced items need an OS-level jail (container, WSL cgroup, Windows job "
-        "object plus a firewall profile). Until that ships, a match run on an untrusted "
-        "entrant is isolated in process but not in capability, and results should be "
-        "labelled accordingly."
-    ),
-}
+# Compatibility for callers that imported `arena.sandbox.POLICY`. New match
+# headers use `arena.isolation.PROCESS_ISOLATION` under `header.body.isolation`.
+# Keep this copy synchronized by construction rather than maintaining a second
+# handwritten policy.
+POLICY = deepcopy(PROCESS_ISOLATION)
 
 
 class EntrantFailure(Exception):
@@ -100,9 +78,10 @@ class Entrant:
     # -- lifecycle --------------------------------------------------------
 
     def _child_env(self):
-        env = {k: os.environ[k] for k in _BASE_ENV_KEYS if k in os.environ}
+        env = {key: os.environ[key] for key in _BASE_ENV_KEYS if key in os.environ}
         # The entrant declares which credential-bearing variables it needs. The
-        # engine passes them through without reading, logging or hashing values.
+        # engine passes them through without logging or hashing values. This is
+        # why process mode is explicitly not a host-credential boundary.
         for name in self.declared_env:
             if name in os.environ:
                 env[name] = os.environ[name]
@@ -147,8 +126,8 @@ class Entrant:
                 line = raw.decode("utf-8", errors="replace").strip()
                 if line:
                     self._q.put(("line", line))
-        except Exception as e:  # pipe torn down mid-read
-            self._q.put(("error", f"stdout read failed: {e.__class__.__name__}"))
+        except Exception as exc:  # pipe torn down mid-read
+            self._q.put(("error", f"stdout read failed: {exc.__class__.__name__}"))
         finally:
             self._q.put(("eof", None))
 
@@ -170,8 +149,8 @@ class Entrant:
         try:
             self._proc.stdin.write(data)
             self._proc.stdin.flush()
-        except (BrokenPipeError, OSError) as e:
-            raise EntrantFailure("entrant_stdin_closed", e.__class__.__name__) from e
+        except (BrokenPipeError, OSError) as exc:
+            raise EntrantFailure("entrant_stdin_closed", exc.__class__.__name__) from exc
 
     def recv(self, timeout_s=None):
         timeout_s = self.move_timeout_s if timeout_s is None else timeout_s
@@ -185,8 +164,8 @@ class Entrant:
             raise EntrantFailure("protocol_violation", value)
         try:
             msg = json.loads(value)
-        except json.JSONDecodeError as e:
-            raise EntrantFailure("malformed_json", str(e)) from e
+        except json.JSONDecodeError as exc:
+            raise EntrantFailure("malformed_json", str(exc)) from exc
         if not isinstance(msg, dict):
             raise EntrantFailure("malformed_message", "top-level value must be an object")
         return msg
