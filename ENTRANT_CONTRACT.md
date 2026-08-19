@@ -130,6 +130,32 @@ plus a firewall profile). Until that ships, a match against an untrusted entrant
 is isolated **in process but not in capability**. Do not describe v1 as sandboxed
 without that qualifier.
 
+## Shipped CLI admission guard
+
+`bin/run_match.py` and `bin/run_series.py` now admit resolved files under this
+repository's `entrants/` directory by default. A path outside that tree is
+refused before an entrant process or match directory is created.
+
+The classifier resolves the real filesystem target first. A sibling such as
+`entrants-elsewhere/` is not bundled, and a symlink placed inside `entrants/`
+that resolves outside the tree remains external.
+
+An operator may deliberately override the refusal with:
+
+```bash
+python bin/run_match.py ... --allow-unconfined-entrants
+python bin/run_series.py ... --allow-unconfined-entrants
+```
+
+The override prints a warning and changes **no enforcement**. It does not add a
+network jail, filesystem confinement, or CPU/memory quotas. Use it only for code
+you have reviewed on a host you own.
+
+This guard belongs to the shipped command-line tools, not to the replay protocol
+or engine API. A direct caller of `arena.match.run_match` can supply any manifest
+and is responsible for its own admission and OS-level isolation. The transcript's
+`sandbox_policy` remains the authoritative record of what the engine enforced.
+
 ---
 
 # Part B — the game module interface
