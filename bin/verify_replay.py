@@ -30,6 +30,16 @@ def main():
         print(f"transcript : {os.path.basename(report['transcript'])}")
         print(f"match      : {report.get('game')} seed={report.get('seed')} id={report.get('match_id')}")
         print(f"chain head : {report.get('chain_head', '-')}")
+        isolation = report.get("isolation")
+        if isinstance(isolation, dict):
+            capability = "yes" if isolation.get("capability_isolation") else "no"
+            source = isolation.get("source", "current-profile")
+            print(
+                f"isolation  : {isolation.get('mode', 'unknown')} "
+                f"capability={capability} source={source}"
+            )
+        else:
+            print("isolation  : invalid or missing")
         print()
         for c in report["checks"]:
             mark = "PASS" if c["ok"] else "FAIL"
