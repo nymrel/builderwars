@@ -39,12 +39,27 @@ python bin/run_match.py --seed 7 \
     --entrant entrants/solver_harness.py \
     --entrant entrants/naive_harness.py
 
-python bin/selfcheck.py         # 21 adversarial checks against the engine
+python bin/selfcheck.py               # adversarial referee checks
+python bin/isolation_selfcheck.py     # strict admission + repaired-chain attacks
 python bin/run_series.py --seeds 12
-python bin/build_verifier.py --check   # regenerate verify.py, prove it agrees
+python bin/build_verifier.py --check  # regenerate verify.py, prove it agrees
 ```
 
 Stock Python 3. No dependencies, no network, no accounts.
+
+A caller that requires an OS capability boundary can make that requirement fail
+closed:
+
+```bash
+python bin/run_match.py --seed 7 \
+    --entrant entrants/solver_harness.py \
+    --entrant entrants/naive_harness.py \
+    --require-capability-isolation
+```
+
+No capability-isolated executor exists today, so this exits `2` with
+`match_started:false` before it creates a transcript, scratch directory, or
+entrant process. It does not silently run a weaker match.
 
 ## The reference result
 
@@ -74,6 +89,7 @@ plugin, and not necessarily Python. It reads a position, writes a move.
 Inference happens inside your process, on your own account.
 
 Full wire protocol: [`ENTRANT_CONTRACT.md`](ENTRANT_CONTRACT.md).
+Isolation and admission contract: [`docs/ISOLATION.md`](docs/ISOLATION.md).
 A runnable starting point: [`template/`](template/) — `python play.py` scores you
 against the sparring panel in under a second with no network and no key.
 
@@ -94,12 +110,18 @@ Both lists travel *inside* the verifier's output, not in a doc someone can skip.
 
 **Proves:** the transcript is unaltered · the opening follows from the seed ·
 every move ruling reproduces · every position follows from the last · the winner
-follows from referee state rather than anyone's claim · the verifying engine
-matches the refereeing one.
+follows from referee state rather than anyone's claim · the isolation declaration
+has a known, non-overstated process profile · the verifying engine matches the
+refereeing one.
 
-**Does not prove:** which model produced a move. The engine never contacts one,
-so it cannot witness one — every result carries `model_attested: false`. Nor any
-wall-clock event; a timeout is a fact about the machine the match ran on.
+**Does not prove:** which model produced a move · any wall-clock event · that the
+host actually enforced the recorded process controls · network, filesystem, CPU,
+memory, process-count, or host-credential confinement.
+
+The engine never contacts a model, so it cannot witness one — every result carries
+`model_attested: false`. Replay validates the isolation declaration and referee
+source; it is not kernel, firewall, mount, credential, cgroup, or job-object
+telemetry.
 
 ## The four properties, and how each is enforced
 
@@ -116,12 +138,21 @@ alone would not stop a competent forger — they can re-chain — so replay
 re-derives the whole match from the seed and recomputes the winner from state.
 Self-check #4 performs exactly that attack: chain repaired, forgery still caught.
 
-**3. Sandboxed entrants — and what is *not* sandboxed, in the same breath.**
-Separate process, isolated cwd, env allowlist, no inherited handles, per-move
-timeout, output caps. **Not** enforced in v1: network egress, filesystem
-confinement, CPU/memory limits. Those need an OS-level jail. The full policy
-ships inside every transcript header so a result can never imply an isolation
-guarantee the host did not provide.
+**3. Process-isolated entrants — capability-unconfined, in the same breath.**
+Separate process, scratch cwd, environment allowlist, closed inherited file
+descriptors, transcript path withheld, per-move timeout, output caps, bounded
+stderr, and process teardown are enforced. **Not** enforced: network egress,
+filesystem confinement, CPU, memory, process-count, or host-credential
+boundaries. Those require an OS-level executor that does not exist yet.
+
+The exact versioned profile ships inside every new transcript and replay rejects
+a profile that invents a control or deletes a limitation. A repaired hash chain
+does not rescue a false capability claim. Published legacy transcripts stay
+verifiable only when their original caveats remain present.
+
+Strict admission lets an operator refuse before any match side effect when a
+capability boundary is required. It prevents silent degradation; it does not
+create the missing boundary.
 
 **4. A self-report is never a scoring input.** Scoring accepts only a projection
 with entrant-authored content deleted. A lying entrant and an honest twin making
@@ -157,10 +188,14 @@ than one implying a crowd.
 
 - **Two entrants.** Both written by us. There is no community yet.
 - **One game played.** Nim. Ten Fronts and Manifest are specified and unplayed.
-- **Isolation is by process, not by capability.** No network jail, no filesystem
-  confinement, no memory cap. That is fine while the entries are ours. It is not
-  fine the moment someone we do not know enters, and it is the thing to fix
-  before that happens.
+- **Isolation is by process, not by capability.** No network jail, filesystem
+  boundary, CPU/memory/process-count cap, or host-credential boundary. Strict
+  admission now refuses when a capability boundary is required; no executor can
+  satisfy that requirement yet. That is fine while the entries are ours. It is
+  not fine the moment someone we do not know enters.
+- **Standalone verifier regeneration is a release gate.** `verify.py` embeds the
+  referee byte-for-byte. Engine changes are not merge-ready until the generated
+  artifact is reviewed, conformance-checked, and committed with zero diff.
 - **Cross-model result not yet published.** The reference series holds the model
   constant, which isolates the harness cleanly but does not by itself show a
   smaller model beating a larger one. That series is in progress.
@@ -189,7 +224,12 @@ and the series looked like a model result when the model had never answered.
 Backend timeouts are now tunable and every series prints the model/fallback
 split per entrant.
 
-Each of those is a match-fixing failure in miniature — a result that looks clean
+The isolation self-check adds another class of attack: it asks for a capability
+boundary that does not exist, deletes a recorded limitation, forges
+`capability_isolation:true`, repairs the transcript hash chain, and requires all
+four paths to refuse or fail replay.
+
+Each defect is a match-fixing failure in miniature — a result that looks clean
 because the thing that should have caught it never ran.
 
 ## Layout
@@ -197,7 +237,7 @@ because the thing that should have caught it never ran.
 ```
 arena/            the engine. no network, no credentials, no model.
 entrants/         reference harnesses. THIS is where a model lives.
-bin/              run_match · run_series · verify_replay · selfcheck · build_verifier
+bin/              run_match · run_series · verify_replay · selfcheck · isolation_selfcheck · build_verifier
 games/            game specs, harness contract, community submission gate
 template/         runnable entrant starting point
 matches/          published transcripts
