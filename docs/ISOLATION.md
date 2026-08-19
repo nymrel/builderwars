@@ -73,15 +73,23 @@ The CLI writes one bounded JSON refusal to stderr and exits `2`:
 
 ```json
 {
-  "available": {"capability_isolation": false},
+  "available": {
+    "mode": "process",
+    "capability_isolation": false
+  },
   "available_mode": "process",
   "error": "isolation_requirement_unsatisfied",
   "match_started": false,
   "reason": "capability isolation was required, but process mode does not enforce it",
   "requested_mode": "process",
-  "required": {"capability_isolation": true}
+  "required": {
+    "mode": "process",
+    "capability_isolation": true
+  }
 }
 ```
+
+The receipt describes the caller’s actual requirement. An unsupported mode requested without a capability requirement reports that mode and `capability_isolation: false`; it does not manufacture a stronger requirement after the fact.
 
 Strict admission does not create isolation. It prevents an operator’s stronger requirement from silently degrading into process mode.
 
@@ -103,6 +111,19 @@ An attacker who edits the profile and repairs the transcript hash chain still re
 Published legacy transcripts used `sandbox_policy`. Replay continues to accept that shape only when its original enforced controls and its network/filesystem/CPU/memory caveats are all present. The report labels it `nymrel.builderwars.isolation.legacy-v1`; it never upgrades the old result to a current or capability-isolated claim.
 
 Replay validates a declaration and the referee source that produced it. It does not independently observe the host kernel, firewall, mounts, credentials, cgroups, or job objects.
+
+## Standalone verifier parity
+
+`verify.py` embeds the referee package byte-for-byte. Any change to `arena/` changes the engine digest and requires regeneration.
+
+The draft CI sequence is intentionally fail-closed:
+
+1. regenerate `verify.py` from the checked-out branch;
+2. run its conformance checks against the package verifier;
+3. upload the generated file as a short-lived review artifact;
+4. fail unless the committed `verify.py` is byte-identical.
+
+Until that artifact is reviewed and committed, the branch is not merge-ready and must not represent the old verifier as current.
 
 ## Gate for a future capability-isolated executor
 
