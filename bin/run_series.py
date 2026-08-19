@@ -14,6 +14,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from arena.isolation import IsolationRequirementError, resolve_isolation  # noqa: E402
 from arena.match import run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 
@@ -49,7 +50,27 @@ def main():
     ap.add_argument("--backend-timeout", type=float, default=None,
                     help="seconds an entrant waits for its model. Cold local models "
                          "exceed 60s routinely, and a timeout looks like a loss.")
+    ap.add_argument(
+        "--isolation",
+        default="process",
+        choices=["process"],
+        help="implemented execution profile; process mode is capability-unconfined",
+    )
+    ap.add_argument(
+        "--require-capability-isolation",
+        action="store_true",
+        help="refuse the entire series before output or entrants unless an OS capability boundary exists",
+    )
     args = ap.parse_args()
+
+    try:
+        resolve_isolation(
+            mode=args.isolation,
+            require_capability_isolation=args.require_capability_isolation,
+        )
+    except IsolationRequirementError as exc:
+        print(json.dumps(exc.to_json(), sort_keys=True), file=sys.stderr)
+        return 2
 
     backend_a = args.backend_a or args.backend
     backend_b = args.backend_b or args.backend
@@ -66,9 +87,13 @@ def main():
         for order in (0, 1):
             pair = [a, b] if order == 0 else [b, a]
             m = run_match(
-                game_name=args.game, seed=seed, entrants=pair,
+                game_name=args.game,
+                seed=seed,
+                entrants=pair,
                 out_dir=os.path.join(args.out, f"{seed}-{order}"),
                 move_timeout_s=args.timeout,
+                isolation_mode=args.isolation,
+                require_capability_isolation=args.require_capability_isolation,
             )
             rep = verify(m["transcript"])
             ok = rep["verdict"] == "PASS"
@@ -76,9 +101,6 @@ def main():
                 unverified.append((seed, order, rep["errors"][:1]))
                 continue
 
-            # Where did each move actually come from? A harness that fell back to
-            # its own computed move on every turn still wins matches, and the
-            # scoreboard cannot tell you that the model never spoke. Count it.
             try:
                 with open(m["transcript"], "r", encoding="utf-8") as fh:
                     for line in fh:
@@ -110,15 +132,16 @@ def main():
     counted = len(rows)
     print(f"\n{'seed':>6}  {'seat 0':<16} {'winner':<16} {'moves':>5}  reason")
     print("-" * 74)
-    for r in rows:
-        print(f"{r['seed']:>6}  {r['seat0']:<16} {r['winner']:<16} {r['moves']:>5}  {r['reason']}")
+    for row in rows:
+        print(f"{row['seed']:>6}  {row['seat0']:<16} {row['winner']:<16} {row['moves']:>5}  {row['reason']}")
 
     print(f"\n{'=' * 74}")
     print(f"game        : {args.game}")
+    print("isolation   : process (capability isolation: no)")
     if backend_a == backend_b:
         print(f"backend     : {backend_a}  (identical behind both entrants)")
     else:
-        print(f"backend     : SPLIT — the model is NOT held constant")
+        print("backend     : SPLIT — the model is NOT held constant")
         print(f"  {a['name']:<18} {backend_a}")
         print(f"  {b['name']:<18} {backend_b}")
     print(f"matches     : {counted} counted  ({args.seeds} seeds x 2 seat orders)")
@@ -134,16 +157,16 @@ def main():
         print(f"  {'void':<18} {tally['void']:>3} / {counted}")
     for name in (a["name"], b["name"]):
         model = move_source.get((name, "model"), 0)
-        fb = move_source.get((name, "fallback"), 0)
-        if model or fb:
-            total = model + fb
-            print(f"\n  {name}: {model}/{total} moves came from the model, {fb} from fallback")
-            if fb and model == 0:
+        fallback = move_source.get((name, "fallback"), 0)
+        if model or fallback:
+            total = model + fallback
+            print(f"\n  {name}: {model}/{total} moves came from the model, {fallback} from fallback")
+            if fallback and model == 0:
                 print("  ^^ THE MODEL NEVER ANSWERED. This result is about the harness's "
                       "own solver, not the model. Do not report it as a model result.")
 
     print(f"\noutcomes    : {json.dumps(reasons)}")
-    print(f"cost        : $0.00 — the engine makes no model calls")
+    print("cost        : $0.00 — the engine makes no model calls")
     return 0 if not unverified else 1
 
 
