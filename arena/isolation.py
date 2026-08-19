@@ -50,10 +50,16 @@ _UNENFORCED_KEYS = frozenset(PROCESS_ISOLATION["unenforced"])
 class IsolationRequirementError(RuntimeError):
     """The requested execution boundary is unavailable before a match starts."""
 
-    def __init__(self, reason, requested_mode="process"):
+    def __init__(
+        self,
+        reason,
+        requested_mode="process",
+        required_capability_isolation=False,
+    ):
         super().__init__(reason)
         self.reason = reason
         self.requested_mode = requested_mode
+        self.required_capability_isolation = bool(required_capability_isolation)
 
     def to_json(self):
         return {
@@ -61,8 +67,14 @@ class IsolationRequirementError(RuntimeError):
             "reason": self.reason,
             "requested_mode": self.requested_mode,
             "available_mode": "process",
-            "required": {"capability_isolation": True},
-            "available": {"capability_isolation": False},
+            "required": {
+                "mode": self.requested_mode,
+                "capability_isolation": self.required_capability_isolation,
+            },
+            "available": {
+                "mode": "process",
+                "capability_isolation": False,
+            },
             "match_started": False,
         }
 
@@ -78,12 +90,14 @@ def resolve_isolation(mode="process", require_capability_isolation=False):
         raise IsolationRequirementError(
             "requested isolation mode is not implemented",
             requested_mode=mode,
+            required_capability_isolation=require_capability_isolation,
         )
     profile = deepcopy(PROCESS_ISOLATION)
     if require_capability_isolation and not profile["capability_isolation"]:
         raise IsolationRequirementError(
             "capability isolation was required, but process mode does not enforce it",
             requested_mode=mode,
+            required_capability_isolation=True,
         )
     return profile
 
