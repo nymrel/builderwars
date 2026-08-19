@@ -38,6 +38,9 @@ jobs:
       - name: Run isolation admission and determinism tests
         run: python -m unittest discover -s tests -v
 
+      - name: Run repaired-chain isolation self-check
+        run: python bin/isolation_selfcheck.py
+
   adversarial:
     name: Existing adversarial self-check and verifier parity
     runs-on: ubuntu-latest
