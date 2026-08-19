@@ -60,5 +60,14 @@ jobs:
       - name: Regenerate and conformance-check the standalone verifier
         run: python bin/build_verifier.py --check
 
+      - name: Upload the generated verifier for review
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: builderwars-generated-verifier-${{ github.sha }}
+          path: verify.py
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Require the committed verifier to match the engine byte-for-byte
         run: git diff --exit-code -- verify.py
