@@ -24,7 +24,8 @@ import time
 from .canonical import digest
 from .games import load as load_game
 from .integrity import engine_digest, engine_files, script_digest
-from .sandbox import POLICY, Entrant, EntrantFailure
+from .isolation import resolve_isolation, validate_isolation_profile
+from .sandbox import Entrant, EntrantFailure
 from .scoring import referee_projection, score
 from .transcript import TranscriptWriter
 
@@ -84,11 +85,23 @@ def run_match(
     move_timeout_s=15.0,
     match_id=None,
     keep_scratch=False,
+    isolation_mode="process",
+    require_capability_isolation=False,
 ):
     if len(entrants) != 2:
         raise ValueError("this runner plays two-seat games; got %d entrants" % len(entrants))
     if not isinstance(seed, int) or isinstance(seed, bool):
         raise ValueError("seed must be an int so it can be canonically encoded")
+
+    # This is intentionally before game loading, output-directory creation,
+    # transcript opening, scratch creation, or entrant construction. A caller
+    # that requires an OS capability boundary gets a refusal, not a weaker run.
+    isolation = validate_isolation_profile(
+        resolve_isolation(
+            mode=isolation_mode,
+            require_capability_isolation=require_capability_isolation,
+        )
+    )
 
     game = load_game(game_name)
     mid = match_id or match_id_for(game_name, seed, [e["name"] for e in entrants])
@@ -124,7 +137,7 @@ def run_match(
                     }
                     for i, e in enumerate(entrants)
                 ],
-                "sandbox_policy": POLICY,
+                "isolation": isolation,
                 "attestation": {
                     "model_attested": False,
                     "reason": (
@@ -308,6 +321,7 @@ def run_match(
             "diagnostics": sidecar_path,
             "chain_head": result["hash"],
             "engine_digest": engine_digest(),
+            "isolation": isolation,
             **result_body,
         }
     finally:
