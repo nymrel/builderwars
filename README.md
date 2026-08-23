@@ -45,6 +45,8 @@ python bin/run_match.py --seed 7 \
 
 python bin/selfcheck.py         # 21 adversarial checks against the engine
 python bin/run_series.py --seeds 12
+python bin/check_agentwars_scale.py   # model adapter + league contracts
+python bin/check_share_bundle.py      # verified-moment compiler contracts
 python bin/build_verifier.py --check   # regenerate verify.py, prove it agrees
 ```
 
@@ -170,10 +172,36 @@ transcript before it counts. These entrants are **scripted GM baselines**. The
 results prove the rules, strategy split, and replay receipts; they do not prove
 which model is better, that any model played, or that a public league exists.
 
-The engine still runs two-seat games. Calling this a 12-agent league would be a
-false product claim. The first AgentWars season is a repeated head-to-head
-circuit; multi-agent league scheduling belongs after the referee supports more
-than two entrants or a round-robin controller has its own verified contract.
+The referee remains deliberately two-seat. A separate verified round-robin
+controller now scales a configured league to 2–16 entrants, every pair, both
+seat orders, one or both fantasy formats, and up to 32 seeds. It records whether
+each entrant declares scripted, model, or hybrid execution while keeping both
+model identity and execution claims unattested. A local redraft at seed 9300
+finished 1746–1537 with seven entrant-authored `source=model` move notes and five
+legal fallbacks. That is **model-influenced and unattested** local evidence — not
+provider attestation, a public league, traffic, or adoption.
+
+### Turn a receipt into a verified moment
+
+Every match whose exact referee snapshot is embedded and replay-verifies can
+produce a deterministic four-file share bundle:
+
+```bash
+python bin/build_share_bundle.py matches/<...>.jsonl --out /tmp/agentwars-moment
+python bin/check_share_bundle.py
+```
+
+The bundle contains a 1200×630 SVG card, a standalone match page, draft copy,
+and a machine-readable manifest. The compiler first runs the snapshot-aware
+standalone verifier and requires both `PASS` and an exact referee-engine digest,
+labels the result's proof boundary, picks a deterministic highlight,
+and creates an **unplayed** runback challenge with seats swapped and the next
+seed. It copies no raw model response or private response hash. Adding
+`--public-base-url` only creates an explicitly unverified tagged candidate URL;
+it does not publish a route or claim that measurement exists. The loop and its
+pre-activation thresholds are documented in [`docs/VIRAL_LOOPS.md`](docs/VIRAL_LOOPS.md).
+Replay `PASS` without an embedded exact engine snapshot is deliberately refused;
+it cannot become a card labeled verified.
 
 The bar for a new game: **the same model must be able to win or lose depending
 on the harness around it.** If nothing a harness author builds changes the
@@ -189,10 +217,15 @@ win–loss board would crown a bot that never makes a deal.
 Stated plainly because a scoreboard that starts small and says so is worth more
 than one implying a crowd.
 
-- **Two entrants.** Both written by us. There is no community yet.
-- **One model-played game.** Nim. The fantasy redraft and dynasty circuits have
-  only scripted preseason results; Ten Fronts and Manifest are specified and
-  unplayed.
+- **No community entrants.** The reference harnesses, scripted fantasy GMs, and
+  local model adapters are all written by us.
+- **Published model-played proof remains Nim.** Fantasy has scripted preseason
+  receipts plus one local, model-influenced redraft receipt with fallbacks and
+  unattested provider/model identity. A model-influenced dynasty match has not
+  been run. Ten Fronts and Manifest are specified and unplayed.
+- **No public AgentWars league or verified-moment route.** The scheduler and
+  share compiler are local source contracts until a separate deployment and
+  logged-out public verification prove otherwise.
 - **Isolation is by process, not by capability.** No network jail, no filesystem
   confinement, no memory cap. That is fine while the entries are ours. It is not
   fine the moment someone we do not know enters, and it is the thing to fix
