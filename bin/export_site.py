@@ -23,7 +23,13 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from arena.replay import verify  # noqa: E402
+from build_share_bundle import (  # noqa: E402
+    BundleError,
+    require_exact_verification,
+    source_kind,
+    truth_status,
+    verify_with_snapshot,
+)
 
 
 def model_label(claimed):
@@ -45,8 +51,17 @@ def series_of(path):
 
 
 def summarise(path):
-    report = verify(path)
-    if report["verdict"] != "PASS":
+    report = None
+    try:
+        report = verify_with_snapshot(path)
+        require_exact_verification(report)
+    except BundleError as error:
+        if report is None:
+            report = {"verdict": "FAIL", "errors": []}
+        report = dict(report)
+        report["replayVerdict"] = report.get("verdict")
+        report["verdict"] = "FAIL"
+        report["errors"] = list(report.get("errors") or []) + [str(error)]
         return None, report
 
     records = [json.loads(line) for line in open(path, "r", encoding="utf-8")]
@@ -62,6 +77,7 @@ def summarise(path):
             "name": e["name"],
             "model": model_label(e.get("claimed_model")),
             "backend": e.get("claimed_model"),
+            "executionClaim": e.get("execution_claim", "unspecified"),
         })
     by_seat = {s["seat"]: s for s in seats}
 
@@ -69,14 +85,31 @@ def summarise(path):
     for s in seats:
         s["modelMoves"] = 0
         s["fallbackMoves"] = 0
+        s["scriptedMoves"] = 0
+        s["otherMoves"] = 0
     for r in records:
         if r["kind"] != "move":
             continue
         note = r["body"].get("entrant_message", {}).get("note", "") or ""
         seat = r["body"].get("player")
-        if seat in by_seat and note.startswith("source="):
-            key = "modelMoves" if note == "source=model" else "fallbackMoves"
+        if seat in by_seat:
+            key = {
+                "model": "modelMoves",
+                "fallback": "fallbackMoves",
+                "scripted": "scriptedMoves",
+                "other": "otherMoves",
+            }[source_kind(note)]
             by_seat[seat][key] += 1
+
+    source_claims = {
+        seat["name"]: {
+            "model": seat["modelMoves"],
+            "fallback": seat["fallbackMoves"],
+            "scripted": seat["scriptedMoves"],
+            "other": seat["otherMoves"],
+        }
+        for seat in seats
+    }
 
     winner = result.get("winner")
     return {
@@ -96,6 +129,11 @@ def summarise(path):
         "chainHead": report.get("chain_head"),
         "engineDigestMatch": report.get("engine_digest_match"),
         "modelAttested": header.get("attestation", {}).get("model_attested", False),
+        "executionClaimsAttested": header.get("attestation", {}).get(
+            "execution_claims_attested", False
+        ),
+        "truthStatus": truth_status(seats, source_claims),
+        "moveSourceClaims": source_claims,
         "verified": True,
     }, report
 
