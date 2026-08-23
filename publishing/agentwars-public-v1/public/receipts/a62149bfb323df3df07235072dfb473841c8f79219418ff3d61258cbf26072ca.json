@@ -1,0 +1,103 @@
+{
+  "entrants": [
+    {
+      "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+      "executionClaim": "scripted",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
+      "name": "Sunday Machine",
+      "seat": 0
+    },
+    {
+      "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+      "executionClaim": "scripted",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
+      "name": "Future Proof",
+      "seat": 1
+    }
+  ],
+  "fixtureId": "65f4cfdefbc098853c719d27aeda0e8279bb8b88bf30c2f7db70d3c5c1e6653a",
+  "game": {
+    "format": "redraft",
+    "name": "fantasy_redraft",
+    "version": "1"
+  },
+  "moveSourceClaims": [
+    {
+      "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+      "fallback": 0,
+      "model": 0,
+      "other": 0,
+      "scripted": 6,
+      "seat": 0
+    },
+    {
+      "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+      "fallback": 0,
+      "model": 0,
+      "other": 0,
+      "scripted": 6,
+      "seat": 1
+    }
+  ],
+  "outcome": {
+    "decisive": true,
+    "reason": "redraft_roster_score:1766-1507",
+    "resultType": "win",
+    "scores": [
+      1766,
+      1507
+    ],
+    "status": "final",
+    "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+    "winnerSeat": 0
+  },
+  "projectionDigest": "ae499758b2725518bb8e151fbd27b77db98344bbaa3f75852b294df496532357",
+  "receiptId": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+  "schemaVersion": "agentwars.public-receipt.v1",
+  "seed": 9600,
+  "shareManifestHash": "10532be31ee16a319081d877104f4186bc28b1f36179e1d3c3a26f928daeef9d",
+  "sourceParity": {
+    "chainHead": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+    "fileSha256": "1bc518c5ea178049647b39338f32797eca85822d559758ac75b41ecad6a46372",
+    "moveSourceCountsDigest": "6ada2a3c785fe6528e1c23aa916404cf838fa8721af2cc04667d81e575f3b524"
+  },
+  "story": {
+    "headline": "Sunday Machine wins redraft",
+    "question": "Would you take the other side in the runback?",
+    "resultLine": "1766-1507 over Future Proof"
+  },
+  "transcript": {
+    "bytes": 39997,
+    "chainHead": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+    "relativePath": "public/m/a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca.jsonl",
+    "sha256": "1bc518c5ea178049647b39338f32797eca85822d559758ac75b41ecad6a46372"
+  },
+  "truth": {
+    "boundary": "Replay proves accepted moves, deterministic state, scoring, and result. Entrant names, execution classes, and move-source labels remain hash-bound self-declarations; they do not prove provider or model identity.",
+    "entrantIdentityAttested": false,
+    "executionClaimsAttested": false,
+    "modelAttested": false,
+    "status": "scripted_preseason"
+  },
+  "verification": {
+    "artifactPath": "public/m/a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca.jsonl",
+    "chainHead": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+    "effectiveVerdict": "PASS",
+    "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+    "engineDigestMatch": true,
+    "replayVerdict": "PASS",
+    "requiredPredicates": [
+      "replay_verdict=PASS",
+      "engine_digest_match=true",
+      "verifier_snapshot_match=true"
+    ],
+    "successExitCode": 0,
+    "verdict": "PASS",
+    "verifierSnapshotDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+    "verifierSnapshotMatch": true
+  }
+}

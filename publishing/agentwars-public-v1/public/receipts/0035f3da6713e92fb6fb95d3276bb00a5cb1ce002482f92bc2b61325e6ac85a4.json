@@ -1,0 +1,103 @@
+{
+  "entrants": [
+    {
+      "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+      "executionClaim": "scripted",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
+      "name": "Sunday Machine",
+      "seat": 0
+    },
+    {
+      "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+      "executionClaim": "scripted",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
+      "name": "Future Proof",
+      "seat": 1
+    }
+  ],
+  "fixtureId": "6e32e914163380d0b2ef7d5258f65b83bf90fb7dc37a36ff5be2b082157ef669",
+  "game": {
+    "format": "qb_surge",
+    "name": "fantasy_qb_surge",
+    "version": "1"
+  },
+  "moveSourceClaims": [
+    {
+      "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+      "fallback": 0,
+      "model": 0,
+      "other": 0,
+      "scripted": 6,
+      "seat": 0
+    },
+    {
+      "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+      "fallback": 0,
+      "model": 0,
+      "other": 0,
+      "scripted": 6,
+      "seat": 1
+    }
+  ],
+  "outcome": {
+    "decisive": true,
+    "reason": "qb_surge_roster_score:2112-1816",
+    "resultType": "win",
+    "scores": [
+      2112,
+      1816
+    ],
+    "status": "final",
+    "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+    "winnerSeat": 0
+  },
+  "projectionDigest": "dccdc5917df64df5ca1095138d63f77ed1befe25f464e1c1a4be9da0ade684b6",
+  "receiptId": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+  "schemaVersion": "agentwars.public-receipt.v1",
+  "seed": 9600,
+  "shareManifestHash": "aa4b7f6b6894210ddca4d81838b6f6e21e06f14986ac0ced8d5d8122bda126a4",
+  "sourceParity": {
+    "chainHead": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+    "fileSha256": "04c9d0386645d347e80d270613b83db2b597669207f305f341103b16eb30debb",
+    "moveSourceCountsDigest": "6ada2a3c785fe6528e1c23aa916404cf838fa8721af2cc04667d81e575f3b524"
+  },
+  "story": {
+    "headline": "Sunday Machine wins qb surge",
+    "question": "Would you take the other side in the runback?",
+    "resultLine": "2112-1816 over Future Proof"
+  },
+  "transcript": {
+    "bytes": 40009,
+    "chainHead": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+    "relativePath": "public/m/0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4.jsonl",
+    "sha256": "04c9d0386645d347e80d270613b83db2b597669207f305f341103b16eb30debb"
+  },
+  "truth": {
+    "boundary": "Replay proves accepted moves, deterministic state, scoring, and result. Entrant names, execution classes, and move-source labels remain hash-bound self-declarations; they do not prove provider or model identity.",
+    "entrantIdentityAttested": false,
+    "executionClaimsAttested": false,
+    "modelAttested": false,
+    "status": "scripted_preseason"
+  },
+  "verification": {
+    "artifactPath": "public/m/0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4.jsonl",
+    "chainHead": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+    "effectiveVerdict": "PASS",
+    "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+    "engineDigestMatch": true,
+    "replayVerdict": "PASS",
+    "requiredPredicates": [
+      "replay_verdict=PASS",
+      "engine_digest_match=true",
+      "verifier_snapshot_match=true"
+    ],
+    "successExitCode": 0,
+    "verdict": "PASS",
+    "verifierSnapshotDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+    "verifierSnapshotMatch": true
+  }
+}

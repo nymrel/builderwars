@@ -1,0 +1,15 @@
+{
+  "boundedRecordCount": 1,
+  "clipId": "clip_b648fd6315dfff17",
+  "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+  "fixtureId": "524ceefbccf792742a3f17115af314343bf800b7c838889f35d6ae4b029f96a6",
+  "kind": "final_accepted_move",
+  "label": "Final accepted move",
+  "rawMoveOmitted": true,
+  "receiptId": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+  "schemaVersion": "agentwars.clip-candidate.v1",
+  "seat": 0,
+  "seqEnd": 26,
+  "seqStart": 26,
+  "sourceClaim": "scripted"
+}

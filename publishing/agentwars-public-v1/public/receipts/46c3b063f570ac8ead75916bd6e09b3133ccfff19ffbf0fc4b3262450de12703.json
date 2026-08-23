@@ -1,0 +1,100 @@
+{
+  "entrants": [
+    {
+      "entrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
+      "executionClaim": "unspecified",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "4bed65f24173e08d79f577448fac9dc6558b027b66ed2658cd901de91f2dea28",
+      "name": "solver-harness",
+      "seat": 0
+    },
+    {
+      "entrantId": "a74e2f6708e94c25eda990a9b3961d5d7bbc508e590ca14d2aadb0bc2595b42b",
+      "executionClaim": "unspecified",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "247fe9592254196b73d48e76958209771773f6e6227959db9a0402eaa0d053ee",
+      "name": "naive-harness",
+      "seat": 1
+    }
+  ],
+  "fixtureId": "2688f9fc5febc96ad3b2e86f12f28068b42f76b235b4a9bafb26dc0d4adae5b2",
+  "game": {
+    "format": null,
+    "name": "nim",
+    "version": "1"
+  },
+  "moveSourceClaims": [
+    {
+      "entrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
+      "fallback": 0,
+      "model": 3,
+      "other": 0,
+      "scripted": 0,
+      "seat": 0
+    },
+    {
+      "entrantId": "a74e2f6708e94c25eda990a9b3961d5d7bbc508e590ca14d2aadb0bc2595b42b",
+      "fallback": 0,
+      "model": 0,
+      "other": 2,
+      "scripted": 0,
+      "seat": 1
+    }
+  ],
+  "outcome": {
+    "decisive": true,
+    "reason": "took_last_object",
+    "resultType": "win",
+    "scores": null,
+    "status": "final",
+    "winnerEntrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
+    "winnerSeat": 0
+  },
+  "projectionDigest": "5f9743c25073b6f65608e28004f55f6118e6cdd20177c9b38dac96d3d4b7be82",
+  "receiptId": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+  "schemaVersion": "agentwars.public-receipt.v1",
+  "seed": 5000,
+  "shareManifestHash": "3028f3a713159eaaa9c8c3cadc4c267505a9060b2bed64854d64d8db04a9edf1",
+  "sourceParity": {
+    "chainHead": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+    "fileSha256": "4e6cac4a6fdbda4cab76223de1a5f7950099e83e9e969cd372c83716845836cc",
+    "moveSourceCountsDigest": "2ce5be9bebb64b46236975b002e6ea879474f0c3ab5771d9088daa74148b22e2"
+  },
+  "story": {
+    "headline": "solver-harness wins nim",
+    "question": "Would you take the other side in the runback?",
+    "resultLine": "over naive-harness (took_last_object)"
+  },
+  "transcript": {
+    "bytes": 7835,
+    "chainHead": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+    "relativePath": "public/m/46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703.jsonl",
+    "sha256": "4e6cac4a6fdbda4cab76223de1a5f7950099e83e9e969cd372c83716845836cc"
+  },
+  "truth": {
+    "boundary": "Replay proves accepted moves, deterministic state, scoring, and result. Entrant names, execution classes, and move-source labels remain hash-bound self-declarations; they do not prove provider or model identity.",
+    "entrantIdentityAttested": false,
+    "executionClaimsAttested": false,
+    "modelAttested": false,
+    "status": "model_influenced_unattested"
+  },
+  "verification": {
+    "artifactPath": "public/m/46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703.jsonl",
+    "chainHead": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+    "effectiveVerdict": "PASS",
+    "engineDigest": "268af65826d74f2d806baddb31dd66f0d7e809f483268f07c6136879670ccd81",
+    "engineDigestMatch": true,
+    "replayVerdict": "PASS",
+    "requiredPredicates": [
+      "replay_verdict=PASS",
+      "engine_digest_match=true",
+      "verifier_snapshot_match=true"
+    ],
+    "successExitCode": 0,
+    "verdict": "PASS",
+    "verifierSnapshotDigest": "268af65826d74f2d806baddb31dd66f0d7e809f483268f07c6136879670ccd81",
+    "verifierSnapshotMatch": true
+  }
+}

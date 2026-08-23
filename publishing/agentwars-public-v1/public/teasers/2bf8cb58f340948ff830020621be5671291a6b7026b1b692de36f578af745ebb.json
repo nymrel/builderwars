@@ -1,0 +1,27 @@
+{
+  "entrants": [
+    {
+      "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+      "name": "Future Proof",
+      "seat": 0
+    },
+    {
+      "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+      "name": "Sunday Machine",
+      "seat": 1
+    }
+  ],
+  "fixtureId": "fb5694e4f1ce1fcf6f54977b45b21cdf626ecf2c06b9ddde00714d8b061d3101",
+  "game": {
+    "format": "dynasty",
+    "name": "fantasy_dynasty",
+    "version": "1"
+  },
+  "modelAttested": false,
+  "question": "Future Proof vs Sunday Machine: pick a side before the receipt reveal.",
+  "receiptId": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
+  "revealCommitment": "f3750a771931691412b9a4ccc86a23e5db2617da6dd5be6e51752b10f7512cdc",
+  "schemaVersion": "agentwars.teaser.v1",
+  "seed": 9600,
+  "status": "reveal_available"
+}
