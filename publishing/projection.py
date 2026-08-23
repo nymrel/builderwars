@@ -215,6 +215,30 @@ def _final_state(records: list[dict[str, Any]]) -> dict[str, Any] | None:
     return states[-1] if states and isinstance(states[-1], dict) else None
 
 
+def ten_fronts_scores(state: dict[str, Any] | None) -> list[int]:
+    """Extract Ten Fronts scores from referee state only, failing closed.
+
+    The result record's prose is never a score source. A Ten Fronts final
+    state must carry exactly two non-negative canonical integers; anything
+    else refuses publication instead of dropping the score.
+    """
+    if not isinstance(state, dict):
+        raise PublicationError("ten fronts receipt has no final referee state")
+    scores = state.get("scores")
+    if (
+        not isinstance(scores, list)
+        or len(scores) != 2
+        or any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in scores
+        )
+    ):
+        raise PublicationError(
+            "ten fronts final state must carry exactly two non-negative integer scores"
+        )
+    return scores
+
+
 def fantasy_scores(state: dict[str, Any] | None) -> list[int] | None:
     if not isinstance(state, dict) or state.get("format") not in (
         "redraft", "dynasty", "qb_surge"
@@ -319,7 +343,12 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     winner = result.get("winner")
     if winner not in (None, 0, 1):
         raise PublicationError("result winner must be seat 0, seat 1, or null")
-    scores = fantasy_scores(_final_state(records))
+    final = _final_state(records)
+    scores = (
+        ten_fronts_scores(final)
+        if game_name == "ten_fronts"
+        else fantasy_scores(final)
+    )
     reason = safe_text(result.get("reason", "verified_result"), 160)
     outcome_status = (
         "void"

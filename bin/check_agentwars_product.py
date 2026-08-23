@@ -19,6 +19,7 @@ from arena.canonical import GENESIS, chain, digest  # noqa: E402
 from arena.match import run_match  # noqa: E402
 from build_share_bundle import build_manifest  # noqa: E402
 from export_site import install_artifact  # noqa: E402
+from publishing import projection as projection_module  # noqa: E402
 from publishing.product import (  # noqa: E402
     RULES_WEEKS,
     _build_integrity,
@@ -33,9 +34,18 @@ from publishing.projection import (  # noqa: E402
     file_sha256,
     project_receipt,
     source_counts_digest,
+    ten_fronts_scores,
 )
 
 PUBLICATION_MANIFEST = os.path.join(ROOT, "docs", "AGENTWARS_PUBLICATION_MANIFEST.v1.json")
+TEN_FRONTS = os.path.join(
+    ROOT,
+    "matches",
+    "agentwars-ten-fronts",
+    "ten_fronts",
+    "7000-0",
+    "e16ac35d43eb3b47.jsonl",
+)
 REFERENCE = os.path.join(
     ROOT,
     "matches",
@@ -230,7 +240,7 @@ def check_allowlist_and_parity():
     dataset, source_manifest, _outputs = build_product(ROOT, PUBLICATION_MANIFEST)
     publication = read_json(PUBLICATION_MANIFEST)
     approved = [row for row in publication["entries"] if row["decision"] == "approved_for_publication"]
-    require(len(dataset["receipts"]) == len(approved) == 7, "only explicitly approved receipts publish")
+    require(len(dataset["receipts"]) == len(approved) == 8, "only explicitly approved receipts publish")
     approved_ids = {row["sourceChainHead"] for row in approved}
     require(set(dataset["publication"]["approvedReceiptIds"]) == approved_ids, "allowlist is sole selector")
     require(dataset["publication"]["verifiedDoesNotImplyPublished"] is True, "verification/publication split")
@@ -526,6 +536,158 @@ def check_public_safety_and_product_mechanics():
     require(sum(row["ties"] for row in title["leaderboard"]) == 0, "void receipt is not a tie")
 
 
+def _rechained_copy(source, destination, mutate):
+    """Copy a transcript, apply one hostile mutation, then repair its hash chain."""
+    with open(source, "r", encoding="utf-8") as handle:
+        records = [json.loads(line) for line in handle]
+    mutate(records)
+    previous = GENESIS
+    for record in records:
+        body = {"kind": record["kind"], "seq": record["seq"], "body": record["body"]}
+        record["prev"] = previous
+        record["hash"] = chain(previous, body)
+        previous = record["hash"]
+    with open(destination, "w", encoding="utf-8", newline="\n") as handle:
+        for record in records:
+            handle.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
+
+
+def check_ten_fronts_score_extractor():
+    require(ten_fronts_scores({"scores": [319, 226]}) == [319, 226], "canonical scores accepted")
+    for hostile in (
+        None,
+        {},
+        {"scores": [319]},
+        {"scores": [319, 226, 1]},
+        {"scores": ["319", "226"]},
+        {"scores": [319.0, 226]},
+        {"scores": [True, 226]},
+        {"scores": [-1, 226]},
+    ):
+        expect_publication_error(lambda hostile=hostile: ten_fronts_scores(hostile),
+                                 "ten fronts")
+
+
+def check_ten_fronts_public_source():
+    publication = read_json(PUBLICATION_MANIFEST)
+    approved = [row for row in publication["entries"]
+                if row["decision"] == "approved_for_publication"]
+    require(len(approved) == 8, "eight explicitly approved receipts after Ten Fronts")
+    entry = next(row for row in publication["entries"] if row["sequence"] == 7)
+    require(entry["titleEligible"] is False, "Ten Fronts reference stays title-ineligible")
+    require(
+        entry["sourcePath"] ==
+        "matches/agentwars-ten-fronts/ten_fronts/7000-0/e16ac35d43eb3b47.jsonl",
+        "exact reviewed Ten Fronts source path",
+    )
+    require(file_sha256(TEN_FRONTS) == entry["sourceFileSha256"], "reviewed source hash exact")
+    require("fallback" in entry["label"] and "not model-played" in entry["label"],
+            "label must state deterministic-fallback provenance")
+
+    dataset, source_manifest, outputs = build_product(ROOT, PUBLICATION_MANIFEST)
+    receipt = next(row for row in dataset["receipts"]
+                   if row["receiptId"] == entry["sourceChainHead"])
+    require(receipt["game"]["name"] == "ten_fronts", "projected game name")
+    require(receipt["outcome"]["scores"] == [319, 226], "seat-order referee scores reproduce")
+    require(receipt["outcome"]["winnerSeat"] == 0, "referee winner seat retained")
+    require(receipt["story"]["headline"] == "Stub Iron Front wins ten fronts",
+            "public headline is state-derived")
+    require(receipt["story"]["resultLine"] == "319-226 over Stub Even Reserve",
+            "public result line is state-derived")
+    require(receipt["story"]["question"] == "Would you take the other side in the runback?",
+            "honest runback question")
+    counts = {row["seat"]: row for row in receipt["moveSourceClaims"]}
+    require(all(counts[seat]["fallback"] == 40 for seat in (0, 1)), "per-seat fallbacks 40/40")
+    require(all(
+        counts[seat][key] == 0
+        for seat in (0, 1)
+        for key in ("model", "scripted", "other")
+    ), "no model, scripted, or other move-source claims")
+    truth = receipt["truth"]
+    require(truth["status"] == "scripted_preseason", "scripted preseason truth status")
+    require(truth["modelAttested"] is False, "model attestation stays false")
+    require(truth["executionClaimsAttested"] is False, "execution claims stay unattested")
+    require(truth["entrantIdentityAttested"] is False, "entrant identity stays self-declared")
+    rendered_receipt = json.dumps(receipt, sort_keys=True)
+    for fragment in ("stub:v1", "stub:v2", "response_sha256", "invalid_model_output"):
+        require(fragment not in rendered_receipt, f"public receipt leaked raw value {fragment!r}")
+
+    teaser = next(row for row in dataset["teasers"] if row["receiptId"] == receipt["receiptId"])
+    teaser_keys = {key.casefold() for key, _value in _walk(teaser)}
+    require(not any(word in key
+                    for key in teaser_keys
+                    for word in ("result", "winner", "score", "margin")),
+            "Ten Fronts teaser omits reveal fields")
+    clip = next(row for row in dataset["clips"] if row["receiptId"] == receipt["receiptId"])
+    require(clip["kind"] == "final_accepted_move", "bounded final-move clip contract")
+    require(clip["boundedRecordCount"] == 1 and clip["rawMoveOmitted"] is True,
+            "clip stays one bounded record without the raw move")
+    played = {row["receiptId"]: row for row in dataset["interactionManifest"]["playedArtifacts"]}
+    evidence = played[receipt["receiptId"]]
+    require(evidence["fixtureStatus"] == "played", "played interaction tuple present")
+    require(evidence["publicationEvidence"]["sourceFileSha256"] == entry["sourceFileSha256"],
+            "interaction file parity for Ten Fronts")
+    require(evidence["publicationEvidence"]["sourceCountsDigest"] ==
+            source_counts_digest(receipt["moveSourceClaims"]), "interaction count parity")
+    parity_row = next(row for row in source_manifest["entries"]
+                      if row["receiptId"] == receipt["receiptId"])
+    require(parity_row["sourceChainHead"] == entry["sourceChainHead"], "chain-head parity")
+    require(parity_row["sourceFileSha256"] == entry["sourceFileSha256"], "file-hash parity")
+    require(parity_row["sourceCounts"]["fallback"] == 80, "aggregate fallback count parity")
+
+    rivalry = next(row for row in dataset["rivalries"] if row["competition"] == "ten_fronts")
+    require(rivalry["meetingCount"] == 1, "one Ten Fronts meeting forms its own rivalry")
+    require(rivalry["history"][0]["runback"]["status"] == "unplayed_challenge",
+            "Ten Fronts runback stays an unplayed descriptor")
+    require(rivalry["history"][0]["runback"]["seed"] == 7001, "runback seed is parent+1")
+    fantasy_rivalry = next(row for row in dataset["rivalries"]
+                           if row["competition"] == "agentwars-fantasy")
+    require(fantasy_rivalry["meetingCount"] == 6, "six-meeting fantasy rivalry unchanged")
+    require(len(dataset["futureFixtures"]) == 3, "three closed future fixtures unchanged")
+    require(all(row["prediction"]["status"] == "closed_proposed_not_activated"
+                for row in dataset["futureFixtures"]), "predictions remain closed")
+    for title_name in ("redraftCrown", "dynastyThrone"):
+        title = dataset["titles"][title_name]
+        require(title["holderEntrantId"] is not None, f"{title_name} custody unchanged")
+        require(receipt["receiptId"] not in title["basisReceiptIds"],
+                f"{title_name} basis excludes the Ten Fronts reference")
+
+    with tempfile.TemporaryDirectory(prefix="agentwars-ten-fronts-refusal-") as work:
+        bad = os.path.join(work, "malformed-scores.jsonl")
+
+        def break_scores(records):
+            states = [row for row in records if row.get("kind") == "state"]
+            states[-1]["body"]["state"]["scores"] = [319]
+
+        _rechained_copy(TEN_FRONTS, bad, break_scores)
+        try:
+            project_receipt(bad)
+        except PublicationError:
+            pass
+        else:
+            raise AssertionError("malformed Ten Fronts scores must refuse publication")
+
+        original_verifier = projection_module.verify_with_snapshot
+
+        def bypass_replay(path):
+            with open(path, "r", encoding="utf-8") as handle:
+                records = [json.loads(line) for line in handle]
+            return {
+                "effective_verdict": "PASS",
+                "verdict": "PASS",
+                "engine_digest_match": True,
+                "verifier_snapshot_match": True,
+                "engine_digest_recorded": "a" * 64,
+                "chain_head": records[-1]["hash"],
+            }
+
+        projection_module.verify_with_snapshot = bypass_replay
+        try:
+            expect_publication_error(lambda: project_receipt(bad), "exactly two non-negative")
+        finally:
+            projection_module.verify_with_snapshot = original_verifier
+
+
 def main():
     check_match_ids_fail_before_paths()
     check_verifier_exit_contract()
@@ -533,9 +695,11 @@ def main():
     check_allowlist_and_parity()
     check_hostile_paths_no_outside_writes()
     check_duplicate_fixture_distinct_receipts()
+    check_ten_fronts_score_extractor()
+    check_ten_fronts_public_source()
     check_public_safety_and_product_mechanics()
     print("AgentWars public product contracts: PASS")
-    print("7 approved receipts / 3 closed future fixtures / fail-closed replay + publication gates")
+    print("8 approved receipts / 3 closed future fixtures / fail-closed replay + publication gates")
     return 0
 
 

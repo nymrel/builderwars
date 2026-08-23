@@ -24,9 +24,19 @@ from build_share_bundle import (  # noqa: E402
     entrant_rows,
     normalize_base_url,
     source_kind,
+    ten_fronts_scores,
     write_bundle,
 )
 from export_site import summarise  # noqa: E402
+
+TEN_FRONTS = os.path.join(
+    ROOT,
+    "matches",
+    "agentwars-ten-fronts",
+    "ten_fronts",
+    "7000-0",
+    "e16ac35d43eb3b47.jsonl",
+)
 
 
 def require(condition, message):
@@ -280,6 +290,83 @@ def check_url_guard():
         expect_bundle_error(lambda value=value: normalize_base_url(value), "public base URL")
 
 
+def check_ten_fronts_moment_bundle():
+    require(ten_fronts_scores({"scores": [319, 226]}) == [319, 226], "canonical scores accepted")
+    for hostile in (None, {}, {"scores": [319]}, {"scores": [319.0, 1]}, {"scores": [-2, 4]}):
+        expect_bundle_error(lambda hostile=hostile: ten_fronts_scores(hostile), "ten fronts")
+
+    first = build_outputs(TEN_FRONTS)
+    second = build_outputs(TEN_FRONTS)
+    require(first == second, "ten fronts bundle must be deterministic")
+    manifest = json.loads(first["manifest.json"])
+    require(manifest["match"]["game"] == "ten_fronts", "reviewed offline reference game")
+    story = manifest["story"]
+    require(story["headline"] == "Stub Iron Front wins ten fronts", "state-derived headline")
+    require(story["resultLine"] == "319–226 over Stub Even Reserve",
+            "share typography result line with en dash")
+    require(story["scores"] == {"Stub Iron Front": 319, "Stub Even Reserve": 226},
+            "seat-order referee scores in share story")
+    require(story["margin"] == 93, "margin derived from referee state only")
+    require(story["question"] == "Would you run this match back?", "honest runback question")
+    require(manifest["highlight"]["kind"] == "final_accepted_move",
+            "bounded final-accepted-move clip contract remains")
+    require(manifest["highlight"]["clipId"].startswith("clip_"), "bounded moment id")
+    require(manifest["truth"]["status"] == "scripted_preseason", "scripted truth label")
+    require(manifest["truth"]["modelAttested"] is False, "no model attestation")
+    require(manifest["truth"]["executionClaimsAttested"] is False,
+            "execution claims stay unattested")
+    sources = manifest["moveSourceClaims"]
+    require(all(row["fallback"] == 40 and row["model"] == 0
+                for row in sources.values()), "per-seat fallback counts stay 40/40")
+    runback = manifest["rivalry"]["runback"]
+    require(runback["status"] == "unplayed_challenge", "runback is an unplayed challenge")
+    require(runback["seed"] == 7001, "runback seed is deterministic parent+1")
+    require(runback["seats"] == ["Stub Even Reserve", "Stub Iron Front"], "runback swaps seats")
+    require("response_sha256" not in "".join(first.values()),
+            "ten fronts pack must omit response hashes")
+    rendered = json.dumps(manifest, sort_keys=True)
+    for fragment in ("stub:v1", "invalid_model_output"):
+        require(fragment not in rendered, f"share manifest leaked raw value {fragment!r}")
+
+    with tempfile.TemporaryDirectory(prefix="agentwars-share-tenfronts-bytes-") as work:
+        out_a = os.path.join(work, "bundle-a")
+        out_b = os.path.join(work, "bundle-b")
+        write_bundle(TEN_FRONTS, out_a)
+        write_bundle(TEN_FRONTS, out_b)
+        for name in OUTPUT_NAMES:
+            with open(os.path.join(out_a, name), "rb") as handle_a, \
+                    open(os.path.join(out_b, name), "rb") as handle_b:
+                require(handle_a.read() == handle_b.read(),
+                        f"byte-identical {name} across two temp directories")
+
+    with tempfile.TemporaryDirectory(prefix="agentwars-ten-fronts-refusal-") as work:
+        bad = os.path.join(work, "malformed-scores.jsonl")
+
+        def break_scores(records):
+            states = [row for row in records if row.get("kind") == "state"]
+            states[-1]["body"]["state"]["scores"] = [319]
+
+        rewrite_and_rechain_copy(TEN_FRONTS, bad, break_scores)
+        expect_bundle_error(lambda: build_manifest(bad), "refusing unverified")
+
+
+def rewrite_and_rechain_copy(source, destination, mutate):
+    """Copy a transcript to destination, mutate it there, then repair its hash chain."""
+    with open(source, "r", encoding="utf-8") as fh:
+        records = [json.loads(line) for line in fh]
+    mutate(records)
+    previous = GENESIS
+    for record in records:
+        body = {"kind": record["kind"], "seq": record["seq"], "body": record["body"]}
+        record["prev"] = previous
+        record["hash"] = chain(previous, body)
+        previous = record["hash"]
+    with open(destination, "w", encoding="utf-8", newline="\n") as fh:
+        for record in records:
+            fh.write(json.dumps(record, sort_keys=True, separators=(",", ":"),
+                                ensure_ascii=True) + "\n")
+
+
 def main():
     check_source_claims()
     check_bundle_contract()
@@ -289,6 +376,7 @@ def main():
     check_tamper_refusal_has_no_partial_output()
     check_replay_valid_forfeit_bundle()
     check_generic_historical_match()
+    check_ten_fronts_moment_bundle()
     check_url_guard()
     print("AgentWars verified-moment bundle contracts: PASS")
     print("deterministic bundle / provenance parser / hostile escaping / tamper refusal / runback guard")

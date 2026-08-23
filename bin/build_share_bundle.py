@@ -263,6 +263,30 @@ def fantasy_scores(state):
     return metric, scores, by_id, rosters
 
 
+def ten_fronts_scores(state):
+    """Extract Ten Fronts scores from referee state only, failing closed.
+
+    The result record's prose is never a score source. A Ten Fronts final
+    state must carry exactly two non-negative canonical integers; anything
+    else refuses the bundle instead of dropping the score.
+    """
+    if not isinstance(state, dict):
+        raise BundleError("ten fronts receipt has no final referee state")
+    scores = state.get("scores")
+    if (
+        not isinstance(scores, list)
+        or len(scores) != 2
+        or any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in scores
+        )
+    ):
+        raise BundleError(
+            "ten fronts final state must carry exactly two non-negative integer scores"
+        )
+    return scores
+
+
 def select_highlight(records, state, winner):
     terminal = next(
         (record for record in records if record.get("kind") in ("forfeit", "engine_error")),
@@ -367,6 +391,28 @@ def story_details(game, entrants, result, state, highlight):
             "margin": None,
             "question": "Should this matchup be replayed?",
         }
+    if game == "ten_fronts":
+        scores = ten_fronts_scores(state)
+        if winner in (0, 1):
+            return {
+                "headline": f"{winner_name} wins {game.replace('fantasy_', '').replace('_', ' ')}",
+                "resultLine": f"{scores[winner]}–{scores[1 - winner]} over {loser_name}",
+                "winner": winner_name,
+                "loser": loser_name,
+                "scores": {entrants[0]["name"]: scores[0], entrants[1]["name"]: scores[1]},
+                "margin": abs(scores[0] - scores[1]),
+                "question": "Would you run this match back?",
+            }
+        return {
+            "headline": f"{entrants[0]['name']} and {entrants[1]['name']} draw",
+            "resultLine": f"{scores[0]}–{scores[1]}",
+            "winner": None,
+            "loser": None,
+            "scores": {entrants[0]["name"]: scores[0], entrants[1]["name"]: scores[1]},
+            "margin": abs(scores[0] - scores[1]),
+            "question": "Which side would you take in the runback?",
+        }
+
     fantasy = fantasy_scores(state)
     if fantasy is not None:
         _metric, scores, _by_id, _rosters = fantasy

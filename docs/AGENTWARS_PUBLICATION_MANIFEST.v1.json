@@ -105,6 +105,21 @@
       "sourceFileSha256": "c987d082af09a9b9309e78f4a8e3212ba2173b65888f8d5984ba3d6a7fec332f",
       "sourcePath": "matches/agentwars-fantasy/fantasy_qb_surge/9600-1/df155d2a014a7b8b.jsonl",
       "titleEligible": false
+    },
+    {
+      "decision": "approved_for_publication",
+      "label": "Reviewed scripted offline Ten Fronts reference; accepted moves were all deterministic fallbacks, not model-played",
+      "sequence": 7,
+      "sourceChainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+      "sourceCounts": {
+        "fallback": 80,
+        "model": 0,
+        "other": 0,
+        "scripted": 0
+      },
+      "sourceFileSha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4",
+      "sourcePath": "matches/agentwars-ten-fronts/ten_fronts/7000-0/e16ac35d43eb3b47.jsonl",
+      "titleEligible": false
     }
   ],
   "futureFixtures": [

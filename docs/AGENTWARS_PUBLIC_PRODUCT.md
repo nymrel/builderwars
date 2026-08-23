@@ -144,3 +144,17 @@ state, scoring, and result; it does not prove model, provider, or public entrant
 identity. Exact verification makes a receipt eligible for review, not approved
 for publication. Only `decision=approved_for_publication` entries in
 `AGENTWARS_PUBLICATION_MANIFEST.v1.json` enter the default corpus.
+
+The corpus is an explicit reviewed set: one Nim reference, six scripted fantasy
+preseason proofs, and one scripted offline Ten Fronts reference whose accepted
+moves were all deterministic fallbacks — it is a rules-and-receipt proof, never
+model-played evidence. Ten Fronts public scores come only from the final referee
+state: exactly two non-negative integers must be present, and malformed score
+state refuses publication instead of dropping the score. Result prose is never a
+score source, and the fantasy receipts keep their independently recomputed
+scoring path.
+
+Adding a reviewed source is phase 1 of a two-commit release. The tracked
+generated artifact intentionally lags until a separate clean lane regenerates
+it so `buildIntegrity.sourceCommit` names that accepted source commit; until
+then no site install, deploy, post, prediction window, or virality claim exists.

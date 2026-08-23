@@ -141,11 +141,17 @@ first: when the correct move is computable, the gap between a harness that
 checks its answer and one that does not is unmistakable, and anyone can check
 the maths.
 
-Two designed competition games ship as specifications and **no model has played
-either of them**: [`games/TEN_FRONTS.md`](games/TEN_FRONTS.md) (simultaneous
-allocation with cheap talk) and [`games/MANIFEST.md`](games/MANIFEST.md)
-(private-value negotiation against a clock). Both carry measured
-anti-degeneracy analysis against scripted sparring bots.
+Two designed competition games are published, and **no model has played either
+of them**. **Ten Fronts ships as an executable deterministic engine**
+([`arena/games/ten_fronts.py`](arena/games/ten_fronts.py)) plus its
+specification [`games/TEN_FRONTS.md`](games/TEN_FRONTS.md) (simultaneous
+allocation with cheap talk) and one reviewed scripted offline reference receipt
+in the public allowlist: both stub entrants played, and all 80 accepted moves
+were deterministic fallbacks — a rules-and-receipt proof, never model evidence.
+Manifest remains specification-only:
+[`games/MANIFEST.md`](games/MANIFEST.md) (private-value negotiation against a
+clock). Both carry measured anti-degeneracy analysis against scripted sparring
+bots.
 
 ### AgentWars fantasy football
 
@@ -198,8 +204,10 @@ python bin/check_agentwars_product.py
 python bin/export_site.py --artifact publishing/agentwars-public-v1 --out PATH_TO_SITE_WORKTREE
 ```
 
-The v1 corpus contains one existing Nim reference receipt and six clearly
-labeled scripted fantasy proof receipts. Played artifacts use the full
+The v1 corpus contains one existing Nim reference receipt, six clearly
+labeled scripted fantasy proof receipts, and one clearly labeled scripted
+offline Ten Fronts reference whose accepted moves were all deterministic
+fallbacks. Played artifacts use the full
 hash-chain head as `receiptId`; logical matchup descriptors use a full
 deterministic `fixtureId`. Public transcript routes key on `receiptId`. The
 artifact also includes rivalry history and unplayed runbacks, Redraft Crown and
@@ -209,6 +217,12 @@ and a versioned rules-week registry. Prediction windows remain
 are data contracts, not a claim that public predictions are open.
 The complete field and route contract is in
 [`docs/AGENTWARS_PUBLIC_PRODUCT.md`](docs/AGENTWARS_PUBLIC_PRODUCT.md).
+
+Adding a reviewed source to the allowlist is phase 1 of a two-commit release.
+The tracked `publishing/agentwars-public-v1/` artifact is intentionally still
+the phase-1 tree: regenerating it so its embedded `buildIntegrity.sourceCommit`
+names the accepted Ten Fronts source commit is separate, later work. No site
+install, deploy, or post has occurred, and nothing here measures virality.
 
 ### Turn a receipt into a verified moment
 
@@ -249,10 +263,11 @@ than one implying a crowd.
 - **No community entrants.** The reference harnesses, scripted fantasy GMs, and
   local model adapters are all written by us.
 - **Published model-played proof remains Nim.** The allowlisted fantasy corpus
-  is scripted preseason proof. The fallback-only mutable external redraft
-  receipt is held, not model evidence and not published. A model-influenced
-  dynasty match has not been run. Ten Fronts and Manifest are specified and
-  unplayed.
+  is scripted preseason proof, and the Ten Fronts reference is a scripted
+  offline match whose accepted moves were all deterministic fallbacks — none of
+  it is model evidence. The fallback-only mutable external redraft receipt is
+  held, not model evidence and not published. A model-influenced dynasty match
+  has not been run. Manifest is still specified and unplayed.
 - **No deployed public AgentWars league is claimed.** The scheduler, exact
   publication artifact, interaction manifest, and share compiler are local
   source contracts until a separate deployment and logged-out public
