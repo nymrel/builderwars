@@ -29,6 +29,7 @@ import json
 import os
 import random
 import re
+import shutil
 import subprocess
 
 
@@ -138,6 +139,74 @@ class CliBackend(Backend):
         return proc.stdout.decode("utf-8", "replace")
 
 
+class OpenCodeBackend(Backend):
+    """Use an already-authorized OpenCode model and return only its text event.
+
+    JSON event mode keeps OpenCode's transport envelope out of the fantasy
+    parser. Tool permissions remain a responsibility of the entrant manifest's
+    process-local ``OPENCODE_CONFIG_CONTENT`` policy.
+    """
+
+    kind = "opencode"
+
+    def __init__(self, model, variant="max", timeout_s=300):
+        if not model or any(char.isspace() for char in model):
+            raise ValueError("opencode backend needs one provider/model identifier")
+        if not variant or any(char.isspace() for char in variant):
+            raise ValueError("opencode variant must be one token")
+        self.model = model
+        self.variant = variant
+        self.timeout_s = timeout_s
+        self.label = f"opencode:{model}@{variant}"
+
+    def complete(self, prompt: str) -> str:
+        executable = shutil.which("opencode")
+        if executable is None:
+            raise FileNotFoundError("opencode is not available on PATH")
+        command = [
+            executable,
+            "run",
+            "-m",
+            self.model,
+            "--variant",
+            self.variant,
+            "--format",
+            "json",
+            "--agent",
+            "agentwars-entrant",
+            "--pure",
+        ]
+        proc = subprocess.run(
+            command,
+            input=prompt.encode("utf-8"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=self.timeout_s,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"{self.label} exited {proc.returncode}: "
+                f"{proc.stderr.decode('utf-8', 'replace')[:400]}"
+            )
+        texts = []
+        for line in proc.stdout.decode("utf-8", "replace").splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            part = event.get("part") if isinstance(event, dict) else None
+            if (
+                isinstance(event, dict)
+                and event.get("type") == "text"
+                and isinstance(part, dict)
+                and isinstance(part.get("text"), str)
+            ):
+                texts.append(part["text"])
+        if not texts:
+            raise RuntimeError(f"{self.label} returned no assistant text event")
+        return texts[-1].strip()
+
+
 # --------------------------------------------------------------------------
 # api — the entrant's own key, from the entrant's own environment
 # --------------------------------------------------------------------------
@@ -187,7 +256,7 @@ class ApiBackend(Backend):
 
 
 def get_backend(spec, timeout_s=None):
-    """Parse a backend spec string: 'stub:v1', 'cli:claude -p', 'api:ANTHROPIC_API_KEY'."""
+    """Parse a backend spec string used wholly inside an entrant process."""
     kind, _, rest = spec.partition(":")
     if kind == "stub":
         return StubBackend(rest or "v1")
@@ -199,4 +268,23 @@ def get_backend(spec, timeout_s=None):
         if not rest:
             raise ValueError("api backend needs an env var name, e.g. api:ANTHROPIC_API_KEY")
         return ApiBackend(rest)
-    raise ValueError(f"unknown backend {spec!r}; use stub:, cli: or api:")
+    if kind == "opencode":
+        if not rest:
+            raise ValueError("opencode backend needs provider/model, optionally followed by @variant")
+        model, separator, variant = rest.partition("@")
+        return OpenCodeBackend(model, variant or "max", timeout_s or 300)
+    raise ValueError(f"unknown backend {spec!r}; use stub:, cli:, api:, or opencode:")
+
+
+def execution_claim_for_backend(spec):
+    """Map a backend declaration to the execution claim bound into a receipt."""
+    if not isinstance(spec, str):
+        raise ValueError("backend spec must be a string")
+    kind, separator, _ = spec.partition(":")
+    if not separator:
+        raise ValueError("backend spec must include a kind prefix")
+    if kind == "stub":
+        return "scripted"
+    if kind in ("cli", "api", "opencode"):
+        return "model"
+    raise ValueError(f"unknown backend kind {kind!r}")

@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from arena.match import run_match  # noqa: E402
+from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 
 def manifest(script, backend, claimed_model=None):
@@ -20,6 +21,7 @@ def manifest(script, backend, claimed_model=None):
         # An entrant's own statement about what is behind it. Recorded as a
         # claim, never verified — the engine has no way to witness a model.
         "claimed_model": claimed_model or backend,
+        "execution_claim": execution_claim_for_backend(backend),
     }
 
 
