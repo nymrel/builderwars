@@ -50,7 +50,7 @@ def play_state(game, strategy):
 
 def main():
     hostile = [None, True, 4, "4", [], {}, {"player_id": True}, {"player_id": "1"}, {"x": 1}]
-    for name in ("fantasy_redraft", "fantasy_dynasty"):
+    for name in ("fantasy_redraft", "fantasy_dynasty", "fantasy_qb_surge"):
         game = load(name)
         for seed in range(25):
             state = game.setup(random.Random(seed))
@@ -68,7 +68,7 @@ def main():
     entrants = [manifest("Sunday Machine", "win-now"), manifest("Future Proof", "long-game")]
     with tempfile.TemporaryDirectory(prefix="agentwars-fantasy-check-") as out:
         outcomes = {}
-        for game_name in ("fantasy_redraft", "fantasy_dynasty"):
+        for game_name in ("fantasy_redraft", "fantasy_dynasty", "fantasy_qb_surge"):
             winners = []
             first_chain = None
             for order in (0, 1):
@@ -88,6 +88,14 @@ def main():
                     require(repeated["chain_head"] == first_chain, f"{game_name} must be byte-deterministic")
             outcomes[game_name] = winners
         require(outcomes["fantasy_redraft"] != outcomes["fantasy_dynasty"], "formats must reward different strategy windows")
+        surge = load("fantasy_qb_surge")
+        surge_state = play_state(surge, "win-now")
+        by_id = {row["id"]: row for row in surge_state["players"]}
+        for seat, roster in enumerate(surge_state["rosters"]):
+            base = sum(by_id[player_id]["redraft_points"] for player_id in roster)
+            qb = sum(by_id[player_id]["redraft_points"] for player_id in roster if by_id[player_id]["position"] == "QB")
+            require(surge.roster_score(surge_state, seat) == base + qb,
+                    "QB Surge must count the roster quarterback exactly twice")
 
     print("AgentWars fantasy contracts: PASS")
     print(f"strategy split at seed 9100: {outcomes}")

@@ -235,10 +235,23 @@ def main():
     report = verify(path)
     report["verifier_engine_selected"] = selected_digest
     report["verifier_snapshot_match"] = recorded_digest == selected_digest
+    report["replay_verdict"] = report.get("verdict")
+    effective_pass = (
+        report.get("replay_verdict") == "PASS"
+        and report.get("engine_digest_match") is True
+        and report.get("verifier_snapshot_match") is True
+    )
+    report["effective_verdict"] = "PASS" if effective_pass else "FAIL"
+    effective_errors = list(report.get("errors") or [])
+    if report.get("engine_digest_match") is not True:
+        effective_errors.append("effective_verdict: referee engine digest does not match")
+    if report.get("verifier_snapshot_match") is not True:
+        effective_errors.append("effective_verdict: exact embedded verifier snapshot is unavailable")
+    report["effective_errors"] = effective_errors
 
     if args.json:
         print(json.dumps(report, indent=2))
-        return 0 if report["verdict"] == "PASS" else 1
+        return 0 if effective_pass else 1
 
     print(f"match      : {{report.get('match_id')}}  game={{report.get('game')}} seed={{report.get('seed')}}")
     if source_url:
@@ -256,8 +269,9 @@ def main():
         print(f"  recorded   : {{json.dumps(report['recorded'])}}")
         print(f"  recomputed : {{json.dumps(report['recomputed'])}}")
         print()
-    print(f"VERDICT: {{report['verdict']}}")
-    if report["verdict"] == "PASS":
+    print(f"REPLAY VERDICT: {{report['replay_verdict']}}")
+    print(f"VERDICT: {{report['effective_verdict']}}")
+    if effective_pass:
         print("\\nthis proves:")
         for p in report["proves"]:
             print(f"  + {{p}}")
@@ -265,9 +279,9 @@ def main():
         for p in report["does_not_prove"]:
             print(f"  - {{p}}")
     else:
-        for e in report["errors"]:
+        for e in report["effective_errors"]:
             print(f"  ! {{e}}")
-    return 0 if report["verdict"] == "PASS" else 1
+    return 0 if effective_pass else 1
 
 
 if __name__ == "__main__":
@@ -347,8 +361,10 @@ def check():
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         try:
-            solo = json.loads(proc.stdout.decode("utf-8", "replace"))["verdict"]
+            solo_report = json.loads(proc.stdout.decode("utf-8", "replace"))
+            solo = solo_report["replay_verdict"]
         except Exception:
+            solo_report = {}
             solo = f"CRASH({proc.stderr.decode('utf-8', 'replace')[:120]})"
         try:
             with open(t, "r", encoding="utf-8") as fh:
@@ -361,10 +377,18 @@ def check():
             expected = verdict_with_sources(preserved[recorded_digest], t)
         else:
             expected = verify(t)["verdict"]
-        agree = expected == solo
+        expected_exit = 0 if (
+            expected == "PASS"
+            and solo_report.get("engine_digest_match") is True
+            and solo_report.get("verifier_snapshot_match") is True
+        ) else 1
+        agree = expected == solo and proc.returncode == expected_exit
         if not agree:
             bad += 1
-            print(f"  MISMATCH {os.path.basename(t)}: expected={expected} single-file={solo}")
+            print(
+                f"  MISMATCH {os.path.basename(t)}: expected={expected}/exit{expected_exit} "
+                f"single-file={solo}/exit{proc.returncode}"
+            )
 
     print(f"\nconformance: {len(transcripts) - bad}/{len(transcripts)} transcripts agree "
           f"(package verifier vs single-file verifier)")

@@ -24,6 +24,7 @@ sys.path.insert(0, ROOT)
 
 from arena.canonical import digest  # noqa: E402
 from arena.transcript import load  # noqa: E402
+from publishing.projection import PublicationError, project_receipt  # noqa: E402
 
 BUNDLE_VERSION = "1"
 SOURCE_LABEL = "agentwars_share_bundle"
@@ -149,8 +150,14 @@ def verify_with_snapshot(transcript_path):
         raise BundleError("standalone verifier returned an invalid report") from error
     if not isinstance(report, dict):
         raise BundleError("standalone verifier returned an invalid report")
-    if completed.returncode != 0 and report.get("verdict") == "PASS":
-        raise BundleError("standalone verifier exit status disagrees with its report")
+    effective_pass = (
+        report.get("verdict") == "PASS"
+        and report.get("engine_digest_match") is True
+        and report.get("verifier_snapshot_match") is True
+    )
+    expected_exit = 0 if effective_pass else 1
+    if completed.returncode != expected_exit:
+        raise BundleError("standalone verifier exit status disagrees with its effective report")
     return report
 
 
@@ -234,7 +241,7 @@ def final_state(records):
 
 
 def fantasy_scores(state):
-    if not isinstance(state, dict) or state.get("format") not in ("redraft", "dynasty"):
+    if not isinstance(state, dict) or state.get("format") not in ("redraft", "dynasty", "qb_surge"):
         return None
     players = state.get("players")
     rosters = state.get("rosters")
@@ -244,6 +251,13 @@ def fantasy_scores(state):
     by_id = {row.get("id"): row for row in players if isinstance(row, dict)}
     try:
         scores = [sum(by_id[player_id][metric] for player_id in roster) for roster in rosters]
+        if state["format"] == "qb_surge":
+            for seat, roster in enumerate(rosters):
+                scores[seat] += sum(
+                    by_id[player_id]["redraft_points"]
+                    for player_id in roster
+                    if by_id[player_id]["position"] == "QB"
+                )
     except (KeyError, TypeError):
         return None
     return metric, scores, by_id, rosters
@@ -409,6 +423,10 @@ def candidate_url(base_url, match_id, creative_id):
 
 
 def build_manifest(transcript_path, public_base_url=None):
+    try:
+        public_receipt, _public_records = project_receipt(transcript_path)
+    except PublicationError as error:
+        raise BundleError(str(error)) from error
     report = require_exact_verification(verify_with_snapshot(transcript_path))
     try:
         records = load(transcript_path)
@@ -417,6 +435,11 @@ def build_manifest(transcript_path, public_base_url=None):
     header = find_required(records, "header")["body"]
     result = find_required(records, "result")["body"]
     entrants = entrant_rows(header)
+    public_by_seat = {row["seat"]: row for row in public_receipt["entrants"]}
+    for entrant in entrants:
+        public = public_by_seat[entrant["seat"]]
+        entrant["entrantId"] = public["entrantId"]
+        entrant["harnessVersionId"] = public["harnessVersionId"]
     sources = move_source_counts(records, entrants)
     state = final_state(records)
     winner = result.get("winner")
@@ -426,15 +449,14 @@ def build_manifest(transcript_path, public_base_url=None):
     match_id = header.get("match_id")
     if not isinstance(match_id, str) or MATCH_ID_RE.fullmatch(match_id) is None:
         raise BundleError("match id is not safe for a share route")
-    clip_seed = f"{BUNDLE_VERSION}\x1f{match_id}\x1f{highlight['seqStart']}\x1f{highlight['recordHash']}"
+    receipt_id = public_receipt["receiptId"]
+    fixture_id = public_receipt["fixtureId"]
+    clip_seed = f"{BUNDLE_VERSION}\x1f{receipt_id}\x1f{highlight['seqStart']}\x1f{highlight['recordHash']}"
     clip_id = "clip_" + hashlib.sha256(clip_seed.encode("utf-8")).hexdigest()[:16]
     highlight["clipId"] = clip_id
     creative_id = "moment_" + digest({"campaign": CAMPAIGN_ID, "clipId": clip_id})[:16]
-    manifest_digests = sorted(
-        entrant.get("manifestDigest") or digest({"legacyEntrantName": entrant["name"]})
-        for entrant in entrants
-    )
-    rivalry_id = "rivalry_" + digest({"game": game, "entrants": manifest_digests})[:16]
+    entrant_ids = sorted(entrant["entrantId"] for entrant in entrants)
+    rivalry_id = "rivalry_" + digest({"game": game, "entrants": entrant_ids})[:16]
     parent_seed = header.get("seed")
     if (
         not isinstance(parent_seed, int)
@@ -446,6 +468,8 @@ def build_manifest(transcript_path, public_base_url=None):
     runback_seed = parent_seed + 1
     challenge_core = {
         "parentMatchId": match_id,
+        "parentReceiptId": receipt_id,
+        "parentFixtureId": fixture_id,
         "parentChainHead": report.get("chain_head") or records[-1].get("hash"),
         "game": game,
         "seed": runback_seed,
@@ -460,6 +484,8 @@ def build_manifest(transcript_path, public_base_url=None):
         "activationStatus": "candidate_url_unverified" if base_url else "local_preview_only",
         "match": {
             "id": match_id,
+            "receiptId": receipt_id,
+            "fixtureId": fixture_id,
             "game": game,
             "seed": header.get("seed"),
             "chainHead": report.get("chain_head") or records[-1].get("hash"),
@@ -493,7 +519,7 @@ def build_manifest(transcript_path, public_base_url=None):
         },
         "verification": {
             "localCommandTemplate": "python verify.py PATH_TO_TRANSCRIPT.jsonl",
-            "candidatePublicCommand": f"python verify.py {match_id}",
+            "candidatePublicCommand": f"python verify.py {receipt_id}",
             "verdict": "PASS",
             "engineDigestMatch": report.get("engine_digest_match"),
             "publicTranscriptStatus": "candidate_until_published" if base_url else "not_configured",
@@ -502,7 +528,7 @@ def build_manifest(transcript_path, public_base_url=None):
             "sourceLabel": SOURCE_LABEL,
             "campaignId": CAMPAIGN_ID,
             "creativeId": creative_id,
-            "candidateUrl": candidate_url(base_url, match_id, creative_id),
+            "candidateUrl": candidate_url(base_url, receipt_id, creative_id),
             "urlProof": "unverified_candidate" if base_url else "not_configured",
             "performanceMeasured": False,
         },
@@ -718,6 +744,8 @@ def main():
         "status": "PASS",
         "out": os.path.abspath(args.out),
         "matchId": manifest["match"]["id"],
+        "receiptId": manifest["match"]["receiptId"],
+        "fixtureId": manifest["match"]["fixtureId"],
         "creativeId": manifest["campaign"]["creativeId"],
         "truthStatus": manifest["truth"]["status"],
         "activationStatus": manifest["activationStatus"],

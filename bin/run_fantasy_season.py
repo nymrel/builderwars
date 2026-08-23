@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the first two AgentWars fantasy circuits and export honest receipts."""
+"""Run the bounded AgentWars fantasy circuits and export honest receipts."""
 
 import argparse
 import json
@@ -28,9 +28,17 @@ def manifest(name, strategy):
 def final_scores(path):
     records = load(path)
     state = [r["body"]["state"] for r in records if r["kind"] == "state"][-1]
-    key = "redraft_points" if state["format"] == "redraft" else "dynasty_points"
     by_id = {p["id"]: p for p in state["players"]}
-    return [sum(by_id[player_id][key] for player_id in roster) for roster in state["rosters"]]
+    key = "dynasty_points" if state["format"] == "dynasty" else "redraft_points"
+    scores = [sum(by_id[player_id][key] for player_id in roster) for roster in state["rosters"]]
+    if state["format"] == "qb_surge":
+        for seat, roster in enumerate(state["rosters"]):
+            scores[seat] += sum(
+                by_id[player_id]["redraft_points"]
+                for player_id in roster
+                if by_id[player_id]["position"] == "QB"
+            )
+    return scores
 
 
 def run_circuit(game, seeds, start_seed, out_dir, entrants):
@@ -81,7 +89,7 @@ def run_circuit(game, seeds, start_seed, out_dir, entrants):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run redraft and dynasty AgentWars preseason circuits.")
+    parser = argparse.ArgumentParser(description="Run replay-verified AgentWars fantasy proof circuits.")
     parser.add_argument("--seeds", type=int, default=4)
     parser.add_argument("--start-seed", type=int, default=9100)
     parser.add_argument("--out", required=True, help="directory for transcripts")
@@ -97,6 +105,7 @@ def main():
     circuits = [
         run_circuit("fantasy_redraft", args.seeds, args.start_seed, args.out, entrants),
         run_circuit("fantasy_dynasty", args.seeds, args.start_seed, args.out, entrants),
+        run_circuit("fantasy_qb_surge", args.seeds, args.start_seed, args.out, entrants),
     ]
     summary = {
         "product": "AgentWars fantasy football",

@@ -14,7 +14,9 @@ verified match
   -> league join
 ```
 
-Only the first two steps exist locally in Phase 3. The rest are gates, not shipped claims.
+The receipt, rivalry, title, clip-candidate, teaser, and closed future-fixture
+contracts now exist in the local v1 artifact. Tagged public views, persisted
+predictions, audience, and propagation remain gates, not shipped claims.
 
 ## Concept portfolio
 
@@ -45,7 +47,11 @@ The public derivative omits exact claimed-model strings along with prompts, resp
 
 Fantasy highlights are the highest-scoring pick on the winning roster. That is an observable fact, so the card says exactly that. It does not call the pick causal or “the winning move.” Other completed games use the final accepted move. A forfeit or engine-error receipt uses the terminal adjudication instead, so an empty roster or voided match never becomes an invented performance highlight.
 
-The rivalry id uses the game plus sorted entrant manifest digests. The runback uses the next bounded seed and swaps seats. It remains a proposed challenge even if a card is generated a thousand times.
+The rivalry id uses the competition plus sorted stable entrant ids; exact
+manifest digests remain on each entrant receipt without fragmenting the rivalry
+when a harness path changes. The runback uses the next bounded seed and swaps
+seats. It remains a proposed challenge even if a card is generated a thousand
+times.
 
 ## Content series
 
@@ -63,11 +69,12 @@ The result reveal is a second asset, not part of the opening post. One match, on
 
 ### 2. Receipt rivalry
 
-> Sunday Machine beat Future Proof 1746–1537 in redraft.
+> Sunday Machine beat Future Proof 1766–1507 in the scripted redraft reference.
 >
-> Entrant notes label 7 of 12 accepted picks model-sourced. Five used deterministic fallback. Model identity was not independently attested.
+> All 12 accepted picks in this reference receipt are labeled scripted. No
+> model or provider identity is claimed.
 >
-> The replay verifies. The runback swaps seats at seed 9301 and remains unplayed.
+> The replay verifies. The runback swaps seats at seed 9601 and remains unplayed.
 
 ### 3. Beautiful loss
 
@@ -96,9 +103,12 @@ Do not open AW-1 until all of these pass:
 1. Independent Phase 2/3 review is approved.
 2. The public match route returns the receipt-bound page while signed out.
 3. Every event enum accepts only its allowlisted fields and rejects arbitrary values.
-4. A redacted non-customer receipt proves `source_label`, `campaign_id`, and `creative_id` persist into a durable counter.
-5. Jalen approves the exact copy, account, tagged URL, and manual post.
-6. The provider post receipt exists; a draft or schedule is not publication proof.
+4. A zero/baseline probe proves the allowlisted counter exists before traffic;
+   no baseline means AW-1 remains proposed and closed.
+5. A redacted non-customer receipt proves `source_label`, `campaign_id`, and
+   `creative_id` persist into that durable counter.
+6. Jalen approves the exact copy, account, tagged URL, and manual post.
+7. The provider post receipt exists; a draft or schedule is not publication proof.
 
 ## Measurement contract
 
@@ -113,7 +123,13 @@ spectator_vote_cast
 league_join_clicked
 ```
 
-Allowed identity is bounded to match id, clip id, source label, campaign id, creative id, and fixed enums. Share method accepts only `native`, `copy`, or `download`; spectator vote accepts only `seat0`, `seat1`, or `runback`; verifier verdict accepts only `PASS` or `FAIL`; surface accepts only `receipt_card`, `share_landing`, or `match_page`. Never record raw URLs, query strings, user ids, IPs, user agents, prompts, model output, environment values, or credentials.
+Allowed identity is bounded to receipt id, fixture id, clip id, source label,
+campaign id, creative id, rules version, and fixed enums. Share method accepts
+only `native`, `copy`, or `download`; spectator choice accepts only `seat0`,
+`seat1`, or `runback`; verifier verdict accepts only `PASS` or `FAIL`; surface
+accepts only `receipt_card`, `share_landing`, or `match_page`. Never record raw
+URLs, query strings, user ids, IPs, user agents, prompts, model output,
+environment values, or credentials.
 
 Tagged URL retention proves transport only. It does not prove event persistence, audience, sharing, replay completion, conversion, revenue, or virality.
 

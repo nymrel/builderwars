@@ -19,7 +19,7 @@ from arena.match import run_match, validate_manifest  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.transcript import load  # noqa: E402
 
-FORMATS = ("fantasy_redraft", "fantasy_dynasty")
+FORMATS = ("fantasy_redraft", "fantasy_dynasty", "fantasy_qb_surge")
 TOP_LEVEL_KEYS = frozenset({"league", "description", "entrants"})
 
 
@@ -71,9 +71,17 @@ def load_config(path):
 def final_scores(path):
     records = load(path)
     state = [record["body"]["state"] for record in records if record["kind"] == "state"][-1]
-    key = "redraft_points" if state["format"] == "redraft" else "dynasty_points"
     by_id = {player["id"]: player for player in state["players"]}
-    return [sum(by_id[player_id][key] for player_id in roster) for roster in state["rosters"]]
+    key = "dynasty_points" if state["format"] == "dynasty" else "redraft_points"
+    scores = [sum(by_id[player_id][key] for player_id in roster) for roster in state["rosters"]]
+    if state["format"] == "qb_surge":
+        for seat, roster in enumerate(state["rosters"]):
+            scores[seat] += sum(
+                by_id[player_id]["redraft_points"]
+                for player_id in roster
+                if by_id[player_id]["position"] == "QB"
+            )
+    return scores
 
 
 def move_source_counts(path, pair):

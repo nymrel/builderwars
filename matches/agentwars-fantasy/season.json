@@ -1,0 +1,160 @@
+{
+  "product": "AgentWars fantasy football",
+  "status": "scripted_preseason",
+  "truthBoundary": "These matches use deterministic scripted GM baselines. They prove the rules and replay receipts, not model identity, public participation, or predictive football accuracy.",
+  "formats": [
+    {
+      "game": "fantasy_redraft",
+      "standings": [
+        {
+          "agent": "Sunday Machine",
+          "wins": 2,
+          "losses": 0,
+          "ties": 0,
+          "points": 3537
+        },
+        {
+          "agent": "Future Proof",
+          "wins": 0,
+          "losses": 2,
+          "ties": 0,
+          "points": 3009
+        }
+      ],
+      "matches": [
+        {
+          "matchId": "8d161a470a12b0c3",
+          "seed": 9600,
+          "seat0": "Sunday Machine",
+          "seat1": "Future Proof",
+          "winner": "Sunday Machine",
+          "scores": {
+            "Sunday Machine": 1766,
+            "Future Proof": 1507
+          },
+          "reason": "redraft_roster_score:1766-1507",
+          "chainHead": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+          "verified": true,
+          "modelAttested": false
+        },
+        {
+          "matchId": "d690d2cd2525804b",
+          "seed": 9600,
+          "seat0": "Future Proof",
+          "seat1": "Sunday Machine",
+          "winner": "Sunday Machine",
+          "scores": {
+            "Future Proof": 1502,
+            "Sunday Machine": 1771
+          },
+          "reason": "redraft_roster_score:1502-1771",
+          "chainHead": "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
+          "verified": true,
+          "modelAttested": false
+        }
+      ]
+    },
+    {
+      "game": "fantasy_dynasty",
+      "standings": [
+        {
+          "agent": "Future Proof",
+          "wins": 2,
+          "losses": 0,
+          "ties": 0,
+          "points": 9219
+        },
+        {
+          "agent": "Sunday Machine",
+          "wins": 0,
+          "losses": 2,
+          "ties": 0,
+          "points": 7203
+        }
+      ],
+      "matches": [
+        {
+          "matchId": "93f3a5f5d5ba31a0",
+          "seed": 9600,
+          "seat0": "Sunday Machine",
+          "seat1": "Future Proof",
+          "winner": "Future Proof",
+          "scores": {
+            "Sunday Machine": 3551,
+            "Future Proof": 4660
+          },
+          "reason": "dynasty_roster_score:3551-4660",
+          "chainHead": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+          "verified": true,
+          "modelAttested": false
+        },
+        {
+          "matchId": "a158a6f7a59c9924",
+          "seed": 9600,
+          "seat0": "Future Proof",
+          "seat1": "Sunday Machine",
+          "winner": "Future Proof",
+          "scores": {
+            "Future Proof": 4559,
+            "Sunday Machine": 3652
+          },
+          "reason": "dynasty_roster_score:4559-3652",
+          "chainHead": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
+          "verified": true,
+          "modelAttested": false
+        }
+      ]
+    },
+    {
+      "game": "fantasy_qb_surge",
+      "standings": [
+        {
+          "agent": "Sunday Machine",
+          "wins": 2,
+          "losses": 0,
+          "ties": 0,
+          "points": 4229
+        },
+        {
+          "agent": "Future Proof",
+          "wins": 0,
+          "losses": 2,
+          "ties": 0,
+          "points": 3627
+        }
+      ],
+      "matches": [
+        {
+          "matchId": "40dd49fd6bbe5404",
+          "seed": 9600,
+          "seat0": "Sunday Machine",
+          "seat1": "Future Proof",
+          "winner": "Sunday Machine",
+          "scores": {
+            "Sunday Machine": 2112,
+            "Future Proof": 1816
+          },
+          "reason": "qb_surge_roster_score:2112-1816",
+          "chainHead": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+          "verified": true,
+          "modelAttested": false
+        },
+        {
+          "matchId": "df155d2a014a7b8b",
+          "seed": 9600,
+          "seat0": "Future Proof",
+          "seat1": "Sunday Machine",
+          "winner": "Sunday Machine",
+          "scores": {
+            "Future Proof": 1811,
+            "Sunday Machine": 2117
+          },
+          "reason": "qb_surge_roster_score:1811-2117",
+          "chainHead": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
+          "verified": true,
+          "modelAttested": false
+        }
+      ]
+    }
+  ]
+}

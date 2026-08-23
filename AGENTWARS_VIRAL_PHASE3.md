@@ -29,7 +29,7 @@ The first slice implements the verified-match-to-bundle substrate only. Later fu
 6. Emit tagged candidate URLs only when an explicit HTTP(S) base URL is supplied. Mark them unverified candidates; tagged transport is not attribution persistence or audience evidence.
 7. Define an allowlisted measurement schema for landing, replay, vote, and join events without recording raw URLs or private content.
 8. Repair the existing site exporter so Phase 2 `source=model;response_sha256=...` notes count as model-source claims and execution truth travels with exported rows.
-9. Update README truth: Phase 2 supports 2–16 entrant round robins and has one model-influenced, unattested fantasy redraft receipt; no public league or deployed spectator page is claimed.
+9. Update README truth: Phase 2 supports 2–16 entrant round robins. Any external fantasy receipt remains held until an immutable committed receipt and its derived bundle agree exactly on file digest, chain head, and source counts; no public league or deployed spectator page is claimed.
 
 ## Validation floor
 
@@ -56,7 +56,7 @@ The claimed branch produces deterministic verified-moment bundles from exact-sna
 
 - Implemented a deterministic four-file verified-moment compiler, strict standalone snapshot-verifier gate, fantasy and terminal-adjudication highlights, rivalry/runback receipts, bounded measurement schema, truth-safe draft copy, and responsive static match preview.
 - Repaired the site export seam so exact model/fallback/scripted provenance variants agree across bundles and exported rows, execution claims travel, and receipts without an exact embedded engine snapshot are excluded rather than labeled verified.
-- Live redraft proof `b1c8bb9b29e7050f` compiled to `C:\Users\johns\Desktop\agentwars-runs\phase3-20260823\verified-moment-b1c8bb9b29e7050f-release`: exact engine match, `model_influenced_unattested`, seven model-source claims, five fallbacks, entrant/model identity unattested, and seat-swapped seed-9301 runback still `unplayed_challenge`.
+- **2026-08-23 correction:** external receipt `b1c8bb9b29e7050f` and its older share bundle are held from publication. A later exact acceptance pass found that the current raw receipt is fallback-only with a different chain head, while the older bundle reports seven model-source claims and five fallbacks. The mutable external path was not durable proof. Future inclusion requires one immutable committed receipt plus raw/bundle/export/live parity for transcript digest, chain head, and source counts.
 - Acceptance: share-bundle adversarial contracts PASS; scale contracts PASS with 12 replay-verified deterministic matches; engine self-check 21/21; fantasy contracts PASS; standalone verifier conformance 36/36; `git diff --check` clean. Browser review rendered the 1200×630 card and responsive match page successfully; the only console entry was the temporary preview server's missing favicon.
-- Independent read-only acceptance review: PASS with no blocking findings. Its end-to-end exporter check emitted 34 exact-engine matches and excluded two invalid or missing-proof receipts.
+- The original independent read-only acceptance passed the then-present artifacts. A later release-level re-review found the external-receipt mismatch above and supersedes that publication conclusion with **HOLD**; engine/compiler checks remain historical implementation evidence, not authorization to publish the stale story.
 - No merge, deployment, public post, account mutation, paid spend, audience claim, or formal growth experiment was opened.

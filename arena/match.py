@@ -32,6 +32,12 @@ from .transcript import TranscriptWriter
 PROTOCOL = "arena/1"
 EXECUTION_CLAIMS = frozenset({"scripted", "model", "hybrid"})
 _ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_MATCH_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
+_WINDOWS_DEVICE_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{number}" for number in range(1, 10)}
+    | {f"LPT{number}" for number in range(1, 10)}
+)
 _MANIFEST_KEYS = frozenset({"name", "cmd", "env", "claimed_model", "execution_claim"})
 
 
@@ -65,6 +71,18 @@ class _Sidecar:
 def match_id_for(game_name, seed, entrant_names):
     """Content-addressed id: same matchup and seed, same id."""
     return digest({"game": game_name, "seed": seed, "entrants": list(entrant_names)})[:16]
+
+
+def validate_match_id(value):
+    """Validate an identifier before it can participate in an output path."""
+    if not isinstance(value, str) or _MATCH_ID.fullmatch(value) is None:
+        raise ValueError(
+            "match_id must be 1-80 ASCII letters, digits, underscores, or hyphens "
+            "and must start with a letter or digit"
+        )
+    if value.upper() in _WINDOWS_DEVICE_NAMES:
+        raise ValueError("match_id must not be a reserved Windows device name")
+    return value
 
 
 def _manifest_digest(manifest):
@@ -128,7 +146,12 @@ def run_match(
         raise ValueError("entrant names must be unique within a match")
 
     game = load_game(game_name)
-    mid = match_id or match_id_for(game_name, seed, [e["name"] for e in entrants])
+    selected_match_id = (
+        match_id_for(game_name, seed, [e["name"] for e in entrants])
+        if match_id is None
+        else match_id
+    )
+    mid = validate_match_id(selected_match_id)
     out_dir = os.path.abspath(out_dir)
     os.makedirs(out_dir, exist_ok=True)
     transcript_path = os.path.join(out_dir, f"{mid}.jsonl")

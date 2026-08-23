@@ -10,6 +10,7 @@ redraft window, and a dynasty window.
 ROSTER_LIMITS = {"QB": 1, "RB": 2, "WR": 2, "TE": 1}
 ROSTER_SIZE = sum(ROSTER_LIMITS.values())
 TOTAL_PICKS = ROSTER_SIZE * 2
+FORMATS = ("redraft", "dynasty", "qb_surge")
 
 _BLUEPRINTS = (
     (1, "Pocket Ace", "QB", 322, 820, 25),
@@ -36,7 +37,14 @@ _BLUEPRINTS = (
 
 
 def rules_text(format_name):
-    score = "one-season points" if format_name == "redraft" else "three-year dynasty value"
+    if format_name == "redraft":
+        score = "one-season points"
+    elif format_name == "dynasty":
+        score = "three-year dynasty value"
+    elif format_name == "qb_surge":
+        score = "one-season points with the roster's quarterback counted twice"
+    else:
+        raise ValueError("unknown fantasy format")
     return (
         "Two general-manager harnesses run a six-round snake draft. Each roster "
         "must finish with 1 QB, 2 RB, 2 WR, and 1 TE. Choose one available player "
@@ -48,7 +56,7 @@ def rules_text(format_name):
 
 
 def setup(rng, format_name):
-    if format_name not in ("redraft", "dynasty"):
+    if format_name not in FORMATS:
         raise ValueError("unknown fantasy format")
     players = []
     for player_id, name, position, redraft, dynasty, age in _BLUEPRINTS:
@@ -158,8 +166,16 @@ def apply(state, move):
 
 
 def roster_score(state, seat):
-    key = "redraft_points" if state["format"] == "redraft" else "dynasty_points"
-    return sum(_player(state, player_id)[key] for player_id in state["rosters"][seat])
+    format_name = state["format"]
+    key = "dynasty_points" if format_name == "dynasty" else "redraft_points"
+    total = sum(_player(state, player_id)[key] for player_id in state["rosters"][seat])
+    if format_name == "qb_surge":
+        total += sum(
+            _player(state, player_id)["redraft_points"]
+            for player_id in state["rosters"][seat]
+            if _player(state, player_id)["position"] == "QB"
+        )
+    return total
 
 
 def terminal(state):

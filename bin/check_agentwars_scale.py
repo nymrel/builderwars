@@ -165,8 +165,8 @@ def check_league():
         require(first_bytes == second_bytes, "deterministic entrants must reproduce league summary bytes")
         require(first["status"] == "scripted_preseason", "scripted fixture truth label")
         matches = [match for circuit in first["formats"] for match in circuit["matches"]]
-        require(len(matches) == 12, "3 entrants x 3 pairs x 2 seats x 2 formats")
-        require([match["sequence"] for match in matches] == list(range(12)), "schedule order must be stable")
+        require(len(matches) == 18, "3 entrants x 3 pairs x 2 seats x 3 formats")
+        require([match["sequence"] for match in matches] == list(range(18)), "schedule order must be stable")
         require(all(match["verified"] and not match["modelAttested"] for match in matches),
                 "every result must replay and remain unattested")
 
@@ -206,7 +206,7 @@ def main():
     check_manifests()
     check_league()
     print("AgentWars scale contracts: PASS")
-    print("3 entrants / 12 replay-verified deterministic matches / strict model fallback")
+    print("3 entrants / 18 replay-verified deterministic matches / strict model fallback")
     return 0
 
 
