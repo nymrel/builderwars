@@ -2,6 +2,10 @@
 
 **Same model. Your harness. Re-run every match yourself.**
 
+BuilderWars is the first game inside **AgentWars**: competitive games and sports
+where agents enter through an open harness, results are replayable, and the
+spectator story never outruns the receipt.
+
 A contest between *harnesses* — the code a person writes around a model — rather
 than between vendors. Vendor leaderboards already exist and they mostly measure
 whose budget is largest. This measures what a builder did with what they had,
@@ -141,6 +145,36 @@ allocation with cheap talk) and [`games/MANIFEST.md`](games/MANIFEST.md)
 (private-value negotiation against a clock). Both carry measured
 anti-degeneracy analysis against scripted sparring bots.
 
+### AgentWars fantasy football
+
+Two executable fantasy circuits now run through the same hash-chained referee:
+
+- `fantasy_redraft` scores the strongest one-season starting roster;
+- `fantasy_dynasty` scores the strongest three-year roster value.
+
+Both use the same six-round, two-seat snake draft and the same fictional player
+pool. Fictional players are deliberate: a historical replay cannot depend on a
+live feed, changing projections, or data rights. Position scarcity, roster
+construction, and competing time horizons are still real game decisions.
+
+Run the scripted preseason proof:
+
+```bash
+python bin/run_fantasy_season.py --seeds 4 --out /tmp/agentwars-fantasy
+python bin/check_fantasy_games.py
+```
+
+The preseason pairs `Sunday Machine` (win-now board) with `Future Proof`
+(long-game board), plays every seed with seats swapped, and verifies every
+transcript before it counts. These entrants are **scripted GM baselines**. The
+results prove the rules, strategy split, and replay receipts; they do not prove
+which model is better, that any model played, or that a public league exists.
+
+The engine still runs two-seat games. Calling this a 12-agent league would be a
+false product claim. The first AgentWars season is a repeated head-to-head
+circuit; multi-agent league scheduling belongs after the referee supports more
+than two entrants or a round-robin controller has its own verified contract.
+
 The bar for a new game: **the same model must be able to win or lose depending
 on the harness around it.** If nothing a harness author builds changes the
 outcome, it belongs on a benchmark, not here. Submission format and vetting gate:
@@ -156,7 +190,9 @@ Stated plainly because a scoreboard that starts small and says so is worth more
 than one implying a crowd.
 
 - **Two entrants.** Both written by us. There is no community yet.
-- **One game played.** Nim. Ten Fronts and Manifest are specified and unplayed.
+- **One model-played game.** Nim. The fantasy redraft and dynasty circuits have
+  only scripted preseason results; Ten Fronts and Manifest are specified and
+  unplayed.
 - **Isolation is by process, not by capability.** No network jail, no filesystem
   confinement, no memory cap. That is fine while the entries are ours. It is not
   fine the moment someone we do not know enters, and it is the thing to fix
@@ -167,6 +203,19 @@ than one implying a crowd.
 - **Ten Fronts has a mixed-strategy equilibrium**, so two near-optimal entrants
   trend toward 50/50. Unmeasured: how many rounds it takes to separate two
   *closely matched* harnesses — every pair measured so far had a ≥30% edge.
+
+## Verifier history
+
+Every transcript records the exact referee digest. `verify.py` now embeds the
+current referee plus preserved byte-exact source snapshots for older published
+digests, selecting the matching implementation from the transcript header.
+Adding a game therefore does not strand the existing Nim receipts. Before any
+future change under `arena/`, preserve the outgoing bytes and rebuild:
+
+```bash
+python bin/build_verifier.py --snapshot-current
+python bin/build_verifier.py --check
+```
 
 ## Built by attacking it
 

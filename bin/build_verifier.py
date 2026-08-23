@@ -34,13 +34,16 @@ import argparse
 import base64
 import glob
 import hashlib
+import json
 import os
 import subprocess
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARENA = os.path.join(ROOT, "arena")
 OUT = os.path.join(ROOT, "verify.py")
+SNAPSHOT_DIR = os.path.join(ROOT, "bin", "verifier_snapshots")
 
 DEFAULT_BASE = "https://nymrel.com/builderwars"
 
@@ -61,6 +64,80 @@ def collect():
         with open(os.path.join(ARENA, *rel.split("/")), "rb") as fh:
             out.append((rel, fh.read()))
     return out
+
+
+def digest_for(files):
+    """Compute the exact digest `arena.integrity.engine_digest` records."""
+    from arena.canonical import digest  # noqa: E402
+
+    pairs = [[rel, hashlib.sha256(raw).hexdigest()] for rel, raw in files]
+    return digest(pairs)
+
+
+def encode_sources(files):
+    return {rel: base64.b64encode(raw).decode("ascii") for rel, raw in files}
+
+
+def snapshot_current():
+    """Preserve the current referee bytes before the package changes.
+
+    A result is bound to its engine digest. Keeping one byte-exact source set per
+    published digest lets the latest `verify.py` continue checking old matches
+    after a new game or referee version ships.
+    """
+    files = collect()
+    engine_digest = digest_for(files)
+    os.makedirs(SNAPSHOT_DIR, exist_ok=True)
+    path = os.path.join(SNAPSHOT_DIR, f"{engine_digest}.json")
+    payload = {
+        "engineDigest": engine_digest,
+        "sources": encode_sources(files),
+    }
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as fh:
+            if json.load(fh) != payload:
+                raise SystemExit(f"snapshot collision for {engine_digest}")
+        print(f"snapshot already current: {os.path.relpath(path, ROOT)}")
+        return path
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(payload, fh, sort_keys=True, separators=(",", ":"))
+        fh.write("\n")
+    print(f"snapshotted {len(files)} files -> {os.path.relpath(path, ROOT)}")
+    return path
+
+
+def source_sets(current_files):
+    """Return every preserved engine plus the current one, keyed by digest."""
+    sets = {}
+    if os.path.isdir(SNAPSHOT_DIR):
+        for path in sorted(glob.glob(os.path.join(SNAPSHOT_DIR, "*.json"))):
+            with open(path, "r", encoding="utf-8") as fh:
+                payload = json.load(fh)
+            engine_digest = payload.get("engineDigest")
+            sources = payload.get("sources")
+            if not isinstance(engine_digest, str) or not isinstance(sources, dict):
+                raise SystemExit(f"invalid verifier snapshot: {path}")
+            if engine_digest in sets and sets[engine_digest] != sources:
+                raise SystemExit(f"duplicate verifier digest with different bytes: {engine_digest}")
+            sets[engine_digest] = sources
+    sets[digest_for(current_files)] = encode_sources(current_files)
+    return sets
+
+
+def render_source_sets(sets):
+    """Readable Python literal with base64 split into reviewable 88-char lines."""
+    lines = ["{"]
+    for engine_digest, sources in sorted(sets.items()):
+        lines.append(f'    "{engine_digest}": {{')
+        for rel, b64 in sorted(sources.items()):
+            chunks = [b64[i:i + 88] for i in range(0, len(b64), 88)] or [""]
+            lines.append(f'        "{rel}":')
+            for index, chunk in enumerate(chunks):
+                comma = "," if index == len(chunks) - 1 else ""
+                lines.append(f'            "{chunk}"{comma}')
+        lines.append("    },")
+    lines.append("}")
+    return "\n".join(lines)
 
 
 HEADER = '''#!/usr/bin/env python3
@@ -96,25 +173,32 @@ import urllib.request
 
 BASE = os.environ.get("BUILDERWARS_BASE", "{base}")
 
-# relpath -> base64 of the file's raw bytes, exactly as the referee hashed them.
-SOURCES = {{
-{sources}
-}}
-
-ENGINE_DIGEST = "{engine_digest}"
+# engine digest -> (relpath -> base64 bytes). Historical referee builds remain
+# embedded so a new game cannot strand already-published match receipts.
+SOURCE_SETS = {source_sets}
+DEFAULT_ENGINE_DIGEST = "{engine_digest}"
 
 
-def _unpack():
+def _unpack(sources):
     root = tempfile.mkdtemp(prefix="builderwars-verify-")
     atexit.register(shutil.rmtree, root, True)
     pkg = os.path.join(root, "arena")
-    for rel, b64 in SOURCES.items():
+    for rel, b64 in sources.items():
         dest = os.path.join(pkg, *rel.split("/"))
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, "wb") as fh:          # binary: hashes are over raw bytes
             fh.write(base64.b64decode(b64))
     sys.path.insert(0, root)
     return root
+
+
+def _recorded_engine_digest(path):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            first = json.loads(fh.readline())
+        return first.get("body", {{}}).get("engine", {{}}).get("digest")
+    except Exception:
+        return None
 
 
 def _fetch(arg):
@@ -142,11 +226,15 @@ def main():
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    _unpack()
-    from arena.replay import verify          # the referee's own verifier
-
     path, source_url = _fetch(args.match)
+    recorded_digest = _recorded_engine_digest(path)
+    selected_digest = recorded_digest if recorded_digest in SOURCE_SETS else DEFAULT_ENGINE_DIGEST
+    _unpack(SOURCE_SETS[selected_digest])
+    from arena.replay import verify          # the digest-matched referee verifier
+
     report = verify(path)
+    report["verifier_engine_selected"] = selected_digest
+    report["verifier_snapshot_match"] = recorded_digest == selected_digest
 
     if args.json:
         print(json.dumps(report, indent=2))
@@ -189,26 +277,47 @@ if __name__ == "__main__":
 
 def build(base_url):
     files = collect()
-    lines = []
-    for rel, raw in files:
-        b64 = base64.b64encode(raw).decode("ascii")
-        chunks = [b64[i:i + 88] for i in range(0, len(b64), 88)] or [""]
-        body = "\n".join(f'        "{c}"' for c in chunks)
-        lines.append(f'    "{rel}":\n{body},')
-
-    # Same computation integrity.engine_digest performs, so we can print it and
-    # let the transcript check catch any drift.
-    from arena.canonical import digest  # noqa: E402
-    pairs = [[rel, hashlib.sha256(raw).hexdigest()] for rel, raw in files]
+    engine_digest = digest_for(files)
+    sets = source_sets(files)
 
     src = HEADER.format(
         base=base_url,
-        sources="\n".join(lines),
-        engine_digest=digest(pairs),
+        source_sets=render_source_sets(sets),
+        engine_digest=engine_digest,
     )
     with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(src)
-    return files, digest(pairs)
+    return files, engine_digest, len(sets)
+
+
+def verdict_with_sources(sources, transcript):
+    """Run one preserved referee in a fresh interpreter and return its verdict."""
+    with tempfile.TemporaryDirectory(prefix="builderwars-check-") as root:
+        package = os.path.join(root, "arena")
+        for rel, b64 in sources.items():
+            path = os.path.join(package, *rel.split("/"))
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as fh:
+                fh.write(base64.b64decode(b64))
+        env = dict(os.environ)
+        env["PYTHONPATH"] = root
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import json,sys; from arena.replay import verify; "
+                "print(json.dumps(verify(sys.argv[1])))",
+                os.path.abspath(transcript),
+            ],
+            cwd=root,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        try:
+            return json.loads(proc.stdout.decode("utf-8", "replace"))["verdict"]
+        except Exception:
+            return f"CRASH({proc.stderr.decode('utf-8', 'replace')[:120]})"
 
 
 def check():
@@ -219,7 +328,9 @@ def check():
     preserves behaviour.
     """
     sys.path.insert(0, ROOT)
+    from arena.integrity import engine_digest as current_engine_digest
     from arena.replay import verify
+    preserved = source_sets(collect())
 
     transcripts = sorted(
         p for p in glob.glob(os.path.join(ROOT, "matches", "**", "*.jsonl"), recursive=True)
@@ -231,7 +342,6 @@ def check():
 
     bad = 0
     for t in transcripts:
-        pkg = verify(t)["verdict"]
         proc = subprocess.run(
             [sys.executable, OUT, t, "--json"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -240,10 +350,21 @@ def check():
             solo = json.loads(proc.stdout.decode("utf-8", "replace"))["verdict"]
         except Exception:
             solo = f"CRASH({proc.stderr.decode('utf-8', 'replace')[:120]})"
-        agree = pkg == solo
+        try:
+            with open(t, "r", encoding="utf-8") as fh:
+                recorded_digest = json.loads(fh.readline())["body"]["engine"]["digest"]
+        except Exception:
+            recorded_digest = None
+        if recorded_digest == current_engine_digest():
+            expected = verify(t)["verdict"]
+        elif recorded_digest in preserved:
+            expected = verdict_with_sources(preserved[recorded_digest], t)
+        else:
+            expected = verify(t)["verdict"]
+        agree = expected == solo
         if not agree:
             bad += 1
-            print(f"  MISMATCH {os.path.basename(t)}: package={pkg} single-file={solo}")
+            print(f"  MISMATCH {os.path.basename(t)}: expected={expected} single-file={solo}")
 
     print(f"\nconformance: {len(transcripts) - bad}/{len(transcripts)} transcripts agree "
           f"(package verifier vs single-file verifier)")
@@ -257,12 +378,17 @@ if __name__ == "__main__":
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="verify conformance against the package")
+    ap.add_argument("--snapshot-current", action="store_true",
+                    help="preserve the current referee bytes under their engine digest")
     ap.add_argument("--base", default=DEFAULT_BASE, help="where verify.py fetches matches from")
     a = ap.parse_args()
 
     sys.path.insert(0, ROOT)
-    files, dig = build(a.base)
+    if a.snapshot_current:
+        snapshot_current()
+    files, dig, versions = build(a.base)
     size = os.path.getsize(OUT)
     print(f"wrote {os.path.relpath(OUT, ROOT)}  —  {len(files)} engine files, "
-          f"{size / 1024:.0f} KB, engine digest {dig[:16]}...")
+          f"{versions} engine version(s), {size / 1024:.0f} KB, "
+          f"current digest {dig[:16]}...")
     sys.exit(check() if a.check else 0)
