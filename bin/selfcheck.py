@@ -29,6 +29,7 @@ from arena.match import run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.scoring import NotAProjection, referee_projection, score  # noqa: E402
 from arena.transcript import load  # noqa: E402
+from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 RESULTS = []
 
@@ -48,6 +49,7 @@ def entrant(script, backend="stub:v1", mode=None, name=None):
         "cmd": cmd,
         "env": [],
         "claimed_model": backend,
+        "execution_claim": execution_claim_for_backend(backend),
     }
 
 

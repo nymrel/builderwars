@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from arena.match import run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
+from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 
 def manifest(script, backend, backend_timeout=None):
@@ -27,6 +28,7 @@ def manifest(script, backend, backend_timeout=None):
         "cmd": cmd,
         "env": [],
         "claimed_model": backend,
+        "execution_claim": execution_claim_for_backend(backend),
     }
 
 
@@ -88,7 +90,7 @@ def main():
                         note = rec["body"].get("entrant_message", {}).get("note", "")
                         who = pair[rec["body"]["player"]]["name"]
                         if note.startswith("source="):
-                            key = "model" if note == "source=model" else "fallback"
+                            key = "model" if note.startswith("source=model") else "fallback"
                             move_source[(who, key)] = move_source.get((who, key), 0) + 1
             except Exception:
                 pass

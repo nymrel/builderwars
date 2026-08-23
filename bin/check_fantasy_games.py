@@ -28,6 +28,7 @@ def manifest(name, strategy):
         "cmd": [sys.executable, script, "--name", name, "--strategy", strategy],
         "env": [],
         "claimed_model": "scripted-baseline:v1",
+        "execution_claim": "scripted",
     }
 
 
