@@ -1,0 +1,35 @@
+{
+  "chainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+  "engineDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
+  "executionClaimsAttested": false,
+  "game": "ten_fronts",
+  "label": "Scripted offline pairing between deterministic stub backends. No model played.",
+  "matchId": "e16ac35d43eb3b47",
+  "modelAttested": false,
+  "moveSourceClaims": {
+    "Stub Even Reserve": {
+      "fallback": 40,
+      "model": 0,
+      "other": 0,
+      "scripted": 0
+    },
+    "Stub Iron Front": {
+      "fallback": 40,
+      "model": 0,
+      "other": 0,
+      "scripted": 0
+    }
+  },
+  "moves": 80,
+  "product": "AgentWars Ten Fronts",
+  "reason": "ten_fronts_score:319-226",
+  "scores": {
+    "Stub Even Reserve": 226,
+    "Stub Iron Front": 319
+  },
+  "seed": 7000,
+  "status": "scripted_offline_stub_pairing",
+  "truthBoundary": "Replay verifies rules, moves, state, and scoring from the hash chain alone. Both entrants declare execution_claim=scripted with stub backends, so no model-influenced label applies. Model identity is never attested by this engine.",
+  "verified": true,
+  "winner": "Stub Iron Front"
+}

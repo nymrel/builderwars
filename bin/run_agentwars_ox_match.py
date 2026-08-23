@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one same-model Ox Alpha fantasy match with tools denied.
+"""Run one same-model Ox Alpha AgentWars match with tools denied.
 
 This is an operator-owned entrant path, not a referee model integration. The
 engine passes only process-policy variable names, never credentials. Even when
@@ -19,11 +19,23 @@ sys.path.insert(0, os.path.join(ROOT, "bin"))
 
 from arena.match import run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
+from arena.transcript import load  # noqa: E402
 from run_agentwars_league import final_scores, move_source_counts  # noqa: E402
 
 MODEL = "opencode-go/ox-alpha-free"
 VARIANT = "max"
 ENV_NAMES = ("OPENCODE_CONFIG_CONTENT", "OPENCODE_DISABLE_PROJECT_CONFIG", "OPENCODE_PURE")
+GAMES = ("fantasy_redraft", "fantasy_dynasty", "fantasy_qb_surge", "ten_fronts")
+
+TEN_FRONTS_HARNESS = os.path.join(ROOT, "entrants", "ten_fronts_model_harness.py")
+TEN_FRONTS_SEATS = (
+    {"name": "Ox Iron Front", "strategy": "value-blitz"},
+    {"name": "Ox Deep Reserve", "strategy": "even-pressure"},
+)
+FANTASY_SEATS = (
+    {"name": "Ox Sunday Machine", "strategy": "win-now"},
+    {"name": "Ox Future Proof", "strategy": "long-game"},
+)
 
 
 def deny_tool_policy():
@@ -48,7 +60,7 @@ def deny_tool_policy():
         "default_agent": "agentwars-entrant",
         "agent": {
             "agentwars-entrant": {
-                "description": "Tool-free AgentWars fantasy decision entrant.",
+                "description": "Tool-free AgentWars decision entrant.",
                 "mode": "primary",
                 "model": MODEL,
                 "variant": VARIANT,
@@ -59,8 +71,11 @@ def deny_tool_policy():
     }
 
 
-def manifest(name, strategy, backend_timeout):
-    harness = os.path.join(ROOT, "entrants", "fantasy_model_harness.py")
+def manifest(name, strategy, backend_timeout, game="fantasy_redraft"):
+    if game == "ten_fronts":
+        harness = TEN_FRONTS_HARNESS
+    else:
+        harness = os.path.join(ROOT, "entrants", "fantasy_model_harness.py")
     backend = f"opencode:{MODEL}@{VARIANT}"
     return {
         "name": name,
@@ -84,10 +99,14 @@ def manifest(name, strategy, backend_timeout):
     }
 
 
+def ten_fronts_final_scores(path):
+    state = [record["body"]["state"] for record in load(path) if record["kind"] == "state"][-1]
+    return [int(state["scores"][0]), int(state["scores"][1])]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run one tool-free Ox Alpha AgentWars match.")
-    parser.add_argument("--game", choices=("fantasy_redraft", "fantasy_dynasty"),
-                        default="fantasy_redraft")
+    parser.add_argument("--game", choices=GAMES, default="fantasy_redraft")
     parser.add_argument("--seed", type=int, default=9300)
     parser.add_argument("--out", required=True)
     parser.add_argument("--json-out", default=None)
@@ -103,9 +122,10 @@ def main():
     os.environ["OPENCODE_CONFIG_CONTENT"] = json.dumps(deny_tool_policy(), separators=(",", ":"))
     os.environ["OPENCODE_DISABLE_PROJECT_CONFIG"] = "1"
     os.environ["OPENCODE_PURE"] = "1"
+    seats = TEN_FRONTS_SEATS if args.game == "ten_fronts" else FANTASY_SEATS
     entrants = [
-        manifest("Ox Sunday Machine", "win-now", args.backend_timeout),
-        manifest("Ox Future Proof", "long-game", args.backend_timeout),
+        manifest(seat["name"], seat["strategy"], args.backend_timeout, game=args.game)
+        for seat in seats
     ]
     result = run_match(
         game_name=args.game,
@@ -118,11 +138,16 @@ def main():
     if report["verdict"] != "PASS":
         raise RuntimeError(f"Ox match did not replay: {report.get('errors', [])[:2]}")
     sources = move_source_counts(result["transcript"], entrants)
-    scores = final_scores(result["transcript"])
+    scores = (
+        ten_fronts_final_scores(result["transcript"])
+        if args.game == "ten_fronts"
+        else final_scores(result["transcript"])
+    )
     model_move_claims = {name: counts["model"] for name, counts in sources.items()}
     both_used_model = all(count > 0 for count in model_move_claims.values())
+    product = "AgentWars Ten Fronts" if args.game == "ten_fronts" else "AgentWars fantasy football"
     summary = {
-        "product": "AgentWars fantasy football",
+        "product": product,
         "status": "model_influenced_unattested" if both_used_model else "fallback_only_not_model_played",
         "truthBoundary": (
             "The operator launched the declared Ox Alpha backend with all OpenCode tools denied. "
