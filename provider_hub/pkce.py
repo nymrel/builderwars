@@ -12,9 +12,10 @@ The flow a customer runner performs:
    those are ever invented here.
 3. The provider redirects to the caller's own callback URL with a one-time
    ``code``. Callback parsing is bound to the exact expected callback base
-   URL: scheme, host, effective port, and path must match exactly; the
-   correlation secret is an unguessable callback PATH chosen by the caller,
-   not a state round-trip.
+   URL: scheme, host, effective port, and path must match exactly. When callers
+   control the route, ``new_callback_path()`` supplies a fresh 128-bit path
+   segment for additional correlation without inventing a provider-echoed
+   ``state`` field.
 4. Exchange the code for the customer's key with a POST body of EXACTLY
    ``code``, ``code_verifier``, and ``code_challenge_method: "S256"``.
 
@@ -76,6 +77,11 @@ def new_verifier():
     )
     value = "".join(_secrets.choice(alphabet) for _ in range(VERIFIER_LENGTH))
     return SecretValue(value)
+
+
+def new_callback_path():
+    """Return a callback path with a fresh 128-bit correlation segment."""
+    return "/buildwars/callback/" + _secrets.token_urlsafe(16)
 
 
 def _verifier_text(verifier_secret):
@@ -161,9 +167,17 @@ def _assert_allowed_origin(url, what):
         raise PkceError(f"{what} endpoint is not a valid URL") from None
     if parsed.scheme != "https":
         raise PkceError(f"{what} endpoint must be https")
+    if parsed.username or parsed.password:
+        raise PkceError(f"{what} endpoint must not embed userinfo")
     host = (parsed.hostname or "").lower()
     if host not in ALLOWED_ORIGINS:
         raise PkceError(f"{what} endpoint origin {host!r} is not allowlisted")
+    try:
+        port = parsed.port
+    except ValueError:
+        raise PkceError(f"{what} endpoint port is invalid") from None
+    if port not in (None, 443):
+        raise PkceError(f"{what} endpoint must use the default HTTPS port")
 
 
 def _assert_pinned_endpoint(url, expected, what):

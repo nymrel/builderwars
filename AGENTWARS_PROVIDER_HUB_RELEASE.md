@@ -1,4 +1,8 @@
-# AgentWars customer provider hub release candidate
+# BuildWars / AgentWars customer provider hub release candidate
+
+Date: 2026-08-23
+
+Status: local candidate; not deployed or live-account tested
 
 This local source candidate adds a customer-operated connection layer for
 exactly six provider ids: ChatGPT/Codex, Claude Code, OpenCode, OpenRouter,
@@ -8,9 +12,10 @@ customer runner; `arena/` remains provider-blind and unchanged.
 ## Included contracts
 
 - An immutable, fail-closed provider catalog and read-only connection plans.
-- Six strict versioned envelope schemas with canonical JSON, secret-shape
-  rejection, non-enumerable public ids, and explicit unattested execution
-  claims.
+- Six strict versioned schemas for identity, provider link, runner pairing,
+  runner capabilities, match job, and result attestation (including replay
+  receipt/verdict data), with canonical JSON, secret-shape rejection,
+  non-enumerable public ids, and explicit unattested execution claims.
 - BuildWars-only HMAC pairing for the three signable runner/result envelopes,
   including payload validation, freshness and identity binding, constant-time
   comparison, and an injectable replay guard.
@@ -37,8 +42,9 @@ authenticated pairing channel. The included in-memory replay guard is a local
 reference only; production requires durable atomic single-use storage.
 
 No provider login, browser flow, OAuth exchange, credential inspection, live
-model call, push, deploy, or public release was performed while producing this
-candidate.
+model call, deployment, or public release was performed while producing this
+candidate. Internal agent provenance and exact promotion receipts remain in the
+studio control plane rather than this public source note.
 
 ## Validation entrypoints
 
@@ -49,5 +55,6 @@ python -m py_compile <changed Python paths>
 git diff --check
 ```
 
-The exact commit SHA and any cross-family acceptance decision belong in the
-promotion receipt, not this source note.
+The exact commit SHA and remote verification belong in the durable studio
+promotion receipt, because embedding a commit's own SHA inside this file would
+change that SHA.

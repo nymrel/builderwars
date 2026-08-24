@@ -668,6 +668,13 @@ def check_pkce():
                  pkce_mod.PkceError, "plain")
     pkce_mod.assert_plain_challenge_rejected("S256")  # the only permitted method
 
+    generated_path = pkce_mod.new_callback_path()
+    require(
+        generated_path.startswith("/buildwars/callback/")
+        and len(generated_path.rsplit("/", 1)[-1]) == 22,
+        "callback helper generates a 128-bit correlation path",
+    )
+
     callback = "http://127.0.0.1:8765/callback/unpredictable-path-token"
     url = pkce_mod.build_authorize_url(
         callback_url=callback,
@@ -744,6 +751,11 @@ def check_pkce():
         "https://user:pass@host/cb"), pkce_mod.PkceError, "userinfo")
     expect_error(lambda: pkce_mod.validate_redirect_uri(
         "https://host/cb#frag"), pkce_mod.PkceError, "fragment")
+    pkce_mod.reject_off_origin("https://openrouter.ai/safe")
+    expect_error(lambda: pkce_mod.reject_off_origin(
+        "https://openrouter.ai:444/safe"), pkce_mod.PkceError, "port")
+    expect_error(lambda: pkce_mod.reject_off_origin(
+        "https://user@openrouter.ai/safe"), pkce_mod.PkceError, "userinfo")
     for invalid_port in ("http://127.0.0.1:99999/cb", "https://host:abc/cb"):
         expect_error(lambda u=invalid_port: pkce_mod.validate_redirect_uri(u),
                      pkce_mod.PkceError, "port")

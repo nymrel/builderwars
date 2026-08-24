@@ -98,10 +98,14 @@ The current OpenRouter flow is deliberately implemented as documented, rather
 than as generic OAuth:
 
 1. Generate an RFC 7636 verifier and its S256 challenge in the local runner.
+   `new_callback_path()` can generate a fresh 128-bit correlation segment when
+   the caller controls the callback path; documented fixed HTTPS callback paths
+   remain valid.
 2. Open `https://openrouter.ai/auth` with exactly `callback_url`,
    `code_challenge`, and `code_challenge_method=S256`.
 3. Bind the returned callback to the exact expected scheme, host, effective
-   port, and unguessable path. The expected callback URL has no query; the
+   port, and path. An unguessable path is recommended when the caller controls
+   it. The expected callback URL has no query; the
    actual callback must have exactly one `code` query parameter.
 4. Exchange exactly `code`, `code_verifier`, and
    `code_challenge_method=S256` at the pinned key endpoint. Accept the
