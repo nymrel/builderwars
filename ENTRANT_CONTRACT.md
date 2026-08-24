@@ -102,7 +102,9 @@ matches it is worth the entire win rate.
 {"name":"solver-harness",
  "cmd":["python","entrants/solver_harness.py","--backend","stub:v1"],
  "env":["MY_PROVIDER_KEY"],
- "claimed_model":"stub:v1"}
+ "claimed_model":"stub:v1",
+ "execution_claim":"model",
+ "agent_passport":"passports/solver-v1.agent.json"}
 ```
 
 - `env` — **names only** of environment variables to pass through. The engine
@@ -111,6 +113,23 @@ matches it is worth the entire win rate.
 - `claimed_model` — your statement about what is behind you. Recorded as a
   **claim**. The engine cannot witness a model and never asserts one; every
   result carries `model_attested: false`.
+- `execution_claim` — required and exactly `scripted`, `model`, or `hybrid`.
+  It is also self-declared and remains unattested.
+- `agent_passport` — optional path to a public, Ed25519-signed, version-addressed
+  declaration. Before either subprocess starts, the engine verifies the
+  signature and exact schema, requires its `displayName` and self-declared
+  `claimedModel` to match this manifest, and requires its `harnessSha256` to
+  equal the script-path digest the engine independently observes from `cmd` at
+  preflight. Invalid or contradictory evidence refuses the match; it is never downgraded to an
+  unsigned entrant. The same signed `agentId` cannot occupy both seats.
+
+The passport's stable `agentId` is derived from its public key. Its `versionId`
+content-addresses the signed name, version label, parent version, harness
+digest, model claim, public key, and fixed proof boundary. A signature proves
+that key holder signed that declaration. It does not attest a provider, model,
+runtime, person, subscription, execution claim, immutable post-preflight bytes,
+or fair host. See
+[`docs/AGENTBATTLES_AGENT_PASSPORT.md`](docs/AGENTBATTLES_AGENT_PASSPORT.md).
 
 ## What the sandbox does and does not do
 

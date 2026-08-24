@@ -38,7 +38,51 @@ _WINDOWS_DEVICE_NAMES = frozenset(
     | {f"COM{number}" for number in range(1, 10)}
     | {f"LPT{number}" for number in range(1, 10)}
 )
-_MANIFEST_KEYS = frozenset({"name", "cmd", "env", "claimed_model", "execution_claim"})
+_MANIFEST_KEYS = frozenset(
+    {"name", "cmd", "env", "claimed_model", "execution_claim", "agent_passport"}
+)
+_PASSPORT_PATH_MAX = 4096
+
+
+def _seat_passport(manifest, seat):
+    """Load and fully verify an optional seat passport BEFORE any process starts.
+
+    The passport file is untrusted input: schema, bounds, encodings, ID
+    derivation, and the Ed25519 signature are all checked here, fail-closed.
+    The engine then performs a preflight binding: the passport's harnessSha256
+    must equal this engine's digest of the script path it is preparing to run
+    for that seat. On a self-hosted runner this does not attest that the host
+    could not swap bytes during execution. A signature never attests the model,
+    runtime, person, or host behind the key — only that the key holder signed
+    this version declaration (see arena.passport.PROOF_SCOPE).
+    """
+    path = manifest.get("agent_passport")
+    if path is None:
+        return None
+    if not isinstance(path, str) or not path or len(path) > _PASSPORT_PATH_MAX:
+        raise ValueError("entrant agent_passport must be a non-empty path of at most 4096 characters")
+    try:
+        from . import passport as passport_contract
+
+        record = passport_contract.verify_passport_file(path)
+    except ValueError as e:
+        raise ValueError(f"seat {seat}: invalid entrant passport ({e})") from e
+    actual = script_digest(manifest["cmd"])
+    if not isinstance(actual, dict) or actual.get("sha256") != record["harnessSha256"]:
+        raise ValueError(
+            f"seat {seat}: passport harnessSha256 does not match the engine's digest of "
+            "the entrant script for that seat; refusing to start play"
+        )
+    if record["displayName"] != manifest["name"]:
+        raise ValueError(
+            f"seat {seat}: passport displayName must exactly match the entrant manifest name"
+        )
+    if record["claimedModel"] != manifest.get("claimed_model"):
+        raise ValueError(
+            f"seat {seat}: passport claimedModel must exactly match the manifest's "
+            "self-declared claimed_model"
+        )
+    return record
 
 
 class _Sidecar:
@@ -68,9 +112,17 @@ class _Sidecar:
             self._fh.close()
 
 
-def match_id_for(game_name, seed, entrant_names):
-    """Content-addressed id: same matchup and seed, same id."""
-    return digest({"game": game_name, "seed": seed, "entrants": list(entrant_names)})[:16]
+def match_id_for(game_name, seed, entrant_names, passport_version_ids=None):
+    """Content-addressed id: same matchup and seed, same id.
+
+    The two-argument legacy form returns exactly the historical id. Supplying
+    passport_version_ids folds stable signed version IDs into the preimage, so
+    the same names/seed under different agent versions get different ids.
+    """
+    payload = {"game": game_name, "seed": seed, "entrants": list(entrant_names)}
+    if passport_version_ids is not None:
+        payload["passportVersionIds"] = list(passport_version_ids)
+    return digest(payload)[:16]
 
 
 def validate_match_id(value):
@@ -85,17 +137,20 @@ def validate_match_id(value):
     return value
 
 
-def _manifest_digest(manifest):
+def _manifest_digest(manifest, verified_passport=None):
     # Hash names only. Values of declared env vars are never read here.
-    return digest(
-        {
-            "name": manifest["name"],
-            "cmd": list(manifest["cmd"]),
-            "env": sorted(manifest.get("env", [])),
-            "claimed_model": manifest.get("claimed_model"),
-            "execution_claim": manifest["execution_claim"],
-        }
-    )
+    body = {
+        "name": manifest["name"],
+        "cmd": list(manifest["cmd"]),
+        "env": sorted(manifest.get("env", [])),
+        "claimed_model": manifest.get("claimed_model"),
+        "execution_claim": manifest["execution_claim"],
+    }
+    if verified_passport is not None:
+        # Bind identity by content (key-derived IDs and the signed declaration),
+        # never by filesystem path, so equal passports hash equally.
+        body["agent_passport"] = verified_passport
+    return digest(body)
 
 
 def validate_manifest(manifest):
@@ -145,12 +200,27 @@ def run_match(
     if entrants[0]["name"].casefold() == entrants[1]["name"].casefold():
         raise ValueError("entrant names must be unique within a match")
 
+    # Identity before play: every supplied passport is verified and bound to the
+    # actual script digest for its seat before either process can start.
+    passports = [_seat_passport(manifest, seat) for seat, manifest in enumerate(entrants)]
+    signed_agent_ids = [passport["agentId"] for passport in passports if passport is not None]
+    if len(signed_agent_ids) != len(set(signed_agent_ids)):
+        raise ValueError("the same signed agentId cannot occupy both seats in one match")
+
     game = load_game(game_name)
-    selected_match_id = (
-        match_id_for(game_name, seed, [e["name"] for e in entrants])
-        if match_id is None
-        else match_id
-    )
+    if match_id is not None:
+        selected_match_id = match_id
+    elif any(passports):
+        # Version-aware id: same names/seed with different signed versions must
+        # not collide. Legacy seats contribute null so mixed pairs stay stable.
+        selected_match_id = match_id_for(
+            game_name,
+            seed,
+            [e["name"] for e in entrants],
+            passport_version_ids=[p["versionId"] if p else None for p in passports],
+        )
+    else:
+        selected_match_id = match_id_for(game_name, seed, [e["name"] for e in entrants])
     mid = validate_match_id(selected_match_id)
     out_dir = os.path.abspath(out_dir)
     os.makedirs(out_dir, exist_ok=True)
@@ -175,7 +245,7 @@ def run_match(
                     {
                         "seat": i,
                         "name": e["name"],
-                        "manifest_digest": _manifest_digest(e),
+                        "manifest_digest": _manifest_digest(e, passports[i]),
                         "script": script_digest(e["cmd"]),
                         "declared_env": sorted(e.get("env", [])),
                         # An entrant's statement about which model it uses. Recorded
@@ -184,6 +254,13 @@ def run_match(
                         # Also self-declared. Bound into the receipt so a scripted
                         # entrant cannot be relabelled after the match.
                         "execution_claim": e["execution_claim"],
+                        **(
+                            # Engine-verified signed identity. Present only when a
+                            # passport was supplied; its absence is the legacy shape.
+                            {"agent_passport": passports[i]}
+                            if passports[i] is not None
+                            else {}
+                        ),
                     }
                     for i, e in enumerate(entrants)
                 ],

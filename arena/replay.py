@@ -22,6 +22,14 @@ What a PASS does NOT prove:
     false` for this reason.
   - wall-clock events. A timeout is a recorded fact about the machine the match
     ran on; replay verifies the adjudication that followed it, not the timing.
+
+Identity is a separate axis reported alongside the verdict: a legacy unsigned
+transcript can still PASS with `identity_status="self_declared_legacy"`; mixed
+signed/legacy seats are labeled `mixed_verified_and_legacy`; and any supplied
+passport that fails schema, signature, declaration consistency, or harness
+binding makes the verdict FAIL (`identity_status="invalid"`) rather than being
+downgraded. A valid signature proves only that the key holder signed that
+version declaration — never the model claim, runtime, or person.
 """
 
 import random
@@ -31,6 +39,136 @@ from .games import load as load_game
 from .integrity import engine_digest
 from .scoring import referee_projection, score
 from .transcript import first, load, verify_chain
+
+
+def _verify_header_identity(header):
+    """Re-verify embedded passport evidence offline. Separate axis from rules.
+
+    Returns (status, seats, error). Statuses:
+      - "self_declared_legacy": no passports supplied anywhere (legacy shape)
+      - "verified_signed": both seats have valid passports
+      - "mixed_verified_and_legacy": supplied passports verify, some seats legacy
+      - "invalid": any supplied passport fails any check — never downgraded
+
+    A repaired hash chain does NOT rescue tampered identity evidence: the
+    signature is over the declaration bytes themselves, so an attacker who edits
+    a field and rechains still fails here.
+    """
+    try:
+        rows = header.get("entrants")
+        if (
+            not isinstance(rows, list)
+            or len(rows) != 2
+            or [row.get("seat") if isinstance(row, dict) else None for row in rows] != [0, 1]
+        ):
+            return "invalid", [], "header must contain exactly ordered entrant seats 0 and 1"
+        present = []
+        passport_fields = []
+        for row in rows:
+            field_present = isinstance(row, dict) and "agent_passport" in row
+            record = row.get("agent_passport") if field_present else None
+            passport_fields.append(field_present)
+            present.append(record)
+        if not any(passport_fields):
+            return "self_declared_legacy", [], None
+
+        try:
+            from . import passport as passport_contract
+        except ImportError as e:
+            return (
+                "invalid",
+                [],
+                "passport evidence present but the in-engine passport verifier is unavailable in "
+                f"this verifier build ({e.__class__.__name__})",
+            )
+
+        seats = []
+        seen_agent_ids = set()
+        for index, record in enumerate(present):
+            if not passport_fields[index]:
+                seats.append({"seat": index, "identityStatus": "self_declared_legacy"})
+                continue
+            if record is None:
+                seats.append(
+                    {
+                        "seat": index,
+                        "identityStatus": "invalid",
+                        "errorCode": "passport_invalid",
+                        "detail": "agent_passport field must contain a signed object",
+                    }
+                )
+                continue
+            try:
+                normalized = passport_contract.verify_passport(record)
+            except passport_contract.PassportDependencyError as e:
+                seats.append(
+                    {
+                        "seat": index,
+                        "identityStatus": "invalid",
+                        "errorCode": "dependency_missing",
+                        "detail": str(e)[:300],
+                    }
+                )
+                continue
+            except Exception as e:
+                seats.append(
+                    {
+                        "seat": index,
+                        "identityStatus": "invalid",
+                        "errorCode": "passport_invalid",
+                        "detail": str(e)[:300],
+                    }
+                )
+                continue
+            # Artifact binding: the signed harness digest must equal the script
+            # digest recorded by the refereeing engine for this seat.
+            script = None
+            for row in rows:
+                if isinstance(row, dict) and row.get("seat") == index:
+                    script = row.get("script")
+                    break
+            recorded_sha = script.get("sha256") if isinstance(script, dict) else None
+            bound = isinstance(recorded_sha, str) and recorded_sha == normalized["harnessSha256"]
+            row = rows[index]
+            declaration_consistent = (
+                row.get("name") == normalized["displayName"]
+                and row.get("claimed_model") == normalized["claimedModel"]
+            )
+            unique_agent = normalized["agentId"] not in seen_agent_ids
+            seen_agent_ids.add(normalized["agentId"])
+            ok = bound and declaration_consistent and unique_agent
+            seats.append(
+                {
+                    "seat": index,
+                    "identityStatus": "verified_signed" if ok else "invalid",
+                    "agentId": normalized["agentId"],
+                    "versionId": normalized["versionId"],
+                    "parentVersionId": normalized["parentVersionId"],
+                    "recordedHarnessDigestBound": bound,
+                    "declarationConsistent": declaration_consistent,
+                    "uniqueAgentInMatch": unique_agent,
+                    **(
+                        {}
+                        if ok
+                        else {
+                            "detail": (
+                                "harness, manifest declaration, or unique-agent binding failed"
+                            )
+                        }
+                    ),
+                }
+            )
+        ok = all(
+            seat["identityStatus"] in ("verified_signed", "self_declared_legacy")
+            for seat in seats
+        )
+        if not ok:
+            return "invalid", seats, None
+        signed_count = sum(seat["identityStatus"] == "verified_signed" for seat in seats)
+        status = "verified_signed" if signed_count == len(seats) else "mixed_verified_and_legacy"
+        return status, seats, None
+    except Exception as e:  # never let hostile input raise out of verification
+        return "invalid", [], f"{e.__class__.__name__}: {e}"
 
 
 def verify(transcript_path):
@@ -214,6 +352,54 @@ def verify(transcript_path):
         None if same else f"recorded {report['recorded']} vs recomputed {recomputed}",
     )
 
+    # 6. identity is a separate axis: rules replay and signed identity are
+    # reported independently, and a supplied passport that fails any check can
+    # never be silently downgraded to a legacy pass.
+    identity_status, identity_seats, identity_error = _verify_header_identity(h)
+    report["identity_status"] = identity_status
+    report["identity_seats"] = identity_seats
+    report["identity"] = {
+        "status": identity_status,
+        "seats": identity_seats,
+        **({"error": identity_error} if identity_error else {}),
+        "modelAttested": False,
+        "runtimeAttested": False,
+        "personAttested": False,
+        "entrantIdentityAttested": False,
+        "executionClaimsAttested": False,
+        "errorCodes": sorted(
+            {
+                seat["errorCode"]
+                for seat in identity_seats
+                if isinstance(seat, dict) and seat.get("errorCode")
+            }
+        ),
+        "boundary": (
+            "Signed passports bind a tamper-evident, version-addressed declaration "
+            "to a public key. They do not attest the model behind a move, the "
+            "runtime, or the person holding the key."
+        ),
+    }
+    if identity_error:
+        note("passport_identity", False, identity_error)
+    elif identity_status == "invalid":
+        bad = [s for s in identity_seats if s.get("identityStatus") == "invalid"]
+        note(
+            "passport_identity",
+            False,
+            "; ".join(f"seat {s['seat']}: {s.get('detail', 'invalid')}" for s in bad) or "invalid passport evidence",
+        )
+    else:
+        note(
+            "passport_identity",
+            True,
+            (
+                None
+                if identity_status == "self_declared_legacy"
+                else "all supplied passports verify; unsigned seats remain explicitly legacy"
+            ),
+        )
+
     passed = (
         report["chain_ok"]
         and setup_ok
@@ -221,6 +407,7 @@ def verify(transcript_path):
         and moves_ok
         and adjudication_ok
         and same
+        and identity_status != "invalid"
     )
     report["verdict"] = "PASS" if passed else "FAIL"
 
@@ -231,12 +418,23 @@ def verify(transcript_path):
         "every position follows from the previous one",
         "the recorded winner follows from state, not from any entrant's claim",
     ]
+    if identity_status in ("verified_signed", "mixed_verified_and_legacy"):
+        report["proves"].append(
+            "each supplied passport's signature verifies offline against its "
+            "declared version content, key-derived IDs, and recorded preflight harness digest"
+        )
     report["does_not_prove"] = [
         "which model produced any move (the engine never contacts a model; "
         f"model_attested={h.get('attestation', {}).get('model_attested')})",
         "wall-clock events such as timeouts, which are recorded facts about the "
         "machine the match ran on",
     ]
+    if identity_status in ("verified_signed", "mixed_verified_and_legacy"):
+        report["does_not_prove"].append(
+            "the person or legal owner behind the signing key, the runtime that "
+            "executed the harness, or that the declared model claim is true — "
+            "claimed model names are self-declared"
+        )
     if not report["engine_digest_match"]:
         report["does_not_prove"].append(
             "that the refereeing engine matched this one — the engine digests differ, "
