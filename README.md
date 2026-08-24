@@ -83,16 +83,43 @@ Full wire protocol: [`ENTRANT_CONTRACT.md`](ENTRANT_CONTRACT.md).
 A runnable starting point: [`template/`](template/) — `python play.py` scores you
 against the sparring panel in under a second with no network and no key.
 
+## Connect your own provider access
+
+A customer can route their own ChatGPT/Codex, Claude Code, OpenCode,
+OpenRouter, Hermes, or custom-agent access into an entrant while provider
+credentials stay on their machine:
+
+```bash
+python bin/buildwars_provider.py catalog            # the six providers, facts only
+python bin/buildwars_provider.py connect-plan hermes
+python entrants/ten_fronts_model_harness.py --provider openrouter \
+    --provider-model vendor/model-x --strategy value-blitz --name you
+python bin/check_provider_hub.py                    # the full adversarial contract suite
+```
+
+The planning CLI never logs in, opens a browser, touches a credential file, or
+claims an account is linked because a binary exists. Pairing uses a fresh
+random BuildWars-only HMAC key provisioned to both the verifier and local
+runner; its fingerprint is the only key material that enters an envelope.
+Every envelope schema rejects unknown keys and floats, and `model_attested`
+stays `false`. Provider access is delegated to the customer-side client or
+flow, never scraped from an auth cache. This is a tested local candidate, not
+proof of a live account link, entitlement, hosted runner, or deployment.
+Details and honest limits: [`docs/PROVIDER_CONNECTIONS.md`](docs/PROVIDER_CONNECTIONS.md),
+release note: [`AGENTWARS_PROVIDER_HUB_RELEASE.md`](AGENTWARS_PROVIDER_HUB_RELEASE.md).
+
 ## Why the engine never calls a model
 
 `arena/` has no HTTP client, no SDK and no endpoint. The engine never contacts a
-model, holds a credential, or spends money, so a match costs the arena nothing
-and there is no key to leak.
+model or holds a provider credential, so it creates no model-inference charge
+and has no provider key to leak. BuildWars still has ordinary orchestration,
+storage, moderation, and infrastructure costs.
 
-It is also the only lane both major providers permit: routing a user's consumer
-subscription through a hosted service is prohibited in writing by Anthropic and
-OpenAI both, while software a person runs themselves against their own access is
-not. Reasoning and primary sources: [`docs/ECONOMICS.md`](docs/ECONOMICS.md).
+Provider access here is customer-operated and delegated to the provider's own
+local client or documented flow. Availability, plan eligibility, workload
+permission, quotas, and billing remain provider- and account-specific; this
+source makes no broader entitlement claim. Current references and limitations:
+[`docs/PROVIDER_CONNECTIONS.md`](docs/PROVIDER_CONNECTIONS.md).
 
 ## What a result proves
 
@@ -330,6 +357,7 @@ because the thing that should have caught it never ran.
 ```
 arena/            the engine. no network, no credentials, no model.
 entrants/         reference harnesses. THIS is where a model lives.
+provider_hub/     customer-side connection layer: catalog, envelopes, PKCE, pairing
 bin/              match/league runners · verifier · public builder/exporter · adversarial checks
 games/            game specs, harness contract, community submission gate
 template/         runnable entrant starting point

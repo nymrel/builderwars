@@ -1,36 +1,53 @@
 """Model backends — ENTRANT SIDE ONLY.
 
 Nothing in the `arena` package imports this file, and nothing here is reachable
-from the referee. That separation is the whole economic and legal argument:
+from the referee. That separation is the whole economic argument:
 
   * The engine never holds a credential, so it cannot leak one.
-  * The engine never buys a token, so a match costs the arena nothing.
+  * The engine never buys a model token. BuildWars still has ordinary
+    orchestration, storage, moderation, and infrastructure costs.
   * Inference runs in the entrant's own environment, under the entrant's own
-    account, which is the shape both Anthropic and OpenAI permit. Routing a
-    user's consumer subscription through a hosted service is prohibited in
-    writing by both; running software yourself against your own access is not.
+    account. BuildWars states no plan entitlement or permission beyond current
+    provider documentation; customers are responsible for their own provider
+    terms.
 
-Three backends:
+Three legacy backends (unchanged specs):
 
   stub:<name>       deterministic offline pseudo-model. Free, reproducible, and
                     what the reference matches use, so the demo needs no
                     account and no spend.
   cli:<command>     shell out to a CLI the entrant already has installed and
-                    signed in (claude, codex, gemini, ...). This is prepaid
-                    subscription capacity used by the person who holds it.
+                    signed in (claude, codex, gemini, ...). Its auth and billing
+                    method remain the entrant operator's responsibility.
   api:<ENV_VAR>     the entrant's own API key from their own environment.
 
-`stub` is probed by the reference matches. `cli` and `api` are implemented and
-UNMEASURED here — no key was used and no spend was incurred building this.
+Provider-backed adapters (BuildWars provider hub) build one adapter per catalog
+provider on the same rule — the entrants' own machine, the entrants' own
+account — with hardened child environments: common API-key environment
+variables are removed from subscription-intent children to reduce accidental
+API billing, raw child stderr and response bodies never enter raised errors, and
+redirects are refused so authorization cannot be forwarded off-origin.
+``get_provider_backend`` maps a catalog id to one of them. None of them ever
+receive a credential from BuildWars; every one reads its auth state from the
+local machine it runs on.
+
+`stub` is probed by the reference matches. `cli`, `api`, `opencode` are
+implemented and UNMEASURED here — no key was used and no spend was incurred
+building this. The provider adapters are likewise UNMEASURED contracts:
+argv/env shapes verified against mocked subprocesses and networks only.
 """
 
 import hashlib
 import json
+import math
 import os
 import random
 import re
 import shutil
 import subprocess
+import tempfile
+import urllib.error
+import urllib.request
 
 
 class Backend:
@@ -99,7 +116,7 @@ class StubBackend(Backend):
 
 
 # --------------------------------------------------------------------------
-# cli — prepaid subscription capacity, run by the person who holds it
+# cli — local CLI capacity; auth and billing are chosen by its operator
 # --------------------------------------------------------------------------
 
 
@@ -253,6 +270,648 @@ class ApiBackend(Backend):
         with urllib.request.urlopen(req, timeout=60) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
         return "".join(b.get("text", "") for b in payload.get("content", []))
+
+
+# --------------------------------------------------------------------------
+# provider-backed adapters — BuildWars provider hub, customer-owned access
+# --------------------------------------------------------------------------
+
+
+def _argv_token(value, what, max_len=200):
+    """Validate a value destined for a child argv vector.
+
+    Rejects empty values, whitespace/control characters, and leading dashes so
+    a crafted model name can never masquerade as a CLI flag.
+    """
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{what} must be a non-empty string")
+    if len(value) > max_len:
+        raise ValueError(f"{what} exceeds {max_len} characters")
+    if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in value):
+        raise ValueError(f"{what} must be one token without whitespace or control chars")
+    if value.startswith("-"):
+        raise ValueError(f"{what} must not start with '-'")
+    return value
+
+
+def _provider_timeout(value, default=300):
+    """Provider-path timeouts must be finite positive seconds, never bool."""
+    if value is None:
+        return default
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(value)
+        or value <= 0
+        or value > 3600
+    ):
+        raise ValueError(
+            "backend timeout must be a finite number in (0, 3600] seconds"
+        )
+    return value
+
+
+def _validated_command(command):
+    """Validate an explicit custom-agent JSON argv vector."""
+    if not isinstance(command, (list, tuple)) or not command:
+        raise ValueError("custom_agent requires a non-empty JSON argv vector")
+    if len(command) > 64:
+        raise ValueError("custom_agent argv is limited to 64 entries")
+    out = []
+    total_bytes = 0
+    for part in command:
+        if not isinstance(part, str) or not part:
+            raise ValueError("custom_agent argv entries must be non-empty strings")
+        if any(ord(char) < 32 or ord(char) == 127 for char in part):
+            raise ValueError(
+                "custom_agent argv entries must not contain control characters"
+            )
+        encoded = part.encode("utf-8")
+        if len(encoded) > 4096:
+            raise ValueError("custom_agent argv entries are limited to 4096 bytes")
+        total_bytes += len(encoded)
+        out.append(part)
+    if total_bytes > 16384:
+        raise ValueError("custom_agent argv is limited to 16384 bytes")
+    return out
+
+
+def _resolve_executable(name):
+    executable = shutil.which(name)
+    if executable is None:
+        raise FileNotFoundError(
+            f"{name} is not available on PATH; install it and complete its own "
+            f"local login first (see docs/PROVIDER_CONNECTIONS.md)"
+        )
+    return executable
+
+
+MAX_PROMPT_BYTES = 65536
+MAX_CHILD_OUTPUT_BYTES = 2 * 1024 * 1024
+
+
+def _prompt_text(prompt, *, argv_limit=False):
+    if not isinstance(prompt, str):
+        raise TypeError("provider prompt must be a string")
+    encoded = prompt.encode("utf-8")
+    limit = 20000 if argv_limit else MAX_PROMPT_BYTES
+    if not encoded or len(encoded) > limit:
+        raise ValueError(f"provider prompt must contain 1..{limit} UTF-8 bytes")
+    return prompt
+
+
+def _run_provider_child(argv, *, label, timeout_s, input_text=None,
+                        strip_env=(), extra_env=None, ephemeral_cwd=True):
+    """Run one provider child in an ephemeral cwd with a hardened environment.
+
+    The child never inherits the named secret variables (so subscription-intent
+    catalog paths cannot silently fall back to API billing), may receive extra
+    process-local configuration variables, gets stdin only when a prompt is
+    supplied (otherwise /dev/null), and its raw stderr is NEVER copied into a
+    raised error — only the exit code travels.
+    """
+    if input_text is not None:
+        input_text = _prompt_text(input_text)
+    temporary = (
+        tempfile.TemporaryDirectory(prefix="agentwars-provider-")
+        if ephemeral_cwd else None
+    )
+    workdir = temporary.name if temporary is not None else None
+    try:
+        env = dict(os.environ)
+        stripped = {name.upper() for name in strip_env}
+        for name in list(env):
+            if name.upper() in stripped:
+                env.pop(name, None)
+        if extra_env:
+            env.update(extra_env)
+        proc = subprocess.run(
+            argv,
+            input=input_text.encode("utf-8") if input_text is not None else None,
+            stdin=subprocess.DEVNULL if input_text is None else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout_s,
+            cwd=workdir,
+            env=env,
+        )
+    finally:
+        if temporary is not None:
+            temporary.cleanup()
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"{label} exited {proc.returncode}; child stderr withheld"
+        )
+    if len(proc.stdout) > MAX_CHILD_OUTPUT_BYTES:
+        raise RuntimeError(f"{label} output exceeded size cap")
+    return proc.stdout.decode("utf-8", "replace")
+
+
+class CodexExecBackend(Backend):
+    """ChatGPT/Codex via the locally authenticated `codex exec`.
+
+    UNMEASURED contract. Ephemeral scratch cwd (no project files in reach),
+    read-only sandbox, git-repo checks skipped so a scratch dir works, no user
+    config or rules loaded, ephemeral session. Common OpenAI API-key variables
+    are removed from this child to reduce accidental API billing; BuildWars
+    still cannot attest the auth method cached by Codex. The prompt goes to
+    stdin.
+    """
+
+    kind = "codex_exec"
+    STRIP_ENV = ("OPENAI_API_KEY", "AZURE_OPENAI_API_KEY")
+
+    def __init__(self, timeout_s=300, executable="codex"):
+        self.executable = _argv_token(executable, "codex executable", 120)
+        self.timeout_s = _provider_timeout(timeout_s)
+        self.label = "chatgpt_codex:codex exec"
+
+    def argv(self):
+        return [
+            self.executable,
+            "exec",
+            "--sandbox",
+            "read-only",
+            "--skip-git-repo-check",
+            "--ephemeral",
+            "--ignore-user-config",
+            "--ignore-rules",
+            "-",
+        ]
+
+    def complete(self, prompt: str) -> str:
+        argv = [_resolve_executable(self.executable)] + self.argv()[1:]
+        out = _run_provider_child(
+            argv,
+            label=self.label,
+            timeout_s=self.timeout_s,
+            input_text=prompt,
+            strip_env=self.STRIP_ENV,
+        ).strip()
+        if not out:
+            raise RuntimeError(f"{self.label} returned no output")
+        return out
+
+
+class ClaudePrintBackend(Backend):
+    """Claude Code via locally authenticated non-interactive `claude -p`.
+
+    UNMEASURED contract. One turn, text output, MCP servers strictly disabled
+    (--strict-mcp-config with none configured), safe mode, empty tool set, no
+    session persistence, no fallback model configured. Common Anthropic API-key
+    variables are removed from this child to reduce accidental API billing;
+    BuildWars still cannot attest the auth method cached by Claude Code. Prompt
+    on stdin.
+    """
+
+    kind = "claude_print"
+    STRIP_ENV = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
+
+    def __init__(self, timeout_s=300, executable="claude"):
+        self.executable = _argv_token(executable, "claude executable", 120)
+        self.timeout_s = _provider_timeout(timeout_s)
+        self.label = "claude_code:claude -p"
+
+    def argv(self):
+        return [
+            self.executable,
+            "-p",
+            "--output-format",
+            "text",
+            "--max-turns",
+            "1",
+            "--strict-mcp-config",
+            "--no-session-persistence",
+            "--safe-mode",
+            "--tools",
+            "",
+        ]
+
+    def complete(self, prompt: str) -> str:
+        argv = [_resolve_executable(self.executable)] + self.argv()[1:]
+        out = _run_provider_child(
+            argv,
+            label=self.label,
+            timeout_s=self.timeout_s,
+            input_text=prompt,
+            strip_env=self.STRIP_ENV,
+        ).strip()
+        if not out:
+            raise RuntimeError(f"{self.label} returned no output")
+        return out
+
+
+class OpenRouterChatBackend(Backend):
+    """OpenAI-compatible chat completion against the runner's own key.
+
+    UNMEASURED network contract. Reads OPENROUTER_API_KEY from THIS process's
+    environment at call time; the key is placed only into the request header
+    and never appears in logs, labels, or exception messages. The default
+    transport REFUSES redirects so the Authorization header can never be
+    forwarded off-origin, and response bodies are size-capped; failures are
+    sanitized to status/class names with no body content.
+    """
+
+    kind = "openrouter_chat"
+
+    ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+    PINNED_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+    ENV_VAR = "OPENROUTER_API_KEY"
+    MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+
+    def __init__(self, model, timeout_s=300, transport=None):
+        self.model = _argv_token(model, "openrouter model")
+        self.timeout_s = _provider_timeout(timeout_s)
+        self._transport = transport
+        self.label = f"openrouter:{model}"
+
+    class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+        """Refuse every redirect; never re-send Authorization elsewhere."""
+
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+
+    _OPENER = urllib.request.build_opener(_NoRedirectHandler)
+
+    @classmethod
+    def _default_transport(cls, request, timeout_s):
+        import urllib.error
+
+        try:
+            with cls._OPENER.open(request, timeout=timeout_s) as response:
+                if response.geturl() != cls.PINNED_ENDPOINT:
+                    raise RuntimeError("openrouter response origin/path drifted")
+                return response.read(cls.MAX_RESPONSE_BYTES + 1)
+        except urllib.error.HTTPError as error:
+            if 300 <= error.code < 400:
+                raise RuntimeError(
+                    f"openrouter refused redirect (HTTP {error.code}); "
+                    f"authorization is never forwarded off-origin"
+                ) from None
+            # Status code only — bodies could echo auth context; never risk it.
+            raise RuntimeError(f"openrouter HTTP {error.code}") from None
+
+    def complete(self, prompt: str) -> str:
+        import urllib.error
+        import urllib.request
+
+        key = os.environ.get(self.ENV_VAR)
+        if not key:
+            raise RuntimeError(
+                f"{self.ENV_VAR} is not set in this entrant's environment; "
+                f"complete OpenRouter PKCE on your own machine first"
+            )
+        if (
+            not isinstance(key, str)
+            or not 16 <= len(key) <= 2048
+            or any(ord(ch) < 33 or ord(ch) > 126 for ch in key)
+        ):
+            raise RuntimeError(f"{self.ENV_VAR} has an unsafe shape")
+        if self.ENDPOINT != self.PINNED_ENDPOINT:
+            raise RuntimeError("openrouter endpoint does not match the pinned URL")
+        prompt = _prompt_text(prompt)
+        body = json.dumps(
+            {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+        ).encode("utf-8")
+        request = urllib.request.Request(
+            self.ENDPOINT,
+            data=body,
+            headers={
+                "content-type": "application/json",
+                "authorization": f"Bearer {key}",
+            },
+            method="POST",
+        )
+        transport = self._transport or self._default_transport
+        try:
+            raw = transport(request, self.timeout_s)
+        except RuntimeError:
+            raise
+        except urllib.error.HTTPError as error:
+            if 300 <= error.code < 400:
+                raise RuntimeError(
+                    f"{self.label} refused redirect (HTTP {error.code}); "
+                    f"authorization is never forwarded off-origin"
+                ) from None
+            raise RuntimeError(f"{self.label} HTTP {error.code}") from None
+        except Exception as error:
+            raise RuntimeError(
+                f"{self.label} transport failed: {error.__class__.__name__}"
+            ) from None
+        if not isinstance(raw, (bytes, bytearray)):
+            raise RuntimeError(f"{self.label} transport returned non-bytes")
+        raw = bytes(raw)
+        if len(raw) > self.MAX_RESPONSE_BYTES:
+            raise RuntimeError(f"{self.label} response exceeded size cap")
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise RuntimeError(f"{self.label} returned malformed JSON") from None
+        choices = payload.get("choices") if isinstance(payload, dict) else None
+        content = None
+        if isinstance(choices, list) and choices:
+            message = choices[0].get("message") if isinstance(choices[0], dict) else None
+            if isinstance(message, dict):
+                content = message.get("content")
+        if not isinstance(content, str) or not content.strip():
+            raise RuntimeError(f"{self.label} response missing assistant content")
+        return content.strip()
+
+
+class HermesOneshotBackend(Backend):
+    """Hermes via locally authenticated `hermes --oneshot`.
+
+    UNMEASURED contract — live behavior is not measured in this build. The
+    official CLI contract takes the prompt as a direct ARGUMENT (never
+    stdin-only), with the provider explicit and the model fully qualified as
+    ``provider/model``, rules ignored, safe mode on, and only the non-mutating
+    ``clarify`` toolset available. No fallback claim: a failed shot raises and
+    the harness's deterministic fallback takes over.
+    """
+
+    kind = "hermes_oneshot"
+
+    def __init__(self, provider_model, timeout_s=300, executable="hermes"):
+        self.executable = _argv_token(executable, "hermes executable", 120)
+        if not isinstance(provider_model, str) or "/" not in provider_model:
+            raise ValueError("hermes backend needs an explicit 'provider/model' identifier")
+        provider, _, model = provider_model.partition("/")
+        self.provider = _argv_token(provider, "hermes provider", 80)
+        self.model = _argv_token(model, "hermes model", 120)
+        self.timeout_s = _provider_timeout(timeout_s)
+        self.label = f"hermes:{self.provider}/{self.model}"
+
+    def argv(self, prompt=None):
+        """Full argv; when ``prompt`` is given it is appended as the argument."""
+        return [
+            self.executable,
+            "--oneshot",
+            "--provider",
+            self.provider,
+            "--model",
+            f"{self.provider}/{self.model}",
+            "--ignore-rules",
+            "--safe-mode",
+            "--toolsets",
+            "clarify",
+        ] + ([prompt] if prompt is not None else [])
+
+    def complete(self, prompt: str) -> str:
+        prompt = _prompt_text(prompt, argv_limit=True)
+        argv = [_resolve_executable(self.executable)] + self.argv(prompt)[1:]
+        out = _run_provider_child(
+            argv, label=self.label, timeout_s=self.timeout_s
+        ).strip()
+        if not out:
+            raise RuntimeError(f"{self.label} returned no output")
+        return out
+
+
+class OpenCodeProviderBackend(Backend):
+    """OpenCode PROVIDER path — hardened adapter distinct from legacy specs.
+
+    UNMEASURED contract. Ephemeral cwd, `--pure` (no project config), JSON
+    event output, the prompt as a direct positional argument per the official
+    CLI contract, and NO `--auto`. The child runs under a process-local
+    OPENCODE_CONFIG_CONTENT agent whose tools and permissions are all denied,
+    with external/Claude skill loading disabled and project config disabled via
+    OPENCODE_DISABLE_PROJECT_CONFIG=1. The user's local auth store is left
+    untouched — local auth is exactly what this path delegates to.
+    """
+
+    kind = "opencode_run"
+
+    AGENT_NAME = "agentwars-provider"
+
+    @classmethod
+    def config_content(cls):
+        permission = {
+            "*": "deny",
+            "bash": "deny",
+            "edit": "deny",
+            "read": "deny",
+            "glob": "deny",
+            "grep": "deny",
+            "list": "deny",
+            "lsp": "deny",
+            "webfetch": "deny",
+            "websearch": "deny",
+            "task": "deny",
+            "skill": "deny",
+            "question": "deny",
+            "external_directory": "deny",
+        }
+        return json.dumps(
+            {
+                "$schema": "https://opencode.ai/config.json",
+                "default_agent": cls.AGENT_NAME,
+                "permission": dict(permission),
+                "agent": {
+                    cls.AGENT_NAME: {
+                        "description": (
+                            "BuildWars provider one-shot: answer the prompt, "
+                            "touch nothing."
+                        ),
+                        "mode": "primary",
+                        "permission": dict(permission),
+                    }
+                },
+            },
+            separators=(",", ":"),
+        )
+
+    def __init__(self, model, variant="max", timeout_s=300):
+        model = _argv_token(model, "provider/model identifier")
+        provider, separator, provider_model = model.partition("/")
+        if not separator:
+            raise ValueError(
+                "opencode backend needs an explicit 'provider/model' identifier"
+            )
+        _argv_token(provider, "opencode provider", 80)
+        _argv_token(provider_model, "opencode model", 160)
+        variant = _argv_token(variant, "variant")
+        if "@" in model:
+            raise ValueError(
+                "pass provider/model without '@'; use the model@variant form"
+            )
+        self.model = model
+        self.variant = variant
+        self.timeout_s = _provider_timeout(timeout_s)
+        self.label = f"opencode-provider:{model}@{variant}"
+
+    def argv(self, prompt=None):
+        return [
+            "opencode",
+            "run",
+            "-m",
+            self.model,
+            "--variant",
+            self.variant,
+            "--format",
+            "json",
+            "--agent",
+            self.AGENT_NAME,
+            "--pure",
+        ] + (["--", prompt] if prompt is not None else [])
+
+    def child_env(self):
+        return {
+            "OPENCODE_CONFIG_CONTENT": self.config_content(),
+            "OPENCODE_DISABLE_PROJECT_CONFIG": "1",
+            "OPENCODE_PURE": "1",
+            "OPENCODE_AUTO_SHARE": "false",
+            "OPENCODE_DISABLE_EXTERNAL_SKILLS": "1",
+            "OPENCODE_DISABLE_CLAUDE_CODE_SKILLS": "1",
+        }
+
+    def complete(self, prompt: str) -> str:
+        prompt = _prompt_text(prompt, argv_limit=True)
+        executable = shutil.which("opencode")
+        if executable is None:
+            raise FileNotFoundError(
+                "opencode is not available on PATH; run `opencode auth login` "
+                "yourself first. A missing binary never means a missing account."
+            )
+        argv = [executable] + self.argv(prompt)[1:]
+        stdout = _run_provider_child(
+            argv,
+            label=self.label,
+            timeout_s=self.timeout_s,
+            extra_env=self.child_env(),
+        )
+        texts = []
+        for line in stdout.splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            part = event.get("part") if isinstance(event, dict) else None
+            if (
+                isinstance(event, dict)
+                and event.get("type") == "text"
+                and isinstance(part, dict)
+                and isinstance(part.get("text"), str)
+            ):
+                texts.append(part["text"])
+        if not texts:
+            raise RuntimeError(f"{self.label} returned no assistant text event")
+        return texts[-1].strip()
+
+
+class CustomerCommandBackend(Backend):
+    """custom_agent: the customer's OWN prompt/stdout program.
+
+    Truthful scope: this is NOT an arena/1 JSONL entrant slot. The declared
+    repeatable JSON argv runs locally, receives the prompt on stdin, and its
+    final stdout text is parsed by the calling harness as the answer. A true
+    arena/1 entrant is registered directly as a manifest command outside the
+    model harness.
+    """
+
+    kind = "custom_cli"
+
+    def __init__(self, command, timeout_s=300):
+        self.command = list(_validated_command(command))
+        self.timeout_s = _provider_timeout(timeout_s)
+        self.label = f"custom_cli:{self.command[0]}"
+
+    def complete(self, prompt: str) -> str:
+        prompt = _prompt_text(prompt)
+        executable = _resolve_executable(self.command[0])
+        out = _run_provider_child(
+            [executable] + self.command[1:],
+            label=self.label,
+            timeout_s=self.timeout_s,
+            input_text=prompt,
+            ephemeral_cwd=False,
+        )
+        out = out.strip()
+        if not out:
+            raise RuntimeError(f"{self.label} returned no output")
+        return out
+
+
+PROVIDER_BACKEND_KINDS = (
+    "codex_exec",
+    "claude_print",
+    "opencode_run",
+    "openrouter_chat",
+    "hermes_oneshot",
+    "custom_cli",
+)
+
+
+def get_provider_backend(provider_id, *, model=None, variant=None, command=None,
+                         timeout_s=None):
+    """Map a BuildWars provider catalog id to an executable entrant backend.
+
+    This is the single source of truth for provider adapter construction; the
+    catalog declares which kind serves each provider and this function builds
+    exactly that kind. Unknown providers fail closed here as everywhere else.
+    Provider-path timeouts must be finite positive seconds. ``custom_agent``
+    builds a truthful prompt/stdout command backend from an explicit JSON argv
+    vector — it is not an arena/1 slot.
+    """
+    try:
+        from provider_hub.catalog import get_provider
+    except ImportError:
+        raise RuntimeError(
+            "provider hub package unavailable; run from a BuildWars checkout"
+        ) from None
+    get_provider(provider_id)  # fails closed on unknown ids
+    effective_timeout = _provider_timeout(timeout_s)
+    if provider_id == "chatgpt_codex":
+        if model is not None or variant is not None or command is not None:
+            raise ValueError("chatgpt_codex does not accept model, variant, or command options")
+        return CodexExecBackend(effective_timeout)
+    if provider_id == "claude_code":
+        if model is not None or variant is not None or command is not None:
+            raise ValueError("claude_code does not accept model, variant, or command options")
+        return ClaudePrintBackend(effective_timeout)
+    if provider_id == "opencode":
+        if command is not None:
+            raise ValueError("opencode does not accept a provider command")
+        if not model:
+            raise ValueError("opencode provider requires --provider-model provider/model")
+        return OpenCodeProviderBackend(model, variant or "max", effective_timeout)
+    if provider_id == "openrouter":
+        if variant is not None or command is not None:
+            raise ValueError("openrouter does not accept variant or command options")
+        if not model:
+            raise ValueError("openrouter provider requires --provider-model model-id")
+        return OpenRouterChatBackend(model, effective_timeout)
+    if provider_id == "hermes":
+        if variant is not None or command is not None:
+            raise ValueError("hermes does not accept variant or command options")
+        if not model:
+            raise ValueError("hermes provider requires --provider-model provider/model")
+        return HermesOneshotBackend(model, effective_timeout)
+    if provider_id == "custom_agent":
+        if model is not None or variant is not None:
+            raise ValueError("custom_agent does not accept model or variant options")
+        if command is None:
+            raise ValueError(
+                "custom_agent requires --provider-command as an explicit JSON "
+                "argv vector; a true arena/1 entrant registers directly as a "
+                "manifest command outside the model harness"
+            )
+        return CustomerCommandBackend(command, effective_timeout)
+    raise ValueError(f"unknown provider {provider_id!r}")
+
+
+def execution_claim_for_provider(provider_id):
+    """Every provider-backed adapter is a model claim — never attested."""
+    try:
+        from provider_hub.catalog import get_provider
+    except ImportError:
+        raise RuntimeError(
+            "provider hub package unavailable; run from a BuildWars checkout"
+        ) from None
+    get_provider(provider_id)  # fails closed on unknown ids
+    return "model"
 
 
 def get_backend(spec, timeout_s=None):

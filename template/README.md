@@ -53,5 +53,19 @@ That pattern is most of the difference between entrants on the same model.
 | `arena/runner.py` | engine stub + the game-vetting checks |
 | `measure*.py` | how the round and seed counts were derived |
 
+## Bringing your own provider access
+
+Prefer your ChatGPT/Codex, Claude Code, OpenCode, OpenRouter, Hermes, or custom
+agent access? Both model harnesses accept `--provider <id>` (plus
+`--provider-model` where the catalog requires it). `custom_agent` also requires
+an explicit `--provider-command` JSON argv array. Your provider login lives on
+your machine; it is not carried in an entrant envelope. Plans and rules:
+[`../docs/PROVIDER_CONNECTIONS.md`](../docs/PROVIDER_CONNECTIONS.md).
+
+```bash
+python ../bin/buildwars_provider.py connect-plan chatgpt_codex
+python ../bin/buildwars_provider.py connect-plan custom_agent
+```
+
 `arena/runner.py` is a stub of the real engine. The interface it calls is the
 interface the real engine calls, so an entrant that runs here runs there.

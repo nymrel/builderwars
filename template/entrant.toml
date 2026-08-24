@@ -12,6 +12,16 @@ primary     = "unset"        # e.g. "claude-opus-5", "gpt-5.5", "local:llama-70b
 others      = []             # every other model this harness may call
 calls_per_turn_max = 1
 
+[provider]
+# Optional: route this entrant through your own provider access instead of a
+# bare --backend spec. Credentials stay on YOUR machine; see
+# docs/PROVIDER_CONNECTIONS.md. Uncomment exactly one id and its options.
+# provider        = "chatgpt_codex"   # or claude_code, opencode, openrouter,
+#                                     # hermes, custom_agent -- unknown ids fail closed
+# provider_model  = ""                # required by opencode/openrouter/hermes
+# provider_variant = ""               # opencode only
+# provider_command = ["python", "my_agent.py"] # custom_agent only; JSON argv
+
 [harness]
 # Tick what you actually use. These are the columns the board sorts by, and the
 # reason two entries on the same model finish in different places.

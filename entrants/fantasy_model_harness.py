@@ -14,11 +14,61 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from backends import get_backend  # noqa: E402
+from backends import get_backend, get_provider_backend  # noqa: E402
 
 VERSION = "1"
 STRATEGIES = ("win-now", "long-game")
 MAX_MODEL_OUTPUT_CHARS = 32768
+PROVIDER_CHOICES = (
+    "chatgpt_codex",
+    "claude_code",
+    "opencode",
+    "openrouter",
+    "hermes",
+    "custom_agent",
+)
+
+
+def build_backend(args, parser=None):
+    """Resolve the backend exactly once.
+
+    ``--backend`` keeps its historical meaning byte-for-byte when no provider
+    is selected. With ``--provider``, the catalog id selects a provider-backed
+    adapter instead; the two flags are mutually exclusive so an invocation can
+    never be ambiguous about what answers. ``custom_agent`` requires an
+    explicit repeatable JSON argv vector via ``--provider-command``.
+    """
+    if args.provider:
+        if args.backend:
+            _fail(parser, "--backend and --provider are mutually exclusive")
+        command = None
+        if getattr(args, "provider_command", None):
+            try:
+                command = json.loads(args.provider_command)
+            except json.JSONDecodeError:
+                _fail(parser, "--provider-command must be a JSON argv array")
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        try:
+            return get_provider_backend(
+                args.provider,
+                model=args.provider_model,
+                variant=args.provider_variant,
+                command=command,
+                timeout_s=args.backend_timeout,
+            )
+        except ValueError as error:
+            _fail(parser, str(error))
+    if not args.backend:
+        _fail(parser, "--backend is required unless --provider is given")
+    return get_backend(args.backend, timeout_s=args.backend_timeout)
+
+
+def _fail(parser, message):
+    if parser is not None:
+        parser.error(message)
+    raise SystemExit(f"error: {message}")
 
 
 def send(message):
@@ -151,12 +201,25 @@ def decide(observation, strategy, backend):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--backend", required=True)
+    parser.add_argument(
+        "--backend", default=None,
+        help="entrant-side backend spec, e.g. stub:v1 or cli:claude -p",
+    )
+    parser.add_argument(
+        "--provider", choices=PROVIDER_CHOICES, default=None,
+        help="BuildWars provider catalog id; mutually exclusive with --backend",
+    )
+    parser.add_argument("--provider-model", default=None)
+    parser.add_argument("--provider-variant", default=None)
+    parser.add_argument(
+        "--provider-command", default=None,
+        help="custom_agent only: explicit repeatable JSON argv array",
+    )
     parser.add_argument("--backend-timeout", type=float, default=None)
     parser.add_argument("--strategy", choices=STRATEGIES, required=True)
     parser.add_argument("--name", required=True)
     args = parser.parse_args()
-    backend = get_backend(args.backend, timeout_s=args.backend_timeout)
+    backend = build_backend(args, parser)
 
     for line in sys.stdin:
         if not line.strip():
