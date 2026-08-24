@@ -23,7 +23,7 @@ from backends import get_backend  # noqa: E402
 from parsing import parse_move  # noqa: E402  — identical parser in both arms
 
 NAME = "naive-harness"
-VERSION = "2"
+VERSION = "3"
 
 
 def build_prompt(obs):
@@ -64,15 +64,19 @@ def main():
         elif kind == "move_request":
             # Survives a backend error so the comparison against solver_harness
             # isolates one variable: validation and fallback, not crash safety.
-            # Both harnesses stay alive; only one of them checks its answer.
+            # The structured source marker lets a zero-fallback study distinguish
+            # a real model answer from a null move caused by infrastructure.
+            source = "model"
             try:
                 text = backend.complete(build_prompt(msg["observation"]))
-            except Exception:
+            except Exception as error:
                 text = ""
+                source = f"backend_error:{error.__class__.__name__}"
             move = parse_move(text)
-            # Forwarded as-is. When the model did not answer, `move` is null and
-            # the referee will rule that a forfeit. That is the point.
-            send({"type": "move", "move": move, "note": (text or "").strip()[:200]})
+            # Forwarded as-is. An unparseable or illegal model answer is still a
+            # model-sourced experimental outcome; the referee will forfeit it.
+            # Raw model text is deliberately not copied into the receipt.
+            send({"type": "move", "move": move, "note": f"source={source}"})
 
         elif kind == "goodbye":
             return

@@ -1,0 +1,87 @@
+{
+  "schema": "agentwars.factorial-study-plan/v1",
+  "study_id": "agentwars-cross-model-v1",
+  "game": "nim",
+  "pairings": "complete",
+  "harnesses": [
+    {
+      "id": "solver",
+      "role": "structured",
+      "label": "Solver harness",
+      "path": "entrants/solver_harness.py"
+    },
+    {
+      "id": "naive",
+      "role": "naive",
+      "label": "Naive harness",
+      "path": "entrants/naive_harness.py"
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "cross-family",
+      "kind": "cross-family",
+      "models": {
+        "small": {
+          "label": "Llama 3.2 3B",
+          "family": "llama-3.2",
+          "parameters_billions": 3,
+          "backend": "cli:ollama run llama3.2:3b"
+        },
+        "large": {
+          "label": "Qwen 2.5 14B",
+          "family": "qwen-2.5",
+          "parameters_billions": 14,
+          "backend": "cli:ollama run qwen2.5:14b"
+        }
+      }
+    },
+    {
+      "id": "same-family-qwen",
+      "kind": "same-family",
+      "models": {
+        "small": {
+          "label": "Qwen 2.5 3B",
+          "family": "qwen-2.5",
+          "parameters_billions": 3,
+          "backend": "cli:ollama run qwen2.5:3b"
+        },
+        "large": {
+          "label": "Qwen 2.5 14B",
+          "family": "qwen-2.5",
+          "parameters_billions": 14,
+          "backend": "cli:ollama run qwen2.5:14b"
+        }
+      }
+    }
+  ],
+  "profiles": {
+    "smoke": {
+      "start_seed": 41000,
+      "seed_count": 2,
+      "replicates": 1,
+      "publishable": false
+    },
+    "publication": {
+      "start_seed": 42000,
+      "seed_count": 16,
+      "replicates": 1,
+      "publishable": true
+    }
+  },
+  "runtime": {
+    "backend_timeout_s": 600,
+    "move_timeout_s": 660
+  },
+  "publication_gate": {
+    "require_replay_pass": true,
+    "require_zero_fallback": true,
+    "require_source_metadata": true,
+    "require_every_treatment_model_move": true,
+    "allowed_result_reasons": [
+      "took_last_object",
+      "forfeit:illegal_move"
+    ],
+    "confidence_level": 0.95
+  }
+}

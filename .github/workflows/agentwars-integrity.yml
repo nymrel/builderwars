@@ -1,0 +1,42 @@
+name: AgentWars integrity
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate factorial study
+        run: |
+          python bin/run_factorial_study.py --validate-plan
+          python bin/check_factorial_study.py
+      - name: Compile study modules
+        run: |
+          python -m py_compile \
+            bin/factorial_study_core.py \
+            bin/factorial_study_receipts.py \
+            bin/factorial_study_stats.py \
+            bin/factorial_study_summary.py \
+            bin/factorial_study_output.py \
+            bin/run_factorial_study.py \
+            bin/check_factorial_study.py \
+            entrants/naive_harness.py
+      - name: Run existing adversarial checks
+        run: |
+          python bin/selfcheck.py
+          python bin/check_fantasy_games.py
+          python bin/check_agentwars_scale.py
+          python bin/check_share_bundle.py
+          python bin/check_agentwars_product.py
+          python bin/build_verifier.py --check
