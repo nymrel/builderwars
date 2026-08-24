@@ -17,6 +17,19 @@ class ChainBroken(Exception):
     pass
 
 
+class _DuplicateKey(ValueError):
+    pass
+
+
+def _object_without_duplicate_keys(pairs):
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise _DuplicateKey(f"duplicate object key {key!r}")
+        obj[key] = value
+    return obj
+
+
 class TranscriptWriter:
     def __init__(self, path):
         self.path = str(path)
@@ -63,8 +76,8 @@ def load(path):
             if not line:
                 continue
             try:
-                records.append(json.loads(line))
-            except json.JSONDecodeError as e:
+                records.append(json.loads(line, object_pairs_hook=_object_without_duplicate_keys))
+            except (json.JSONDecodeError, _DuplicateKey, RecursionError) as e:
                 raise ChainBroken(f"line {lineno}: not valid JSON ({e})") from e
     return records
 

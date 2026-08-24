@@ -1,0 +1,3 @@
+# Optional Agent Passport signing and offline verification.
+# Unsigned legacy replay remains stdlib-only, including in the standalone verifier.
+cryptography>=50.0.0,<51

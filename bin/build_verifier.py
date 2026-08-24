@@ -147,7 +147,10 @@ HEADER = '''#!/usr/bin/env python3
     python verify.py path/to.jsonl     checks a transcript you already have
     python verify.py <match-id> --json full report as JSON
 
-Exit code 0 means PASS. Stock Python 3. No dependencies, no account, no key.
+Exit code 0 means PASS. Unsigned legacy receipts need only stock Python 3.
+Signed Agent Passport receipts additionally require BuilderWars' declared
+optional `cryptography` dependency; absence fails closed and never downgrades
+the receipt to legacy identity.
 
 This file contains the referee's own source, embedded byte-for-byte. It unpacks
 to a temp directory, runs the real engine, and deletes it again. That is on
@@ -192,13 +195,44 @@ def _unpack(sources):
     return root
 
 
-def _recorded_engine_digest(path):
+class _DuplicateKey(ValueError):
+    pass
+
+
+def _object_without_duplicate_keys(pairs):
+    obj = {{}}
+    for key, value in pairs:
+        if key in obj:
+            raise _DuplicateKey(f"duplicate object key {{key!r}}")
+        obj[key] = value
+    return obj
+
+
+def _inspect_transcript(path):
+    """Return (engine digest, signed-block-present, preflight error).
+
+    This wrapper-level scan applies even when an old embedded snapshot predates
+    duplicate-key and passport handling. A signed block can never be silently
+    interpreted by a legacy-only snapshot.
+    """
     try:
         with open(path, "r", encoding="utf-8") as fh:
-            first = json.loads(fh.readline())
-        return first.get("body", {{}}).get("engine", {{}}).get("digest")
-    except Exception:
-        return None
+            records = [
+                json.loads(line, object_pairs_hook=_object_without_duplicate_keys)
+                for line in fh
+                if line.strip()
+            ]
+        header = next((row for row in records if row.get("kind") == "header"), None)
+        if not isinstance(header, dict):
+            return None, False, "transcript preflight: no header record"
+        body = header.get("body", {{}})
+        entrants = body.get("entrants")
+        signed = isinstance(entrants, list) and any(
+            isinstance(row, dict) and "agent_passport" in row for row in entrants
+        )
+        return body.get("engine", {{}}).get("digest"), signed, None
+    except Exception as error:
+        return None, False, f"transcript preflight: {{error.__class__.__name__}}: {{error}}"
 
 
 def _fetch(arg):
@@ -227,8 +261,9 @@ def main():
     args = ap.parse_args()
 
     path, source_url = _fetch(args.match)
-    recorded_digest = _recorded_engine_digest(path)
+    recorded_digest, signed_present, transcript_preflight_error = _inspect_transcript(path)
     selected_digest = recorded_digest if recorded_digest in SOURCE_SETS else DEFAULT_ENGINE_DIGEST
+    signed_verifier_capable = "passport.py" in SOURCE_SETS[selected_digest]
     _unpack(SOURCE_SETS[selected_digest])
     from arena.replay import verify          # the digest-matched referee verifier
 
@@ -236,10 +271,15 @@ def main():
     report["verifier_engine_selected"] = selected_digest
     report["verifier_snapshot_match"] = recorded_digest == selected_digest
     report["replay_verdict"] = report.get("verdict")
+    report["signed_passport_present"] = signed_present
+    report["signed_verifier_capable"] = signed_verifier_capable
+    report["transcript_preflight_error"] = transcript_preflight_error
     effective_pass = (
         report.get("replay_verdict") == "PASS"
         and report.get("engine_digest_match") is True
         and report.get("verifier_snapshot_match") is True
+        and transcript_preflight_error is None
+        and (not signed_present or signed_verifier_capable)
     )
     report["effective_verdict"] = "PASS" if effective_pass else "FAIL"
     effective_errors = list(report.get("errors") or [])
@@ -247,6 +287,13 @@ def main():
         effective_errors.append("effective_verdict: referee engine digest does not match")
     if report.get("verifier_snapshot_match") is not True:
         effective_errors.append("effective_verdict: exact embedded verifier snapshot is unavailable")
+    if transcript_preflight_error is not None:
+        effective_errors.append(transcript_preflight_error)
+    if signed_present and not signed_verifier_capable:
+        effective_errors.append(
+            "unsupported_verifier_for_signed: selected engine snapshot predates "
+            "in-engine Agent Passport verification"
+        )
     report["effective_errors"] = effective_errors
 
     if args.json:

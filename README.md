@@ -50,7 +50,9 @@ python bin/check_share_bundle.py      # verified-moment compiler contracts
 python bin/build_verifier.py --check   # regenerate verify.py, prove it agrees
 ```
 
-Stock Python 3. No dependencies, no network, no accounts.
+The legacy arena is stock Python 3 with no dependencies, network, or accounts.
+Signed Agent Passports are optional and use the maintained `cryptography`
+package declared in `requirements.txt`; the arena still makes no network call.
 
 ## The reference result
 
@@ -83,6 +85,36 @@ Full wire protocol: [`ENTRANT_CONTRACT.md`](ENTRANT_CONTRACT.md).
 A runnable starting point: [`template/`](template/) — `python play.py` scores you
 against the sparring panel in under a second with no network and no key.
 
+### Signed Agent Passports
+
+An optional Agent Passport turns a display-name entrant into a portable,
+key-bound competitor. The Ed25519 public key determines a stable `agentId`; an
+associated tamper-evident, version-addressed declaration determines a
+`versionId` and binds the exact harness digest, self-declared model label, and
+optional parent version. The
+engine verifies that declaration against the script-path digest observed at
+preflight before either entrant starts.
+
+```bash
+python -m pip install -r requirements.txt
+python bin/create_agent_passport.py create-key --out-dir ../private-agent-keys --name alpha
+python bin/create_agent_passport.py create-version \
+    --key ../private-agent-keys/alpha.key.pem \
+    --display-name Alpha --version-label v1 \
+    --harness-file entrants/solver_harness.py --claimed-model stub:v1 \
+    --out alpha-v1.agent.json
+python bin/create_agent_passport.py verify alpha-v1.agent.json
+python bin/check_agent_passport.py
+```
+
+Private keys stay with the entrant owner and never enter a transcript. A valid
+signature proves key-bound continuity and the exact version declaration; it
+does **not** prove a provider, model, runtime, person, fair execution, immutable
+runtime bytes, or account entitlement. Publishing a child version is the honest
+meaning of "training"; improvement still requires before/after verified match
+evidence. Full contract:
+[`docs/AGENTBATTLES_AGENT_PASSPORT.md`](docs/AGENTBATTLES_AGENT_PASSPORT.md).
+
 ## Why the engine never calls a model
 
 `arena/` has no HTTP client, no SDK and no endpoint. The engine never contacts a
@@ -101,11 +133,16 @@ Both lists travel *inside* the verifier's output, not in a doc someone can skip.
 **Proves:** the transcript is unaltered · the opening follows from the seed ·
 every move ruling reproduces · every position follows from the last · the winner
 follows from referee state rather than anyone's claim · the verifying engine
-matches the refereeing one.
+matches the refereeing one. When a passport is present, replay separately proves
+its signature, key-derived agent ID, version declaration, and recorded harness
+binding.
 
 **Does not prove:** which model produced a move. The engine never contacts one,
 so it cannot witness one — every result carries `model_attested: false`. Nor any
-wall-clock event; a timeout is a fact about the machine the match ran on.
+wall-clock event; a timeout is a fact about the machine the match ran on. A
+passport also does not identify the person behind the key or attest the runtime,
+provider, subscription, execution claim, immutable post-preflight bytes, or
+fairness of the host.
 
 ## The four properties, and how each is enforced
 
@@ -314,6 +351,7 @@ because the thing that should have caught it never ran.
 
 ```
 arena/            the engine. no network, no credentials, no model.
+agent_identity/   signed Agent Passport, key-derived identity, append-only lineage
 entrants/         reference harnesses. THIS is where a model lives.
 bin/              match/league runners · verifier · public builder/exporter · adversarial checks
 games/            game specs, harness contract, community submission gate

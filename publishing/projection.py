@@ -128,6 +128,39 @@ def _entrant_id(name: str) -> str:
     return digest({"identityScope": "agentwars-self-declared-name-v1", "name": name.casefold()})
 
 
+def _verified_passport_row(raw):
+    """Prefer a verified stable agentId for passport entrants; fail closed.
+
+    The projection independently re-verifies the embedded signature rather than
+    trusting that some upstream stage did it. A passport that does not verify
+    cannot cross the public boundary at all.
+    """
+    record = raw.get("agent_passport")
+    try:
+        from arena import passport as passport_contract
+
+        normalized = passport_contract.verify_passport(record)
+        scope = dict(normalized["proofScope"])
+    except ImportError as error:
+        raise PublicationError(
+            "passport entrant present but the in-engine passport verifier is unavailable"
+        ) from error
+    except Exception as error:
+        raise PublicationError(f"entrant passport fails offline verification: {error}") from error
+    script = raw.get("script")
+    if not isinstance(script, dict) or script.get("sha256") != normalized["harnessSha256"]:
+        raise PublicationError("entrant passport does not bind the recorded harness digest")
+    if raw.get("name") != normalized["displayName"]:
+        raise PublicationError("entrant passport displayName disagrees with the recorded name")
+    if raw.get("claimed_model") != normalized["claimedModel"]:
+        raise PublicationError("entrant passport claimedModel disagrees with the recorded claim")
+    return {
+        **record,
+        "normalized": normalized,
+        "scope": scope,
+    }
+
+
 def _harness_version_id(raw: Any) -> tuple[str | None, bool]:
     if not isinstance(raw, dict):
         return None, False
@@ -154,17 +187,47 @@ def public_entrants(header: dict[str, Any]) -> list[dict[str, Any]]:
         if not isinstance(manifest_digest, str) or HEX64_RE.fullmatch(manifest_digest) is None:
             raise PublicationError("entrant manifestDigest must be exact lowercase sha256")
         harness_id, harness_proven = _harness_version_id(raw)
-        rows.append(
-            {
-                "seat": raw["seat"],
-                "entrantId": _entrant_id(name),
-                "name": name,
-                "executionClaim": execution_claim,
-                "harnessVersionId": harness_id,
-                "harnessVersionContentDerived": harness_proven,
-                "manifestDigest": manifest_digest,
-            }
-        )
+        if "agent_passport" in raw:
+            passport = _verified_passport_row(raw)
+            normalized = passport["normalized"]
+            rows.append(
+                {
+                    "seat": raw["seat"],
+                    # Key-derived stable identity replaces the name hash.
+                    "entrantId": normalized["agentId"],
+                    "name": name,
+                    "executionClaim": execution_claim,
+                    "harnessVersionId": harness_id,
+                    "harnessVersionContentDerived": harness_proven,
+                    "manifestDigest": manifest_digest,
+                    "agentVersionId": normalized["versionId"],
+                    "parentVersionId": normalized["parentVersionId"],
+                    "identityStatus": "verified_signed",
+                    "claimedModelSelfDeclared": normalized["claimedModel"],
+                    "proofScope": {
+                        "signatureProvesVersionDeclaration": True,
+                        "keyBoundAgentId": True,
+                        "recordedPreflightHarnessDigestBound": True,
+                        "entrantIdentityAttested": False,
+                        "modelAttested": False,
+                        "runtimeAttested": False,
+                        "personAttested": False,
+                        "executionClaimsAttested": False,
+                    },
+                }
+            )
+        else:
+            rows.append(
+                {
+                    "seat": raw["seat"],
+                    "entrantId": _entrant_id(name),
+                    "name": name,
+                    "executionClaim": execution_claim,
+                    "harnessVersionId": harness_id,
+                    "harnessVersionContentDerived": harness_proven,
+                    "manifestDigest": manifest_digest,
+                }
+            )
     if [row["seat"] for row in rows] != [0, 1]:
         raise PublicationError("transcript must contain one entrant in each seat")
     if len({row["entrantId"] for row in rows}) != 2:
@@ -329,6 +392,25 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     result_type = "void" if outcome_status == "void" else (
         "draw" if winner is None else "win"
     )
+    signed_passport_count = sum(
+        row.get("identityStatus") == "verified_signed" for row in entrants
+    )
+    passport_coverage = (
+        "all"
+        if signed_passport_count == len(entrants)
+        else "partial" if signed_passport_count else "none"
+    )
+    truth_boundary = (
+        "Replay proves accepted moves, deterministic state, scoring, and result. "
+        "Entrant names, execution classes, and move-source labels remain hash-bound "
+        "self-declarations; they do not prove provider or model identity."
+    )
+    if signed_passport_count:
+        truth_boundary += (
+            " Each entrant's signed passport was verified offline: it binds one "
+            "tamper-evident version declaration to one public key. That is not "
+            "an attestation of any model claim, runtime, or person."
+        )
     receipt = {
         "schemaVersion": PUBLIC_RECEIPT_SCHEMA,
         "receiptId": chain_head,
@@ -356,10 +438,15 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
             "modelAttested": False,
             "entrantIdentityAttested": False,
             "executionClaimsAttested": False,
-            "boundary": (
-                "Replay proves accepted moves, deterministic state, scoring, and result. "
-                "Entrant names, execution classes, and move-source labels remain hash-bound "
-                "self-declarations; they do not prove provider or model identity."
+            "boundary": truth_boundary,
+            **(
+                {
+                    "agentVersionSignaturesVerified": True,
+                    "keyBoundAgentIdsVerified": True,
+                    "agentPassportCoverage": passport_coverage,
+                }
+                if signed_passport_count
+                else {}
             ),
         },
         "verification": {
