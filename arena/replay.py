@@ -217,13 +217,33 @@ def verify(transcript_path):
         report["errors"].append("no header record")
         return report
     h = header["body"]
+
+    known_kinds = {"header", "ready", "state", "move", "forfeit", "abort", "engine_error", "result"}
+    header_positions = [i for i, r in enumerate(records) if r["kind"] == "header"]
+    result_positions = [i for i, r in enumerate(records) if r["kind"] == "result"]
+    unknown_kinds = sorted({r["kind"] for r in records} - known_kinds)
+    structure_ok = (
+        header_positions == [0]
+        and len(result_positions) == 1
+        and result_positions == [len(records) - 1]
+    )
+    note(
+        "transcript_structure",
+        structure_ok,
+        None if structure_ok else "transcript must open with one header and close with exactly one result",
+    )
+    kinds_ok = not unknown_kinds
+    note("record_kinds", kinds_ok, None if kinds_ok else f"unknown record kinds: {unknown_kinds}")
+
     report["match_id"] = h.get("match_id")
     report["seed"] = h.get("seed")
-    report["game"] = h.get("game", {}).get("name")
+    game_block = h.get("game")
+    report["game"] = game_block.get("name") if isinstance(game_block, dict) else None
 
     # 2. is the verifying engine the refereeing engine?
     mine = engine_digest()
-    theirs = h.get("engine", {}).get("digest")
+    engine_block = h.get("engine")
+    theirs = engine_block.get("digest") if isinstance(engine_block, dict) else None
     report["engine_digest_match"] = mine == theirs
     report["engine_digest_recorded"] = theirs
     report["engine_digest_verifier"] = mine
@@ -322,10 +342,29 @@ def verify(transcript_path):
     note("all_positions_follow_the_rules", states_ok)
     note("all_move_rulings_reproduce", moves_ok)
 
-    # 4. adjudication of forfeits: the forfeiting seat must be the one that lost
+    # 4. forfeit integrity, then adjudication: at most one forfeit, fully typed,
+    # and the forfeiting seat must be the one that lost
+    forfeit_ok = len(forfeits) <= 1
+    if forfeits:
+        fb = forfeits[0]
+        forfeit_ok = (
+            forfeit_ok
+            and isinstance(fb.get("player"), int)
+            and not isinstance(fb.get("player"), bool)
+            and fb["player"] in (0, 1)
+            and isinstance(fb.get("reason"), str)
+            and bool(fb["reason"])
+            and isinstance(fb.get("phase"), str)
+            and bool(fb["phase"])
+        )
+    note(
+        "forfeit_integrity",
+        forfeit_ok,
+        None if forfeit_ok else "forfeit records must be singular and well-formed",
+    )
     adjudication_ok = True
     recorded_result = first(records, "result")
-    if recorded_result and forfeits:
+    if recorded_result and forfeits and forfeit_ok:
         loser = forfeits[0]["player"]
         if recorded_result["body"].get("winner") != 1 - loser:
             adjudication_ok = False
@@ -402,9 +441,13 @@ def verify(transcript_path):
 
     passed = (
         report["chain_ok"]
+        and report["engine_digest_match"] is True
+        and structure_ok
+        and kinds_ok
         and setup_ok
         and states_ok
         and moves_ok
+        and forfeit_ok
         and adjudication_ok
         and same
         and identity_status != "invalid"

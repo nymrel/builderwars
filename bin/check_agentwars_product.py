@@ -196,7 +196,8 @@ def check_verifier_exit_contract():
 
     missing, missing_report = run_verifier(MISSING_SNAPSHOT)
     require(missing.returncode == 1, "missing snapshot must fail closed")
-    require(missing_report["replay_verdict"] == "PASS", "raw replay diagnostics remain visible")
+    require(missing_report["replay_verdict"] == "FAIL", "foreign-engine raw replay fails closed")
+    require(missing_report["engine_digest_match"] is False, "foreign-engine diagnostic field")
     require(missing_report["effective_verdict"] == "FAIL", "missing snapshot effective verdict")
     require(missing_report["verifier_snapshot_match"] is False, "missing snapshot diagnostic field")
 

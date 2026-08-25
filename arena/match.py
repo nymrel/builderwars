@@ -97,7 +97,13 @@ class _Sidecar:
 
     def __init__(self, path):
         self.path = path
-        self._fh = open(path, "w", encoding="utf-8", newline="\n")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(path, flags, 0o600)
+        try:
+            self._fh = open(fd, "w", encoding="utf-8", newline="\n")
+        except BaseException:
+            os.close(fd)
+            raise
         self._fh.write(
             json.dumps({"kind": "notice", "authoritative": False,
                         "note": "diagnostics only; not hashed, not scored"}) + "\n"
@@ -228,10 +234,18 @@ def run_match(
     sidecar_path = os.path.join(out_dir, f"{mid}.diagnostics.jsonl")
     scratch_root = os.path.join(out_dir, f".scratch-{mid}")
 
+    # Refuse the pair before creating either entry. The exclusive opens below
+    # remain the race-safe authority; this preflight prevents a known collision
+    # on one path from leaving a new empty counterpart on the other.
+    if os.path.lexists(transcript_path) or os.path.lexists(sidecar_path):
+        raise FileExistsError("match transcript or diagnostics output already exists")
+
     procs = []
-    tw = TranscriptWriter(transcript_path)
-    side = _Sidecar(sidecar_path)
+    tw = None
+    side = None
     try:
+        tw = TranscriptWriter(transcript_path)
+        side = _Sidecar(sidecar_path)
         # -- header: commit to the rules before a move is played -----------
         tw.append(
             "header",
@@ -289,6 +303,7 @@ def run_match(
         bound = game.move_bound(state)
 
         outcome = None  # set by forfeit or by the game ending
+        engine_fault = None
 
         for i, p in enumerate(procs):
             try:
@@ -316,8 +331,25 @@ def run_match(
                 side.write("stderr", player=i, phase="handshake", tail=p.stderr_text()[-2000:])
                 outcome = {"winner": 1 - i, "reason": f"forfeit:{f.reason}"}
                 break
+            except Exception as e:
+                engine_fault = {"seat": i, "exception": e.__class__.__name__}
+                break
+
+        if engine_fault is not None:
+            tw.append(
+                "engine_error",
+                {
+                    "detail": engine_fault["exception"],
+                    "code": "handshake_failed",
+                    "seat": engine_fault["seat"],
+                    "phase": "handshake",
+                },
+            )
 
         tw.append("state", {"state": state, "state_digest": digest(state), "turn": 0})
+
+        if engine_fault is not None:
+            outcome = {"winner": None, "reason": "engine_error"}
 
         # -- play ------------------------------------------------------------
         # Every call into the game module happens inside this boundary. A bug in
@@ -414,7 +446,8 @@ def run_match(
             tw.append(
                 "engine_error",
                 {
-                    "detail": f"{e.__class__.__name__}: {e}"[:1000],
+                    "detail": e.__class__.__name__,
+                    "code": "referee_fault",
                     "phase": "referee",
                     "turn": turn,
                 },
@@ -422,8 +455,7 @@ def run_match(
             outcome = {"winner": None, "reason": "engine_error"}
 
         # -- score from referee state only ------------------------------------
-        records_so_far = _reload(transcript_path)
-        scored = score(referee_projection(records_so_far), game)
+        scored = score(referee_projection(tw.records), game)
 
         result_body = {
             "winner": scored["winner"],
@@ -453,19 +485,16 @@ def run_match(
             **result_body,
         }
     finally:
-        tw.close()
+        if tw is not None:
+            tw.close()
         for p in procs:
             p.close()
-            side.write("stderr_final", entrant=p.name, tail=p.stderr_text()[-2000:])
-        side.close()
+            if side is not None:
+                side.write("stderr_final", entrant=p.name, tail=p.stderr_text()[-2000:])
+        if side is not None:
+            side.close()
         if not keep_scratch:
             shutil.rmtree(scratch_root, ignore_errors=True)
-
-
-def _reload(path):
-    from .transcript import load
-
-    return load(path)
 
 
 def _encodable(value):

@@ -162,11 +162,11 @@ def verify_with_snapshot(transcript_path):
 
 
 def require_exact_verification(report):
+    if report.get("verifier_snapshot_match") is not True or report.get("engine_digest_match") is False:
+        raise BundleError("refusing receipt without an exact embedded verifier-engine match")
     if report.get("verdict") != "PASS":
         errors = report.get("errors") or []
         raise BundleError(f"refusing unverified transcript: {errors[:1]}")
-    if report.get("verifier_snapshot_match") is not True or report.get("engine_digest_match") is not True:
-        raise BundleError("refusing receipt without an exact embedded verifier-engine match")
     return report
 
 

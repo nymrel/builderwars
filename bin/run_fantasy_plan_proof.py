@@ -224,6 +224,7 @@ def _audit_transcript(harness, plans, path, league_row):
 
     report = verify(path)
     _require(report.get("verdict") == "PASS", "replay_not_pass")
+    _require(report.get("engine_digest_match") is True, "replay_engine_digest_mismatch")
 
     _require(league_row.get("winner") == seats[winner], "summary_winner_mismatch")
     _require(league_row.get("reason") == reason, "summary_reason_mismatch")

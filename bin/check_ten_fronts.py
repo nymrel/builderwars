@@ -19,6 +19,7 @@ import json
 import os
 import random
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -420,9 +421,26 @@ def main():
                     f"the record of a {mode} forfeit must itself verify")
 
         section("old-receipt compatibility")
-        old_report = verify(RECEIPT)
-        require(old_report["verdict"] == "PASS",
-                f"registering ten_fronts must not strand published receipts: {old_report['errors'][:2]}")
+        old_process = subprocess.run(
+            [sys.executable, os.path.join(ROOT, "verify.py"), RECEIPT, "--json"],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+        old_report = json.loads(old_process.stdout)
+        require(
+            old_process.returncode == 0
+            and old_report["replay_verdict"] == "PASS"
+            and old_report["effective_verdict"] == "PASS"
+            and old_report["engine_digest_match"] is True
+            and old_report["verifier_snapshot_match"] is True,
+            f"registering ten_fronts must not strand published receipts: "
+            f"{old_report.get('effective_errors', [])[:2]}",
+        )
         require(old_report["game"] == "fantasy_redraft", "compat receipt is a fantasy receipt")
 
         section("mutation-sensitive verifier failures")
@@ -588,9 +606,27 @@ def main():
                            if f.endswith(".jsonl") and not f.endswith(".diagnostics.jsonl"))
     require(transcripts, "one offline candidate transcript must exist under matches/agentwars-ten-fronts/")
     for path in transcripts:
-        report = verify(path)
-        require(report["verdict"] == "PASS" and report["game"] == "ten_fronts",
-                f"candidate {path} must replay: {report.get('errors', [])[:2]}")
+        candidate_process = subprocess.run(
+            [sys.executable, os.path.join(ROOT, "verify.py"), path, "--json"],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+        report = json.loads(candidate_process.stdout)
+        require(
+            candidate_process.returncode == 0
+            and report["replay_verdict"] == "PASS"
+            and report["effective_verdict"] == "PASS"
+            and report["engine_digest_match"] is True
+            and report["verifier_snapshot_match"] is True
+            and report["game"] == "ten_fronts",
+            f"candidate {path} must replay through its exact snapshot: "
+            f"{report.get('effective_errors', [])[:2]}",
+        )
         header = load(path)[0]["body"]
         require(all(e["execution_claim"] == "scripted" for e in header["entrants"]),
                 "candidate entrants are declared scripted, never model-played")

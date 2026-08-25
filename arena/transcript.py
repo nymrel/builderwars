@@ -7,6 +7,7 @@ JSON Lines, each committing to the one before it.
 Only the engine process ever holds a writer. Entrants never learn the path.
 """
 
+import copy
 import json
 import os
 
@@ -35,8 +36,16 @@ class TranscriptWriter:
         self.path = str(path)
         self.prev = GENESIS
         self.seq = 0
-        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
-        self._fh = open(self.path, "w", encoding="utf-8", newline="\n")
+        self._records = []
+        parent = os.path.dirname(self.path) or "."
+        os.makedirs(parent, exist_ok=True)
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(self.path, flags, 0o600)
+        try:
+            self._fh = open(fd, "w", encoding="utf-8", newline="\n")
+        except BaseException:
+            os.close(fd)
+            raise
 
     def append(self, kind: str, body: dict) -> dict:
         record = {"kind": kind, "seq": self.seq, "body": body}
@@ -49,9 +58,15 @@ class TranscriptWriter:
         )
         self._fh.flush()
         os.fsync(self._fh.fileno())
+        self._records.append(copy.deepcopy(line))
         self.prev = h
         self.seq += 1
         return line
+
+    @property
+    def records(self):
+        """Return a detached snapshot of the exact records appended so far."""
+        return copy.deepcopy(self._records)
 
     @property
     def head(self) -> str:
@@ -76,23 +91,55 @@ def load(path):
             if not line:
                 continue
             try:
-                records.append(json.loads(line, object_pairs_hook=_object_without_duplicate_keys))
-            except (json.JSONDecodeError, _DuplicateKey, RecursionError) as e:
-                raise ChainBroken(f"line {lineno}: not valid JSON ({e})") from e
+                parsed = json.loads(line, object_pairs_hook=_object_without_duplicate_keys)
+            except _DuplicateKey as e:
+                raise ChainBroken(f"line {lineno}: duplicate object key") from e
+            except (json.JSONDecodeError, RecursionError) as e:
+                raise ChainBroken(f"line {lineno}: not valid JSON ({e.__class__.__name__})") from e
+            if not isinstance(parsed, dict):
+                raise ChainBroken(f"line {lineno}: record must be a JSON object")
+            records.append(parsed)
     return records
+
+
+_RECORD_KEYS = frozenset({"kind", "seq", "body", "prev", "hash"})
+_HEX_DIGITS = frozenset("0123456789abcdef")
+
+
+def _hex64(value):
+    return isinstance(value, str) and len(value) == 64 and set(value) <= _HEX_DIGITS
 
 
 def verify_chain(records):
     """Recompute every hash. Returns (ok, error_or_None).
 
     This is the check that makes post-hoc editing detectable: change one byte of
-    one body and every subsequent hash stops matching.
+    one body and every subsequent hash stops matching. Every record is hostile
+    input: shape, types, exact key set, and encodability are enforced here so no
+    crafted file can crash a caller.
     """
+    if not isinstance(records, list):
+        return False, "records must be a list"
     prev = GENESIS
     for i, rec in enumerate(records):
-        for field in ("kind", "seq", "body", "prev", "hash"):
-            if field not in rec:
-                return False, f"record {i}: missing field {field!r}"
+        if not isinstance(rec, dict):
+            return False, f"record {i}: record must be a JSON object"
+        keys = set(rec)
+        if keys != _RECORD_KEYS:
+            missing = sorted(_RECORD_KEYS - keys)
+            extra = sorted(keys - _RECORD_KEYS)
+            return False, (
+                f"record {i}: record must hold exactly kind,seq,body,prev,hash "
+                f"(missing={missing}, unexpected={extra})"
+            )
+        if not isinstance(rec["kind"], str) or not rec["kind"]:
+            return False, f"record {i}: kind must be a non-empty string"
+        if not isinstance(rec["seq"], int) or isinstance(rec["seq"], bool):
+            return False, f"record {i}: seq must be an integer"
+        if not isinstance(rec["body"], dict):
+            return False, f"record {i}: body must be a JSON object"
+        if not _hex64(rec["prev"]) or not _hex64(rec["hash"]):
+            return False, f"record {i}: prev and hash must be 64-char lowercase hex"
         if rec["seq"] != i:
             return False, f"record {i}: seq is {rec['seq']}, expected {i}"
         if rec["prev"] != prev:
@@ -101,7 +148,7 @@ def verify_chain(records):
         try:
             expect = chain(prev, body)
         except Exception as e:  # non-canonical content smuggled into a record
-            return False, f"record {i}: body is not canonically encodable ({e})"
+            return False, f"record {i}: body is not canonically encodable ({e.__class__.__name__})"
         if expect != rec["hash"]:
             return False, f"record {i}: hash mismatch (record was altered)"
         prev = rec["hash"]
@@ -109,16 +156,16 @@ def verify_chain(records):
 
 
 def head_of(records):
-    return records[-1]["hash"] if records else GENESIS
+    return records[-1]["hash"] if records and isinstance(records[-1], dict) else GENESIS
 
 
 def find(records, kind):
-    return [r for r in records if r["kind"] == kind]
+    return [r for r in records if isinstance(r, dict) and r.get("kind") == kind]
 
 
 def first(records, kind):
     for r in records:
-        if r["kind"] == kind:
+        if isinstance(r, dict) and r.get("kind") == kind:
             return r
     return None
 

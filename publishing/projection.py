@@ -114,7 +114,10 @@ def verify_with_snapshot(path: str, *, verifier: str | None = None) -> dict[str,
 
 def require_exact_verification(report: dict[str, Any]) -> dict[str, Any]:
     if report.get("effective_verdict") != "PASS":
-        if report.get("verdict") == "PASS":
+        if (
+            report.get("verifier_snapshot_match") is not True
+            or report.get("engine_digest_match") is False
+        ):
             raise PublicationError(
                 "refusing receipt without an exact embedded verifier-engine match; "
                 "replay, engine digest, and snapshot predicates are all required"
