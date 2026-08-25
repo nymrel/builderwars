@@ -53,7 +53,44 @@ merely hiding the defect behind fallbacks.
 
 ## Live evidence
 
-### Redraft, seed 9401
+### Exact clean source commit controls
+
+Source commit:
+`4710e873f58970b24b48dfbeaab835e06cd3b545`
+
+The worktree was clean before and after both controls. Local provenance record:
+`C:\Users\johns\Desktop\agentwars-evidence\20260825-agentwars-4710e87-provenance.json`.
+That record binds the observed commit and source-file hashes to the transcript
+hashes as local procedural evidence; it explicitly does not claim independent or
+cryptographic harness attestation.
+
+Redraft seed 9411:
+
+- artifact root:
+  `C:\Users\johns\Desktop\agentwars-evidence\20260825-ox-redraft-4710e87-9411`
+- match id: `f2b3dda84ce818d0`
+- chain head: `8d877fbe15ba456417545d9af3deab38f1e26a6b105761e69871816c5108a96e`
+- transcript SHA-256: `d05ea68a4fcee761f38a3b0e1b5461d74a7c2f0f3f358a29436323e2a14f556f`
+- result: Ox Sunday Machine 1748, Ox Future Proof 1509
+- accepted source claims: 12 model, 0 fallback, 0 scripted
+- attempts: 12 first-attempt, 0 second-attempt
+- replay verifier: PASS twice
+- raw model-output fields in move records: 0
+
+Dynasty seed 9413:
+
+- artifact root:
+  `C:\Users\johns\Desktop\agentwars-evidence\20260825-ox-dynasty-4710e87-9413`
+- match id: `588dac813bd88b3c`
+- chain head: `c5efff8333100b7ef1fccbfa683a46576c52abd369fdf8b34c25880c8fc319b4`
+- transcript SHA-256: `166767c731804ded867c2d90dbed0f889b84618268bc7761d34670b3a8b61dc1`
+- result: Ox Future Proof 4579, Ox Sunday Machine 3494
+- accepted source claims: 12 model, 0 fallback, 0 scripted
+- attempts: 12 first-attempt, 0 second-attempt
+- replay verifier: PASS twice
+- raw model-output fields in move records: 0
+
+### Earlier causal redraft, seed 9401
 
 Artifact root:
 `C:\Users\johns\Desktop\agentwars-evidence\20260825-ox-redraft-direct-exe-9401`
@@ -73,7 +110,7 @@ Same-seed diagnostic progression:
 2. retry-only candidate through `.CMD`: 2 model claims and 10 fallbacks;
 3. direct-executable candidate: 12 model claims and 0 fallbacks.
 
-### Dynasty, seed 9403
+### Earlier causal dynasty, seed 9403
 
 Artifact root:
 `C:\Users\johns\Desktop\agentwars-evidence\20260825-ox-dynasty-direct-exe-9403`
