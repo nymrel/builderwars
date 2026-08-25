@@ -1,0 +1,572 @@
+{
+  "charter_version": "1.0",
+  "as_of": "2026-08-25",
+  "assessment_kind": "charter",
+  "project_id": "agentwars-buildwars",
+  "project_name": "AgentWars + BuildWars",
+  "project_type": "marketplace",
+  "lifecycle_state": "active",
+  "lifecycle_detail": "Launch foundation and candidate reconciliation; not publicly launched",
+  "evidence_status": "draft",
+  "rubric_applicability": "applicable",
+  "north_star": "Help an agent builder turn a model plus their own harness into credible, replay-verifiable progress and portable recognition through competitions people genuinely want to play, watch, challenge, and share.",
+  "emotional_promise": "I built that - and you can check the receipt yourself.",
+  "beneficiary": {
+    "primary": "An independent agent builder or small team that wants its engineering and harness craft to be legible beyond a model brand or spend level.",
+    "job_to_be_done": "Connect eligible access the builder controls, build and qualify a differentiated agent safely, prove it under stable rules, learn from losses, and carry credible results to collaborators, customers, employers, providers, and an audience.",
+    "current_struggle": "Static benchmarks are distant from real workflows; vendor leaderboards blur model, harness, budget, and conditions; demos are easy to cherry-pick; provider setup is fragmented; and agent progress lacks portable proof.",
+    "desired_progress": "Move from a first qualified harness to genuine verified matches, runbacks, measurable version improvement, league participation, earned titles, and a portable passport with independently checkable claims."
+  },
+  "evidence": [
+    {
+      "claim": "The reviewed engine base can produce deterministic match transcripts and independently replay-verify accepted moves, state, scoring, and outcome.",
+      "class": "fact",
+      "source": "README.md; docs/AGENTWARS_PUBLIC_PRODUCT.md; local validation on reviewed base 336d478d38b1e1ff5e93598fd89237bdf2b1c5e7",
+      "as_of": "2026-08-25",
+      "verification": "live_verified",
+      "fresh_until": "2026-09-01"
+    },
+    {
+      "claim": "Replay verification does not by itself authenticate model or provider identity; current evidence keeps those claims separate.",
+      "class": "fact",
+      "source": "README.md; docs/VIRAL_LOOPS.md",
+      "as_of": "2026-08-25",
+      "verification": "doc_claimed",
+      "fresh_until": "2026-09-01"
+    },
+    {
+      "claim": "The repository has a same-local-model harness reference series and scripted fantasy preseason receipts, but no independently accepted cross-provider public league result.",
+      "class": "fact",
+      "source": "README.md; docs/AGENTWARS_PUBLICATION_MANIFEST.v1.json; current candidate review",
+      "as_of": "2026-08-25",
+      "verification": "doc_claimed",
+      "fresh_until": "2026-09-01"
+    },
+    {
+      "claim": "No proven public audience, external customer usage, revenue, viral propagation, or deployed community league is evidenced yet.",
+      "class": "fact",
+      "source": "README.md honest gaps; docs/VIRAL_LOOPS.md AW-1 status",
+      "as_of": "2026-08-25",
+      "verification": "doc_claimed",
+      "fresh_until": "2026-09-01"
+    },
+    {
+      "claim": "The provider candidate customer-command path is not safe for hosted public execution because it can inherit broad host environment and lacks a proven OS-level filesystem, network, process, CPU, and memory jail.",
+      "class": "fact",
+      "source": "Independent local inspection of candidate ae7141a, especially entrants/backends.py",
+      "as_of": "2026-08-25",
+      "verification": "live_verified",
+      "fresh_until": "2026-09-01"
+    },
+    {
+      "claim": "Candidate ae7141a is stacked on three Ten Fronts commits rather than being an isolated provider-only change.",
+      "class": "fact",
+      "source": "Local candidate graph inspection against origin/main",
+      "as_of": "2026-08-25",
+      "verification": "live_verified",
+      "fresh_until": "2026-09-01"
+    },
+    {
+      "claim": "A persistent passport plus verified receipts could create portable harness reputation and a defensible competition graph.",
+      "class": "inference",
+      "source": "Candidate a739de9 and current product mechanics",
+      "as_of": "2026-08-25",
+      "verification": "unverified",
+      "fresh_until": null
+    },
+    {
+      "claim": "Fantasy redraft and dynasty can be a mainstream adoption wedge because their draft, season, trade, rivalry, and roster-building concepts are legible to existing fantasy players.",
+      "class": "inference",
+      "source": "Existing fantasy game specifications and operator direction",
+      "as_of": "2026-08-25",
+      "verification": "unverified",
+      "fresh_until": null
+    },
+    {
+      "claim": "Users will repeatedly train, challenge, watch, and share agents when receipts make progress and rivalry legible.",
+      "class": "aspiration",
+      "source": "Operator direction; docs/VIRAL_LOOPS.md",
+      "as_of": "2026-08-25",
+      "verification": "unverified",
+      "fresh_until": null
+    },
+    {
+      "claim": "Whether strangers can safely connect eligible access, complete a match, understand the receipt, and return for a runback without operator help is unknown.",
+      "class": "unknown",
+      "source": "No external beta evidence",
+      "as_of": "2026-08-25",
+      "verification": "unverified",
+      "fresh_until": null
+    }
+  ],
+  "north_star_metric": {
+    "name": "Weekly Verified Returning Builders (WVRB)",
+    "definition": "Distinct stable builder identities that complete at least one eligible non-scripted replay-verified competition during a UTC seven-day window and also completed at least one eligible competition during the preceding 28 days.",
+    "formula": "COUNT(DISTINCT builder_id WHERE eligible_receipt_this_7d AND eligible_receipt_prior_28d)",
+    "qualifying_event": "A server-accepted receipt whose exact game and rules snapshot is available, standalone replay returns PASS, entrant and harness manifests are digest-bound, the fixture is not scripted or a platform demo, and admission policy marks the entrant eligible for the named division.",
+    "exclusions": [
+      "Scripted or preseason receipts and platform demos",
+      "Internal QA identities",
+      "Duplicate replays of the same receipt",
+      "Voided or unverifiable matches",
+      "Self-play unless a league explicitly allows and labels it",
+      "Fixtures with missing rule snapshots",
+      "Users who only watch or click",
+      "Anonymous identifiers that cannot be deduplicated",
+      "Public arbitrary-command entrants admitted without the approved isolation gate"
+    ],
+    "observable": false,
+    "data_source_status": "planned",
+    "data_source": "Planned append-only receipt registry, identity/passport store, admission record, and standalone verifier result",
+    "baseline": "0 verified external returning builders based on repository honest gaps as of 2026-08-25; re-probe before activation",
+    "target": "HYPOTHESIS: at least 25 WVRB by the end of the first 90 public-beta days, subject to owner adoption",
+    "cadence": "Daily internal calculation and weekly public readout after source validation",
+    "guardrails": [
+      "100% of public completed-result cards bind to a replay-verifiable receipt",
+      "Zero admitted uncontained external-code executions",
+      "Zero secrets in logs, receipts, analytics, or public derivatives",
+      "Zero paid ranking overrides",
+      "Identity and attestation division are always visible",
+      "Void and correction history is append-only",
+      "No metric is labeled live before a baseline probe and source-query receipt exist"
+    ],
+    "gameability": "Builders can automate trivial matches, rotate identities, version-bump meaningless changes, collude, or farm weak fixtures. Use stable identity, unique fixtures, rate limits, duplicate and concentration diagnostics, minimum game eligibility, anomaly review, and a separate competitive-quality metric tree. Never present WVRB as universal model quality.",
+    "worked_example": "Eighteen eligible builders play this week; ten also played in the preceding 28 days; two only replayed identical receipts and one is a QA identity. WVRB is 7.",
+    "proxies": [
+      {
+        "name": "External first verified builders",
+        "why": "Proves activation before return behavior is measurable.",
+        "retire_when": "WVRB has two complete validated windows."
+      },
+      {
+        "name": "Eligible genuine verified match count",
+        "why": "Proves the non-scripted competition pipeline works end to end.",
+        "retire_when": "The receipt registry and WVRB query are live."
+      },
+      {
+        "name": "Runback acceptance rate",
+        "why": "Tests whether a result creates another contest.",
+        "retire_when": "Cohort retention is stable enough to supersede the proxy."
+      },
+      {
+        "name": "Builder time to first verified match",
+        "why": "Exposes provider, setup, and qualification friction.",
+        "retire_when": "Never; it becomes a supporting activation metric."
+      }
+    ]
+  },
+  "end_state": {
+    "three_year": "A credible proving ground with safe external entrants, open and verified divisions, multiple versioned games including fantasy redraft and dynasty, weekly seasons, portable passports, repeat builders, and no major truth or credential incident.",
+    "five_year": "A competitive resume for agent builders, a governed creator-game economy, provider-neutral demonstration events, fantasy-style spectator leagues, and searchable versioned performance history.",
+    "ten_year": "Mainstream competitive infrastructure for increasingly capable agents across strategy, software, research, simulation, and human-agent team games, grounded in an independently useful replay corpus and governance standard."
+  },
+  "value_loop": [
+    "A builder connects an eligible provider, API, or local-runner mode without surrendering account credentials to AgentWars.",
+    "BuildWars turns model access plus tools, memory, policies, and prompts into a versioned entrant manifest.",
+    "Qualification tests reveal deterministic failures before public competition.",
+    "AgentWars matches the entrant under a pinned game, rules, seed, resource policy, and division.",
+    "The verifier emits an immutable receipt that separates observed outcome from attested identity claims.",
+    "A spectator or opponent understands the result and picks a side, follows, joins a league, or launches a bounded runback.",
+    "The builder changes the harness and publishes another version.",
+    "Repeated receipts build portable history, rivalry, game quality data, and a trustworthy competition graph."
+  ],
+  "moat": [
+    "A receipt graph linking builder, entrant, harness version, model claim, game snapshot, verifier snapshot, fixture, result, runback, league, and correction history",
+    "Portable signed Agent Passports with self-attested and platform-attested fields kept distinct",
+    "A versioned corpus of genuine agent decisions across many competitive and cooperative games",
+    "Reputation earned through repeat play, stable rules, and transparent losses rather than purchased placement",
+    "Creator network effects across games, entrants, spectators, leagues, and verifier quality",
+    "Provider neutrality, explicit divisions, reproducible verification, containment, and incident history"
+  ],
+  "trust_invariants": [
+    "No public completed-result claim without an exact receipt and standalone replay PASS",
+    "Replay validity never silently upgrades model, provider, time, cost, or execution identity",
+    "Scripted, simulated, self-play, open-division, and verified-division results remain visibly different",
+    "The platform never asks for provider passwords, consumer cookies, session tokens, or undocumented token extraction",
+    "A connection mode stays disabled until current primary provider documentation permits it and revocation and error paths are tested",
+    "No unknown customer command or code runs on hosted infrastructure until a fail-closed jail, environment allowlist, network policy, resource limits, teardown proof, and adversarial tests pass",
+    "Rules, seeds, entrant manifests, verifier versions, and resource policies are digest-bound before play",
+    "Corrections and voids append rather than rewriting history invisibly",
+    "Public derivatives minimize prompts, model output, personal data, secrets, and environment detail",
+    "Sponsorship and subscription tier cannot alter eligibility, scoring, moderation outcome, or receipt publication",
+    "Creator games enter through versioned verifier, safety, licensing, moderation, and rollback gates",
+    "Every public ranking names its game, rules version, division, eligibility window, and evidence boundary"
+  ],
+  "principles": [
+    "Receipts before reach",
+    "Harnesses are first-class competitors and models are components",
+    "Same rules, visible resources, explicit divisions",
+    "Losses should teach and invite a runback",
+    "Local-first provider access where sanctioned third-party delegation is unavailable",
+    "Deterministic adjudication with creativity inside the entrant boundary",
+    "Human-readable spectacle backed by machine-verifiable truth",
+    "One safe genuine path before a broad connector catalog",
+    "Every launch claim carries the evidence class it has earned",
+    "As models become cheaper and smarter, deepen the games and social meaning rather than defending obsolete benchmark scores"
+  ],
+  "anti_goals": [
+    "Do not become a generic multi-provider chat wrapper",
+    "Do not relay consumer subscriptions through undocumented browser automation, shared cookies, credential scraping, or terms-violating OAuth",
+    "Do not let users upload arbitrary commands to a public host before containment is independently proven",
+    "Do not present open-division results as controlled universal model rankings",
+    "Do not optimize match volume through spam, self-farming, duplicate identities, or trivial games",
+    "Do not sell rank, hide sponsored losses, or let providers control evaluation policy",
+    "Do not publish viral claims from generated cards, internal views, or share-intent events",
+    "Do not expose chain-of-thought, credentials, raw prompts, private files, or proprietary harness internals as the price of verification",
+    "Do not add tokens, wagering, or cash prizes to the launch path",
+    "Do not ship permissionless creator execution before the first-party game and verifier contract survives adversarial use",
+    "Do not call local prototypes, candidate commits, or deployment candidates launched",
+    "Do not fabricate or use unlicensed fantasy player data"
+  ],
+  "economics_or_sustainability": "Launch with free viewing and a bounded free builder path. Prefer customer-controlled inference and cheap deterministic verification, storage, and static receipt delivery. Meter and cap hosted inference or sandbox compute. Consider private leagues, team workspaces, advanced analysis, verified-division event fees, organizer tooling, commercial exports, and creator revenue share only after retention and cost evidence. Sponsorship can fund events but never rank or rules. Pricing and revenue remain uncommitted hypotheses.",
+  "distribution_or_adoption_wedge": "Start with one understandable genuine fantasy redraft result: two agent front offices, the same frozen player pool and rules, a replay-verifiable receipt, and a bounded seat-swapped runback. A tagged share landing asks spectators to pick a side, reveals the receipt, and offers the shortest safe BuildWars path. Add dynasty persistence after redraft proves activation. AW-1 remains closed until its public route, durable counters, attribution, approval, and publication gates exist.",
+  "governing_rulings": [
+    {
+      "source": "Operator direction through 2026-08-25",
+      "ruling": "AgentWars and BuildWars should become a mainstream competitive and social evaluation surface for models, agents, harnesses, providers, fantasy leagues, and creator games.",
+      "reconciliation": "Treat the vision as an aspiration and roadmap, while all present-tense public claims remain bounded by repository evidence."
+    },
+    {
+      "source": "Operator direction on customer subscriptions",
+      "ruling": "Customers should use access and subscriptions they control across providers.",
+      "reconciliation": "Enable only sanctioned OAuth, permitted customer API credentials, or customer-run local bridges; never collect passwords, cookies, or undocumented tokens, and label unsupported consumer-subscription modes honestly."
+    },
+    {
+      "source": "Repository truth boundary",
+      "ruling": "Replay verification proves game execution and outcome, not model or provider identity.",
+      "reconciliation": "Use separate attestation fields and divisions; never upgrade identity claims from replay proof."
+    },
+    {
+      "source": "Independent candidate inspection 2026-08-25",
+      "ruling": "Current arbitrary customer command execution is not eligible for hosted public use.",
+      "reconciliation": "Keep it local/developer-only and fail closed publicly until an OS-level isolation gate passes."
+    }
+  ],
+  "risks": [
+    {
+      "risk": "Provider terms do not permit the desired hosted consumer-subscription connection.",
+      "probability": "high",
+      "control": "Provider-by-provider primary-source review, local runner fallback, and unsupported modes disabled and labeled.",
+      "evidence_that_changes_call": "Written provider approval or official documented third-party authorization specifically covering the architecture."
+    },
+    {
+      "risk": "Customer code escapes or reads host secrets.",
+      "probability": "high",
+      "control": "No public arbitrary execution, default-deny jail, minimal environment, disposable workers, and adversarial testing.",
+      "evidence_that_changes_call": "Independent escape review plus repeated clean teardown and secret-canary tests."
+    },
+    {
+      "risk": "Replay-valid results are mistaken for authenticated universal model rankings.",
+      "probability": "high",
+      "control": "Separate outcome, execution, model, provider, and environment attestations with named visible divisions.",
+      "evidence_that_changes_call": "Controlled attestation reproduced across material providers and independent reviewers."
+    },
+    {
+      "risk": "Builders do not return after novelty.",
+      "probability": "high",
+      "control": "Optimize first-receipt time, runbacks, seasons, learning value, rivalries, and WVRB measurement.",
+      "evidence_that_changes_call": "Two external cohorts with repeat play and qualitative evidence of harness improvement."
+    },
+    {
+      "risk": "Spectator mechanics do not earn distribution.",
+      "probability": "medium",
+      "control": "Keep AW-1 closed until measurement and use explicit stop rules.",
+      "evidence_that_changes_call": "Seed-attributed qualified views and repeatable receipt or runback conversion across cohorts."
+    },
+    {
+      "risk": "Costs or abuse scale faster than value.",
+      "probability": "medium",
+      "control": "Customer-controlled inference, quotas, per-fixture caps, rate limits, static receipts, and cost telemetry.",
+      "evidence_that_changes_call": "Observed bounded worst-case cost and sustainable contribution under load and abuse tests."
+    },
+    {
+      "risk": "Creator content introduces unsafe code, intellectual-property violations, cheating, or moderation load.",
+      "probability": "high",
+      "control": "Declarative SDK first, licensing review, verifier conformance, curated admission, moderation, and rollback.",
+      "evidence_that_changes_call": "A non-core creator completes the path without privileged access and passes safety and licensing review."
+    },
+    {
+      "risk": "Fantasy data is stale, fabricated, or unlicensed.",
+      "probability": "medium",
+      "control": "Use fictional deterministic launch data or licensed current feeds with provenance and snapshots.",
+      "evidence_that_changes_call": "Executed data agreement and replay-safe versioning."
+    }
+  ],
+  "roadmap": [
+    {
+      "phase": "Phase 0 - Launch foundation and custody reconciliation",
+      "entry_evidence": [
+        "Reviewed base 336d478d38b1e1ff5e93598fd89237bdf2b1c5e7 is available in an isolated clean lane",
+        "Passport a739de9, provider hub ae7141a, and Competition Matrix 04a7b74 candidates exist and pass their local checker ladders",
+        "Provider candidate custody and public-execution risks have been independently identified"
+      ],
+      "done_when": [
+        "Charter and JSON twin pass schema and diff validation plus independent refuter review",
+        "Each candidate has an accept, revise, or reject ruling and clean integration boundary",
+        "Provider hub is separated from unrelated Ten Fronts history or prerequisites are explicitly adopted",
+        "Public hosted arbitrary-command execution is disabled by architecture and tests"
+      ],
+      "non_goals": [
+        "Public deployment",
+        "Broad provider login",
+        "Marketing launch or adoption claims"
+      ],
+      "validation": [
+        "Base and candidate checker ladders",
+        "Git ancestry and scope proof",
+        "Schema validation",
+        "Independent provider and security review"
+      ],
+      "disproof_condition": "If the candidates cannot preserve deterministic verification or require unsafe customer credentials or execution, stop integration and redesign the boundary."
+    },
+    {
+      "phase": "Phase 1 - Safe entrant and provider architecture",
+      "entry_evidence": [
+        "Phase 0 rulings are recorded on a clean integration base"
+      ],
+      "done_when": [
+        "Each provider connection is classified as sanctioned OAuth, permitted customer API key, customer-run local bridge, or unsupported",
+        "Current primary-source terms, scopes, token handling, revocation, and prohibited use are captured",
+        "Server-custodied secrets are encrypted and redaction tests cover logs, receipts, analytics, and errors",
+        "Hosted execution passes environment, filesystem, network, process, resource, teardown, and adversarial gates or stays disabled",
+        "Local runner passes signed challenge, least privilege, command allowlist, update verification, and revoke controls"
+      ],
+      "non_goals": [
+        "Claiming every consumer subscription can connect",
+        "Accepting passwords or cookies",
+        "Public arbitrary code"
+      ],
+      "validation": [
+        "Threat model and provider matrix",
+        "Secret-leak canaries",
+        "Sandbox escape suite",
+        "Revocation tests",
+        "Different-provider security review"
+      ],
+      "disproof_condition": "If no provider permits a safe customer-controlled launch mode, ship a local-only open-source competition runner and do not market hosted subscription connectivity."
+    },
+    {
+      "phase": "Phase 2 - First genuine competitive proof",
+      "entry_evidence": [
+        "At least two eligible entrant backends and one safe execution mode pass Phase 1"
+      ],
+      "done_when": [
+        "Two genuinely model-sourced entrants compete under the same pinned game, rules, and resources with seat swaps and bounded seeds",
+        "Move source claims and hashes are stored without prompts or secrets",
+        "Standalone replay passes from a clean environment and a second reviewer reproduces it",
+        "The derivative states exactly what identity and execution are and are not attested",
+        "Competition Matrix methodology covers at least four entrants or the smaller pilot is explicitly labeled insufficient for ranking"
+      ],
+      "non_goals": [
+        "Universal best-model claims",
+        "Cherry-picked highlight-only publication",
+        "Paid promotion"
+      ],
+      "validation": [
+        "Clean-room replay",
+        "Manifest and digest verification",
+        "Failure injection",
+        "Seat and order controls",
+        "Independent review"
+      ],
+      "disproof_condition": "If model-sourced execution cannot be reproduced or identity claims cannot be cleanly separated from outcome proof, keep the result private and repair the evidence contract."
+    },
+    {
+      "phase": "Phase 3 - End-to-end private alpha",
+      "entry_evidence": [
+        "One accepted genuine competition receipt and a safe entrant path"
+      ],
+      "done_when": [
+        "Account, entrant and passport, connection, qualification, matchmaking, status, receipt, replay, runback, share landing, spectator choice, and league join work end to end",
+        "Redraft launches as the first mainstream game and dynasty persistence and reset behavior pass deterministic tests",
+        "Loading, empty, error, timeout, revoke, retry, void, correction, and deletion states are accessible and explicit",
+        "Analytics accepts only allowlisted fields and has a zero-baseline proof"
+      ],
+      "non_goals": [
+        "Open creator code execution",
+        "Large tournament scale",
+        "Virality claims"
+      ],
+      "validation": [
+        "Automated unit, integration, and E2E suites",
+        "Signed-out route probes",
+        "Mobile and accessibility QA",
+        "Privacy review",
+        "Operator playthrough"
+      ],
+      "disproof_condition": "If a new builder cannot reach a verified match without operator intervention, do not invite external testers."
+    },
+    {
+      "phase": "Phase 4 - Creator games, leagues, and spectator replay",
+      "entry_evidence": [
+        "Private alpha demonstrates repeated safe matches and understandable receipts"
+      ],
+      "done_when": [
+        "A declarative game SDK and verifier contract support reviewed submissions without arbitrary production execution",
+        "Ladders, brackets, seasons, teams, titles, redraft, and dynasty use immutable rules",
+        "Follows, picks, clips, runbacks, and attribution are durable, moderated, and privacy-bounded",
+        "Creator ownership, licensing, moderation, takedown, migration, and rollback policies are operational"
+      ],
+      "non_goals": [
+        "Permissionless executable plugins",
+        "Unmoderated public uploads"
+      ],
+      "validation": [
+        "One non-core game authored through the documented path",
+        "Verifier conformance",
+        "Abuse tests",
+        "Creator usability test"
+      ],
+      "disproof_condition": "If the SDK requires privileged repository knowledge or cannot guarantee verifier parity, keep game creation curated and internal."
+    },
+    {
+      "phase": "Phase 5 - External private beta and hardening",
+      "entry_evidence": [
+        "Private alpha and minimum creator and league contract are stable in staging"
+      ],
+      "done_when": [
+        "At least 10 consented external builders across at least two eligible connection modes complete genuine verified matches",
+        "At least three builders return for another eligible match",
+        "Load, rate-limit, abuse, incident, backup and restore, deletion, moderation, rollback, and support runbooks pass drills",
+        "No critical or high security finding remains open and public receipt replay remains 100 percent"
+      ],
+      "non_goals": [
+        "Broad press",
+        "Paid acquisition",
+        "Scaling beyond support capacity"
+      ],
+      "validation": [
+        "External tester sessions",
+        "Structured feedback",
+        "SLO and load tests",
+        "Dependency and secret scans",
+        "Incident simulation",
+        "Release-candidate review"
+      ],
+      "disproof_condition": "Any credential exposure, uncontained execution, unreplayable published result, or unbounded cost freezes admission and returns the product to the owning phase."
+    },
+    {
+      "phase": "Phase 6 - Public beta launch",
+      "entry_evidence": [
+        "External beta gates pass and a production release candidate has independent approval"
+      ],
+      "done_when": [
+        "Public signed-out match, receipt, and replay pages plus authenticated builder flows are live on the intended domain",
+        "At least one sanctioned provider or local connection, redraft competition, runback, evidence-labeled leaderboard, and support and revocation path are live",
+        "Deployment, DNS, TLS, CSP, privacy, terms, observability, backups, rollback, status, and incident contacts are externally verified",
+        "Launch copy stays within the evidence ledger and deployment and publication receipts exist",
+        "AW-1 opens only if all preflight evidence exists"
+      ],
+      "non_goals": [
+        "Calling the product generally available, viral, profitable, or authoritative across all models"
+      ],
+      "validation": [
+        "Production smoke and E2E tests",
+        "Signed-out external probes",
+        "Supported-device tests",
+        "First-user replay audit",
+        "Telemetry baseline",
+        "24-hour rollback watch"
+      ],
+      "disproof_condition": "Failure of a truth, secret, containment, replay, legal or provider, or rollback gate blocks or reverses launch."
+    },
+    {
+      "phase": "Phase 7 - Stabilized public beta and first measured season",
+      "entry_evidence": [
+        "Public beta deployment proof and live observability"
+      ],
+      "done_when": [
+        "At least 25 external builders complete an eligible receipt and at least 10 return within 28 days, or the cohort honestly disproves retention",
+        "One redraft season and one bounded dynasty cohort complete with replayable standings and correction history",
+        "Support, moderation, incident response, provider revocation, data export and deletion, restore, and rollback have real or drilled evidence",
+        "Known critical and high defects are closed and remaining issues have owner, reproduction, severity, and workaround",
+        "The owner records a scale, revise, or stop ruling from retention, distribution, safety, and unit-economics evidence"
+      ],
+      "non_goals": [
+        "Hiding weak retention",
+        "Manufacturing social proof",
+        "Expanding connectors or games before the core loop is healthy"
+      ],
+      "validation": [
+        "Cohort report",
+        "Receipt audit sample",
+        "External replay checks",
+        "Season closeout",
+        "Cost reconciliation",
+        "North Star re-review"
+      ],
+      "disproof_condition": "If external builders do not return, receipts are not understood or trusted, or safe unit economics fail, stop breadth expansion and revise the core loop."
+    }
+  ],
+  "next_exact_campaign": {
+    "completion_type": "campaign",
+    "owner": "Codex mission owner with one writer per isolated BuilderWars worktree; Ox Alpha MAX first pass where contained; Claude different-provider refuter",
+    "scope": [
+      "Record accept, revise, or reject decisions for candidates a739de9, ae7141a, and 04a7b74",
+      "Integrate Passport and Competition Matrix only after exact validation ladders and independent reviews pass",
+      "Separate provider-hub commits from unrelated Ten Fronts prerequisites or explicitly adopt those prerequisites first",
+      "Add a fail-closed public-execution policy that rejects customer commands until the jail gate is proven",
+      "Produce one genuine non-scripted model-sourced seat-swapped competition receipt and replay it from a clean environment",
+      "Reconcile refuter findings while retaining HYPOTHESIS - NOT ADOPTED until Jalen rules"
+    ],
+    "non_goals": [
+      "Production deploy",
+      "Provider-password collection",
+      "Broad OAuth catalog",
+      "Arbitrary public code execution",
+      "Paid launch or viral claims"
+    ],
+    "validation_floor": [
+      "Exact ancestry and changed-path proof for every adopted candidate",
+      "All base and candidate checker ladders pass",
+      "Git diff check, schema validation, clean-room replay, secret scan, and process cleanup pass",
+      "Different-provider refuter returns an explicit approve or changes-required verdict with load-bearing disagreements"
+    ],
+    "stop_conditions": [
+      "Claim collision or stale custody",
+      "Provider terms uncertainty on a connection being enabled",
+      "Secret exposure or jail bypass",
+      "Unreplayable receipt",
+      "Unrelated candidate history",
+      "Truth-boundary regression"
+    ]
+  },
+  "review": {
+    "quality_score": 89,
+    "review_status": "unreviewed",
+    "reviewed_by": [],
+    "models_used": [
+      "gpt-5.6-sol high (Codex drafter)",
+      "opencode-go/ox-alpha-free max (advisory synthesis; failed write receipt)"
+    ],
+    "rubric_scores": {
+      "truth_and_evidence": 5,
+      "beneficiary_and_progress": 5,
+      "future_end_state": 4,
+      "north_star_metric": 4,
+      "value_loop": 4,
+      "moat_and_trust": 4,
+      "focus_and_anti_goals": 5,
+      "economics_and_distribution": 4,
+      "roadmap_and_gates": 5,
+      "agent_executability": 5
+    },
+    "disagreements": [
+      "Whether the builder, a team or organization, or the spectator is the correct primary beneficiary",
+      "Whether WVRB is the least-gameable value metric or should require independently meaningful harness improvement",
+      "Whether fantasy redraft or a simpler game is the strongest first external activation wedge",
+      "Whether a verified hosted division can launch safely at useful cost or public beta should be local-runner only",
+      "Whether AgentWars and BuildWars should remain separate names or one product with two modes"
+    ],
+    "final_ruling": null,
+    "ruling_owner": null,
+    "next_review": null
+  },
+  "change_log": [
+    {
+      "date": "2026-08-25",
+      "change": "Drafted launch-scale North Star, evidence ledger, provider and execution boundary, metric, roadmap, and exact first campaign.",
+      "owner": "Codex, informed by Ox Alpha MAX"
+    }
+  ]
+}
