@@ -250,6 +250,8 @@ class RunnerStateStore:
         with self.locked():
             profile_path = self.profile_path(challenge_id)
             key_path = self.key_path(challenge_id)
+            if profile_path.is_symlink():
+                raise RunnerStateError("runner profile path must not be a symlink")
             if profile_path.exists():
                 profile = self._read_profile_path(profile_path)
                 _require_same_candidate(profile, candidate)
@@ -258,9 +260,9 @@ class RunnerStateStore:
                 return profile, key, False
 
             key_created = False
+            if key_path.is_symlink():
+                raise RunnerStateError("runner private-key path must not be a symlink")
             if key_path.exists():
-                if key_path.is_symlink():
-                    raise RunnerStateError("runner private-key path must not be a symlink")
                 key = self._load_key_path(key_path, passphrase)
             else:
                 key = generate_private_key()
@@ -373,8 +375,13 @@ class RunnerStateStore:
             profile_path = self.profile_path(challenge_id)
             profile = self._read_profile_path(profile_path)
             key_path = self.ensure() / profile["keyFile"]
-            if key_path.exists():
-                if key_path.is_symlink() or not key_path.is_file():
+            if key_path.is_symlink():
+                try:
+                    key_path.unlink()
+                except OSError as error:
+                    raise RunnerStateError("runner private key could not be deleted") from error
+            elif key_path.exists():
+                if not key_path.is_file():
                     raise RunnerStateError("runner private-key path is unsafe")
                 try:
                     key_path.unlink()

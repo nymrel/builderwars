@@ -218,9 +218,12 @@ def _write_response(path: str, raw: bytes):
             os.chmod(target, 0o600)
         except OSError:
             pass
-    except Exception as error:
+    except BaseException as error:
         if descriptor is not None:
-            os.close(descriptor)
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
         if created:
             try:
                 target.unlink()

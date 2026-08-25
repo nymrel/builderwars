@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import base64
 import contextlib
+import faulthandler
 import hashlib
 import http.server
 import importlib.util
@@ -76,12 +77,17 @@ def check(condition, label):
     CHECKS += 1
 
 
-def expect_error(action, error_type, message_part=None):
+def expect_error(action, error_type, message_part=None, *, forbid=()):
     try:
         action()
     except error_type as error:
+        rendered = str(error)
         if message_part is not None:
-            check(message_part in str(error), f"error contains {message_part!r}")
+            check(message_part in rendered, f"error contains {message_part!r}")
+        for forbidden in forbid:
+            if isinstance(forbidden, bytes):
+                forbidden = forbidden.decode("utf-8", errors="replace")
+            check(str(forbidden) not in rendered, "error does not echo supplied secret")
         return error
     raise AssertionError(f"expected {error_type.__name__}")
 
@@ -390,10 +396,12 @@ def check_state_and_roundtrip():
                 RunnerStateError,
                 profile_field,
             )
+        wrong_passphrase = b"wrong passphrase value"
         expect_error(
-            lambda: store.load_key(profile, b"wrong passphrase value"),
+            lambda: store.load_key(profile, wrong_passphrase),
             RunnerStateError,
             "passphrase",
+            forbid=(wrong_passphrase,),
         )
         key_bytes = store.key_path(CHALLENGE_ID).read_bytes()
         profile_bytes = store.profile_path(CHALLENGE_ID).read_bytes()
@@ -508,6 +516,7 @@ def check_state_and_roundtrip():
                     ),
                     error_type,
                     message_part,
+                    forbid=(second_secret,),
                 )
             server_state.mode = "server_error"
             error = expect_error(
@@ -553,6 +562,7 @@ def check_state_and_roundtrip():
                 ),
                 RunnerHttpError,
                 "could not be reached",
+                forbid=(ambiguous_secret,),
             )
             check(server_state.accepted_claims == 1, "server accepted claim before response connection dropped")
 
@@ -586,11 +596,16 @@ def check_state_and_roundtrip():
             lambda: store.load_key(loaded_tampered_profile, PASSPHRASE),
             RunnerStateError,
             "does not match",
+            forbid=(PASSPHRASE,),
         )
 
         removed = store.forget(CHALLENGE_ID)
         check(removed["challengeId"] == CHALLENGE_ID, "forget returns public profile")
         check(not store.profile_path(CHALLENGE_ID).exists() and not store.key_path(CHALLENGE_ID).exists(), "forget removes exact local files")
+        check(
+            store.profile_path(second_id).exists() and store.key_path(second_id).exists(),
+            "forget preserves sibling runner state",
+        )
 
         linked_store = RunnerStateStore(pathlib.Path(temporary) / "linked-state")
         linked_root = linked_store.ensure()
@@ -608,9 +623,50 @@ def check_state_and_roundtrip():
         try:
             dangling_root.symlink_to(pathlib.Path(temporary) / "missing-state-target", target_is_directory=True)
         except (NotImplementedError, OSError):
-            pass
+            print("SKIP: dangling-root symlink unavailable on this host")
         else:
             expect_error(RunnerStateStore(dangling_root).ensure, RunnerStateError, "must not be a symlink")
+
+        dangling_key_store = RunnerStateStore(pathlib.Path(temporary) / "dangling-key-state")
+        dangling_key_id = "K" * 22
+        dangling_key_root = dangling_key_store.ensure()
+        dangling_key_path = dangling_key_store.key_path(dangling_key_id)
+        try:
+            dangling_key_path.symlink_to(dangling_key_root / "missing-private-key.pem")
+        except (NotImplementedError, OSError):
+            print("SKIP: dangling-key symlink unavailable on this host")
+        else:
+            expect_error(
+                lambda: dangling_key_store.prepare(
+                    challenge_id=dangling_key_id,
+                    passphrase=PASSPHRASE,
+                    **candidate,
+                ),
+                RunnerStateError,
+                "must not be a symlink",
+            )
+
+        forget_symlink_store = RunnerStateStore(pathlib.Path(temporary) / "forget-symlink-state")
+        forget_symlink_id = "L" * 22
+        forget_profile, _forget_key, _ = forget_symlink_store.prepare(
+            challenge_id=forget_symlink_id,
+            passphrase=PASSPHRASE,
+            **candidate,
+        )
+        forget_key_path = forget_symlink_store.key_path(forget_symlink_id)
+        forget_key_path.unlink()
+        try:
+            forget_key_path.symlink_to(forget_symlink_store.ensure() / "missing-after-prepare.pem")
+        except (NotImplementedError, OSError):
+            print("SKIP: forget dangling-key symlink unavailable on this host")
+        else:
+            removed = forget_symlink_store.forget(forget_symlink_id)
+            check(removed["fingerprint"] == forget_profile["fingerprint"], "forget returns symlink-sabotaged profile")
+            check(
+                not forget_key_path.is_symlink()
+                and not forget_symlink_store.profile_path(forget_symlink_id).exists(),
+                "forget removes a dangling key link without following it",
+            )
 
 
 def check_claim_response_and_cli_argv():
@@ -701,7 +757,12 @@ def check_claim_response_and_cli_argv():
     cli = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(cli)
     check(cli._bounded_timeout("60") == 60, "maximum bounded CLI timeout accepted")
-    expect_error(lambda: cli._bounded_timeout("0"), argparse.ArgumentTypeError, "1 to 60")
+    for hostile_timeout in ("0", "-1", "61", "not-an-integer"):
+        expect_error(
+            lambda hostile_timeout=hostile_timeout: cli._bounded_timeout(hostile_timeout),
+            argparse.ArgumentTypeError,
+            "1 to 60",
+        )
     check(cli._looks_like_secret_option("--pas=value"), "abbreviated secret option recognized")
     check(not cli._looks_like_secret_option("--path"), "ordinary path option is not secret-shaped")
     original_hidden_prompt = cli._hidden_prompt
@@ -776,6 +837,47 @@ def check_claim_response_and_cli_argv():
             cli.os.fdopen = original_fdopen
         check(not failed_write_target.exists(), "failed response write removes only its own new file")
 
+        class FailingWriter:
+            def __init__(self, descriptor, error):
+                self.descriptor = descriptor
+                self.error = error
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, _error_type, _error, _traceback):
+                os.close(self.descriptor)
+
+            def write(self, _raw):
+                raise self.error
+
+        partial_write_target = pathlib.Path(temporary) / "partial-write-response.json"
+        cli.os.fdopen = lambda descriptor, *_args, **_kwargs: FailingWriter(
+            descriptor, OSError("simulated ENOSPC")
+        )
+        try:
+            expect_error(
+                lambda: cli._write_response(str(partial_write_target), b"partial"),
+                RunnerClientError,
+                "could not be written",
+            )
+        finally:
+            cli.os.fdopen = original_fdopen
+        check(not partial_write_target.exists(), "partial response write removes its own truncated file")
+
+        interrupted_write_target = pathlib.Path(temporary) / "interrupted-write-response.json"
+        cli.os.fdopen = lambda descriptor, *_args, **_kwargs: FailingWriter(
+            descriptor, KeyboardInterrupt()
+        )
+        try:
+            expect_error(
+                lambda: cli._write_response(str(interrupted_write_target), b"partial"),
+                KeyboardInterrupt,
+            )
+        finally:
+            cli.os.fdopen = original_fdopen
+        check(not interrupted_write_target.exists(), "cancelled response write removes its own truncated file")
+
     class InterruptingParser:
         @staticmethod
         def parse_args(_argv):
@@ -797,13 +899,17 @@ def check_claim_response_and_cli_argv():
 
 
 def main():
-    check_vector()
-    check_origins_and_bodies()
-    check_state_and_roundtrip()
-    check_claim_response_and_cli_argv()
-    print(f"PASS: {CHECKS} AgentWars runner checks")
-    print("provider/model/runtime/execution attestations remain false")
-    return 0
+    faulthandler.dump_traceback_later(30, exit=True)
+    try:
+        check_vector()
+        check_origins_and_bodies()
+        check_state_and_roundtrip()
+        check_claim_response_and_cli_argv()
+        print(f"PASS: {CHECKS} AgentWars runner checks")
+        print("provider/model/runtime/execution attestations remain false")
+        return 0
+    finally:
+        faulthandler.cancel_dump_traceback_later()
 
 
 if __name__ == "__main__":
