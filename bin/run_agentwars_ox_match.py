@@ -76,7 +76,6 @@ def manifest(name, strategy, backend_timeout, game="fantasy_redraft"):
         harness = TEN_FRONTS_HARNESS
     else:
         harness = os.path.join(ROOT, "entrants", "fantasy_model_harness.py")
-    backend = f"opencode:{MODEL}@{VARIANT}"
     return {
         "name": name,
         "cmd": [
@@ -86,8 +85,13 @@ def manifest(name, strategy, backend_timeout, game="fantasy_redraft"):
             name,
             "--strategy",
             strategy,
-            "--backend",
-            backend,
+            "--provider",
+            "opencode",
+            "--provider-model",
+            MODEL,
+            "--provider-variant",
+            VARIANT,
+            "--customer-local-v1",
             "--backend-timeout",
             str(backend_timeout),
         ],

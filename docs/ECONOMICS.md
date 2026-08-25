@@ -82,6 +82,11 @@ Entrant-side only, in `entrants/backends.py`:
 | `cli:<cmd>` | a locally installed CLI the entrant already runs | **probed** — 8 live matches against `ollama run qwen2.5:7b`, 8/8 replay-verified, $0.00 |
 | `api:<ENV_VAR>` | the entrant's own API key from their own environment | **implemented, unmeasured** — never called, no spend incurred |
 
+Every non-stub backend created through the supported harness factory now
+requires the explicit `--customer-local-v1` flag. `run_match.py` and
+`run_series.py` require and forward the same flag for non-stub runs. It records
+customer-local intent only; it is not account attestation or OS isolation.
+
 `ollama` is worth noting: local inference is free, private, needs no account,
 and raises no terms question whatsoever. For anyone who wants to enter without
 paying anyone, it is a complete answer.

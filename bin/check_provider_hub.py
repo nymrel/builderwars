@@ -39,6 +39,8 @@ sys.path.insert(0, os.path.join(ROOT, "bin"))
 from provider_hub import pkce as pkce_mod  # noqa: E402
 from provider_hub.catalog import (  # noqa: E402
     PROVIDER_IDS,
+    PROVIDER_POLICY_EVIDENCE_DATE,
+    PROVIDER_POLICY_SCHEMA_VERSION,
     ProviderError,
     backend_kind_for,
     connect_plan,
@@ -212,19 +214,32 @@ def check_catalog():
     fact_keys = {
         "display_name", "connection_transport", "auth_plan", "status_plan",
         "credential_custody", "model_required", "backend_kind", "limitations",
+        "provider_class", "harness_class", "local_execution",
+        "hosted_route_status", "prohibited_routes", "evidence_date",
+        "official_sources",
     }
     allowed_transports = {
         "local_cli_subprocess", "local_cli_auth_delegation",
         "local_pkce_http_exchange", "customer_command_stdio",
     }
     for pid, entry in listing:
-        require(set(entry) >= fact_keys, f"{pid}: missing fact keys")
+        require(set(entry) == fact_keys, f"{pid}: catalog field drift")
         require(entry["credential_custody"] == "customer_only", f"{pid}: custody")
         require(entry["connection_transport"] in allowed_transports, f"{pid}: transport")
         require(len(entry["auth_plan"]) >= 2, f"{pid}: plan must have real steps")
         require(len(entry["status_plan"]) > 10, f"{pid}: status guidance required")
         require(isinstance(entry["model_required"], bool), f"{pid}: model_required")
         require(len(entry["limitations"]) >= 1, f"{pid}: limitations declared")
+        require(entry["local_execution"] is True, f"{pid}: local v1 only")
+        require(entry["evidence_date"] == PROVIDER_POLICY_EVIDENCE_DATE,
+                f"{pid}: evidence date")
+        require(entry["hosted_route_status"] in {
+            "not_offered", "architecturally_supported_not_implemented",
+        }, f"{pid}: hosted status")
+        require(isinstance(entry["prohibited_routes"], tuple),
+                f"{pid}: prohibited route tuple")
+        require(isinstance(entry["official_sources"], tuple),
+                f"{pid}: source tuple")
 
     # catalog facts agree across accessors
     require(transport_for("openrouter") == "local_pkce_http_exchange", "pkce transport")
@@ -260,6 +275,67 @@ def check_catalog():
             "custom_agent transport names its actual prompt/stdout contract")
     require("JSON argv" in " ".join(custom["auth_plan"]),
             "custom_agent declares an explicit repeatable JSON argv vector")
+
+    # Exact machine-policy twin: unknown keys, duplicate keys, and drift fail.
+    policy_path = os.path.join(ROOT, "docs", "AGENTWARS_PROVIDER_POLICY.v1.json")
+
+    def no_duplicate_keys(pairs):
+        decoded = {}
+        for key, value in pairs:
+            require(key not in decoded, f"duplicate policy key {key!r}")
+            decoded[key] = value
+        return decoded
+
+    with open(policy_path, encoding="utf-8") as policy_file:
+        policy = json.load(policy_file, object_pairs_hook=no_duplicate_keys)
+    require(set(policy) == {
+        "schema_version", "evidence_date", "status", "credential_custody",
+        "runtime", "connections", "global_prohibitions", "truth_boundaries",
+    }, "provider policy top-level fields are closed")
+    require(policy["schema_version"] == PROVIDER_POLICY_SCHEMA_VERSION,
+            "provider policy schema")
+    require(policy["evidence_date"] == PROVIDER_POLICY_EVIDENCE_DATE,
+            "provider policy evidence date")
+    require(policy["status"] == "candidate_not_integrated_or_deployed",
+            "provider policy status stays truthful")
+    require(policy["credential_custody"] == "customer_only",
+            "provider policy custody")
+    require(policy["runtime"] == {
+        "required_intent": "customer_local_v1",
+        "custom_command_second_intent": "unsafe_custom_command",
+        "intent_is_os_isolation": False,
+        "hosted_arbitrary_execution": "disabled",
+        "child_environment": "closed_allowlist",
+    }, "runtime policy exact")
+    expected_connections = []
+    for pid, entry in listing:
+        expected_connections.append({
+            "id": pid,
+            "provider_class": entry["provider_class"],
+            "harness_class": entry["harness_class"],
+            "local_execution": entry["local_execution"],
+            "hosted_route_status": entry["hosted_route_status"],
+            "credential_custody": entry["credential_custody"],
+            "prohibited_routes": list(entry["prohibited_routes"]),
+            "evidence_date": entry["evidence_date"],
+            "official_sources": list(entry["official_sources"]),
+        })
+    require(policy["connections"] == expected_connections,
+            "machine policy must exactly mirror the catalog")
+    require(policy["global_prohibitions"] == [
+        "collect_consumer_passwords_cookies_or_refresh_tokens",
+        "copy_provider_credential_stores",
+        "public_or_shared_arbitrary_execution_without_os_isolation",
+        "hosted_consumer_subscription_proxy_without_provider_supported_flow",
+        "infer_provider_model_or_billing_from_harness_label",
+    ], "global prohibitions exact")
+    require(policy["truth_boundaries"] == [
+        "local_intent_is_not_isolation",
+        "runner_self_report_is_not_model_attestation",
+        "pkce_account_link_is_not_execution_attestation",
+        "verified_replay_is_not_publication",
+        "provider_terms_and_charges_remain_customer_responsibility",
+    ], "truth boundaries exact")
 
     plan = connect_plan("chatgpt_codex")
     require("customer_only" in plan["custody"], "plan names custody")
@@ -880,13 +956,99 @@ def check_adapters():
     sys.path.insert(0, ROOT)
     import entrants.backends as backends
 
+    runtime_intent = backends.acknowledge_customer_local_v1()
+    unsafe_custom_intent = backends.acknowledge_unsafe_custom_command()
+
+    # Intent is explicit call-scoped data, never an ambient global latch.
+    with mock.patch("entrants.backends.shutil.which") as which:
+        expect_error(
+            lambda: backends.get_provider_backend("chatgpt_codex"),
+            RuntimeError,
+            "customer_local_v1",
+        )
+        expect_error(
+            lambda: backends.get_provider_backend(
+                "chatgpt_codex", runtime_intent="customer_local_v1"
+            ),
+            RuntimeError,
+            "customer_local_v1",
+        )
+        require(not which.called, "missing or forged intent fails before resolution")
+    expect_error(
+        lambda: backends.get_provider_backend(
+            "custom_agent",
+            command=["myagent"],
+            runtime_intent=runtime_intent,
+        ),
+        RuntimeError,
+        "unsafe-local-command",
+    )
+    expect_error(
+        lambda: backends.get_provider_backend(
+            "chatgpt_codex",
+            runtime_intent=runtime_intent,
+            unsafe_custom_command_intent=unsafe_custom_intent,
+        ),
+        ValueError,
+        "only for custom_agent",
+    )
+    expect_error(
+        lambda: backends.get_backend("cli:customer-agent"),
+        RuntimeError,
+        "customer_local_v1",
+    )
+    require(
+        backends.get_backend(
+            "cli:customer-agent", runtime_intent=runtime_intent
+        ).label == "cli:customer-agent",
+        "legacy non-stub construction accepts exact intent capability",
+    )
+    require(backends.get_backend("stub:v1").label == "stub:v1",
+            "stub remains intent-free")
+
+    hostile_host_env = {
+        "PATH": r"C:\safe-bin",
+        "HOME": r"C:\customer-home",
+        "XDG_CONFIG_HOME": r"C:\customer-config",
+        "SSL_CERT_FILE": r"C:\certs\ca.pem",
+        "OPENAI_API_KEY": "never-child",
+        "ANTHROPIC_AUTH_TOKEN": "never-child",
+        "AWS_SECRET_ACCESS_KEY": "never-child",
+        "HTTPS_PROXY": "https://user:pass@example.invalid",
+        "NODE_OPTIONS": "--require malicious.js",
+        "PYTHONPATH": r"C:\host-injection",
+        "BUILDWARS_SENTINEL": "never-child",
+    }
+    with mock.patch.dict(os.environ, hostile_host_env, clear=True):
+        child_env = backends._build_child_env()
+    require(child_env == {
+        "HOME": hostile_host_env["HOME"],
+        "PATH": hostile_host_env["PATH"],
+        "SSL_CERT_FILE": hostile_host_env["SSL_CERT_FILE"],
+        "XDG_CONFIG_HOME": hostile_host_env["XDG_CONFIG_HOME"],
+    }, "closed child environment strips secrets, proxies, loaders, and arbitrary vars")
+    with mock.patch.dict(os.environ, {"PATH": "safe\nunsafe"}, clear=True):
+        expect_error(backends._build_child_env, ValueError, "PATH")
+    expect_error(
+        lambda: backends._build_child_env({"OPENAI_API_KEY": "not-allowed"}),
+        ValueError,
+        "closed allowlist",
+    )
+    expect_error(
+        lambda: backends._build_child_env({"OPENCODE_CONFIG_CONTENT": "bad\nvalue"}),
+        ValueError,
+        "control",
+    )
+
     # --- codex ---
     cap = _RunCapture(stdout=b'{"player_id": 12}\n')
     with mock.patch.dict(os.environ, {
             "OPENAI_API_KEY": "must-strip", "AZURE_OPENAI_API_KEY": "strip-too"}), \
             mock.patch("entrants.backends.shutil.which", return_value="/fake/codex"), \
             mock.patch("entrants.backends.subprocess.run", cap):
-        out = backends.CodexExecBackend(60).complete("pick one")
+        out = backends.CodexExecBackend(
+            60, runtime_intent=runtime_intent
+        ).complete("pick one")
     require(out == '{"player_id": 12}', "codex stdout passthrough")
     argv, kwargs = cap.calls[0]
     require(argv[:2] == ["/fake/codex", "exec"], "codex exec subcommand")
@@ -900,11 +1062,20 @@ def check_adapters():
     require(kwargs.get("input") == b"pick one", "prompt travels on stdin")
     require("OPENAI_API_KEY" not in kwargs["env"] and
             "AZURE_OPENAI_API_KEY" not in kwargs["env"], "API env removed")
-    require(backends.CodexExecBackend(60).label == "chatgpt_codex:codex exec", "label")
+    require(
+        backends.CodexExecBackend(60, runtime_intent=runtime_intent).label
+        == "chatgpt_codex:codex exec",
+        "label",
+    )
     fail_cap = _RunCapture(returncode=2, stderr=b"sk-" + b"proj-must-not-leak")
     with mock.patch("entrants.backends.shutil.which", return_value="/fake/codex"), \
             mock.patch("entrants.backends.subprocess.run", fail_cap):
-        err = expect_error(lambda: backends.CodexExecBackend(60).complete("p"), RuntimeError)
+        err = expect_error(
+            lambda: backends.CodexExecBackend(
+                60, runtime_intent=runtime_intent
+            ).complete("p"),
+            RuntimeError,
+        )
     require("exited 2" in str(err) and "sk-" + "proj" not in str(err),
             "failure surfaces only the exit code")
 
@@ -914,7 +1085,9 @@ def check_adapters():
             "ANTHROPIC_API_KEY": "must-strip", "ANTHROPIC_AUTH_TOKEN": "strip-too"}), \
             mock.patch("entrants.backends.shutil.which", return_value="/fake/claude"), \
             mock.patch("entrants.backends.subprocess.run", cap):
-        backends.ClaudePrintBackend(60).complete("pick one")
+        backends.ClaudePrintBackend(
+            60, runtime_intent=runtime_intent
+        ).complete("pick one")
     argv, kwargs = cap.calls[0]
     require(argv[0] == "/fake/claude" and argv[1] == "-p", "non-interactive print mode")
     for flag in ("--output-format", "--max-turns", "--strict-mcp-config",
@@ -926,7 +1099,11 @@ def check_adapters():
     require("--fallback-model" not in argv, "no fallback model configured")
     require("ANTHROPIC_API_KEY" not in kwargs["env"] and
             "ANTHROPIC_AUTH_TOKEN" not in kwargs["env"], "API env removed")
-    require(backends.ClaudePrintBackend(60).label == "claude_code:claude -p", "label")
+    require(
+        backends.ClaudePrintBackend(60, runtime_intent=runtime_intent).label
+        == "claude_code:claude -p",
+        "label",
+    )
 
     # --- legacy opencode remains byte-compatible when --provider is omitted ---
     expect_error(lambda: backends.OpenCodeBackend("has space"), ValueError)
@@ -947,7 +1124,9 @@ def check_adapters():
     cap = _RunCapture(stdout=event)
     with mock.patch("entrants.backends.shutil.which", return_value="/fake/opencode"), \
             mock.patch("entrants.backends.subprocess.run", cap):
-        provider_oc = backends.OpenCodeProviderBackend("vendor/model", "max", 60)
+        provider_oc = backends.OpenCodeProviderBackend(
+            "vendor/model", "max", 60, runtime_intent=runtime_intent
+        )
         require(provider_oc.complete("choose") == "hi", "contained provider output")
     argv, kwargs = cap.calls[0]
     require(argv[0] == "/fake/opencode" and argv[1] == "run", "provider run")
@@ -968,7 +1147,9 @@ def check_adapters():
     require(policy["agent"][provider_oc.AGENT_NAME]["permission"]["*"] == "deny",
             "selected agent inherits default deny")
     expect_error(
-        lambda: backends.OpenCodeProviderBackend("noslash"),
+        lambda: backends.OpenCodeProviderBackend(
+            "noslash", runtime_intent=runtime_intent
+        ),
         ValueError,
         "provider/model",
     )
@@ -986,7 +1167,9 @@ def check_adapters():
             {"choices": [{"message": {"content": " alloc "}}]}
         ).encode()
 
-    backend = backends.OpenRouterChatBackend("vendor/model-x", transport=net_capture)
+    backend = backends.OpenRouterChatBackend(
+        "vendor/model-x", transport=net_capture, runtime_intent=runtime_intent
+    )
     with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": sentinel_key}):
         require(backend.complete("alloc") == "alloc", "content stripped+returned")
     require(seen_auth == [f"Bearer {sentinel_key}"], "key rides only the auth header")
@@ -997,7 +1180,9 @@ def check_adapters():
         return json.dumps({"choices": []}).encode()
 
     with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": sentinel_key}):
-        b2 = backends.OpenRouterChatBackend("m", transport=net_missing_content)
+        b2 = backends.OpenRouterChatBackend(
+            "m", transport=net_missing_content, runtime_intent=runtime_intent
+        )
         expect_error(lambda: b2.complete("x"), RuntimeError, "assistant content")
 
     def net_http_error(request, timeout_s=300):
@@ -1005,48 +1190,71 @@ def check_adapters():
                                      fp=io.BytesIO(b""))
 
     with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": sentinel_key}):
-        b3 = backends.OpenRouterChatBackend("m", transport=net_http_error)
+        b3 = backends.OpenRouterChatBackend(
+            "m", transport=net_http_error, runtime_intent=runtime_intent
+        )
         err = expect_error(lambda: b3.complete("x"), RuntimeError)
         require("401" in str(err) and sentinel_key not in str(err), "key absent from errors")
 
     with mock.patch.dict(os.environ, {}, clear=True):
-        b4 = backends.OpenRouterChatBackend("m", transport=net_capture)
+        b4 = backends.OpenRouterChatBackend(
+            "m", transport=net_capture, runtime_intent=runtime_intent
+        )
         err = expect_error(lambda: b4.complete("x"), RuntimeError, "OPENROUTER_API_KEY")
         require(sentinel_key not in str(err), "unset env error clean")
-    expect_error(lambda: backends.OpenRouterChatBackend("-bad model"), ValueError)
+    expect_error(
+        lambda: backends.OpenRouterChatBackend(
+            "-bad model", runtime_intent=runtime_intent
+        ),
+        ValueError,
+    )
     with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "bad\r\nheader"}):
         err = expect_error(lambda: backends.OpenRouterChatBackend(
-            "m", transport=net_capture).complete("x"), RuntimeError, "unsafe shape")
+            "m", transport=net_capture,
+            runtime_intent=runtime_intent).complete("x"), RuntimeError, "unsafe shape")
         require("bad" not in str(err), "unsafe key not echoed")
     with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": sentinel_key}):
         oversized = backends.OpenRouterChatBackend(
             "m", transport=lambda request, timeout_s=300:
-            b"x" * (backends.OpenRouterChatBackend.MAX_RESPONSE_BYTES + 1))
+            b"x" * (backends.OpenRouterChatBackend.MAX_RESPONSE_BYTES + 1),
+            runtime_intent=runtime_intent)
         expect_error(lambda: oversized.complete("x"), RuntimeError, "size cap")
         with mock.patch.object(backends.OpenRouterChatBackend, "ENDPOINT",
                                "https://openrouter.ai/other"):
             expect_error(lambda: backends.OpenRouterChatBackend(
-                "m", transport=net_capture).complete("x"), RuntimeError, "pinned")
+                "m", transport=net_capture,
+                runtime_intent=runtime_intent).complete("x"), RuntimeError, "pinned")
 
     # --- hermes ---
     cap = _RunCapture(stdout=b'{"allocation":[1]*10}\n')
     with mock.patch("entrants.backends.shutil.which", return_value="/fake/hermes"), \
             mock.patch("entrants.backends.subprocess.run", cap):
-        out = backends.HermesOneshotBackend("vendor/model-x", timeout_s=60).complete("commit")
+        out = backends.HermesOneshotBackend(
+            "vendor/model-x", timeout_s=60, runtime_intent=runtime_intent
+        ).complete("commit")
     argv, kwargs = cap.calls[0]
     require(argv == ["/fake/hermes", "--oneshot", "--provider", "vendor",
                      "--model", "vendor/model-x", "--ignore-rules", "--safe-mode",
                      "--toolsets", "clarify", "commit"], "hermes argv exact")
     require(kwargs.get("input") is None and kwargs.get("stdin") is subprocess.DEVNULL,
             "Hermes receives --oneshot prompt as argv, not stdin")
-    require(backends.HermesOneshotBackend("vendor/model-x").label
+    require(backends.HermesOneshotBackend(
+        "vendor/model-x", runtime_intent=runtime_intent).label
             == "hermes:vendor/model-x", "label")
-    expect_error(lambda: backends.HermesOneshotBackend("noslash"), ValueError, "provider/model")
-    expect_error(lambda: backends.HermesOneshotBackend("/leadingslash"), ValueError)
-    expect_error(lambda: backends.HermesOneshotBackend("vendor/-dashy"), ValueError, "'-'")
+    expect_error(lambda: backends.HermesOneshotBackend(
+        "noslash", runtime_intent=runtime_intent), ValueError, "provider/model")
+    expect_error(lambda: backends.HermesOneshotBackend(
+        "/leadingslash", runtime_intent=runtime_intent), ValueError)
+    expect_error(lambda: backends.HermesOneshotBackend(
+        "vendor/-dashy", runtime_intent=runtime_intent), ValueError, "'-'")
 
     # --- custom agent escape hatch ---
-    cli = backends.get_provider_backend("custom_agent", command=["myagent", "--serve"])
+    cli = backends.get_provider_backend(
+        "custom_agent",
+        command=["myagent", "--serve"],
+        runtime_intent=runtime_intent,
+        unsafe_custom_command_intent=unsafe_custom_intent,
+    )
     require(isinstance(cli, backends.CustomerCommandBackend), "custom backend exact")
     require(cli.label == "custom_cli:myagent", "custom label")
     cap = _RunCapture(stdout=b"answer\n")
@@ -1057,12 +1265,18 @@ def check_adapters():
     require(argv == ["/fake/myagent", "--serve"] and kwargs["input"] == b"question",
             "custom JSON argv and stdin are exact")
     require(kwargs["cwd"] is None, "customer command retains caller cwd intentionally")
-    expect_error(lambda: backends.get_provider_backend("custom_agent"), ValueError,
+    expect_error(lambda: backends.get_provider_backend(
+        "custom_agent", runtime_intent=runtime_intent,
+        unsafe_custom_command_intent=unsafe_custom_intent), ValueError,
                  "explicit JSON argv")
-    expect_error(lambda: backends.get_provider_backend("custom_agent", command=[""]),
+    expect_error(lambda: backends.get_provider_backend(
+        "custom_agent", command=[""], runtime_intent=runtime_intent,
+        unsafe_custom_command_intent=unsafe_custom_intent),
                  ValueError)
     expect_error(lambda: backends.get_provider_backend(
-        "custom_agent", command=["x"], model="ignored"), ValueError, "does not accept")
+        "custom_agent", command=["x"], model="ignored",
+        runtime_intent=runtime_intent,
+        unsafe_custom_command_intent=unsafe_custom_intent), ValueError, "does not accept")
 
     # --- resolution table ---
     for pid, cls in (
@@ -1073,19 +1287,25 @@ def check_adapters():
         ("hermes", backends.HermesOneshotBackend),
     ):
         kwargs = {"model": "vendor/model"} if pid in ("opencode", "openrouter", "hermes") else {}
-        require(isinstance(backends.get_provider_backend(pid, **kwargs), cls),
+        require(isinstance(backends.get_provider_backend(
+            pid, runtime_intent=runtime_intent, **kwargs), cls),
                 f"{pid} resolves to its catalog-declared adapter kind")
     require(backends.execution_claim_for_provider("chatgpt_codex") == "model",
             "provider adapters claim model execution")
-    expect_error(lambda: backends.get_provider_backend("totally_unknown"), ProviderError)
-    expect_error(lambda: backends.get_provider_backend("opencode"), ValueError, "provider-model")
     expect_error(lambda: backends.get_provider_backend(
-        "chatgpt_codex", model="silently-ignored"), ValueError, "does not accept")
+        "totally_unknown", runtime_intent=runtime_intent), ProviderError)
     expect_error(lambda: backends.get_provider_backend(
-        "openrouter", model="m", variant="ignored"), ValueError, "does not accept")
+        "opencode", runtime_intent=runtime_intent), ValueError, "provider-model")
+    expect_error(lambda: backends.get_provider_backend(
+        "chatgpt_codex", model="silently-ignored",
+        runtime_intent=runtime_intent), ValueError, "does not accept")
+    expect_error(lambda: backends.get_provider_backend(
+        "openrouter", model="m", variant="ignored",
+        runtime_intent=runtime_intent), ValueError, "does not accept")
     for bad_timeout in (0, -1, float("nan"), float("inf"), True, 3601):
         expect_error(lambda t=bad_timeout: backends.get_provider_backend(
-            "chatgpt_codex", timeout_s=t), ValueError)
+            "chatgpt_codex", timeout_s=t,
+            runtime_intent=runtime_intent), ValueError)
     expect_error(lambda: backends.execution_claim_for_provider("nope"), ProviderError)
 
     # adapters never touch provider_hub credentials: they read only this process env
@@ -1116,7 +1336,8 @@ def _namespace(**kw):
 
     defaults = dict(backend=None, provider=None, provider_model=None,
                     provider_variant=None, provider_command=None,
-                    backend_timeout=None)
+                    backend_timeout=None, customer_local_v1=False,
+                    unsafe_custom_command=False)
     defaults.update(kw)
     return argparse.Namespace(**defaults)
 
@@ -1136,30 +1357,49 @@ def check_harnesses():
     expect_error(lambda: fantasy.build_backend(
         _namespace(backend="stub:v1", provider="hermes")), SystemExit)
     expect_error(lambda: fantasy.build_backend(_namespace(provider="hermes")), SystemExit)
+    expect_error(lambda: fantasy.build_backend(
+        _namespace(backend="cli:myagent --serve")), SystemExit)
+    expect_error(lambda: fantasy.build_backend(_namespace(
+        backend="stub:v1", provider_model="silently-ignored")), SystemExit)
+    expect_error(lambda: fantasy.build_backend(_namespace(
+        provider="custom_agent", provider_command='["myagent"]',
+        customer_local_v1=True)), SystemExit)
+    expect_error(lambda: fantasy.build_backend(_namespace(
+        provider="chatgpt_codex", customer_local_v1=True,
+        unsafe_custom_command=True)), SystemExit)
 
     # byte-for-byte legacy behavior when provider omitted
     b = fantasy.build_backend(_namespace(backend="stub:v1"))
     require(b.label == "stub:v1", "legacy spec unchanged")
-    b = fronts.build_backend(_namespace(backend="opencode:m@fast", backend_timeout=99))
+    b = fronts.build_backend(_namespace(
+        backend="opencode:m@fast", backend_timeout=99,
+        customer_local_v1=True))
     require(b.label == "opencode:m@fast" and b.timeout_s == 99, "legacy opencode spec")
-    b = fantasy.build_backend(_namespace(backend="cli:myagent --serve"))
+    b = fantasy.build_backend(_namespace(
+        backend="cli:myagent --serve", customer_local_v1=True))
     require(b.label == "cli:myagent", "legacy cli spec")
 
     # provider selection resolves through the catalog
-    b = fronts.build_backend(_namespace(provider="chatgpt_codex", backend_timeout=42))
+    b = fronts.build_backend(_namespace(
+        provider="chatgpt_codex", backend_timeout=42,
+        customer_local_v1=True))
     require(type(b).__name__ == "CodexExecBackend" and b.timeout_s == 42, "codex selection")
     b = fantasy.build_backend(_namespace(provider="opencode", provider_model="v/m",
-                                         provider_variant="fast"))
+                                         provider_variant="fast",
+                                         customer_local_v1=True))
     require(b.label == "opencode-provider:v/m@fast", "variant flows through")
     command_json = json.dumps([sys.executable, "-c", "print('ok')"])
     b = fronts.build_backend(_namespace(
-        provider="custom_agent", provider_command=command_json))
+        provider="custom_agent", provider_command=command_json,
+        customer_local_v1=True, unsafe_custom_command=True))
     require(type(b).__name__ == "CustomerCommandBackend" and
             b.command[0] == sys.executable, "custom JSON argv flows through")
     expect_error(lambda: fronts.build_backend(_namespace(
-        provider="custom_agent", provider_command="not-json")), SystemExit)
+        provider="custom_agent", provider_command="not-json",
+        customer_local_v1=True, unsafe_custom_command=True)), SystemExit)
     expect_error(lambda: fronts.build_backend(_namespace(
-        provider="openrouter", provider_model="v/m", provider_variant="ignored")),
+        provider="openrouter", provider_model="v/m", provider_variant="ignored",
+        customer_local_v1=True)),
         SystemExit)
 
     # end-to-end provider-backed decision with mocked network: source=model truth
@@ -1185,7 +1425,8 @@ def check_harnesses():
         {"OPENROUTER_API_KEY": "sk-" + "or-v1-EXAMPLE-harness"},
     ):
         provider_backend = fantasy.build_backend(
-            _namespace(provider="openrouter", provider_model="vendor/model"))
+            _namespace(provider="openrouter", provider_model="vendor/model",
+                       customer_local_v1=True))
         provider_backend._transport = chat_transport
         move, note = fantasy.decide(observation, "win-now", provider_backend)
         require(note.startswith("source=model;"), f"honest model source: {note}")
@@ -1204,7 +1445,9 @@ def check_harnesses():
     cap = _RunCapture(stdout=alloc.encode())
     with mock.patch("entrants.backends.shutil.which", return_value="/fake/hermes"), \
             mock.patch("entrants.backends.subprocess.run", cap):
-        hb = fronts.build_backend(_namespace(provider="hermes", provider_model="vendor/m"))
+        hb = fronts.build_backend(_namespace(
+            provider="hermes", provider_model="vendor/m",
+            customer_local_v1=True))
         obs_tf = {"phase": "commit", "round": 1, "front_values": [1] * 10, "history": []}
         move, note = fronts.decide(obs_tf, "even-pressure", hb)
         require(note.startswith("source=model;"), f"hermes sourced: {note}")
@@ -1214,7 +1457,9 @@ def check_harnesses():
     cap = _RunCapture(stdout=b"garbage from a model")
     with mock.patch("entrants.backends.shutil.which", return_value="/fake/hermes"), \
             mock.patch("entrants.backends.subprocess.run", cap):
-        hb = fronts.build_backend(_namespace(provider="hermes", provider_model="vendor/m"))
+        hb = fronts.build_backend(_namespace(
+            provider="hermes", provider_model="vendor/m",
+            customer_local_v1=True))
         move, note = fronts.decide(obs_tf, "even-pressure", hb)
         require(note.startswith("source=fallback;reason=invalid_model_output;"),
                 f"invalid output falls back: {note}")
@@ -1246,6 +1491,48 @@ def check_harnesses():
                             "--name", "Pin"], [json.dumps({"type": "hello"})])
     require(out.strip() == '{"type":"ready","entrant":"Pin","version":"1","backend":"stub:v1"}',
             "fantasy ready line pinned")
+
+    # Every shared legacy caller forwards the same explicit non-stub intent.
+    solver_script = os.path.join("entrants", "solver_harness.py")
+    proc = subprocess.run(
+        [sys.executable, os.path.join(ROOT, solver_script),
+         "--backend", "cli:never-run"],
+        input=(json.dumps({"type": "hello"}) + "\n").encode("utf-8"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=60,
+    )
+    require(proc.returncode != 0 and b"customer_local_v1" in proc.stderr,
+            "legacy solver fails closed without local intent")
+    out = wire(
+        solver_script,
+        ["--backend", "cli:never-run", "--customer-local-v1"],
+        [json.dumps({"type": "hello"})],
+    )
+    require('"backend":"cli:never-run"' in out,
+            "legacy solver accepts and records explicit local intent")
+
+    import run_agentwars_ox_match as ox_match
+    import run_match as run_match_mod
+    import run_series as run_series_mod
+
+    match_cmd = run_match_mod.manifest(
+        os.path.join(ROOT, "entrants", "solver_harness.py"),
+        "cli:customer-agent",
+        customer_local_v1=True,
+    )["cmd"]
+    series_cmd = run_series_mod.manifest(
+        os.path.join(ROOT, "entrants", "solver_harness.py"),
+        "cli:customer-agent",
+        customer_local_v1=True,
+    )["cmd"]
+    require("--customer-local-v1" in match_cmd and
+            "--customer-local-v1" in series_cmd,
+            "match and series helpers forward local intent")
+    ox_cmd = ox_match.manifest("Ox", "win-now", 60)["cmd"]
+    require("--provider" in ox_cmd and "opencode" in ox_cmd and
+            "--customer-local-v1" in ox_cmd and "--backend" not in ox_cmd,
+            "Ox helper uses the contained provider adapter, not legacy OpenCode")
     print("[PASS] provider selection in both harnesses; legacy path byte-pinned")
 
 
@@ -1263,7 +1550,8 @@ def check_manifest_env_names():
         "name": "Provider Entrant",
         "cmd": [sys.executable, os.path.join(ROOT, "entrants", "fantasy_model_harness.py"),
                 "--strategy", "win-now", "--name", "Provider Entrant",
-                "--provider", "openrouter", "--provider-model", "vendor/model"],
+                "--provider", "openrouter", "--provider-model", "vendor/model",
+                "--customer-local-v1"],
         "env": ["OPENROUTER_API_KEY"],
         "claimed_model": "customer-openrouter:vendor/model",
         "execution_claim": "model",
@@ -1386,9 +1674,14 @@ _PY_COMPILE_TARGETS = [
     "provider_hub/signing.py",
     "entrants/backends.py",
     "entrants/fantasy_model_harness.py",
+    "entrants/naive_harness.py",
+    "entrants/solver_harness.py",
     "entrants/ten_fronts_model_harness.py",
     "bin/buildwars_provider.py",
     "bin/check_provider_hub.py",
+    "bin/run_agentwars_ox_match.py",
+    "bin/run_match.py",
+    "bin/run_series.py",
 ]
 
 _LADDER = [

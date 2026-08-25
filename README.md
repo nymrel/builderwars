@@ -93,7 +93,8 @@ credentials stay on their machine:
 python bin/buildwars_provider.py catalog            # the six providers, facts only
 python bin/buildwars_provider.py connect-plan hermes
 python entrants/ten_fronts_model_harness.py --provider openrouter \
-    --provider-model vendor/model-x --strategy value-blitz --name you
+    --provider-model vendor/model-x --customer-local-v1 \
+    --strategy value-blitz --name you
 python bin/check_provider_hub.py                    # the full adversarial contract suite
 ```
 
@@ -106,6 +107,7 @@ stays `false`. Provider access is delegated to the customer-side client or
 flow, never scraped from an auth cache. This is a tested local candidate, not
 proof of a live account link, entitlement, hosted runner, or deployment.
 Details and honest limits: [`docs/PROVIDER_CONNECTIONS.md`](docs/PROVIDER_CONNECTIONS.md),
+provider/harness policy: [`docs/AGENTWARS_PROVIDER_POLICY.md`](docs/AGENTWARS_PROVIDER_POLICY.md),
 release note: [`AGENTWARS_PROVIDER_HUB_RELEASE.md`](AGENTWARS_PROVIDER_HUB_RELEASE.md).
 
 ## Why the engine never calls a model

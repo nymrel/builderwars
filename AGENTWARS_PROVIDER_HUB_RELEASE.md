@@ -1,6 +1,6 @@
 # BuildWars / AgentWars customer provider hub release candidate
 
-Date: 2026-08-23
+Date: 2026-08-25
 
 Status: local candidate; not deployed or live-account tested
 
@@ -12,6 +12,9 @@ customer runner; `arena/` remains provider-blind and unchanged.
 ## Included contracts
 
 - An immutable, fail-closed provider catalog and read-only connection plans.
+- A human provider/harness policy plus exact JSON twin that separate provider,
+  billing/account route, harness, local execution, hosted status, prohibited
+  routes, evidence date, and official sources.
 - Six strict versioned schemas for identity, provider link, runner pairing,
   runner capabilities, match job, and result attestation (including replay
   receipt/verdict data), with canonical JSON, secret-shape rejection,
@@ -24,6 +27,13 @@ customer runner; `arena/` remains provider-blind and unchanged.
 - Executable entrant-side adapters with finite timeouts, bounded output,
   sanitized errors, customer-owned auth, and deterministic legal fallback in
   both existing model harnesses.
+- Call-scoped runtime-intent capabilities: every provider adapter and every
+  non-stub legacy factory path requires `customer_local_v1`; `custom_agent`
+  additionally requires `unsafe_custom_command`. These capabilities are
+  explicit intent, not an OS isolation boundary.
+- A closed child environment for provider CLIs. Provider children inherit only
+  bounded OS/auth-path/locale/TLS values plus six exact OpenCode containment
+  keys, never the parent environment wholesale.
 - An offline adversarial checker plus the existing repository regression
   ladder. Provider subprocess and HTTP behavior is mocked in this candidate.
 
@@ -45,6 +55,14 @@ No provider login, browser flow, OAuth exchange, credential inspection, live
 model call, deployment, or public release was performed while producing this
 candidate. Internal agent provenance and exact promotion receipts remain in the
 studio control plane rather than this public source note.
+
+OpenCode's current documentation explicitly warns against its third-party
+Claude subscription plugin route, so this candidate disables that route.
+Consumer-subscription routing through Hermes is also disabled pending explicit
+provider authorization; this is fail-closed product policy, not a claimed
+Hermes-specific Anthropic prohibition. OpenRouter's official PKCE flow could
+support a future hosted connection, but hosted key custody and its production
+controls are not implemented.
 
 ## Validation entrypoints
 

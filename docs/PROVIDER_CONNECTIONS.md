@@ -19,6 +19,9 @@ primitives, provider adapters, and local harness integration. It does not yet
 implement a hosted BuildWars account service, production runner enrollment,
 durable job storage, or a live provider-account linking UI.
 
+The controlling human policy is `AGENTWARS_PROVIDER_POLICY.md`; its exact
+machine twin is `AGENTWARS_PROVIDER_POLICY.v1.json`.
+
 ## Supported provider ids
 
 | id | customer-side connection | local setup | required options | entrant backend |
@@ -78,15 +81,18 @@ Example provider-backed harness invocations:
 
 ```bash
 python entrants/ten_fronts_model_harness.py \
-  --provider chatgpt_codex --strategy value-blitz --name local-codex
+  --provider chatgpt_codex --customer-local-v1 \
+  --strategy value-blitz --name local-codex
 
 python entrants/fantasy_model_harness.py \
   --provider opencode --provider-model openrouter/vendor-model \
-  --provider-variant high --strategy long-game --name local-opencode
+  --provider-variant high --customer-local-v1 \
+  --strategy long-game --name local-opencode
 
 python entrants/ten_fronts_model_harness.py \
   --provider custom_agent \
   --provider-command '["python","my_agent.py"]' \
+  --customer-local-v1 --unsafe-custom-command \
   --strategy value-blitz --name local-custom
 ```
 
@@ -122,7 +128,7 @@ exchange. OpenRouter use may incur charges on the customer's OpenRouter
 account.
 
 Current references: [OpenAI Codex authentication](https://learn.chatgpt.com/docs/auth),
-[Claude Code setup](https://code.claude.com/docs/en/getting-started),
+[Claude Code setup](https://docs.anthropic.com/en/docs/claude-code/getting-started),
 [OpenCode providers](https://opencode.ai/docs/providers/),
 [OpenCode CLI](https://opencode.ai/docs/cli/), and
 [OpenRouter OAuth PKCE](https://openrouter.ai/docs/guides/overview/auth/oauth).
@@ -136,9 +142,11 @@ Current references: [OpenAI Codex authentication](https://learn.chatgpt.com/docs
 - `InMemoryReplayGuard` is a bounded, thread-safe local reference. Production
   requires durable, atomic single-use/replay storage that survives restarts and
   concurrent workers.
-- The Codex and Claude adapters remove common API-key environment variables to
-  reduce accidental API billing. That is risk reduction only; BuildWars cannot
-  attest a CLI's cached auth method or billing route.
+- Provider CLI children receive a closed path/config/locale/TLS environment,
+  never the parent environment wholesale. API keys, auth tokens, cloud
+  credentials, proxy credentials, loader hooks, and arbitrary host variables
+  are excluded. This reduces accidental leakage and API-billing fallback;
+  BuildWars still cannot attest a CLI's cached auth method or billing route.
 - Local provider clients can still retain local sessions, logs, or provider-side
   records according to their own behavior. BuildWars does not inspect those
   stores.
@@ -146,8 +154,13 @@ Current references: [OpenAI Codex authentication](https://learn.chatgpt.com/docs
   process-level containment choice, not proof about future Hermes versions;
   revalidate the installed CLI before production use.
 - Provider subprocess output is size-capped and raw stderr is withheld from
-  adapter errors. The custom command intentionally runs in the caller's local
-  environment and remains the customer's responsibility.
+  adapter errors. The custom command keeps the caller's working directory but
+  receives the same closed child environment. It can still reach anything the
+  caller's OS account can reach; runtime intent is not isolation.
+- Construction is call-scoped and fail-closed: provider adapters require the
+  exact `customer_local_v1` intent capability, and `custom_agent` also requires
+  `unsafe_custom_command`. Shared arbitrary command execution remains disabled
+  until a separate OS isolation boundary exists.
 - `arena/` remains provider-blind: it imports no provider hub module and holds
   no provider credential.
 
@@ -170,12 +183,18 @@ argv/env/network contracts are checked with local help output and mocks.
 
 ## Known provider caveats
 
-- Current OpenCode documentation warns that its third-party Claude
-  subscription plugin path is unsupported. Use the dedicated `claude_code`
+- Current OpenCode documentation explicitly says its third-party Claude
+  subscription plugin path is prohibited. Use the dedicated `claude_code`
   adapter for eligible Claude Code plan access.
 - OpenCode and Hermes can route many upstream providers. BuildWars cannot
   infer whether a selected route uses a subscription, an API key, free quota,
   or usage billing.
+- BuildWars disables third-party consumer-subscription routing through Hermes
+  pending explicit provider authorization. This is a fail-closed product
+  policy, not a Hermes-specific prohibition attributed to Anthropic.
+- OpenRouter's official PKCE flow can support a third-party app, but hosted key
+  custody, rotation/deletion controls, and durable replay defense are not
+  implemented. The v1 adapter therefore keeps the key in the customer runner.
 - A provider may change CLI flags, auth behavior, quotas, models, or plan
   rules. Revalidate the current provider documentation and CLI before a
   production release.

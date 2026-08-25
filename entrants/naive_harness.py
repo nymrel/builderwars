@@ -19,7 +19,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from backends import get_backend  # noqa: E402
+from backends import acknowledge_customer_local_v1, get_backend  # noqa: E402
 from parsing import parse_move  # noqa: E402  — identical parser in both arms
 
 NAME = "naive-harness"
@@ -43,10 +43,26 @@ def send(msg):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", default="stub:v1")
+    ap.add_argument(
+        "--customer-local-v1",
+        action="store_true",
+        help="required for non-stub backends; records local intent only and "
+             "is not an OS isolation boundary",
+    )
     ap.add_argument("--backend-timeout", type=float, default=None,
                     help="seconds to wait for the model; raise it for cold local models")
     args = ap.parse_args()
-    backend = get_backend(args.backend, args.backend_timeout)
+    runtime_intent = (
+        acknowledge_customer_local_v1() if args.customer_local_v1 else None
+    )
+    try:
+        backend = get_backend(
+            args.backend,
+            args.backend_timeout,
+            runtime_intent=runtime_intent,
+        )
+    except RuntimeError as error:
+        ap.error(str(error))
 
     while True:
         line = sys.stdin.readline()

@@ -57,9 +57,11 @@ That pattern is most of the difference between entrants on the same model.
 
 Prefer your ChatGPT/Codex, Claude Code, OpenCode, OpenRouter, Hermes, or custom
 agent access? Both model harnesses accept `--provider <id>` (plus
-`--provider-model` where the catalog requires it). `custom_agent` also requires
-an explicit `--provider-command` JSON argv array. Your provider login lives on
-your machine; it is not carried in an entrant envelope. Plans and rules:
+`--provider-model` where the catalog requires it) and the explicit
+`--customer-local-v1` intent flag. `custom_agent` also requires an explicit
+`--provider-command` JSON argv array and `--unsafe-custom-command`. These flags
+record intent; they are not OS isolation. Your provider login lives on your
+machine; it is not carried in an entrant envelope. Plans and rules:
 [`../docs/PROVIDER_CONNECTIONS.md`](../docs/PROVIDER_CONNECTIONS.md).
 
 ```bash

@@ -31,6 +31,25 @@ redirects are refused so authorization cannot be forwarded off-origin.
 receive a credential from BuildWars; every one reads its auth state from the
 local machine it runs on.
 
+Runtime intent capability (fail closed):
+
+  Constructing any provider adapter, or any non-stub legacy backend through
+  ``get_backend``, requires an explicit ``customer_local_v1`` runtime intent
+  capability (returned by ``acknowledge_customer_local_v1()``). ``custom_agent``
+  additionally requires a second explicit opt-in
+  capability (returned by ``acknowledge_unsafe_custom_command()``); without
+  both exact objects construction fails before any subprocess is resolved.
+  Capabilities travel through the construction call instead of ambient process
+  state. They record intent ONLY: they are not an OS isolation boundary and
+  grant no sandboxing. Machine policy twin:
+  docs/AGENTWARS_PROVIDER_POLICY.v1.json.
+
+Child environments are built from a fixed allowlist of OS/runtime path and
+locale variables — never ``dict(os.environ)``. Host API keys, tokens, cloud
+credentials, proxy credentials, and arbitrary host variables cannot reach a
+provider child. Process-local extra variables are restricted to the exact
+OpenCode containment keys and validated before use.
+
 `stub` is probed by the reference matches. `cli`, `api`, `opencode` are
 implemented and UNMEASURED here — no key was used and no spend was incurred
 building this. The provider adapters are likewise UNMEASURED contracts:
@@ -48,6 +67,148 @@ import subprocess
 import tempfile
 import urllib.error
 import urllib.request
+
+
+# --------------------------------------------------------------------------
+# explicit runtime-intent capabilities (not an isolation boundary)
+# --------------------------------------------------------------------------
+
+
+REQUIRED_RUNTIME_INTENT = "customer_local_v1"
+
+_CUSTOMER_LOCAL_V1_INTENT = object()
+_UNSAFE_CUSTOM_COMMAND_INTENT = object()
+
+
+def acknowledge_customer_local_v1():
+    """Return the explicit customer-local runtime-intent capability.
+
+    The object records INTENT ONLY: it is not an OS isolation boundary, it
+    sandboxes nothing, and it authorizes nothing beyond the construction call
+    that explicitly receives it. See docs/AGENTWARS_PROVIDER_POLICY.md.
+    """
+    return _CUSTOMER_LOCAL_V1_INTENT
+
+
+def acknowledge_unsafe_custom_command():
+    """Return the second capability required for ``custom_agent``.
+
+    The custom command runs an arbitrary customer-declared argv with far more
+    reach than any single-provider adapter, so it needs its own consent in
+    addition to ``customer_local_v1`` intent.
+    """
+    return _UNSAFE_CUSTOM_COMMAND_INTENT
+
+
+def _require_runtime_intent(runtime_intent, what):
+    if runtime_intent is not _CUSTOMER_LOCAL_V1_INTENT:
+        raise RuntimeError(
+            f"{what} requires the 'customer_local_v1' runtime intent "
+            "capability; call acknowledge_customer_local_v1() and pass its "
+            "return value (or use --customer-local-v1). This records local "
+            "customer custody only and is not an OS isolation boundary."
+        )
+
+
+def _require_custom_command_opt_in(unsafe_custom_command_intent):
+    if unsafe_custom_command_intent is not _UNSAFE_CUSTOM_COMMAND_INTENT:
+        raise RuntimeError(
+            "custom_agent requires a second explicit unsafe-local-command "
+            "capability; call acknowledge_unsafe_custom_command() and pass "
+            "its return value (or use --unsafe-custom-command). Default "
+            "construction refuses to resolve any subprocess."
+        )
+
+
+# --------------------------------------------------------------------------
+# child environment policy — closed path/config/locale/TLS allowlist
+# --------------------------------------------------------------------------
+
+
+CHILD_ENV_ALLOWLIST = (
+    "APPDATA",
+    "ANTHROPIC_CONFIG_DIR",
+    "CLAUDE_CONFIG_DIR",
+    "CODEX_HOME",
+    "COLORTERM",
+    "COMSPEC",
+    "HOME",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "HERMES_HOME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "LOCALAPPDATA",
+    "NODE_EXTRA_CA_CERTS",
+    "NO_COLOR",
+    "OPENCODE_CONFIG_DIR",
+    "PATH",
+    "PATHEXT",
+    "REQUESTS_CA_BUNDLE",
+    "SHELL",
+    "SSL_CERT_DIR",
+    "SSL_CERT_FILE",
+    "SYSTEMROOT",
+    "TERM",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
+    "TZ",
+    "USERPROFILE",
+    "WINDIR",
+    "XDG_CACHE_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+)
+
+EXTRA_CHILD_ENV_KEYS = frozenset(
+    {
+        "OPENCODE_AUTO_SHARE",
+        "OPENCODE_CONFIG_CONTENT",
+        "OPENCODE_DISABLE_CLAUDE_CODE_SKILLS",
+        "OPENCODE_DISABLE_EXTERNAL_SKILLS",
+        "OPENCODE_DISABLE_PROJECT_CONFIG",
+        "OPENCODE_PURE",
+    }
+)
+
+_MAX_CHILD_ENV_VALUE_BYTES = 65536
+
+
+def _validated_env_value(name, value):
+    """Validate one child value without ever echoing it in an error."""
+    if not isinstance(value, str):
+        raise TypeError(f"child env {name} must be a string")
+    encoded = value.encode("utf-8")
+    if not encoded:
+        raise ValueError(f"child env {name} must not be empty")
+    if len(encoded) > _MAX_CHILD_ENV_VALUE_BYTES:
+        raise ValueError(
+            f"child env {name} exceeds {_MAX_CHILD_ENV_VALUE_BYTES} bytes"
+        )
+    if "\x00" in value or any(ord(char) < 32 or ord(char) == 127 for char in value):
+        raise ValueError(f"child env {name} contains control characters")
+    return value
+
+
+def _validated_extra_env(extra_env):
+    """Validate process-local extra child-environment entries.
+
+    Only the exact OpenCode containment keys are accepted. This prevents a
+    caller from smuggling a token, proxy, loader hook, or arbitrary host value
+    into a provider process under a plausible-looking variable name.
+    """
+    if extra_env is None:
+        return None
+    if not isinstance(extra_env, dict):
+        raise TypeError("extra env must be a dict of names to string values")
+    out = {}
+    for key, value in extra_env.items():
+        if key not in EXTRA_CHILD_ENV_KEYS:
+            raise ValueError("extra child env name is not in the closed allowlist")
+        out[key] = _validated_env_value(key, value)
+    return out
 
 
 class Backend:
@@ -360,31 +521,42 @@ def _prompt_text(prompt, *, argv_limit=False):
     return prompt
 
 
-def _run_provider_child(argv, *, label, timeout_s, input_text=None,
-                        strip_env=(), extra_env=None, ephemeral_cwd=True):
-    """Run one provider child in an ephemeral cwd with a hardened environment.
+def _build_child_env(extra_env=None):
+    """Child environment: allowlisted path/config/locale/TLS vars + extras.
 
-    The child never inherits the named secret variables (so subscription-intent
-    catalog paths cannot silently fall back to API billing), may receive extra
-    process-local configuration variables, gets stdin only when a prompt is
-    supplied (otherwise /dev/null), and its raw stderr is NEVER copied into a
-    raised error — only the exit code travels.
+    The child never inherits the parent environment wholesale, so host API
+    keys, tokens, cloud credentials, proxy credentials, and arbitrary host
+    variables cannot reach a provider child by accident or by injection.
+    """
+    env = {}
+    for name in CHILD_ENV_ALLOWLIST:
+        value = os.environ.get(name)
+        if value:
+            env[name] = _validated_env_value(name, value)
+    extra = _validated_extra_env(extra_env)
+    if extra:
+        env.update(extra)
+    return env
+
+
+def _run_provider_child(argv, *, label, timeout_s, input_text=None,
+                        extra_env=None, ephemeral_cwd=True):
+    """Run one provider child in an ephemeral cwd with an allowlisted environment.
+
+    The child sees only ``CHILD_ENV_ALLOWLIST`` variables plus validated
+    process-local extras, gets stdin only when a prompt is supplied (otherwise
+    /dev/null), and its raw stderr is NEVER copied into a raised error — only
+    the exit code travels.
     """
     if input_text is not None:
         input_text = _prompt_text(input_text)
+    env = _build_child_env(extra_env)
     temporary = (
         tempfile.TemporaryDirectory(prefix="agentwars-provider-")
         if ephemeral_cwd else None
     )
     workdir = temporary.name if temporary is not None else None
     try:
-        env = dict(os.environ)
-        stripped = {name.upper() for name in strip_env}
-        for name in list(env):
-            if name.upper() in stripped:
-                env.pop(name, None)
-        if extra_env:
-            env.update(extra_env)
         proc = subprocess.run(
             argv,
             input=input_text.encode("utf-8") if input_text is not None else None,
@@ -412,16 +584,16 @@ class CodexExecBackend(Backend):
 
     UNMEASURED contract. Ephemeral scratch cwd (no project files in reach),
     read-only sandbox, git-repo checks skipped so a scratch dir works, no user
-    config or rules loaded, ephemeral session. Common OpenAI API-key variables
-    are removed from this child to reduce accidental API billing; BuildWars
-    still cannot attest the auth method cached by Codex. The prompt goes to
-    stdin.
+    config or rules loaded, ephemeral session. The child environment is the
+    fixed path/config/locale/TLS allowlist — no host API-key variable can reach this
+    child to trigger accidental API billing; BuildWars still cannot attest the
+    auth method cached by Codex. The prompt goes to stdin.
     """
 
     kind = "codex_exec"
-    STRIP_ENV = ("OPENAI_API_KEY", "AZURE_OPENAI_API_KEY")
 
-    def __init__(self, timeout_s=300, executable="codex"):
+    def __init__(self, timeout_s=300, executable="codex", *, runtime_intent=None):
+        _require_runtime_intent(runtime_intent, "chatgpt_codex provider adapter")
         self.executable = _argv_token(executable, "codex executable", 120)
         self.timeout_s = _provider_timeout(timeout_s)
         self.label = "chatgpt_codex:codex exec"
@@ -446,7 +618,6 @@ class CodexExecBackend(Backend):
             label=self.label,
             timeout_s=self.timeout_s,
             input_text=prompt,
-            strip_env=self.STRIP_ENV,
         ).strip()
         if not out:
             raise RuntimeError(f"{self.label} returned no output")
@@ -458,16 +629,16 @@ class ClaudePrintBackend(Backend):
 
     UNMEASURED contract. One turn, text output, MCP servers strictly disabled
     (--strict-mcp-config with none configured), safe mode, empty tool set, no
-    session persistence, no fallback model configured. Common Anthropic API-key
-    variables are removed from this child to reduce accidental API billing;
-    BuildWars still cannot attest the auth method cached by Claude Code. Prompt
-    on stdin.
+    session persistence, no fallback model configured. The child environment
+    is the fixed path/config/locale/TLS allowlist — no host API-key variable can reach
+    this child to trigger accidental API billing; BuildWars still cannot
+    attest the auth method cached by Claude Code. Prompt on stdin.
     """
 
     kind = "claude_print"
-    STRIP_ENV = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
 
-    def __init__(self, timeout_s=300, executable="claude"):
+    def __init__(self, timeout_s=300, executable="claude", *, runtime_intent=None):
+        _require_runtime_intent(runtime_intent, "claude_code provider adapter")
         self.executable = _argv_token(executable, "claude executable", 120)
         self.timeout_s = _provider_timeout(timeout_s)
         self.label = "claude_code:claude -p"
@@ -494,7 +665,6 @@ class ClaudePrintBackend(Backend):
             label=self.label,
             timeout_s=self.timeout_s,
             input_text=prompt,
-            strip_env=self.STRIP_ENV,
         ).strip()
         if not out:
             raise RuntimeError(f"{self.label} returned no output")
@@ -519,7 +689,8 @@ class OpenRouterChatBackend(Backend):
     ENV_VAR = "OPENROUTER_API_KEY"
     MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
-    def __init__(self, model, timeout_s=300, transport=None):
+    def __init__(self, model, timeout_s=300, transport=None, *, runtime_intent=None):
+        _require_runtime_intent(runtime_intent, "openrouter provider adapter")
         self.model = _argv_token(model, "openrouter model")
         self.timeout_s = _provider_timeout(timeout_s)
         self._transport = transport
@@ -634,7 +805,9 @@ class HermesOneshotBackend(Backend):
 
     kind = "hermes_oneshot"
 
-    def __init__(self, provider_model, timeout_s=300, executable="hermes"):
+    def __init__(self, provider_model, timeout_s=300, executable="hermes", *,
+                 runtime_intent=None):
+        _require_runtime_intent(runtime_intent, "hermes provider adapter")
         self.executable = _argv_token(executable, "hermes executable", 120)
         if not isinstance(provider_model, str) or "/" not in provider_model:
             raise ValueError("hermes backend needs an explicit 'provider/model' identifier")
@@ -723,7 +896,8 @@ class OpenCodeProviderBackend(Backend):
             separators=(",", ":"),
         )
 
-    def __init__(self, model, variant="max", timeout_s=300):
+    def __init__(self, model, variant="max", timeout_s=300, *, runtime_intent=None):
+        _require_runtime_intent(runtime_intent, "opencode provider adapter")
         model = _argv_token(model, "provider/model identifier")
         provider, separator, provider_model = model.partition("/")
         if not separator:
@@ -809,11 +983,18 @@ class CustomerCommandBackend(Backend):
     final stdout text is parsed by the calling harness as the answer. A true
     arena/1 entrant is registered directly as a manifest command outside the
     model harness.
+
+    Double-gated: construction requires BOTH the ``customer_local_v1`` runtime
+    intent capability AND a second explicit unsafe-local-command capability.
+    Default construction fails before any subprocess is resolved.
     """
 
     kind = "custom_cli"
 
-    def __init__(self, command, timeout_s=300):
+    def __init__(self, command, timeout_s=300, *, runtime_intent=None,
+                 unsafe_custom_command_intent=None):
+        _require_runtime_intent(runtime_intent, "custom_agent provider adapter")
+        _require_custom_command_opt_in(unsafe_custom_command_intent)
         self.command = list(_validated_command(command))
         self.timeout_s = _provider_timeout(timeout_s)
         self.label = f"custom_cli:{self.command[0]}"
@@ -845,15 +1026,18 @@ PROVIDER_BACKEND_KINDS = (
 
 
 def get_provider_backend(provider_id, *, model=None, variant=None, command=None,
-                         timeout_s=None):
+                         timeout_s=None, runtime_intent=None,
+                         unsafe_custom_command_intent=None):
     """Map a BuildWars provider catalog id to an executable entrant backend.
 
     This is the single source of truth for provider adapter construction; the
     catalog declares which kind serves each provider and this function builds
     exactly that kind. Unknown providers fail closed here as everywhere else.
-    Provider-path timeouts must be finite positive seconds. ``custom_agent``
-    builds a truthful prompt/stdout command backend from an explicit JSON argv
-    vector — it is not an arena/1 slot.
+    Construction requires the explicit ``customer_local_v1`` runtime intent
+    capability — and a second explicit capability for ``custom_agent``. Provider-path
+    timeouts must be finite positive seconds. ``custom_agent`` builds a
+    truthful prompt/stdout command backend from an explicit JSON argv vector —
+    it is not an arena/1 slot.
     """
     try:
         from provider_hub.catalog import get_provider
@@ -862,33 +1046,47 @@ def get_provider_backend(provider_id, *, model=None, variant=None, command=None,
             "provider hub package unavailable; run from a BuildWars checkout"
         ) from None
     get_provider(provider_id)  # fails closed on unknown ids
+    _require_runtime_intent(runtime_intent, f"{provider_id} provider adapter")
+    if provider_id != "custom_agent" and unsafe_custom_command_intent is not None:
+        raise ValueError(
+            "unsafe custom-command intent is valid only for custom_agent"
+        )
     effective_timeout = _provider_timeout(timeout_s)
     if provider_id == "chatgpt_codex":
         if model is not None or variant is not None or command is not None:
             raise ValueError("chatgpt_codex does not accept model, variant, or command options")
-        return CodexExecBackend(effective_timeout)
+        return CodexExecBackend(effective_timeout, runtime_intent=runtime_intent)
     if provider_id == "claude_code":
         if model is not None or variant is not None or command is not None:
             raise ValueError("claude_code does not accept model, variant, or command options")
-        return ClaudePrintBackend(effective_timeout)
+        return ClaudePrintBackend(effective_timeout, runtime_intent=runtime_intent)
     if provider_id == "opencode":
         if command is not None:
             raise ValueError("opencode does not accept a provider command")
         if not model:
             raise ValueError("opencode provider requires --provider-model provider/model")
-        return OpenCodeProviderBackend(model, variant or "max", effective_timeout)
+        return OpenCodeProviderBackend(
+            model,
+            variant or "max",
+            effective_timeout,
+            runtime_intent=runtime_intent,
+        )
     if provider_id == "openrouter":
         if variant is not None or command is not None:
             raise ValueError("openrouter does not accept variant or command options")
         if not model:
             raise ValueError("openrouter provider requires --provider-model model-id")
-        return OpenRouterChatBackend(model, effective_timeout)
+        return OpenRouterChatBackend(
+            model, effective_timeout, runtime_intent=runtime_intent
+        )
     if provider_id == "hermes":
         if variant is not None or command is not None:
             raise ValueError("hermes does not accept variant or command options")
         if not model:
             raise ValueError("hermes provider requires --provider-model provider/model")
-        return HermesOneshotBackend(model, effective_timeout)
+        return HermesOneshotBackend(
+            model, effective_timeout, runtime_intent=runtime_intent
+        )
     if provider_id == "custom_agent":
         if model is not None or variant is not None:
             raise ValueError("custom_agent does not accept model or variant options")
@@ -898,7 +1096,12 @@ def get_provider_backend(provider_id, *, model=None, variant=None, command=None,
                 "argv vector; a true arena/1 entrant registers directly as a "
                 "manifest command outside the model harness"
             )
-        return CustomerCommandBackend(command, effective_timeout)
+        return CustomerCommandBackend(
+            command,
+            effective_timeout,
+            runtime_intent=runtime_intent,
+            unsafe_custom_command_intent=unsafe_custom_command_intent,
+        )
     raise ValueError(f"unknown provider {provider_id!r}")
 
 
@@ -914,11 +1117,17 @@ def execution_claim_for_provider(provider_id):
     return "model"
 
 
-def get_backend(spec, timeout_s=None):
-    """Parse a backend spec string used wholly inside an entrant process."""
+def get_backend(spec, timeout_s=None, *, runtime_intent=None):
+    """Parse a backend spec string used wholly inside an entrant process.
+
+    ``stub:`` stays free and intent-free. Every non-stub kind is a real
+    execution route and requires the ``customer_local_v1`` runtime intent
+    capability.
+    """
     kind, _, rest = spec.partition(":")
     if kind == "stub":
         return StubBackend(rest or "v1")
+    _require_runtime_intent(runtime_intent, "non-stub legacy backends")
     if kind == "cli":
         if not rest:
             raise ValueError("cli backend needs a command, e.g. cli:claude -p")

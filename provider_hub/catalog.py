@@ -3,12 +3,19 @@
 Each entry carries only non-secret facts a BuildWars customer needs to plan a
 connection: how the transport works, what THEY run locally to authenticate,
 what THEY can run locally to check status, where credentials live, whether a
-model id is required, which entrant backend kind serves it, and honest
-limitations.
+model id is required, which entrant backend kind serves it, honest
+limitations, and the machine-readable policy fields (provider class, harness
+class, local/hosted route status, prohibited routes, evidence date, official
+sources).
 
-The catalog never contains, references, or implies custody of any credential.
-Unknown provider ids raise; there is no "generic" fallback because an unknown
-provider is exactly where terms-ambiguous subscription proxying would sneak in.
+The catalog never contains, references, or implies custody of any credential,
+and never prints absolute auth paths or account identifiers. Unknown provider
+ids raise; there is no "generic" fallback because an unknown provider is
+exactly where terms-ambiguous subscription proxying would sneak in. Unknown
+catalog fields, transports, backend kinds, provider classes, harness classes,
+or hosted-route statuses also raise — the vocabulary is closed and drift
+between this catalog and docs/AGENTWARS_PROVIDER_POLICY.v1.json is rejected
+by bin/check_provider_hub.py.
 
 These are customer-operated, provider-supported local clients and flows.
 BuildWars does not assert any plan entitlement or permission beyond what each
@@ -16,29 +23,38 @@ provider's current documentation states; customers are responsible for their
 own provider terms. No entry claims that all hosted routing is prohibited or
 that all local orchestration is permitted.
 
-Verified facts this catalog encodes (2026-08):
+Verified facts this catalog encodes (evidence date 2026-08-25):
 
 * OpenAI: local Codex clients support ``codex login`` with ChatGPT for
   subscription access. The cloud API is a separate API-key surface. The
   customer subscription path delegates to the locally authenticated Codex CLI;
-  it never scrapes or copies ``~/.codex/auth.json``.
+  it never scrapes or copies Codex credential files.
 * Anthropic: Claude Code supports browser login on eligible plans. This catalog
   delegates to the locally authenticated ``claude`` CLI and never copies its
-  credentials. Current OpenCode documentation separately warns against its
-  third-party Claude subscription plugin path.
+  credentials. Anthropic subscriptions and API usage are separate products;
+  current OpenCode documentation explicitly warns against its third-party
+  Claude subscription plugin path, so BuildWars disables that OpenCode route.
+  BuildWars separately disables consumer-subscription routing through Hermes
+  pending explicit provider authorization; that is a fail-closed product
+  policy, not a prohibition attributed to Anthropic.
 * OpenCode: provider auth is local (``opencode auth login`` / ``opencode auth
-  list``).
+  list``). It is a route-dependent harness: a selected route attests nothing
+  about subscription entitlement, billing, or model identity.
 * OpenRouter: OAuth PKCE S256 exchanges a one-time code for a user-controlled
-  key that stays in the customer runner. Usage bills the user's own OpenRouter
-  account and may incur user-owned API charges.
+  key that stays in the customer runner. Hosted key custody is architecturally
+  supported by that flow but is NOT implemented here. Usage bills the user's
+  own OpenRouter account and may incur user-owned API charges.
 * Hermes: provider setup/auth is local (``hermes model``, ``hermes auth``);
-  one-shot execution via ``hermes --oneshot``.
+  one-shot execution via ``hermes --oneshot``. Like OpenCode it is a
+  route-dependent harness; its labels never prove a provider subscription.
 * Custom agent: an explicit customer-supplied local prompt/stdout command,
-  declared as a repeatable JSON argv vector. It is NOT an arena/1 JSONL
+  declared as a repeatable JSON argv vector, behind BOTH runtime-intent
+  capabilities. It is NOT an arena/1 JSONL
   entrant slot; a true arena/1 entrant is registered directly as a manifest
   command outside the model harness.
 """
 
+import re
 import types
 
 PROVIDER_IDS = (
@@ -70,6 +86,54 @@ _BACKEND_KINDS = frozenset(
     }
 )
 
+_PROVIDER_CLASSES = frozenset(
+    {
+        "official_local_client_delegation",
+        "route_dependent_harness",
+        "direct_api_customer_key",
+        "customer_command",
+    }
+)
+
+_HARNESS_CLASSES = frozenset(
+    {
+        "official_first_party_cli",
+        "third_party_local_harness",
+        "none",
+    }
+)
+
+_HOSTED_ROUTE_STATUSES = frozenset(
+    {
+        "not_offered",
+        "architecturally_supported_not_implemented",
+    }
+)
+
+_EVIDENCE_DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
+PROVIDER_POLICY_SCHEMA_VERSION = "agentwars.provider-policy.v1"
+PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-25"
+
+_ENTRY_KEYS = frozenset(
+    {
+        "display_name",
+        "connection_transport",
+        "auth_plan",
+        "status_plan",
+        "credential_custody",
+        "model_required",
+        "backend_kind",
+        "limitations",
+        "provider_class",
+        "harness_class",
+        "local_execution",
+        "hosted_route_status",
+        "prohibited_routes",
+        "evidence_date",
+        "official_sources",
+    }
+)
+
 _CATALOG = {
     "chatgpt_codex": {
         "display_name": "ChatGPT / Codex (local Codex CLI)",
@@ -79,13 +143,31 @@ _CATALOG = {
             "Run `codex login` and complete ChatGPT sign-in in your own browser.",
             "Confirm with `codex login status`.",
         ],
-        "status_plan": "You run `codex login status` locally; BuildWars never reads its output file or ~/.codex/auth.json.",
+        "status_plan": "You run `codex login status` locally; BuildWars never reads its output file or any Codex credential store.",
         "credential_custody": "customer_only",
         "model_required": False,
         "backend_kind": "codex_exec",
+        "provider_class": "official_local_client_delegation",
+        "harness_class": "official_first_party_cli",
+        "local_execution": True,
+        "hosted_route_status": "not_offered",
+        "prohibited_routes": (
+            "openai_api_key_env_injection",
+            "codex_credential_store_copy",
+            "hosted_subscription_proxy",
+        ),
+        "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
+        "official_sources": (
+            "https://learn.chatgpt.com/docs/auth",
+            "https://platform.openai.com/docs/quickstart/make-your-first-api-request",
+        ),
         "limitations": (
-            "Uses the auth method selected in your local Codex installation.",
-            "The adapter removes OPENAI_API_KEY from its child environment, but cannot attest cached auth method, entitlement, quota, or billing.",
+            "Subscription access is official local client delegation only: the "
+            "locally authenticated Codex CLI answers; BuildWars never proxies a "
+            "hosted ChatGPT session.",
+            "The child environment is a fixed OS/auth-path/locale/TLS allowlist, so no "
+            "host API-key variable can silently fall back to API billing, but "
+            "BuildWars cannot attest cached auth method, entitlement, quota, or billing.",
             "BuildWars cannot attest which account or model answered.",
             "Cloud API keys are a separate surface and are never required here.",
         ),
@@ -101,11 +183,29 @@ _CATALOG = {
         "credential_custody": "customer_only",
         "model_required": False,
         "backend_kind": "claude_print",
+        "provider_class": "official_local_client_delegation",
+        "harness_class": "official_first_party_cli",
+        "local_execution": True,
+        "hosted_route_status": "not_offered",
+        "prohibited_routes": (
+            "anthropic_api_key_env_injection",
+            "claude_code_credential_store_copy",
+            "anthropic_subscription_via_opencode_currently_disallowed",
+            "anthropic_subscription_via_hermes_without_provider_authorization",
+        ),
+        "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
+        "official_sources": (
+            "https://docs.anthropic.com/en/docs/claude-code/getting-started",
+            "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console",
+            "https://opencode.ai/docs/providers/",
+        ),
         "limitations": (
             "Runs `claude -p` non-interactively with sessions and customization disabled.",
             "No fallback model is configured; an overloaded primary fails the call.",
-            "This path invokes Anthropic's own CLI rather than copying its auth material into BuildWars or OpenCode.",
-            "The adapter removes ANTHROPIC_API_KEY from its child environment, but cannot attest cached auth method, entitlement, quota, or billing.",
+            "Subscription access is official local client delegation only: Anthropic's own CLI answers; credentials are never copied into BuildWars, OpenCode, or Hermes.",
+            "OpenCode's current documentation explicitly disallows its third-party Claude subscription plugin route. BuildWars disables it.",
+            "BuildWars also disables consumer-subscription routing through Hermes pending explicit provider authorization; this is product policy, not an Anthropic prohibition claim.",
+            "The child environment is a fixed OS/auth-path/locale/TLS allowlist, so no host API-key variable can silently fall back to API billing, but BuildWars cannot attest cached auth method, entitlement, quota, or billing.",
             "BuildWars cannot attest which account or model answered.",
         ),
     },
@@ -121,10 +221,24 @@ _CATALOG = {
         "credential_custody": "customer_only",
         "model_required": True,
         "backend_kind": "opencode_run",
+        "provider_class": "route_dependent_harness",
+        "harness_class": "third_party_local_harness",
+        "local_execution": True,
+        "hosted_route_status": "not_offered",
+        "prohibited_routes": (
+            "anthropic_subscription_via_this_harness",
+            "undocumented_route_attestation",
+        ),
+        "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
+        "official_sources": (
+            "https://opencode.ai/docs/providers/",
+            "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console",
+        ),
         "limitations": (
             "Requires an explicit provider/model identifier; variant defaults to max when omitted.",
-            "OpenCode's current docs warn that its third-party Claude subscription plugin path is not supported; use the separate claude_code adapter for Claude Code plan access.",
-            "The selected OpenCode provider may use a subscription, API key, or other billing path; BuildWars cannot attest which.",
+            "OpenCode's current docs explicitly say its third-party Claude subscription plugin path is prohibited; use the separate claude_code adapter for Claude Code plan access.",
+            "Route-dependent harness: the selected route may use a subscription, API key, free quota, or other billing path; BuildWars cannot attest which.",
+            "An OpenCode label never attests model identity, subscription entitlement, billing, or provider permission.",
         ),
     },
     "openrouter": {
@@ -139,8 +253,20 @@ _CATALOG = {
         "credential_custody": "customer_only",
         "model_required": True,
         "backend_kind": "openrouter_chat",
+        "provider_class": "direct_api_customer_key",
+        "harness_class": "none",
+        "local_execution": True,
+        "hosted_route_status": "architecturally_supported_not_implemented",
+        "prohibited_routes": (
+            "hosted_key_custody",
+            "platform_key_escrow",
+        ),
+        "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
+        "official_sources": (
+            "https://openrouter.ai/docs/guides/overview/auth/oauth",
+        ),
         "limitations": (
-            "Key custodied by you; BuildWars stores nothing and receives nothing.",
+            "Key custodied by you; BuildWars stores nothing and receives nothing. Hosted PKCE key custody is architecturally supported by OpenRouter's flow but is NOT implemented in this candidate.",
             "Per-token cost is yours under your OpenRouter account.",
         ),
     },
@@ -155,10 +281,25 @@ _CATALOG = {
         "credential_custody": "customer_only",
         "model_required": True,
         "backend_kind": "hermes_oneshot",
+        "provider_class": "route_dependent_harness",
+        "harness_class": "third_party_local_harness",
+        "local_execution": True,
+        "hosted_route_status": "not_offered",
+        "prohibited_routes": (
+            "anthropic_subscription_via_this_harness_without_provider_authorization",
+            "undocumented_route_attestation",
+        ),
+        "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
+        "official_sources": (
+            "https://hermes-agent.nousresearch.com/docs/integrations/providers",
+            "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console",
+        ),
         "limitations": (
             "One-shot execution via `hermes --oneshot` with explicit provider/model, safe mode, and only the non-mutating `clarify` toolset.",
             "No fallback claim: a failed shot is a failed shot.",
-            "Hermes provider configuration may represent subscription access or separately billed API access; BuildWars cannot attest which.",
+            "Route-dependent harness: Hermes configuration may represent subscription access or separately billed API access; BuildWars cannot attest which.",
+            "BuildWars disables third-party consumer-subscription routes through Hermes pending explicit provider authorization. This is a fail-closed product policy, not a provider-prohibition claim.",
+            "A Hermes label never proves a provider subscription or model identity.",
         ),
     },
     "custom_agent": {
@@ -172,12 +313,23 @@ _CATALOG = {
         "credential_custody": "customer_only",
         "model_required": False,
         "backend_kind": "custom_cli",
+        "provider_class": "customer_command",
+        "harness_class": "none",
+        "local_execution": True,
+        "hosted_route_status": "not_offered",
+        "prohibited_routes": (
+            "arena_1_jsonl_slot",
+            "implicit_construction",
+        ),
+        "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
+        "official_sources": (),
         "limitations": (
             "Explicit escape hatch: the declared argv runs locally, receives the "
             "prompt on stdin, and its final stdout text is parsed as the answer.",
+            "Double-gated: requires BOTH explicit runtime-intent capabilities; default construction fails before subprocess resolution.",
             "This is NOT an arena/1 JSONL entrant slot; a true arena/1 entrant is "
             "registered directly as a manifest command outside the model harness.",
-            "Whatever your command can reach is your responsibility; the arena sandbox policy still applies to the process.",
+            "The intent capabilities are not isolation. A direct local invocation can reach whatever its OS user can reach; public or shared arbitrary execution stays disabled until a separate OS isolation boundary exists.",
         ),
     },
 }
@@ -246,11 +398,105 @@ def _freeze_value(value):
     return value
 
 
+def _require_text(value, field):
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+        or any(ord(char) < 32 or ord(char) == 127 for char in value)
+    ):
+        raise RuntimeError(f"catalog integrity: {field} must be non-empty text")
+
+
 def _freeze(entry):
+    """Validate one entry against the CLOSED policy vocabulary, then freeze.
+
+    Unknown fields, transports, backend kinds, provider classes, harness
+    classes, or hosted-route statuses raise here — catalog drift fails loudly
+    instead of silently widening the contract.
+    """
+    if frozenset(entry) != _ENTRY_KEYS:
+        missing = sorted(_ENTRY_KEYS - frozenset(entry))
+        unknown = sorted(frozenset(entry) - _ENTRY_KEYS)
+        raise RuntimeError(
+            f"catalog integrity: field drift (missing={missing}, unknown={unknown})"
+        )
+    for field in (
+        "display_name",
+        "connection_transport",
+        "status_plan",
+        "credential_custody",
+        "backend_kind",
+        "provider_class",
+        "harness_class",
+        "hosted_route_status",
+        "evidence_date",
+    ):
+        _require_text(entry[field], field)
+    auth_plan = entry["auth_plan"]
+    if not isinstance(auth_plan, list) or len(auth_plan) < 2:
+        raise RuntimeError("catalog integrity: auth_plan must have at least two steps")
+    for step in auth_plan:
+        _require_text(step, "auth_plan step")
+    limitations = entry["limitations"]
+    if not isinstance(limitations, tuple) or not limitations:
+        raise RuntimeError("catalog integrity: limitations must be a non-empty tuple")
+    for limitation in limitations:
+        _require_text(limitation, "limitation")
+    if not isinstance(entry["model_required"], bool):
+        raise RuntimeError("catalog integrity: model_required must be boolean")
     if entry["connection_transport"] not in _TRANSPORTS:
         raise RuntimeError(f"catalog integrity: bad transport for {entry!r}")
     if entry["credential_custody"] != "customer_only":
         raise RuntimeError("catalog integrity: custody must always be customer_only")
     if entry["backend_kind"] not in _BACKEND_KINDS:
         raise RuntimeError(f"catalog integrity: bad backend kind {entry['backend_kind']!r}")
+    if entry["provider_class"] not in _PROVIDER_CLASSES:
+        raise RuntimeError(
+            f"catalog integrity: bad provider class {entry['provider_class']!r}"
+        )
+    if entry["harness_class"] not in _HARNESS_CLASSES:
+        raise RuntimeError(
+            f"catalog integrity: bad harness class {entry['harness_class']!r}"
+        )
+    if entry["local_execution"] is not True:
+        raise RuntimeError("catalog integrity: every v1 route is customer-local")
+    if entry["hosted_route_status"] not in _HOSTED_ROUTE_STATUSES:
+        raise RuntimeError(
+            f"catalog integrity: bad hosted route status {entry['hosted_route_status']!r}"
+        )
+    routes = entry["prohibited_routes"]
+    if (
+        not isinstance(routes, tuple)
+        or len(set(routes)) != len(routes)
+        or any(
+            not isinstance(route, str)
+            or re.fullmatch(r"[a-z0-9_]+", route) is None
+            for route in routes
+        )
+    ):
+        raise RuntimeError(
+            "catalog integrity: prohibited routes must be unique snake-case strings"
+        )
+    sources = entry["official_sources"]
+    if (
+        not isinstance(sources, tuple)
+        or len(set(sources)) != len(sources)
+        or any(
+            not isinstance(url, str)
+            or not url.startswith("https://")
+            or any(ord(char) < 33 or ord(char) > 126 for char in url)
+            for url in sources
+        )
+    ):
+        raise RuntimeError(
+            "catalog integrity: official sources must be unique https URLs"
+        )
+    if (
+        entry["evidence_date"] != PROVIDER_POLICY_EVIDENCE_DATE
+        or not _EVIDENCE_DATE_RE.fullmatch(entry["evidence_date"])
+    ):
+        raise RuntimeError(
+            "catalog integrity: evidence date must be "
+            f"{PROVIDER_POLICY_EVIDENCE_DATE}"
+        )
     return _freeze_value(dict(entry))

@@ -16,7 +16,12 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from backends import get_backend, get_provider_backend  # noqa: E402
+from backends import (  # noqa: E402
+    acknowledge_customer_local_v1,
+    acknowledge_unsafe_custom_command,
+    get_backend,
+    get_provider_backend,
+)
 
 VERSION = "1"
 STRATEGIES = ("value-blitz", "even-pressure")
@@ -35,14 +40,27 @@ def build_backend(args, parser=None):
     """Resolve the backend exactly once.
 
     ``--backend`` keeps its historical meaning byte-for-byte when no provider
-    is selected. With ``--provider``, the catalog id selects a provider-backed
-    adapter instead; the two flags are mutually exclusive so an invocation can
-    never be ambiguous about what answers. ``custom_agent`` requires an
-    explicit repeatable JSON argv vector via ``--provider-command``.
+    is selected, except that non-stub legacy specs now require the explicit
+    ``customer_local_v1`` runtime intent capability via ``--customer-local-v1``.
+    With ``--provider``, the catalog id selects a provider-backed adapter
+    instead; the two flags are mutually exclusive so an invocation can never
+    be ambiguous about what answers. ``custom_agent`` requires an explicit
+    repeatable JSON argv vector via ``--provider-command`` AND the second
+    ``--unsafe-custom-command`` opt-in.
     """
     if args.provider:
         if args.backend:
             _fail(parser, "--backend and --provider are mutually exclusive")
+        runtime_intent = (
+            acknowledge_customer_local_v1()
+            if getattr(args, "customer_local_v1", False)
+            else None
+        )
+        unsafe_custom_command_intent = (
+            acknowledge_unsafe_custom_command()
+            if getattr(args, "unsafe_custom_command", False)
+            else None
+        )
         command = None
         if getattr(args, "provider_command", None):
             try:
@@ -59,12 +77,33 @@ def build_backend(args, parser=None):
                 variant=args.provider_variant,
                 command=command,
                 timeout_s=args.backend_timeout,
+                runtime_intent=runtime_intent,
+                unsafe_custom_command_intent=unsafe_custom_command_intent,
             )
-        except ValueError as error:
+        except (ValueError, RuntimeError) as error:
             _fail(parser, str(error))
     if not args.backend:
         _fail(parser, "--backend is required unless --provider is given")
-    return get_backend(args.backend, timeout_s=args.backend_timeout)
+    if any(
+        getattr(args, name, None) is not None
+        for name in ("provider_model", "provider_variant", "provider_command")
+    ):
+        _fail(parser, "provider options are valid only with --provider")
+    if getattr(args, "unsafe_custom_command", False):
+        _fail(parser, "--unsafe-custom-command is valid only with --provider custom_agent")
+    runtime_intent = (
+        acknowledge_customer_local_v1()
+        if getattr(args, "customer_local_v1", False)
+        else None
+    )
+    try:
+        return get_backend(
+            args.backend,
+            timeout_s=args.backend_timeout,
+            runtime_intent=runtime_intent,
+        )
+    except RuntimeError as error:
+        _fail(parser, str(error))
 
 
 def _fail(parser, message):
@@ -280,6 +319,19 @@ def main():
     parser.add_argument(
         "--provider-command", default=None,
         help="custom_agent only: explicit repeatable JSON argv array",
+    )
+    parser.add_argument(
+        "--customer-local-v1", action="store_true", dest="customer_local_v1",
+        help="pass the customer_local_v1 runtime intent capability, required "
+             "before any provider adapter or non-stub legacy backend can be "
+             "constructed; records intent only and is NOT an OS isolation "
+             "boundary",
+    )
+    parser.add_argument(
+        "--unsafe-custom-command", action="store_true",
+        dest="unsafe_custom_command",
+        help="custom_agent only: second explicit opt-in; without it default "
+             "construction fails before subprocess resolution",
     )
     parser.add_argument("--backend-timeout", type=float, default=None)
     parser.add_argument("--strategy", choices=STRATEGIES, required=True)

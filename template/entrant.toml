@@ -21,6 +21,8 @@ calls_per_turn_max = 1
 # provider_model  = ""                # required by opencode/openrouter/hermes
 # provider_variant = ""               # opencode only
 # provider_command = ["python", "my_agent.py"] # custom_agent only; JSON argv
+# Runtime invocation also requires --customer-local-v1; custom_agent requires
+# --unsafe-custom-command too. These record intent and are not OS isolation.
 
 [harness]
 # Tick what you actually use. These are the columns the board sorts by, and the

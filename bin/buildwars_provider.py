@@ -19,7 +19,12 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from provider_hub.catalog import PROVIDER_IDS, connect_plan, get_provider, public_catalog  # noqa: E402
+from provider_hub.catalog import (  # noqa: E402
+    PROVIDER_IDS,
+    connect_plan,
+    get_provider,
+    public_catalog,
+)
 from provider_hub.signing import generate_pairing_key  # noqa: E402
 
 
@@ -31,6 +36,11 @@ def cmd_catalog(_args):
         print(f"  custody     : {entry['credential_custody']}")
         print(f"  model       : {'required' if entry['model_required'] else 'not required'}")
         print(f"  backend kind: {entry['backend_kind']}")
+        print(f"  provider cls: {entry['provider_class']}")
+        print(f"  harness cls : {entry['harness_class']}")
+        print(f"  execution   : {'customer-local' if entry['local_execution'] else 'disabled'}")
+        print(f"  hosted route: {entry['hosted_route_status']}")
+        print(f"  evidence    : {entry['evidence_date']}")
     print()
     print("Facts only. Link state is whatever YOU verify locally; this tool")
     print("cannot and does not check it.")
@@ -48,6 +58,13 @@ def cmd_catalog_json(_args):
             "model_required": entry["model_required"],
             "backend_kind": entry["backend_kind"],
             "limitations": list(entry["limitations"]),
+            "provider_class": entry["provider_class"],
+            "harness_class": entry["harness_class"],
+            "local_execution": entry["local_execution"],
+            "hosted_route_status": entry["hosted_route_status"],
+            "prohibited_routes": list(entry["prohibited_routes"]),
+            "evidence_date": entry["evidence_date"],
+            "official_sources": list(entry["official_sources"]),
         }
         for pid, entry in public_catalog()
     }
@@ -60,6 +77,10 @@ def cmd_connect_plan(args):
     entry = get_provider(args.provider)
     print(f"Connection plan - {plan['provider']} ({plan['display_name']})")
     print(f"transport: {entry['connection_transport']}")
+    print(f"provider class: {entry['provider_class']}")
+    print(f"harness class: {entry['harness_class']}")
+    print(f"hosted route: {entry['hosted_route_status']}")
+    print(f"evidence date: {entry['evidence_date']}")
     print()
     for step in plan["steps"]:
         print(step)
