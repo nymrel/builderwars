@@ -1,10 +1,11 @@
 """Versioned BuildWars customer/runner envelopes — strict, float-free.
 
-Six envelope kinds, each validated against an exact key set (unknown keys are
+Seven envelope kinds, each validated against an exact key set (unknown keys are
 rejected, not ignored), with canonical JSON encoding shared by signing:
 
   buildwars.identity.v1
   buildwars.provider_link.v1
+  buildwars.provider_link.v2
   buildwars.runner_pairing.v1
   buildwars.runner_capabilities.v1
   buildwars.match_job.v1
@@ -18,6 +19,9 @@ Hard rules enforced here:
   ``password=...``-style assignments, and high-entropy blobs outside the two
   designated digest fields all reject;
 * provider links always say ``credential_custody: "customer_only"``;
+* provider-link v2 binds a closed customer-facing connection mode to the
+  catalog, fixes execution at ``customer_local_runner``, and requires account,
+  entitlement, billing-route, and model attestation flags to remain false;
 * runner origin may be authenticated, but ``model_attested`` and
   ``execution_claims_attested`` must be exactly false — a self-report is never
   attestation;
@@ -34,6 +38,7 @@ from provider_hub.ids import id_is_valid, key_id_is_valid
 SCHEMA_NAMES = (
     "buildwars.identity.v1",
     "buildwars.provider_link.v1",
+    "buildwars.provider_link.v2",
     "buildwars.runner_pairing.v1",
     "buildwars.runner_capabilities.v1",
     "buildwars.match_job.v1",
@@ -313,7 +318,9 @@ def validate_identity(payload):
     )
     out = {
         "schema": s,
-        "identity_id": _id_field(s, "identity_id", payload["identity_id"], "identity"),
+        "identity_id": _id_field(
+            s, "identity_id", payload["identity_id"], "identity"
+        ),
         "display_name": _str_field(s, "display_name", payload["display_name"], 80),
         "created_at": _ts_field(s, "created_at", payload["created_at"]),
     }
@@ -378,6 +385,110 @@ def validate_provider_link(payload):
         "credential_custody": custody,
         "model_required": model_required,
         "model_declared": declared,
+        "created_at": _ts_field(s, "created_at", payload["created_at"]),
+    }
+    scan_for_secret_shapes(out)
+    return out
+
+
+def validate_provider_link_v2(payload):
+    """Validate the additive provider-link v2 truth contract.
+
+    v1 remains accepted byte-for-byte. v2 does not infer connection semantics
+    from a subprocess transport: it binds the selected customer-facing mode to
+    the six-provider catalog and makes every unavailable attestation explicit.
+    A future hosted OAuth/account proof or independent execution attestation
+    requires a new schema rather than weakening these exact-false invariants.
+    """
+    s = "buildwars.provider_link.v2"
+    _require(s, "schema", payload.get("schema"), lambda v: v == s, str)
+    _exact_keys(
+        payload,
+        {
+            "schema", "link_id", "identity_id", "provider", "connection_mode",
+            "connection_transport", "execution_boundary", "credential_custody",
+            "model_required", "model_declared", "provider_account_attested",
+            "plan_entitlement_attested", "billing_route_attested",
+            "model_attested", "created_at",
+        },
+        s,
+    )
+    provider = _require(
+        s, "provider", payload["provider"], lambda v: v in PROVIDER_IDS, str
+    )
+    entry = get_provider(provider)
+    connection_mode = _require(
+        s,
+        "connection_mode",
+        payload["connection_mode"],
+        lambda v: v == entry["connection_mode"],
+        str,
+    )
+    transport = _require(
+        s,
+        "connection_transport",
+        payload["connection_transport"],
+        lambda v: v == entry["connection_transport"],
+        str,
+    )
+    execution_boundary = _require(
+        s,
+        "execution_boundary",
+        payload["execution_boundary"],
+        lambda v: v == "customer_local_runner",
+        str,
+    )
+    custody = _require(
+        s,
+        "credential_custody",
+        payload["credential_custody"],
+        lambda v: v == "customer_only",
+        str,
+    )
+    model_required = _bool_field(s, "model_required", payload["model_required"])
+    if model_required != entry["model_required"]:
+        raise SchemaError(
+            f"{s}.model_required: contradicts catalog for {provider!r}"
+        )
+    declared = payload["model_declared"]
+    if declared is not None:
+        declared = _require(
+            s,
+            "model_declared",
+            declared,
+            lambda v: isinstance(v, str)
+            and 0 < len(v) <= 120
+            and not any(ch.isspace() for ch in v)
+            and not v.startswith("-"),
+            str,
+        )
+    if entry["model_required"] and declared is None:
+        raise SchemaError(f"{s}.model_declared: required for provider {provider!r}")
+
+    unattested = {}
+    for field in (
+        "provider_account_attested",
+        "plan_entitlement_attested",
+        "billing_route_attested",
+        "model_attested",
+    ):
+        value = _bool_field(s, field, payload[field])
+        if value is not False:
+            raise SchemaError(f"{s}.{field}: must be exactly false")
+        unattested[field] = value
+
+    out = {
+        "schema": s,
+        "link_id": _id_field(s, "link_id", payload["link_id"], "provider_link"),
+        "identity_id": _id_field(s, "identity_id", payload["identity_id"], "identity"),
+        "provider": provider,
+        "connection_mode": connection_mode,
+        "connection_transport": transport,
+        "execution_boundary": execution_boundary,
+        "credential_custody": custody,
+        "model_required": model_required,
+        "model_declared": declared,
+        **unattested,
         "created_at": _ts_field(s, "created_at", payload["created_at"]),
     }
     scan_for_secret_shapes(out)
@@ -568,6 +679,7 @@ def validate_result_attestation(payload):
 _VALIDATORS = {
     "buildwars.identity.v1": validate_identity,
     "buildwars.provider_link.v1": validate_provider_link,
+    "buildwars.provider_link.v2": validate_provider_link_v2,
     "buildwars.runner_pairing.v1": validate_runner_pairing,
     "buildwars.runner_capabilities.v1": validate_runner_capabilities,
     "buildwars.match_job.v1": validate_match_job,

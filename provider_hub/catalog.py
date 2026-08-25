@@ -4,9 +4,9 @@ Each entry carries only non-secret facts a BuildWars customer needs to plan a
 connection: how the transport works, what THEY run locally to authenticate,
 what THEY can run locally to check status, where credentials live, whether a
 model id is required, which entrant backend kind serves it, honest
-limitations, and the machine-readable policy fields (provider class, harness
-class, local/hosted route status, prohibited routes, evidence date, official
-sources).
+limitations, and the machine-readable policy fields (connection mode,
+provider class, harness class, local/hosted route status, prohibited routes,
+evidence date, official sources).
 
 The catalog never contains, references, or implies custody of any credential,
 and never prints absolute auth paths or account identifiers. Unknown provider
@@ -14,7 +14,7 @@ ids raise; there is no "generic" fallback because an unknown provider is
 exactly where terms-ambiguous subscription proxying would sneak in. Unknown
 catalog fields, transports, backend kinds, provider classes, harness classes,
 or hosted-route statuses also raise — the vocabulary is closed and drift
-between this catalog and docs/AGENTWARS_PROVIDER_POLICY.v1.json is rejected
+between this catalog and docs/AGENTWARS_PROVIDER_POLICY.v2.json is rejected
 by bin/check_provider_hub.py.
 
 These are customer-operated, provider-supported local clients and flows.
@@ -110,13 +110,29 @@ _HOSTED_ROUTE_STATUSES = frozenset(
     }
 )
 
+# Customer-facing semantics, deliberately distinct from implementation
+# transports. The vocabulary is shared by the catalog, provider-link v2
+# envelope, CLI output, policy twin, and eventual UI. ``local_api_key`` and
+# ``unsupported`` are reserved closed values; no current provider id selects
+# either one, so their presence cannot silently enable a route.
+CONNECTION_MODES = (
+    "web_oauth_pkce",
+    "local_subscription_session",
+    "local_provider_session",
+    "local_api_key",
+    "local_runtime",
+    "unsupported",
+)
+_CONNECTION_MODES = frozenset(CONNECTION_MODES)
+
 _EVIDENCE_DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
-PROVIDER_POLICY_SCHEMA_VERSION = "agentwars.provider-policy.v1"
+PROVIDER_POLICY_SCHEMA_VERSION = "agentwars.provider-policy.v2"
 PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-25"
 
 _ENTRY_KEYS = frozenset(
     {
         "display_name",
+        "connection_mode",
         "connection_transport",
         "auth_plan",
         "status_plan",
@@ -137,6 +153,7 @@ _ENTRY_KEYS = frozenset(
 _CATALOG = {
     "chatgpt_codex": {
         "display_name": "ChatGPT / Codex (local Codex CLI)",
+        "connection_mode": "local_subscription_session",
         "connection_transport": "local_cli_subprocess",
         "auth_plan": [
             "Install the Codex CLI yourself.",
@@ -159,7 +176,7 @@ _CATALOG = {
         "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
         "official_sources": (
             "https://learn.chatgpt.com/docs/auth",
-            "https://platform.openai.com/docs/quickstart/make-your-first-api-request",
+            "https://help.openai.com/en/articles/8156019-is-api-usage-included-in-chatgpt-subscriptions-even-if-i-have-a-paid-chatgpt-account",
         ),
         "limitations": (
             "Subscription access is official local client delegation only: the "
@@ -174,6 +191,7 @@ _CATALOG = {
     },
     "claude_code": {
         "display_name": "Claude Code (local claude CLI)",
+        "connection_mode": "local_subscription_session",
         "connection_transport": "local_cli_auth_delegation",
         "auth_plan": [
             "Install Claude Code yourself.",
@@ -211,6 +229,7 @@ _CATALOG = {
     },
     "opencode": {
         "display_name": "OpenCode",
+        "connection_mode": "local_provider_session",
         "connection_transport": "local_cli_subprocess",
         "auth_plan": [
             "Install OpenCode yourself.",
@@ -243,6 +262,7 @@ _CATALOG = {
     },
     "openrouter": {
         "display_name": "OpenRouter",
+        "connection_mode": "web_oauth_pkce",
         "connection_transport": "local_pkce_http_exchange",
         "auth_plan": [
             "Start PKCE from your own BuildWars runner (never from a shared machine).",
@@ -272,6 +292,7 @@ _CATALOG = {
     },
     "hermes": {
         "display_name": "Hermes",
+        "connection_mode": "local_provider_session",
         "connection_transport": "local_cli_subprocess",
         "auth_plan": [
             "Install Hermes yourself.",
@@ -304,6 +325,7 @@ _CATALOG = {
     },
     "custom_agent": {
         "display_name": "Custom agent command",
+        "connection_mode": "local_runtime",
         "connection_transport": "customer_command_stdio",
         "auth_plan": [
             "Write your own local prompt/stdout program.",
@@ -358,6 +380,7 @@ def connect_plan(provider_id):
     return {
         "provider": provider_id,
         "display_name": entry["display_name"],
+        "connection_mode": entry["connection_mode"],
         "steps": tuple(steps),
         "custody": (
             f"Credential custody: {entry['credential_custody']}. "
@@ -375,6 +398,10 @@ def public_catalog():
 
 def transport_for(provider_id):
     return get_provider(provider_id)["connection_transport"]
+
+
+def connection_mode_for(provider_id):
+    return get_provider(provider_id)["connection_mode"]
 
 
 def backend_kind_for(provider_id):
@@ -422,6 +449,7 @@ def _freeze(entry):
         )
     for field in (
         "display_name",
+        "connection_mode",
         "connection_transport",
         "status_plan",
         "credential_custody",
@@ -446,6 +474,14 @@ def _freeze(entry):
         raise RuntimeError("catalog integrity: model_required must be boolean")
     if entry["connection_transport"] not in _TRANSPORTS:
         raise RuntimeError(f"catalog integrity: bad transport for {entry!r}")
+    if entry["connection_mode"] not in _CONNECTION_MODES:
+        raise RuntimeError(
+            f"catalog integrity: bad connection mode {entry['connection_mode']!r}"
+        )
+    if entry["connection_mode"] == "unsupported":
+        raise RuntimeError(
+            "catalog integrity: supported provider cannot select unsupported"
+        )
     if entry["credential_custody"] != "customer_only":
         raise RuntimeError("catalog integrity: custody must always be customer_only")
     if entry["backend_kind"] not in _BACKEND_KINDS:

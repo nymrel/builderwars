@@ -42,7 +42,7 @@ Runtime intent capability (fail closed):
   Capabilities travel through the construction call instead of ambient process
   state. They record intent ONLY: they are not an OS isolation boundary and
   grant no sandboxing. Machine policy twin:
-  docs/AGENTWARS_PROVIDER_POLICY.v1.json.
+  docs/AGENTWARS_PROVIDER_POLICY.v2.json.
 
 Child environments are built from a fixed allowlist of OS/runtime path and
 locale variables — never ``dict(os.environ)``. Host API keys, tokens, cloud

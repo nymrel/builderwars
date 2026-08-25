@@ -4,8 +4,9 @@ Status: local implementation candidate; not integrated, deployed, or live-accoun
 
 Evidence date: 2026-08-25.
 
-Machine twin: `AGENTWARS_PROVIDER_POLICY.v1.json`. The offline checker rejects
-catalog/policy drift.
+Machine twin: `AGENTWARS_PROVIDER_POLICY.v2.json`. The offline checker rejects
+catalog/policy drift. `AGENTWARS_PROVIDER_POLICY.v1.json` remains the frozen
+pre-connection-mode candidate rather than being silently reinterpreted.
 
 ## Product rule
 
@@ -26,21 +27,32 @@ Four facts remain separate in every passport and receipt:
    the same as independent model identity or billing attestation.
 
 A harness label never proves the provider, model, account, entitlement, or
-billing route that answered.
+billing route that answered. The catalog also reserves `local_api_key` and
+`unsupported` as closed vocabulary values, but no current provider id selects
+either value; their existence cannot enable a route.
 
-## v1 route matrix
+## Connection-mode route matrix
 
-| id | provider class | harness class | supported v1 execution | hosted status |
-|---|---|---|---|---|
-| `chatgpt_codex` | official local-client delegation | official first-party CLI | customer-local `codex exec` after the customer runs `codex login` | not offered |
-| `claude_code` | official local-client delegation | official first-party CLI | customer-local `claude -p` after eligible Claude Code browser login | not offered |
-| `opencode` | route-dependent harness | third-party local harness | customer-local `opencode run` with an explicit `provider/model` | not offered |
-| `openrouter` | direct API with customer key | no intermediary harness | customer-local request using the customer's OpenRouter key | official PKCE exists; hosted custody is not implemented |
-| `hermes` | route-dependent harness | third-party local harness | customer-local `hermes --oneshot` with an explicit `provider/model` | not offered |
-| `custom_agent` | customer command | none | customer-local prompt/stdout command behind two explicit intent capabilities | not offered |
+| id | connection mode | provider class | harness class | supported execution | hosted status |
+|---|---|---|---|---|---|
+| `chatgpt_codex` | `local_subscription_session` | official local-client delegation | official first-party CLI | customer-local `codex exec` after the customer runs `codex login` | not offered |
+| `claude_code` | `local_subscription_session` | official local-client delegation | official first-party CLI | customer-local `claude -p` after eligible Claude Code browser login | not offered |
+| `opencode` | `local_provider_session` | route-dependent harness | third-party local harness | customer-local `opencode run` with an explicit `provider/model` | not offered |
+| `openrouter` | `web_oauth_pkce` | direct API with customer key | no intermediary harness | customer-local request using the key returned by OpenRouter PKCE | official PKCE exists; hosted custody is not implemented |
+| `hermes` | `local_provider_session` | route-dependent harness | third-party local harness | customer-local `hermes --oneshot` with an explicit `provider/model` | not offered |
+| `custom_agent` | `local_runtime` | customer command | none | customer-local prompt/stdout command behind two explicit intent capabilities | not offered |
 
 Unknown ids, unknown catalog fields, unsupported option combinations, and
 missing runtime intent fail closed.
+
+`buildwars.provider_link.v1` remains valid with its original exact field set.
+The additive `buildwars.provider_link.v2` binds the catalog's connection mode
+and transport to `execution_boundary: customer_local_runner`, keeps
+`credential_custody: customer_only`, and requires provider-account, plan,
+billing-route, and model attestation to be exactly false. A v1 envelope cannot
+smuggle in v2 fields, and a v2 envelope cannot select another provider's mode.
+Hosted account proof or independent execution attestation requires a future
+schema; it cannot be enabled by weakening v2.
 
 ## Provider-specific decisions
 
@@ -205,7 +217,7 @@ audience, revenue, virality, or public launch.
 ## Official references
 
 - [OpenAI Codex authentication](https://learn.chatgpt.com/docs/auth)
-- [OpenAI API quickstart](https://platform.openai.com/docs/quickstart/make-your-first-api-request)
+- [OpenAI ChatGPT and API billing separation](https://help.openai.com/en/articles/8156019-is-api-usage-included-in-chatgpt-subscriptions-even-if-i-have-a-paid-chatgpt-account)
 - [OpenAI plugin authentication direction](https://developers.openai.com/plugins/build/auth)
 - [Anthropic Claude Code setup](https://docs.anthropic.com/en/docs/claude-code/getting-started)
 - [Anthropic subscription and API separation](https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console)

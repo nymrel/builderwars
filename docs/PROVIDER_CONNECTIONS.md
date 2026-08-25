@@ -14,24 +14,38 @@ local client uses, whether a plan permits a particular workload, which account
 or model answered, or what the provider bills. Customers remain responsible
 for their provider agreements and charges.
 
-The repository implements the v1 catalog, strict envelopes, pairing
-primitives, provider adapters, and local harness integration. It does not yet
-implement a hosted BuildWars account service, production runner enrollment,
+The repository implements the closed catalog, strict v1 envelopes, additive
+provider-link v2, pairing primitives, provider adapters, and local harness
+integration. It does not yet implement a hosted BuildWars account service,
+production runner enrollment,
 durable job storage, or a live provider-account linking UI.
 
 The controlling human policy is `AGENTWARS_PROVIDER_POLICY.md`; its exact
-machine twin is `AGENTWARS_PROVIDER_POLICY.v1.json`.
+machine twin is `AGENTWARS_PROVIDER_POLICY.v2.json`. The v1 policy file is
+retained as historical evidence.
 
 ## Supported provider ids
 
-| id | customer-side connection | local setup | required options | entrant backend |
-|---|---|---|---|---|
-| `chatgpt_codex` | locally authenticated Codex CLI | `codex login`, then `codex login status` | none | `codex exec` |
-| `claude_code` | locally authenticated Claude Code CLI | start `claude` and complete its browser sign-in on an eligible plan | none | `claude -p` |
-| `opencode` | OpenCode's local provider auth | `opencode auth login`, then `opencode auth list` | `provider/model`; optional variant | `opencode run` |
-| `openrouter` | OpenRouter OAuth PKCE inside the customer runner | approve at OpenRouter; the exchanged key stays local | model id | OpenAI-compatible chat request |
-| `hermes` | Hermes' local provider configuration/auth | `hermes model` and `hermes auth` | `provider/model` | `hermes --oneshot`, safe mode, `clarify` toolset only |
-| `custom_agent` | explicit customer-owned JSON argv command | customer-defined | JSON argv | prompt on stdin, answer on stdout |
+| id | connection mode | customer-side connection | local setup | required options | entrant backend |
+|---|---|---|---|---|---|
+| `chatgpt_codex` | `local_subscription_session` | locally authenticated Codex CLI | `codex login`, then `codex login status` | none | `codex exec` |
+| `claude_code` | `local_subscription_session` | locally authenticated Claude Code CLI | start `claude` and complete its browser sign-in on an eligible plan | none | `claude -p` |
+| `opencode` | `local_provider_session` | OpenCode's local provider auth | `opencode auth login`, then `opencode auth list` | `provider/model`; optional variant | `opencode run` |
+| `openrouter` | `web_oauth_pkce` | OpenRouter OAuth PKCE inside the customer runner | approve at OpenRouter; the exchanged key stays local | model id | OpenAI-compatible chat request |
+| `hermes` | `local_provider_session` | Hermes' local provider configuration/auth | `hermes model` and `hermes auth` | `provider/model` | `hermes --oneshot`, safe mode, `clarify` toolset only |
+| `custom_agent` | `local_runtime` | explicit customer-owned JSON argv command | customer-defined | JSON argv | prompt on stdin, answer on stdout |
+
+Connection mode describes customer-facing auth and custody semantics;
+`connection_transport` describes the implementation mechanism. They are not
+interchangeable. The closed vocabulary also reserves `local_api_key` and
+`unsupported`, but no current provider id selects them. A public UI must show
+the catalog mode and cannot relabel local CLI delegation as web OAuth.
+
+`buildwars.provider_link.v1` remains accepted with its original exact fields.
+`buildwars.provider_link.v2` adds the catalog-bound mode, fixes execution to a
+customer-local runner, and explicitly keeps provider-account, plan,
+billing-route, and model attestation false. Unknown, cross-provider, downgraded,
+or hosted variants reject rather than falling back.
 
 Unknown provider ids and provider-specific options fail closed. `custom_agent`
 is a prompt/stdout adapter for the model harnesses; it is not an `arena/1`
@@ -135,7 +149,7 @@ Current references: [OpenAI Codex authentication](https://learn.chatgpt.com/docs
 
 ## Trust and replay boundaries
 
-- Provider credentials never enter the six BuildWars envelope schemas.
+- Provider credentials never enter the seven BuildWars envelope schemas.
 - The pairing secret is shared by the verifier and runner; HMAC proves
   possession of that BuildWars secret and payload integrity. It does not prove
   provider identity, plan entitlement, billing path, or model identity.
@@ -166,7 +180,7 @@ Current references: [OpenAI Codex authentication](https://learn.chatgpt.com/docs
 
 ## What the local candidate proves
 
-It proves that the six-id catalog is immutable and fail-closed; the six
+It proves that the six-id catalog is immutable and fail-closed; the seven
 versioned envelope shapes reject unknown keys, floats, secret-like fields, and
 binding drift; pairing signatures reject tampering, staleness, future dates,
 wrong kinds/users/runners, and replay when a guard is supplied; the OpenRouter

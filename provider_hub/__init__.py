@@ -20,8 +20,10 @@ Layers:
 """
 
 from provider_hub.catalog import (
+    CONNECTION_MODES,
     PROVIDER_IDS,
     ProviderError,
+    connection_mode_for,
     connect_plan,
     get_provider,
     public_catalog,
@@ -59,6 +61,7 @@ from provider_hub.pkce import (
 __all__ = [
     "ID_PREFIXES",
     "InMemoryReplayGuard",
+    "CONNECTION_MODES",
     "PROVIDER_IDS",
     "PairingKey",
     "PkceError",
@@ -70,6 +73,7 @@ __all__ = [
     "bind_result_to_job",
     "build_authorize_url",
     "challenge_from_verifier",
+    "connection_mode_for",
     "connect_plan",
     "decode_strict",
     "encode_canonical",

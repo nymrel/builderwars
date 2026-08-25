@@ -38,11 +38,13 @@ sys.path.insert(0, os.path.join(ROOT, "bin"))
 
 from provider_hub import pkce as pkce_mod  # noqa: E402
 from provider_hub.catalog import (  # noqa: E402
+    CONNECTION_MODES,
     PROVIDER_IDS,
     PROVIDER_POLICY_EVIDENCE_DATE,
     PROVIDER_POLICY_SCHEMA_VERSION,
     ProviderError,
     backend_kind_for,
+    connection_mode_for,
     connect_plan,
     get_provider,
     model_required_for,
@@ -118,6 +120,28 @@ def link_payload(**overrides):
         "credential_custody": "customer_only",
         "model_required": True,
         "model_declared": "anthropic/claude-sonnet-5",
+        "created_at": NOW - 60,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def link_v2_payload(**overrides):
+    payload = {
+        "schema": "buildwars.provider_link.v2",
+        "link_id": new_id("provider_link"),
+        "identity_id": new_id("identity"),
+        "provider": "opencode",
+        "connection_mode": "local_provider_session",
+        "connection_transport": "local_cli_subprocess",
+        "execution_boundary": "customer_local_runner",
+        "credential_custody": "customer_only",
+        "model_required": True,
+        "model_declared": "anthropic/claude-sonnet-5",
+        "provider_account_attested": False,
+        "plan_entitlement_attested": False,
+        "billing_route_attested": False,
+        "model_attested": False,
         "created_at": NOW - 60,
     }
     payload.update(overrides)
@@ -212,7 +236,8 @@ def check_catalog():
     require([pid for pid, _ in listing] == list(PROVIDER_IDS), "canonical order")
 
     fact_keys = {
-        "display_name", "connection_transport", "auth_plan", "status_plan",
+        "display_name", "connection_mode", "connection_transport", "auth_plan",
+        "status_plan",
         "credential_custody", "model_required", "backend_kind", "limitations",
         "provider_class", "harness_class", "local_execution",
         "hosted_route_status", "prohibited_routes", "evidence_date",
@@ -222,10 +247,18 @@ def check_catalog():
         "local_cli_subprocess", "local_cli_auth_delegation",
         "local_pkce_http_exchange", "customer_command_stdio",
     }
+    require(CONNECTION_MODES == (
+        "web_oauth_pkce", "local_subscription_session",
+        "local_provider_session", "local_api_key", "local_runtime",
+        "unsupported",
+    ), "connection-mode vocabulary is exact and ordered")
     for pid, entry in listing:
         require(set(entry) == fact_keys, f"{pid}: catalog field drift")
         require(entry["credential_custody"] == "customer_only", f"{pid}: custody")
         require(entry["connection_transport"] in allowed_transports, f"{pid}: transport")
+        require(entry["connection_mode"] in CONNECTION_MODES, f"{pid}: connection mode")
+        require(entry["connection_mode"] != "unsupported",
+                f"{pid}: supported provider cannot select unsupported")
         require(len(entry["auth_plan"]) >= 2, f"{pid}: plan must have real steps")
         require(len(entry["status_plan"]) > 10, f"{pid}: status guidance required")
         require(isinstance(entry["model_required"], bool), f"{pid}: model_required")
@@ -243,6 +276,20 @@ def check_catalog():
 
     # catalog facts agree across accessors
     require(transport_for("openrouter") == "local_pkce_http_exchange", "pkce transport")
+    require(connection_mode_for("openrouter") == "web_oauth_pkce", "pkce mode")
+    require(connection_mode_for("chatgpt_codex") == "local_subscription_session",
+            "Codex subscription stays local")
+    require(connection_mode_for("claude_code") == "local_subscription_session",
+            "Claude subscription stays local")
+    require(connection_mode_for("opencode") == "local_provider_session",
+            "OpenCode is a local provider session")
+    require(connection_mode_for("hermes") == "local_provider_session",
+            "Hermes is a local provider session")
+    require(connection_mode_for("custom_agent") == "local_runtime",
+            "custom command is a local runtime")
+    require(not {"local_api_key", "unsupported"} & {
+        entry["connection_mode"] for _pid, entry in listing
+    }, "reserved modes cannot silently enable a provider")
     require(model_required_for("hermes") is True, "hermes needs a model")
     require(backend_kind_for("custom_agent") == "custom_cli", "custom kind")
 
@@ -277,7 +324,7 @@ def check_catalog():
             "custom_agent declares an explicit repeatable JSON argv vector")
 
     # Exact machine-policy twin: unknown keys, duplicate keys, and drift fail.
-    policy_path = os.path.join(ROOT, "docs", "AGENTWARS_PROVIDER_POLICY.v1.json")
+    policy_path = os.path.join(ROOT, "docs", "AGENTWARS_PROVIDER_POLICY.v2.json")
 
     def no_duplicate_keys(pairs):
         decoded = {}
@@ -290,7 +337,8 @@ def check_catalog():
         policy = json.load(policy_file, object_pairs_hook=no_duplicate_keys)
     require(set(policy) == {
         "schema_version", "evidence_date", "status", "credential_custody",
-        "runtime", "connections", "global_prohibitions", "truth_boundaries",
+        "runtime", "provider_link_v2", "connections", "global_prohibitions",
+        "truth_boundaries",
     }, "provider policy top-level fields are closed")
     require(policy["schema_version"] == PROVIDER_POLICY_SCHEMA_VERSION,
             "provider policy schema")
@@ -307,10 +355,22 @@ def check_catalog():
         "hosted_arbitrary_execution": "disabled",
         "child_environment": "closed_allowlist",
     }, "runtime policy exact")
+    require(policy["provider_link_v2"] == {
+        "schema": "buildwars.provider_link.v2",
+        "execution_boundary": "customer_local_runner",
+        "credential_custody": "customer_only",
+        "attestation_defaults": {
+            "provider_account_attested": False,
+            "plan_entitlement_attested": False,
+            "billing_route_attested": False,
+            "model_attested": False,
+        },
+    }, "provider-link v2 policy exact")
     expected_connections = []
     for pid, entry in listing:
         expected_connections.append({
             "id": pid,
+            "connection_mode": entry["connection_mode"],
             "provider_class": entry["provider_class"],
             "harness_class": entry["harness_class"],
             "local_execution": entry["local_execution"],
@@ -322,6 +382,17 @@ def check_catalog():
         })
     require(policy["connections"] == expected_connections,
             "machine policy must exactly mirror the catalog")
+    legacy_policy_path = os.path.join(
+        ROOT, "docs", "AGENTWARS_PROVIDER_POLICY.v1.json"
+    )
+    with open(legacy_policy_path, encoding="utf-8") as legacy_policy_file:
+        legacy_policy = json.load(
+            legacy_policy_file, object_pairs_hook=no_duplicate_keys
+        )
+    require(legacy_policy["schema_version"] == "agentwars.provider-policy.v1",
+            "historical v1 policy remains versioned v1")
+    require(all("connection_mode" not in item for item in legacy_policy["connections"]),
+            "historical v1 policy is not silently reinterpreted")
     require(policy["global_prohibitions"] == [
         "collect_consumer_passwords_cookies_or_refresh_tokens",
         "copy_provider_credential_stores",
@@ -339,6 +410,8 @@ def check_catalog():
 
     plan = connect_plan("chatgpt_codex")
     require("customer_only" in plan["custody"], "plan names custody")
+    require(plan["connection_mode"] == "local_subscription_session",
+            "plan exposes customer-facing connection mode")
     require(all(step[0].isdigit() for step in plan["steps"]), "numbered steps")
     expect_error(lambda: get_provider("gemini_pro"), ProviderError)
     expect_error(lambda: connect_plan(""), ProviderError)
@@ -355,16 +428,22 @@ def check_schemas():
     banner("2 schemas")
     require(SCHEMA_NAMES == (
         "buildwars.identity.v1", "buildwars.provider_link.v1",
+        "buildwars.provider_link.v2",
         "buildwars.runner_pairing.v1", "buildwars.runner_capabilities.v1",
         "buildwars.match_job.v1", "buildwars.result_attestation.v1",
-    ), "exact six envelopes")
+    ), "exact seven envelopes")
     for name in SCHEMA_NAMES:
-        require(name.startswith("buildwars.") and name.endswith(".v1"), name)
+        require(
+            name.startswith("buildwars.")
+            and name.rsplit(".", 1)[-1] in {"v1", "v2"},
+            name,
+        )
 
     # every envelope validates and roundtrips canonically
     samples = [
         identity_payload(),
         link_payload(),
+        link_v2_payload(),
         pairing_payload(generate_pairing_key()),
         capabilities_payload(),
         job_payload(),
@@ -378,12 +457,13 @@ def check_schemas():
             encode_canonical(decode_strict(canonical)) == canonical,
             "canonical encoding is stable",
         )
-    result_payload(samples[4])  # binds cleanly against its job fixture
+    result_payload(samples[-2])  # binds cleanly against its job fixture
 
     def reject(mutate, fragment):
         for factory in (
             lambda: identity_payload(),
             lambda: link_payload(),
+            lambda: link_v2_payload(),
             lambda: capabilities_payload(),
             lambda: job_payload(),
             lambda: result_payload(),
@@ -396,7 +476,9 @@ def check_schemas():
                 continue  # mutation targets a field this envelope lacks
             if probe == payload:
                 continue  # mutation did not apply to this envelope shape
-            if payload.get("schema") == "buildwars.provider_link.v1":
+            if payload.get("schema") in {
+                "buildwars.provider_link.v1", "buildwars.provider_link.v2"
+            }:
                 continue  # link-specific mutations handled by its own validator set
             error = expect_error(lambda p=probe: validate_envelope(p), SchemaError)
             if fragment is not None:
@@ -443,6 +525,65 @@ def check_schemas():
     expect_error(lambda: validate_envelope(link_payload(model_declared=3)), SchemaError)
     require(validate_envelope(link_payload())["credential_custody"] == "customer_only",
             "links always customer-custodied")
+
+    # provider_link v2 is additive, catalog-bound, and explicitly unattested.
+    v1 = validate_envelope(link_payload())
+    require(set(v1) == {
+        "schema", "link_id", "identity_id", "provider", "connection_transport",
+        "credential_custody", "model_required", "model_declared", "created_at",
+    }, "v1 provider link remains byte-contract compatible")
+    v2 = validate_envelope(link_v2_payload())
+    require(v2["connection_mode"] == "local_provider_session", "v2 mode retained")
+    require(v2["execution_boundary"] == "customer_local_runner",
+            "v2 execution stays customer-local")
+    for field in (
+        "provider_account_attested", "plan_entitlement_attested",
+        "billing_route_attested", "model_attested",
+    ):
+        require(v2[field] is False, f"v2 {field} remains unattested")
+        expect_error(lambda f=field: validate_envelope(link_v2_payload(**{f: True})),
+                     SchemaError, "exactly false")
+    for provider_id, entry in public_catalog():
+        provider_link = link_v2_payload(
+            provider=provider_id,
+            connection_mode=entry["connection_mode"],
+            connection_transport=entry["connection_transport"],
+            model_required=entry["model_required"],
+            model_declared=("provider/model" if entry["model_required"] else None),
+        )
+        validated_link = validate_envelope(provider_link)
+        require(validated_link["provider"] == provider_id,
+                f"{provider_id}: v2 provider retained")
+        require(validated_link["connection_mode"] == entry["connection_mode"],
+                f"{provider_id}: v2 catalog mode retained")
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(connection_mode="local_subscription_session")),
+        SchemaError, "connection_mode")
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(connection_mode="local_api_key")),
+        SchemaError, "connection_mode")
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(connection_mode="unsupported")),
+        SchemaError, "connection_mode")
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(execution_boundary="hosted_service")),
+        SchemaError, "execution_boundary")
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(provider="openrouter")),
+        SchemaError, "connection_mode")
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(credential_custody="platform_escrow")),
+        SchemaError, "credential_custody")
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(provider_account_attested="false")), SchemaError)
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(debug_flag=True)), SchemaError, "unknown keys")
+    expect_error(lambda: validate_envelope(
+        link_payload(connection_mode="local_provider_session")),
+        SchemaError, "unknown keys")
+    expect_error(lambda: validate_envelope(
+        link_v2_payload(schema="buildwars.provider_link.v1")),
+        SchemaError, "unknown keys")
 
     # capabilities specifics
     expect_error(lambda: validate_envelope(capabilities_payload(model_attested=True)),

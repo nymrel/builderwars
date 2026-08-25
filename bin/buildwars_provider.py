@@ -32,6 +32,7 @@ def cmd_catalog(_args):
     for provider_id, entry in public_catalog():
         print(f"{provider_id}")
         print(f"  name        : {entry['display_name']}")
+        print(f"  mode        : {entry['connection_mode']}")
         print(f"  transport   : {entry['connection_transport']}")
         print(f"  custody     : {entry['credential_custody']}")
         print(f"  model       : {'required' if entry['model_required'] else 'not required'}")
@@ -51,6 +52,7 @@ def cmd_catalog_json(_args):
     payload = {
         pid: {
             "display_name": entry["display_name"],
+            "connection_mode": entry["connection_mode"],
             "connection_transport": entry["connection_transport"],
             "auth_plan": list(entry["auth_plan"]),
             "status_plan": entry["status_plan"],
@@ -76,6 +78,7 @@ def cmd_connect_plan(args):
     plan = connect_plan(args.provider)
     entry = get_provider(args.provider)
     print(f"Connection plan - {plan['provider']} ({plan['display_name']})")
+    print(f"mode: {plan['connection_mode']}")
     print(f"transport: {entry['connection_transport']}")
     print(f"provider class: {entry['provider_class']}")
     print(f"harness class: {entry['harness_class']}")
