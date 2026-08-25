@@ -772,6 +772,77 @@ def check_sandbox_lifecycle(tmp):
         and stderr_proc.poll() is not None,
     )
 
+    malformed_manifest = manifest("Parser Limits")
+    malformed_manifest["cmd"] = [
+        sys.executable,
+        "-c",
+        (
+            "import os,time; "
+            "os.write(1, ('['*3000+']'*3000+'\\n').encode()); "
+            "os.write(1, ('9'*5000+'\\n').encode()); "
+            "time.sleep(0.2)"
+        ),
+    ]
+    malformed_entrant = Entrant(
+        malformed_manifest,
+        os.path.join(tmp, "sandbox-parser-limits"),
+        move_timeout_s=2.0,
+    )
+    malformed_entrant.start()
+    malformed_proc = malformed_entrant._proc
+    malformed_reasons = []
+    try:
+        for _ in range(2):
+            try:
+                malformed_entrant.recv(timeout_s=2.0)
+            except EntrantFailure as error:
+                malformed_reasons.append(error.reason)
+    finally:
+        malformed_entrant.close(grace_s=0.5)
+    ok(
+        "recursive and integer-limit JSON failures stay inside the entrant envelope",
+        malformed_reasons == ["malformed_json", "malformed_json"]
+        and malformed_proc.poll() is not None,
+    )
+
+    stale_manifest = manifest("Stale Queue")
+    stale_manifest["cmd"] = [
+        sys.executable,
+        "-c",
+        (
+            "import os,time; "
+            "os.write(1,b'{\"type\":\"first\"}\\n{\"type\":\"stale\"}\\n'); "
+            "time.sleep(30)"
+        ),
+    ]
+    stale = Entrant(
+        stale_manifest,
+        os.path.join(tmp, "sandbox-stale-queue"),
+        move_timeout_s=2.0,
+    )
+    stale.start()
+    stale_proc = stale._proc
+    first_reply = stale.recv(timeout_s=2.0)
+    queued_deadline = time.monotonic() + 1.0
+    while stale._q.empty() and time.monotonic() < queued_deadline:
+        time.sleep(0.01)
+    had_buffered_reply = not stale._q.empty()
+    stale.close(grace_s=0.5)
+    post_close_failure = None
+    try:
+        stale.recv(timeout_s=0.1)
+    except EntrantFailure as error:
+        post_close_failure = error
+    ok(
+        "closed entrants reject and discard stale buffered replies",
+        first_reply == {"type": "first"}
+        and had_buffered_reply
+        and post_close_failure is not None
+        and post_close_failure.reason == "entrant_closed"
+        and stale._q.empty()
+        and stale_proc.poll() is not None,
+    )
+
     blocked_manifest = manifest("Blocked Stdin")
     blocked_manifest["cmd"] = [sys.executable, "-c", "import time; time.sleep(30)"]
     blocked = Entrant(

@@ -147,6 +147,7 @@ class Entrant:
         self._write_lock = threading.Lock()
         self._writer_threads = set()
         self._started_once = False
+        self._closed = False
 
     # -- lifecycle --------------------------------------------------------
 
@@ -264,6 +265,8 @@ class Entrant:
         )
         data = (json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
         with self._write_lock:
+            if self._closed:
+                raise EntrantFailure("entrant_closed")
             proc = self._proc
             if proc is None or proc.poll() is not None:
                 raise EntrantFailure("entrant_not_running")
@@ -314,17 +317,24 @@ class Entrant:
         timeout_s = self.move_timeout_s if timeout_s is None else _bounded_timeout(
             timeout_s, label="receive timeout"
         )
+        if self._closed:
+            raise EntrantFailure("entrant_closed")
+        proc = self._proc
+        if proc is None:
+            raise EntrantFailure("entrant_not_running")
         try:
             kind, value = self._q.get(timeout=timeout_s)
         except queue.Empty:
             raise EntrantFailure("timeout", f"no response within {timeout_s:g}s")
+        if self._closed:
+            raise EntrantFailure("entrant_closed")
         if kind == "eof":
-            raise EntrantFailure("entrant_exited", f"exit code {self._proc.poll()}")
+            raise EntrantFailure("entrant_exited", f"exit code {proc.poll()}")
         if kind == "error":
             raise EntrantFailure("protocol_violation", value)
         try:
             msg = json.loads(value)
-        except json.JSONDecodeError as e:
+        except (ValueError, RecursionError) as e:
             raise EntrantFailure("malformed_json", str(e)) from e
         if not isinstance(msg, dict):
             raise EntrantFailure("malformed_message", "top-level value must be an object")
@@ -351,6 +361,9 @@ class Entrant:
         if proc is None:
             return
         grace_s = _bounded_timeout(grace_s, label="close grace")
+        # Seal messaging before teardown so concurrent or later reads cannot
+        # consume a buffered line as if it belonged to a live entrant.
+        self._closed = True
         errors = []
 
         def remember(error):
@@ -409,5 +422,10 @@ class Entrant:
                 self._proc = None
                 self._reader = None
                 self._stderr_thread = None
+            while True:
+                try:
+                    self._q.get_nowait()
+                except queue.Empty:
+                    break
         if errors:
             raise errors[0]
