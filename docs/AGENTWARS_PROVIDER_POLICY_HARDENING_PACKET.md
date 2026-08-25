@@ -133,10 +133,10 @@ Primary references:
 
 ## Ox Alpha MAX adversarial review mode
 
-When the guarded runner grants read authority, review the current uncommitted
-diff only. Do not edit files, stage content, commit, switch branches, install
-software, start a server, launch a browser, access credentials, or make a live
-provider call.
+When the guarded runner grants read authority, review the current candidate
+commit and its diff from the recorded base only. Do not edit files, stage
+content, commit, switch branches, install software, start a server, launch a
+browser, access credentials, or make a live provider call.
 
 Return prioritized, evidence-backed findings with exact file and line anchors.
 Attempt to refute all of these claims:
