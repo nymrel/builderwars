@@ -276,6 +276,14 @@ def local_server():
 
 def check_vector():
     print("[1] frozen Python/Nymrel signing vector")
+    check(
+        PAIRING_CLAIM_PATH == "/api/builderwars/runners/pairing/claim",
+        "pairing claim path literal",
+    )
+    check(
+        RUNNER_PROBE_PATH == "/api/builderwars/runners/probe",
+        "runner probe path literal",
+    )
     key = Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
     material = public_key_material(key)
     signed = sign_runner_request(
@@ -294,7 +302,7 @@ def check_vector():
     expected = (
         "agentwars.runner_request.v1\n"
         "method:POST\n"
-        f"path:{RUNNER_PROBE_PATH}\n"
+        "path:/api/builderwars/runners/probe\n"
         "body-sha256:1aa3fcaa140a9ff20462c086d284d4afcadc4d1ddaf901da62ca02b414fd842f\n"
         "timestamp:2026-08-25T12:00:00.000Z\n"
         "nonce:AAECAwQFBgcICQoLDA0ODw\n"
