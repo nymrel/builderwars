@@ -45,6 +45,7 @@ from provider_hub.secrets import SecretValue  # noqa: E402
 
 
 _PAIRING_SECRET_ARG_RE = re.compile(r"awp1_[A-Za-z0-9_-]{22}_[A-Za-z0-9_-]{32}")
+_SECRET_OPTION_NAMES = frozenset(("--pairing-secret", "--passphrase", "--key-passphrase"))
 
 
 def _hidden_prompt(label: str) -> str:
@@ -77,9 +78,15 @@ def _existing_key_passphrase() -> SecretValue:
     return SecretValue(value.encode("utf-8"))
 
 
+def _pairing_secret_prompt() -> SecretValue:
+    value = _hidden_prompt("one-time AgentWars pairing secret: ")
+    parse_pairing_secret(value)
+    return SecretValue(value)
+
+
 def cmd_runner_pair(args) -> int:
     harness_digest = digest_harness_file(args.harness_file)
-    pairing_secret = SecretValue(_hidden_prompt("one-time AgentWars pairing secret: "))
+    pairing_secret = _pairing_secret_prompt()
     challenge_id, _random_code = parse_pairing_secret(pairing_secret.reveal())
     store = RunnerStateStore(args.state_dir)
     # Confirming twice is intentional even on a retry.  It avoids a racy,
@@ -173,7 +180,10 @@ def _write_response(path: str, raw: bytes):
     target = Path(path)
     if target.exists() or target.is_symlink():
         raise RunnerClientError("refusing to overwrite an existing response file")
-    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise RunnerClientError("response output directory could not be created") from error
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
     descriptor = None
     try:
@@ -234,10 +244,13 @@ def cmd_runner_forget(args) -> int:
     store = RunnerStateStore(args.state_dir)
     profile = store.load_profile(args.challenge_id)
     if not args.yes:
-        answer = input(
-            f"Permanently delete the encrypted key for {profile['displayLabel']} "
-            f"({profile['fingerprint'][-8:]})? Type DELETE: "
-        )
+        try:
+            answer = input(
+                f"Permanently delete the encrypted key for {profile['displayLabel']} "
+                f"({profile['fingerprint'][-8:]})? Type DELETE: "
+            )
+        except EOFError as error:
+            raise RunnerClientError("an interactive DELETE confirmation or --yes is required") from error
         if answer != "DELETE":
             print("Local key retained.")
             return 1
@@ -311,6 +324,13 @@ def main(argv=None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if any(_PAIRING_SECRET_ARG_RE.search(str(argument)) for argument in raw_argv):
         print("ERROR: pairing-secret-shaped argv is forbidden; use the no-echo prompt", file=sys.stderr)
+        return 2
+    if any(
+        str(argument) in _SECRET_OPTION_NAMES
+        or any(str(argument).startswith(option + "=") for option in _SECRET_OPTION_NAMES)
+        for argument in raw_argv
+    ):
+        print("ERROR: secret and passphrase arguments are forbidden; use the no-echo prompt", file=sys.stderr)
         return 2
     parser = build_parser()
     args = parser.parse_args(raw_argv)

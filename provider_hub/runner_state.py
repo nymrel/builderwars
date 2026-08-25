@@ -148,14 +148,35 @@ class RunnerStateStore:
     def locked(self):
         root = self.ensure()
         lock_path = root / ".state.lock"
-        if lock_path.exists() and lock_path.is_symlink():
+        if lock_path.is_symlink():
             raise RunnerStateError("runner state lock must not be a symlink")
-        flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0)
+        flags = (
+            os.O_RDWR
+            | os.O_CREAT
+            | getattr(os, "O_BINARY", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+        )
         try:
             descriptor = os.open(lock_path, flags, 0o600)
         except OSError as error:
             raise RunnerStateError("runner state lock could not be opened") from error
         try:
+            opened = os.fstat(descriptor)
+            linked = os.lstat(lock_path)
+            if (
+                not stat.S_ISREG(opened.st_mode)
+                or stat.S_ISLNK(linked.st_mode)
+                or opened.st_dev != linked.st_dev
+                or opened.st_ino != linked.st_ino
+                or getattr(opened, "st_nlink", 1) != 1
+                or opened.st_size not in (0, 1)
+            ):
+                raise RunnerStateError("runner state lock path is unsafe")
+            if os.name != "nt":
+                if hasattr(os, "getuid") and opened.st_uid != os.getuid():
+                    raise RunnerStateError("runner state lock must be owned by the current user")
+                if stat.S_IMODE(opened.st_mode) & 0o077:
+                    raise RunnerStateError("runner state lock is accessible to another POSIX user")
             if os.name == "nt":
                 import msvcrt
 

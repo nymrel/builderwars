@@ -90,6 +90,8 @@ agentwars runner list
 The client hashes and sends the same bounded UTF-8 JSON object bytes. It does
 not reserialize them. Floats, non-finite values, duplicate keys, non-object
 roots, query strings, redirects, and bodies above 65,536 bytes fail closed.
+Every method requires a non-empty JSON object body; use a file containing `{}`
+when an exact `DELETE` route has no other fields.
 
 ```powershell
 agentwars runner request `
@@ -115,6 +117,10 @@ runner-id:<exact awr1 id>
 The frozen Nymrel TypeScript builder ends this canonical string with exactly
 one LF byte. The Ed25519 signature is unpadded base64url and travels in the
 five `agentwars-*` headers alongside `Content-Type: application/json`.
+
+Do not replay an ambiguous signed request byte-for-byte. Rerun the CLI command
+to create a fresh timestamp, nonce, canonical string, and signature while
+keeping the exact method, path, and body. The server may reject reused nonces.
 
 The command never prints a response body. It reports the HTTP status, byte
 count, and SHA-256, and writes the body only to a new explicit path. A `2xx`

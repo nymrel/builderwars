@@ -55,6 +55,16 @@ RUNNER_ID = "awr1_" + "R" * 22
 CHALLENGE_ID = "C" * 22
 PAIRING_SECRET = f"awp1_{CHALLENGE_ID}_{'S' * 32}"
 PASSPHRASE = b"correct horse battery staple"
+TRUST_FLAGS = (
+    "providerAccountAttested",
+    "planEntitlementAttested",
+    "billingRouteAttested",
+    "modelAttested",
+    "personAttested",
+    "runtimeAttested",
+    "harnessExecutionAttested",
+    "matchExecutionAttested",
+)
 
 
 def check(condition, label):
@@ -356,11 +366,7 @@ def check_state_and_roundtrip():
         for forbidden in (PAIRING_SECRET.encode(), PASSPHRASE):
             check(forbidden not in key_bytes and forbidden not in profile_bytes, "secret absent from state")
         check(profile["accountApprovalAttested"] is False, "account approval remains unattested locally")
-        check(all(profile[field] is False for field in (
-            "providerAccountAttested", "planEntitlementAttested", "billingRouteAttested",
-            "modelAttested", "personAttested", "runtimeAttested",
-            "harnessExecutionAttested", "matchExecutionAttested",
-        )), "all trust flags false")
+        check(all(profile[field] is False for field in TRUST_FLAGS), "all trust flags false")
 
         with local_server() as (origin, server_state):
             # Bind this test profile to the actual loopback origin using a fresh challenge.
@@ -396,6 +402,10 @@ def check_state_and_roundtrip():
             check(second_profile["localState"] == "pending_confirmation", "pending confirmation recorded")
             second_profile = store.record_runner_id(second_id, RUNNER_ID)
             check(second_profile["localState"] == "runner_id_recorded_unverified", "runner id remains locally unverified")
+            check(
+                all(second_profile[field] is False for field in TRUST_FLAGS),
+                "trust flags stay false after state transitions",
+            )
             signed = sign_runner_request(
                 second_key,
                 method="POST",
@@ -403,6 +413,14 @@ def check_state_and_roundtrip():
                 body=b'{"probe":1}',
                 runner_id=RUNNER_ID,
             )
+            fresh_signed = sign_runner_request(
+                second_key,
+                method="POST",
+                path="/api/builderwars/runners/probe",
+                body=b'{"probe":2}',
+                runner_id=RUNNER_ID,
+            )
+            check(fresh_signed.nonce != signed.nonce, "generated request nonces are fresh")
             status, payload, _raw = send_signed_request(origin=origin, signed=signed)
             check(status == 200 and payload == {"ok": True, "runnerId": RUNNER_ID}, "signed request roundtrip")
             check(server_state.signed_requests[-1]["body"] == b'{"probe":1}', "signed body bytes exact")
@@ -427,13 +445,13 @@ def check_state_and_roundtrip():
             )
             check(server_state.redirect_hits == 0, "redirect never receives secret")
 
-            for mode, error_type in (
-                ("mismatch", RunnerClientError),
-                ("unknown_key", RunnerClientError),
-                ("duplicate_key", RunnerClientError),
-                ("wrong_status", RunnerClientError),
-                ("non_json", RunnerHttpError),
-                ("oversize", RunnerHttpError),
+            for mode, error_type, message_part in (
+                ("mismatch", RunnerClientError, None),
+                ("unknown_key", RunnerClientError, None),
+                ("duplicate_key", RunnerClientError, None),
+                ("wrong_status", RunnerClientError, None),
+                ("non_json", RunnerHttpError, "non-JSON response"),
+                ("oversize", RunnerHttpError, "response is too large"),
             ):
                 server_state.mode = mode
                 expect_error(
@@ -449,6 +467,7 @@ def check_state_and_roundtrip():
                         fingerprint=second_profile["fingerprint"],
                     ),
                     error_type,
+                    message_part,
                 )
             server_state.mode = "server_error"
             error = expect_error(
@@ -480,6 +499,14 @@ def check_state_and_roundtrip():
         removed = store.forget(CHALLENGE_ID)
         check(removed["challengeId"] == CHALLENGE_ID, "forget returns public profile")
         check(not store.profile_path(CHALLENGE_ID).exists() and not store.key_path(CHALLENGE_ID).exists(), "forget removes exact local files")
+
+        linked_store = RunnerStateStore(pathlib.Path(temporary) / "linked-state")
+        linked_root = linked_store.ensure()
+        linked_target = pathlib.Path(temporary) / "must-not-change.txt"
+        linked_target.write_bytes(b"protected")
+        os.link(linked_target, linked_root / ".state.lock")
+        expect_error(linked_store.list_profiles, RunnerStateError, "lock path is unsafe")
+        check(linked_target.read_bytes() == b"protected", "hard-linked lock target is never modified")
 
 
 def check_claim_response_and_cli_argv():
@@ -519,11 +546,69 @@ def check_claim_response_and_cli_argv():
     check(PAIRING_SECRET not in combined, "pairing secret absent from argv error output")
     check("no-echo prompt" in combined, "argv refusal points to hidden prompt")
 
+    passphrase_marker = "never-echo-this-runner-passphrase"
+    process = subprocess.run(
+        [
+            sys.executable,
+            os.path.join(ROOT, "bin", "agentwars.py"),
+            "runner",
+            "pair",
+            "--passphrase",
+            passphrase_marker,
+        ],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    combined = process.stdout + process.stderr
+    check(process.returncode == 2, "passphrase argv refused")
+    check(passphrase_marker not in combined, "passphrase absent from argv error output")
+    check("no-echo prompt" in combined, "passphrase argv refusal points to hidden prompt")
+
     cli_path = os.path.join(ROOT, "bin", "agentwars.py")
     spec = importlib.util.spec_from_file_location("agentwars_cli_interrupt_test", cli_path)
     check(spec is not None and spec.loader is not None, "CLI module can be loaded for interrupt test")
     cli = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(cli)
+    original_hidden_prompt = cli._hidden_prompt
+    cli._hidden_prompt = lambda _label: ""
+    expect_error(cli._pairing_secret_prompt, RunnerClientError)
+    cli._hidden_prompt = original_hidden_prompt
+
+    environment_markers = {
+        "AGENTWARS_PAIRING_SECRET": "awp1_" + ("E" * 22) + "_" + ("F" * 32),
+        "AGENTWARS_PASSPHRASE": passphrase_marker,
+        "AGENTWARS_KEY_PASSPHRASE": passphrase_marker,
+    }
+    previous_environment = {name: os.environ.get(name) for name in environment_markers}
+    try:
+        os.environ.update(environment_markers)
+
+        def blocked_prompt(_label):
+            raise RunnerClientError("prompt required despite environment")
+
+        cli._hidden_prompt = blocked_prompt
+        expect_error(cli._pairing_secret_prompt, RunnerClientError, "prompt required")
+        expect_error(cli._existing_key_passphrase, RunnerClientError, "prompt required")
+    finally:
+        cli._hidden_prompt = original_hidden_prompt
+        for name, previous in previous_environment.items():
+            if previous is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = previous
+
+    with tempfile.TemporaryDirectory(prefix="agentwars-response-check-") as temporary:
+        blocked_parent = pathlib.Path(temporary) / "not-a-directory"
+        blocked_parent.write_bytes(b"occupied")
+        expect_error(
+            lambda: cli._write_response(str(blocked_parent / "response.json"), b"{}"),
+            RunnerClientError,
+            "output directory",
+        )
 
     class InterruptingParser:
         @staticmethod
