@@ -12,6 +12,7 @@ sys.path.insert(0, ROOT)
 
 from competitions.matrix import (  # noqa: E402
     CompetitionConfigError,
+    _move_source_claims,
     _prepare,
     classify_pair,
     load_config,
@@ -39,6 +40,38 @@ def expect_config_error(fn, phrase):
         return str(exc)
     else:
         raise AssertionError(f"expected CompetitionConfigError containing {phrase!r}")
+
+
+def check_loader_rejection():
+    with tempfile.TemporaryDirectory(prefix="agentwars-matrix-loader-") as work:
+        cases = [
+            (
+                "duplicate-top.json",
+                b'{"schemaVersion":"first","schemaVersion":"second"}',
+                "duplicate JSON object key",
+            ),
+            (
+                "duplicate-nested.json",
+                b'{"entrants":[{"name":"first","name":"second"}]}',
+                "duplicate JSON object key",
+            ),
+            ("oversized.json", b" " * (256 * 1024 + 1), "exceeds 256 KiB"),
+            ("non-utf8.json", b"\xff", "UnicodeDecodeError"),
+        ]
+        for filename, payload, phrase in cases:
+            path = os.path.join(work, filename)
+            with open(path, "wb") as handle:
+                handle.write(payload)
+            expect_config_error(lambda path=path: load_config(path), phrase)
+
+        secret_path = os.path.join(work, "secret-duplicate.json")
+        secret_payload = json.dumps({"safe": True})[:-1] + (
+            f',"{SECRET_VALUE}":1,"{SECRET_VALUE}":2}}'
+        )
+        with open(secret_path, "w", encoding="utf-8") as handle:
+            handle.write(secret_payload)
+        error = expect_config_error(lambda: load_config(secret_path), "duplicate JSON object key")
+        require(SECRET_VALUE not in error, "duplicate-key errors do not echo attacker-controlled keys")
 
 
 def check_schema_rejection(base):
@@ -82,7 +115,31 @@ def check_schema_rejection(base):
 
     bad = copy.deepcopy(base)
     bad["entrants"][0]["argv"] = ["python", "missing-harness.py"]
-    expect_config_error(lambda: _prepare(bad, ROOT), "no resolvable repository harness")
+    expect_config_error(lambda: _prepare(bad, ROOT), "argv[1]")
+
+    bad = copy.deepcopy(base)
+    bad["competition"] = "Invisible\u200bMatrix"
+    expect_config_error(lambda: validate_config(bad), "control or invisible")
+
+    bad = copy.deepcopy(base)
+    bad["competition"] = "Matrix\n"
+    expect_config_error(lambda: validate_config(bad), "control or invisible")
+
+    bad = copy.deepcopy(base)
+    bad["entrants"][0]["argv"].append("--label=\u202econfusing")
+    expect_config_error(lambda: validate_config(bad), "invalid argument")
+
+    for argv in (
+        ["python", "-c", "print('not the harness')", "entrants/solver_harness.py"],
+        ["python", "-u", "entrants/solver_harness.py"],
+    ):
+        bad = copy.deepcopy(base)
+        bad["entrants"][0]["argv"] = argv
+        expect_config_error(lambda bad=bad: _prepare(bad, ROOT), "argv[1]")
+
+    bad = copy.deepcopy(base)
+    bad["entrants"][0]["argv"] = ["arbitrary-runner", "entrants/solver_harness.py"]
+    expect_config_error(lambda: _prepare(bad, ROOT), "interpreter is not allowed")
 
     with tempfile.TemporaryDirectory(prefix="agentwars-external-harness-") as external:
         external_script = os.path.join(external, "outside.py")
@@ -98,6 +155,8 @@ def check_identity_and_contrasts(base):
     require(normalized["seeds"] == sorted(normalized["seeds"]), "seeds normalize deterministically")
     require(len({row["agentBuildId"] for row in entrants}) == len(entrants), "agent build ids unique")
     require(all(len(row["harnessSha256"]) == 64 for row in entrants), "full harness SHA-256 retained")
+    require(all(len(row["launchSpecSha256"]) == 64 for row in entrants), "full launch-spec SHA-256 retained")
+    require(all(row["launchMode"] == "interpreter" for row in entrants), "fixture launch mode is explicit")
     contrasts = {
         classify_pair(entrants[first], entrants[second])
         for first in range(len(entrants))
@@ -114,12 +173,74 @@ def check_identity_and_contrasts(base):
         f"all four comparison classes covered: {contrasts}",
     )
 
+    changed_launch = copy.deepcopy(base)
+    changed_launch["entrants"][0]["argv"][-1] = "stub:argv-only-change"
+    _, changed_entrants = _prepare(changed_launch, ROOT)
+    before = {row["name"]: row for row in entrants}[base["entrants"][0]["name"]]
+    after = {row["name"]: row for row in changed_entrants}[base["entrants"][0]["name"]]
+    require(before["harnessSha256"] == after["harnessSha256"], "argv-only change keeps harness digest")
+    require(before["launchSpecSha256"] != after["launchSpecSha256"], "argv-only change updates launch digest")
+    require(before["agentBuildId"] != after["agentBuildId"], "argv-only change updates agent build identity")
+
+    changed_env = copy.deepcopy(base)
+    changed_env["entrants"][0]["env"] = [SECRET_ENV]
+    _, changed_env_entrants = _prepare(changed_env, ROOT)
+    after_env = {row["name"]: row for row in changed_env_entrants}[base["entrants"][0]["name"]]
+    require(before["harnessSha256"] == after_env["harnessSha256"], "env-name change keeps harness digest")
+    require(before["launchSpecSha256"] != after_env["launchSpecSha256"], "env-name change updates launch digest")
+    require(before["agentBuildId"] != after_env["agentBuildId"], "env-name change updates agent build identity")
+
+    direct = copy.deepcopy(base)
+    direct["entrants"][0]["argv"] = ["entrants/solver_harness.py", "--backend", "stub:v1"]
+    _, direct_entrants = _prepare(direct, ROOT)
+    direct_row = {row["name"]: row for row in direct_entrants}[base["entrants"][0]["name"]]
+    require(direct_row["launchMode"] == "direct", "repository harness at argv[0] is a direct launch")
+
+    suffixed_interpreter = copy.deepcopy(base)
+    suffixed_interpreter["entrants"][0]["argv"][0] = "PYTHON.EXE"
+    _, suffixed_entrants = _prepare(suffixed_interpreter, ROOT)
+    suffixed_row = {row["name"]: row for row in suffixed_entrants}[base["entrants"][0]["name"]]
+    require(suffixed_row["launchMode"] == "interpreter", "interpreter suffix normalization is bounded")
+
     duplicate = copy.deepcopy(base)
     source = duplicate["entrants"][0]
     target = duplicate["entrants"][1]
-    for key in ("claimedModel", "claimedProvider", "argv", "executionClaim"):
+    for key in ("claimedModel", "claimedProvider", "argv", "env", "executionClaim"):
         target[key] = copy.deepcopy(source[key])
     expect_config_error(lambda: _prepare(duplicate, ROOT), "duplicate agent build")
+
+
+def check_move_source_parsing():
+    notes = [
+        (0, "source=model"),
+        (0, "source=model;response_sha256=abc"),
+        (0, "source=model-not-really"),
+        (0, " source=model"),
+        (0, "Source=model"),
+        (1, "source=fallback"),
+        (1, "source=fallback;reason=invalid"),
+        (1, "source=scripted"),
+        (1, "source=scripted;fixture=local"),
+        (1, "source=scripted-extra"),
+        (1, "plain prose"),
+    ]
+    with tempfile.TemporaryDirectory(prefix="agentwars-move-source-") as work:
+        path = os.path.join(work, "claims.jsonl")
+        with open(path, "w", encoding="utf-8", newline="\n") as handle:
+            for seat, note in notes:
+                handle.write(json.dumps({
+                    "kind": "move",
+                    "body": {"player": seat, "entrant_message": {"note": note}},
+                }, sort_keys=True) + "\n")
+        counts = _move_source_claims(path)
+    require(
+        counts[0] == {"model": 2, "fallback": 0, "scripted": 0, "unclassified": 3},
+        f"model source labels require an exact first segment: {counts[0]}",
+    )
+    require(
+        counts[1] == {"model": 0, "fallback": 2, "scripted": 2, "unclassified": 2},
+        f"fallback/scripted source labels require an exact first segment: {counts[1]}",
+    )
 
 
 def check_schedule(report):
@@ -158,6 +279,17 @@ def check_schedule(report):
 
 def check_report_safety(report):
     rendered = render_report(report)
+    require(report["schemaVersion"] == "agentwars.competition-report.v2", "report schema is bumped")
+    require(
+        all(
+            len(row["launchSpecSha256"]) == 64
+            and all(char in "0123456789abcdef" for char in row["launchSpecSha256"])
+            for row in report["entrants"]
+        ),
+        "public entrants include full lowercase launch commitments",
+    )
+    require(all(row["launchMode"] in {"direct", "interpreter"} for row in report["entrants"]),
+            "public entrants include only bounded launch modes")
     require(SECRET_VALUE not in rendered, "environment value is never serialized")
     require(SECRET_ENV not in rendered, "environment name is omitted from the public report")
     require("--backend" not in rendered, "raw argv is omitted")
@@ -167,6 +299,7 @@ def check_report_safety(report):
     require('"globalProviderLeaderboardPublished":false' in rendered, "provider leaderboard refusal is explicit")
     require('"modelAttested":false' in rendered, "model claim remains unattested")
     require('"providerAttested":false' in rendered, "provider claim remains unattested")
+    require('"rawLaunchSpecPublished":false' in rendered, "raw launch declaration refusal is explicit")
 
 
 def check_end_to_end(base):
@@ -176,6 +309,22 @@ def check_end_to_end(base):
     os.environ[SECRET_ENV] = SECRET_VALUE
     try:
         with tempfile.TemporaryDirectory(prefix="agentwars-matrix-") as work:
+            invalid_launch = copy.deepcopy(config)
+            invalid_launch["entrants"][0]["argv"] = [
+                "python", "-c", "print('not the harness')", "entrants/solver_harness.py",
+            ]
+            invalid_launch_dir = os.path.join(work, "invalid-launch")
+            expect_config_error(
+                lambda: run_competition(
+                    invalid_launch,
+                    matches_dir=invalid_launch_dir,
+                    repo_root=ROOT,
+                    move_timeout_s=5.0,
+                ),
+                "argv[1]",
+            )
+            require(not os.path.exists(invalid_launch_dir),
+                    "ambiguous interpreter launch fails before output creation")
             blocked_dir = os.path.join(work, "blocked")
             expect_config_error(
                 lambda: run_competition(
@@ -219,6 +368,16 @@ def check_end_to_end(base):
             require(first["truthBoundary"]["replayVerified"] is True, "truth boundary reports replay")
             require(first["truthBoundary"]["controlledClaimsAreCausalProof"] is False,
                     "controlled claims are not causal proof")
+            require(first["truthBoundary"]["launchSpecDigestBound"] is True,
+                    "launch-spec commitment is explicit")
+            require(first["truthBoundary"]["launchSpecDigestProvidesConfidentiality"] is False,
+                    "launch commitment is not misrepresented as encryption")
+            require(first["truthBoundary"]["launchRuntimeAttested"] is False,
+                    "launch runtime is not upgraded into attestation")
+            require(first["truthBoundary"]["harnessFileDigestBound"] is True,
+                    "pre-run harness digest is bound")
+            require(first["truthBoundary"]["harnessExecutionAttested"] is False,
+                    "sampled harness bytes are not upgraded into execution attestation")
             require(len(first["comparisons"]["harnessControlledClaims"]) == 1, "harness control pair")
             require(len(first["comparisons"]["modelControlledClaims"]) == 1, "model control pair")
             require(len(first["comparisons"]["providerControlledClaims"]) == 1, "provider control pair")
@@ -244,9 +403,11 @@ def check_end_to_end(base):
 
 
 def main():
+    check_loader_rejection()
     base = load_config(EXAMPLE)
     check_schema_rejection(base)
     check_identity_and_contrasts(base)
+    check_move_source_parsing()
     check_end_to_end(base)
     print("AgentWars Competition Matrix contracts: PASS")
     print("4 entrants / 6 pairs / 24 exact-engine replay receipts / 4 contrast classes")

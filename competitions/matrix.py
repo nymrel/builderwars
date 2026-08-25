@@ -21,7 +21,7 @@ from arena.replay import verify
 from arena.transcript import load as load_transcript
 
 SCHEMA_VERSION = "agentwars.competition-matrix.v1"
-REPORT_SCHEMA_VERSION = "agentwars.competition-report.v1"
+REPORT_SCHEMA_VERSION = "agentwars.competition-report.v2"
 
 _TOP_LEVEL_KEYS = frozenset(
     {"schemaVersion", "competition", "description", "game", "seeds", "entrants"}
@@ -45,6 +45,17 @@ _SECRET_VALUE = re.compile(
     re.IGNORECASE,
 )
 _MAX_SEED = 2_147_483_647
+_MAX_CONFIG_BYTES = 256 * 1024
+_DISALLOWED_UNICODE_CATEGORIES = frozenset({"Cc", "Cf", "Cs"})
+_INTERPRETERS_BY_EXTENSION = {
+    ".py": frozenset({"python", "python3", "py"}),
+    ".js": frozenset({"node", "bun", "deno"}),
+    ".mjs": frozenset({"node", "bun", "deno"}),
+    ".ts": frozenset({"tsx", "ts-node", "bun", "deno"}),
+    ".sh": frozenset({"sh", "bash"}),
+    ".ps1": frozenset({"pwsh", "powershell"}),
+    ".rb": frozenset({"ruby"}),
+}
 
 
 class CompetitionConfigError(ValueError):
@@ -58,10 +69,17 @@ def _require(condition: bool, message: str) -> None:
 
 def _text(value, label: str, maximum: int, *, allow_empty: bool = False) -> str:
     _require(isinstance(value, str), f"{label} must be a string")
-    normalized = unicodedata.normalize("NFKC", value).strip()
+    normalized = unicodedata.normalize("NFKC", value)
+    _require(
+        not any(
+            unicodedata.category(char) in _DISALLOWED_UNICODE_CATEGORIES
+            for char in normalized
+        ),
+        f"{label} contains a control or invisible character",
+    )
+    normalized = normalized.strip()
     _require(allow_empty or bool(normalized), f"{label} must not be empty")
     _require(len(normalized) <= maximum, f"{label} must be at most {maximum} characters")
-    _require(not any(char in normalized for char in "\x00\r\n"), f"{label} contains a control character")
     return normalized
 
 
@@ -80,7 +98,11 @@ def _validate_argv(value, entrant_name: str) -> list[str]:
             f"entrant {entrant_name!r} argv must contain non-empty strings",
         )
         _require(
-            len(part) <= 1_000 and not any(char in part for char in "\x00\r\n"),
+            len(part) <= 1_000
+            and not any(
+                unicodedata.category(char) in _DISALLOWED_UNICODE_CATEGORIES
+                for char in part
+            ),
             f"entrant {entrant_name!r} argv contains an invalid argument",
         )
         _require(
@@ -193,11 +215,25 @@ def validate_config(value: object) -> dict:
     }
 
 
+def _object_without_duplicate_keys(pairs) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise CompetitionConfigError("competition config contains a duplicate JSON object key")
+        result[key] = value
+    return result
+
+
 def load_config(path: os.PathLike | str) -> dict:
     try:
-        with open(path, "r", encoding="utf-8") as handle:
-            value = json.load(handle)
-    except (OSError, json.JSONDecodeError) as exc:
+        with open(path, "rb") as handle:
+            raw = handle.read(_MAX_CONFIG_BYTES + 1)
+        _require(len(raw) <= _MAX_CONFIG_BYTES, "competition config exceeds 256 KiB")
+        text = raw.decode("utf-8")
+        value = json.loads(text, object_pairs_hook=_object_without_duplicate_keys)
+    except CompetitionConfigError:
+        raise
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise CompetitionConfigError(f"could not load competition config: {exc.__class__.__name__}") from None
     return validate_config(value)
 
@@ -229,13 +265,44 @@ def _resolve_runtime_argv(argv: list[str], repo_root: Path) -> list[str]:
     return resolved
 
 
+def _interpreter_name(value: str) -> str:
+    name = Path(value).name.casefold()
+    for suffix in (".exe", ".cmd", ".bat"):
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return name
+
+
+def _primary_harness(runtime_argv: list[str]) -> tuple[dict, str]:
+    direct = script_digest(runtime_argv[:1])
+    if direct is not None:
+        return direct, "direct"
+    _require(
+        len(runtime_argv) >= 2 and script_digest(runtime_argv[1:2]) is not None,
+        "interpreter launches must place one resolvable repository harness exactly at argv[1]",
+    )
+    harness = script_digest(runtime_argv[1:2])
+    extension = Path(runtime_argv[1]).suffix.lower()
+    allowed = _INTERPRETERS_BY_EXTENSION.get(extension, frozenset())
+    _require(
+        _interpreter_name(runtime_argv[0]) in allowed,
+        f"interpreter is not allowed for a {extension or 'suffixless'} harness",
+    )
+    return harness, "interpreter"
+
+
 def _identity_for(entrant: dict, repo_root: Path) -> dict:
     runtime_argv = _resolve_runtime_argv(entrant["argv"], repo_root)
-    # Prefer a script after an interpreter; fall back to argv[0] for compiled harnesses.
-    harness = script_digest(runtime_argv[1:]) or script_digest(runtime_argv)
-    _require(
-        harness is not None,
-        f"entrant {entrant['name']!r} has no resolvable repository harness file",
+    harness, launch_mode = _primary_harness(runtime_argv)
+    launch_spec_sha256 = digest(
+        {
+            "schema": "agentwars.launch-spec.v1",
+            "argv": entrant["argv"],
+            "envNames": entrant["env"],
+            "executionClaim": entrant["executionClaim"],
+            "harnessSha256": harness["sha256"],
+            "launchMode": launch_mode,
+        }
     )
     model_key = _claim_key(entrant["claimedModel"])
     provider_key = _claim_key(entrant["claimedProvider"])
@@ -244,8 +311,9 @@ def _identity_for(entrant: dict, repo_root: Path) -> dict:
     provider_id = "prv_" + digest({"claim": provider_key})
     agent_build_id = "agb_" + digest(
         {
-            "schema": "agentwars.agent-build.v1",
+            "schema": "agentwars.agent-build.v2",
             "harnessSha256": harness["sha256"],
+            "launchSpecSha256": launch_spec_sha256,
             "modelClaim": model_key,
             "providerClaim": provider_key,
         }
@@ -256,6 +324,8 @@ def _identity_for(entrant: dict, repo_root: Path) -> dict:
         "harnessFile": harness["path"],
         "harnessSha256": harness["sha256"],
         "harnessId": harness_id,
+        "launchMode": launch_mode,
+        "launchSpecSha256": launch_spec_sha256,
         "modelClaimId": model_id,
         "providerClaimId": provider_id,
         "agentBuildId": agent_build_id,
@@ -272,7 +342,7 @@ def _prepare(config: object, repo_root: os.PathLike | str) -> tuple[dict, list[d
         build_id = entrant["agentBuildId"]
         _require(
             build_id not in seen,
-            "duplicate agent build: model, provider, and executable harness must not all match",
+            "duplicate agent build: model, provider, harness, and launch spec must not all match",
         )
         seen.add(build_id)
     return normalized, entrants
@@ -365,14 +435,12 @@ def _move_source_claims(transcript_path: os.PathLike | str) -> list[dict]:
             continue
         message = body.get("entrant_message")
         note = message.get("note", "") if isinstance(message, dict) else ""
-        if isinstance(note, str) and note.startswith("source=model"):
-            source = "model"
-        elif isinstance(note, str) and note.startswith("source=fallback"):
-            source = "fallback"
-        elif isinstance(note, str) and note.startswith("source=scripted"):
-            source = "scripted"
-        else:
-            source = "unclassified"
+        first_segment = note.partition(";")[0] if isinstance(note, str) else ""
+        source = {
+            "source=model": "model",
+            "source=fallback": "fallback",
+            "source=scripted": "scripted",
+        }.get(first_segment, "unclassified")
         counts[seat][source] += 1
     return counts
 
@@ -583,6 +651,8 @@ def run_competition(
             "harnessFile": row["harnessFile"],
             "harnessSha256": row["harnessSha256"],
             "harnessId": row["harnessId"],
+            "launchMode": row["launchMode"],
+            "launchSpecSha256": row["launchSpecSha256"],
         }
         for row in entrants
     ]
@@ -604,7 +674,11 @@ def run_competition(
         "truthBoundary": {
             "replayVerified": True,
             "exactEngineDigestRequired": True,
-            "harnessFileDigestVerified": True,
+            "harnessFileDigestBound": True,
+            "harnessExecutionAttested": False,
+            "launchSpecDigestBound": True,
+            "launchSpecDigestProvidesConfidentiality": False,
+            "launchRuntimeAttested": False,
             "modelAttested": False,
             "providerAttested": False,
             "executionClaimsAttested": False,
@@ -614,13 +688,16 @@ def run_competition(
             "proves": [
                 "each published match replays under the exact refereeing engine",
                 "every entrant pair received every seed in both seat orders",
-                "the executable harness file digest is bound to each agent build",
+                "a pre-run primary harness file digest and redacted launch-spec digest are bound to each agent build",
                 "the recorded outcome follows from referee state rather than entrant self-report",
             ],
             "doesNotProve": [
                 "that a claimed model or provider produced any move",
                 "that a controlled-claim contrast establishes a causal model, provider, or harness effect",
                 "that execution claims or move provenance were independently witnessed",
+                "the OS-resolved interpreter binary or version, environment values, or imported harness dependencies",
+                "that the sampled harness bytes remained unchanged or were the bytes executed throughout every match",
+                "confidentiality of low-entropy launch declarations against offline guessing",
                 "that v1 confines untrusted entrants at the network, filesystem, CPU, or memory layer",
             ],
         },
@@ -655,6 +732,7 @@ def run_competition(
             "providerClaimsComparedOnlyWithin": "provider_controlled_claim",
             "modelClaimsComparedOnlyWithin": "model_controlled_claim",
             "openAgentMatchesAffectAgentStandingsOnly": True,
+            "rawLaunchSpecPublished": False,
         },
     }
 
