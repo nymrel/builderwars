@@ -202,6 +202,14 @@ def check_identity_and_contrasts(base):
     suffixed_row = {row["name"]: row for row in suffixed_entrants}[base["entrants"][0]["name"]]
     require(suffixed_row["launchMode"] == "interpreter", "interpreter suffix normalization is bounded")
 
+    absolute_interpreter = copy.deepcopy(base)
+    absolute_interpreter["entrants"][0]["argv"][0] = sys.executable
+    _, absolute_entrants = _prepare(absolute_interpreter, ROOT)
+    absolute_row = {row["name"]: row for row in absolute_entrants}[base["entrants"][0]["name"]]
+    require(absolute_row["launchMode"] == "interpreter"
+            and absolute_row["harnessSha256"] == before["harnessSha256"],
+            "an absolute interpreter path still binds argv[1] as the harness")
+
     duplicate = copy.deepcopy(base)
     source = duplicate["entrants"][0]
     target = duplicate["entrants"][1]

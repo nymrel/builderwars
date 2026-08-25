@@ -37,7 +37,7 @@ from agent_identity import (  # noqa: E402
 import agent_identity as identity_contract  # noqa: E402
 from arena import passport as arena_passport  # noqa: E402
 from arena.canonical import GENESIS, chain  # noqa: E402
-from arena.integrity import script_digest  # noqa: E402
+from arena.integrity import file_digest, script_digest  # noqa: E402
 from arena.match import match_id_for, run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from entrants.backends import execution_claim_for_backend  # noqa: E402
@@ -157,6 +157,18 @@ def main():
         fake_harness = "ab" * 32
 
         print("\n=== 1. key creation, signing, deterministic serialization, offline verification ===")
+        solver_script = solver_cmd[1]
+        resolved_harness = script_digest(solver_cmd)
+        check("interpreter-first commands bind the entrant script, not python.exe",
+              resolved_harness == {
+                  "path": os.path.basename(solver_script),
+                  "sha256": file_digest(solver_script),
+              }
+              and resolved_harness["sha256"] != file_digest(sys.executable),
+              "a signed passport could cover the interpreter while leaving the harness unbound")
+        check("ambiguous interpreter commands never back-scan a later script token",
+              script_digest([sys.executable, "-c", "print('not the harness')", solver_script]) is None,
+              "a misleading later path could be selected as the signed harness")
         key_dir = os.path.join(work, "keys")
         encrypted = os.path.join(key_dir, "a.key.pem")
         save_private_key_encrypted(encrypted, key_a, b"correct horse battery")

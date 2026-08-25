@@ -56,6 +56,7 @@ _INTERPRETERS_BY_EXTENSION = {
     ".ps1": frozenset({"pwsh", "powershell"}),
     ".rb": frozenset({"ruby"}),
 }
+_KNOWN_INTERPRETER_NAMES = frozenset().union(*_INTERPRETERS_BY_EXTENSION.values())
 
 
 class CompetitionConfigError(ValueError):
@@ -243,8 +244,14 @@ def _resolve_runtime_argv(argv: list[str], repo_root: Path) -> list[str]:
 
     root = repo_root.resolve()
     resolved = []
-    for token in argv:
+    for index, token in enumerate(argv):
         replacement = token
+        if index == 0 and _interpreter_name(token) in _KNOWN_INTERPRETER_NAMES:
+            # The interpreter is launch infrastructure, not the entrant harness.
+            # It may be an absolute system path outside repo_root; argv[1] is
+            # still required to resolve to the repository-owned harness below.
+            resolved.append(replacement)
+            continue
         try:
             path = Path(token)
             candidate = path if path.is_absolute() else root / path
