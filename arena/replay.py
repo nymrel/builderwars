@@ -51,6 +51,21 @@ def _hex64(value):
     return isinstance(value, str) and len(value) == 64 and set(value) <= _HEX_DIGITS
 
 
+def _exact_equal(left, right):
+    """JSON equality without Python's bool/int aliasing."""
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return set(left) == set(right) and all(
+            _exact_equal(left[key], right[key]) for key in left
+        )
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            _exact_equal(a, b) for a, b in zip(left, right)
+        )
+    return left == right
+
+
 def replayable_forfeit_evidence(records):
     """Classify whether a forfeit is reproducible from deterministic records.
 
@@ -510,9 +525,16 @@ def verify(transcript_path):
     )
     adjudication_ok = not forfeits
     recorded_result = first(records, "result")
-    if recorded_result and forfeits and forfeit_ok:
+    recorded_body = None
+    if recorded_result is not None:
+        if not isinstance(recorded_result, dict) or not isinstance(recorded_result.get("body"), dict):
+            note("result_body_shape", False, "result body must be a JSON object")
+            report["verdict"] = "FAIL"
+            return report
+        recorded_body = recorded_result["body"]
+    if recorded_body is not None and forfeits and forfeit_ok:
         loser = forfeits[0]["player"]
-        adjudication_ok = recorded_result["body"].get("winner") == 1 - loser
+        adjudication_ok = _exact_equal(recorded_body.get("winner"), 1 - loser)
     note("forfeit_adjudication", adjudication_ok, None if adjudication_ok else "forfeiting seat was not ruled the loser")
 
     abort_free = not aborts
@@ -568,9 +590,12 @@ def verify(transcript_path):
     if recorded_result is None:
         note("result_present", False, "no result record")
         return report
-    rb = recorded_result["body"]
+    rb = recorded_body
     report["recorded"] = {k: rb.get(k) for k in ("winner", "reason", "moves", "points", "decisive")}
-    same = all(recomputed[k] == rb.get(k) for k in ("winner", "reason", "moves", "points", "decisive"))
+    same = all(
+        _exact_equal(recomputed[k], rb.get(k))
+        for k in ("winner", "reason", "moves", "points", "decisive")
+    )
     report["result_matches_recomputation"] = same
     note(
         "recorded_result_follows_from_state",
@@ -583,11 +608,11 @@ def verify(transcript_path):
             recomputed.get("winner") is None
             and recomputed.get("reason") == "engine_error"
             and recomputed.get("decisive") is False
-            and recomputed.get("points") == {"0": 0, "1": 0}
+            and _exact_equal(recomputed.get("points"), {"0": 0, "1": 0})
             and rb.get("winner") is None
             and rb.get("reason") == "engine_error"
             and rb.get("decisive") is False
-            and rb.get("points") == {"0": 0, "1": 0}
+            and _exact_equal(rb.get("points"), {"0": 0, "1": 0})
         )
     engine_error_integrity = engine_error_shape_ok and engine_error_outcome_ok
     report["engine_error_integrity"] = engine_error_integrity

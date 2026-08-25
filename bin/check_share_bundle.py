@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Focused adversarial contracts for AgentWars verified-moment bundles."""
 
+import copy
 import json
 import os
 import sys
@@ -14,6 +15,7 @@ sys.path.insert(0, os.path.join(ROOT, "bin"))
 
 from arena.canonical import GENESIS, chain  # noqa: E402
 from arena.match import run_match  # noqa: E402
+from arena.transcript import load  # noqa: E402
 from build_share_bundle import (  # noqa: E402
     BundleError,
     EVENT_SCHEMA,
@@ -22,8 +24,12 @@ from build_share_bundle import (  # noqa: E402
     build_manifest,
     build_outputs,
     entrant_rows,
+    final_state,
     normalize_base_url,
+    require_exact_verification,
+    select_highlight,
     source_kind,
+    story_details,
     ten_fronts_scores,
     write_bundle,
 )
@@ -107,6 +113,12 @@ def check_bundle_contract():
         first = build_outputs(transcript)
         second = build_outputs(transcript)
         require(first == second, "same verified receipt must produce byte-identical bundle outputs")
+        expect_bundle_error(
+            lambda: require_exact_verification(
+                {"verdict": "PASS", "verifier_snapshot_match": True}
+            ),
+            "exact embedded verifier-engine match",
+        )
         require(tuple(first) == OUTPUT_NAMES, "bundle file order and surface must stay bounded")
         manifest = json.loads(first["manifest.json"])
         require(manifest["match"]["verified"] is True, "bundle must record replay verification")
@@ -125,6 +137,12 @@ def check_bundle_contract():
         require(runback["seats"] == ["Future Proof", "Sunday Machine"], "runback swaps seats")
         require("response_sha256" not in "".join(first.values()), "derived pack must omit response hashes")
         require("OPENCODE_" not in "".join(first.values()), "derived pack must omit environment names")
+        require(
+            ".diagnostics.jsonl" not in "".join(first.values())
+            and "agentwars-transcript-snapshot-" not in "".join(first.values())
+            and work not in "".join(first.values()),
+            "public bundle must exclude private diagnostics and local snapshot paths",
+        )
         require(all("claimedModel" not in entrant for entrant in manifest["entrants"]),
                 "share bundle must omit untrusted claimed-model strings")
         require(manifest["verification"]["localCommandTemplate"] ==
@@ -136,6 +154,35 @@ def check_bundle_contract():
                 "share methods must be bounded")
         require(EVENT_VALUE_ALLOWLISTS["vote"] == ["seat0", "seat1", "runback"],
                 "spectator votes must be bounded")
+
+        records = load(transcript)
+        state = final_state(records)
+        result = next(record["body"] for record in records if record["kind"] == "result")
+        baseline_highlight = select_highlight(records, state, result.get("winner"))
+        original_position = next(
+            index
+            for index, record in enumerate(records)
+            if record.get("hash") == baseline_highlight["recordHash"]
+        )
+        rejected_copy = copy.deepcopy(records[original_position])
+        rejected_copy["body"]["legal"] = False
+        rejected_copy["hash"] = "0" * 64
+        records.insert(original_position, rejected_copy)
+        guarded_highlight = select_highlight(records, state, result.get("winner"))
+        require(
+            guarded_highlight["recordHash"] == baseline_highlight["recordHash"],
+            "top-pick highlight must ignore a rejected move for the same player",
+        )
+        expect_bundle_error(
+            lambda: story_details(
+                "fantasy_redraft",
+                manifest["entrants"],
+                {"winner": None, "reason": "forfeit:illegal_move"},
+                state,
+                {"kind": "forfeit_adjudication"},
+            ),
+            "winning seat",
+        )
 
         tagged = build_manifest(transcript, "https://nymrel.com/builderwars")
         require(tagged["activationStatus"] == "candidate_url_unverified", "candidate route truth")

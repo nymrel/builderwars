@@ -18,6 +18,7 @@ Three properties this file is built to hold:
 """
 
 import json
+import math
 import os
 import random
 import re
@@ -228,6 +229,14 @@ def run_match(
         raise ValueError("this runner plays two-seat games; got %d entrants" % len(entrants))
     if not isinstance(seed, int) or isinstance(seed, bool):
         raise ValueError("seed must be an int so it can be canonically encoded")
+    if (
+        not isinstance(move_timeout_s, (int, float))
+        or isinstance(move_timeout_s, bool)
+        or not math.isfinite(move_timeout_s)
+        or not 0.1 <= move_timeout_s <= 3600
+    ):
+        raise ValueError("move_timeout_s must be a finite number between 0.1 and 3600 seconds")
+    move_timeout_s = float(move_timeout_s)
     for manifest in entrants:
         validate_manifest(manifest)
     seat_envs = _normalize_provisioned_envs(entrants, provisioned_envs)
@@ -275,6 +284,7 @@ def run_match(
     procs = []
     tw = None
     side = None
+    result_committed = False
     try:
         tw = TranscriptWriter(transcript_path)
         side = _Sidecar(sidecar_path)
@@ -357,6 +367,10 @@ def run_match(
                         "move_timeout_ms": int(move_timeout_s * 1000),
                     }
                 )
+                if not isinstance(reply, dict):
+                    raise EntrantFailure(
+                        "malformed_message", "top-level value must be an object"
+                    )
                 if reply.get("type") != "ready":
                     raise EntrantFailure("not_ready", f"expected type=ready, got {reply.get('type')!r}")
                 tw.append("ready", {"player": i, "entrant_message": _safe(reply)})
@@ -418,6 +432,10 @@ def run_match(
                 started = time.monotonic()
                 try:
                     reply = p.ask(request)
+                    if not isinstance(reply, dict):
+                        raise EntrantFailure(
+                            "malformed_message", "top-level value must be an object"
+                        )
                 except EntrantFailure as f:
                     tw.append(
                         "forfeit",
@@ -492,7 +510,30 @@ def run_match(
             outcome = {"winner": None, "reason": "engine_error"}
 
         # -- score from referee state only ------------------------------------
-        scored = score(referee_projection(tw.records), game)
+        # Scoring is referee code too. If it fails, convert the match to a
+        # zero-point engine-error void. If even the final durable append fails,
+        # the outer cleanup removes the incomplete owned files so the match id
+        # can be retried instead of being permanently wedged behind a half-tail.
+        try:
+            scored = score(referee_projection(tw.records), game)
+        except Exception as e:
+            if not any(record.get("kind") == "engine_error" for record in tw.records):
+                tw.append(
+                    "engine_error",
+                    {
+                        "detail": e.__class__.__name__,
+                        "code": "referee_fault",
+                        "phase": "referee",
+                        "turn": turn,
+                    },
+                )
+            scored = {
+                "winner": None,
+                "reason": "engine_error",
+                "moves": sum(record.get("kind") == "move" for record in tw.records),
+                "points": {"0": 0, "1": 0},
+                "decisive": False,
+            }
 
         result_body = {
             "winner": scored["winner"],
@@ -505,6 +546,7 @@ def run_match(
             "self_report_excluded": True,
         }
         result = tw.append("result", result_body)
+        result_committed = True
 
         # Say goodbye; a failure here cannot change the recorded result.
         for p in procs:
@@ -548,6 +590,13 @@ def run_match(
             attempt(side.close)
         if tw is not None:
             attempt(tw.close)
+        if active_exception is not None and not result_committed:
+            for owned_path in (transcript_path, sidecar_path):
+                attempt(
+                    lambda owned_path=owned_path: (
+                        os.unlink(owned_path) if os.path.lexists(owned_path) else None
+                    )
+                )
         if not keep_scratch:
             attempt(lambda: shutil.rmtree(scratch_root, ignore_errors=True))
         if active_exception is None and cleanup_error is not None:

@@ -17,6 +17,7 @@ import random
 import subprocess
 import sys
 import tempfile
+import time
 import unittest.mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,12 +25,13 @@ sys.path.insert(0, ROOT)
 sys.dont_write_bytecode = True
 
 from arena import transcript as transcript_module  # noqa: E402
+from arena import match as match_module  # noqa: E402
 from arena.canonical import GENESIS, chain, digest  # noqa: E402
 from arena.games import load as load_game  # noqa: E402
 from arena.integrity import engine_digest, engine_files  # noqa: E402
 from arena.match import _Sidecar, match_id_for, run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
-from arena.sandbox import POLICY, Entrant  # noqa: E402
+from arena.sandbox import POLICY, Entrant, EntrantFailure  # noqa: E402
 from arena.scoring import referee_projection, score  # noqa: E402
 from arena.transcript import ChainBroken, TranscriptWriter, load  # noqa: E402
 
@@ -339,7 +341,12 @@ def check_hostile_transcripts(tmp, valid_path):
     malformed_path = os.path.join(tmp, "malformed_forfeit.jsonl")
     write_records(malformed_path, malformed)
     report = verify(malformed_path)
-    ok("malformed empty-body forfeit rejected", report["verdict"] == "FAIL")
+    ok(
+        "malformed empty-body forfeit rejected by forfeit semantics",
+        report["verdict"] == "FAIL"
+        and report["chain_ok"] is True
+        and report["forfeit_evidence_replayable"] is False,
+    )
 
     conflicting = rechain(
         base[:1]
@@ -358,7 +365,12 @@ def check_hostile_transcripts(tmp, valid_path):
     conflicting_path = os.path.join(tmp, "conflicting_forfeits.jsonl")
     write_records(conflicting_path, conflicting)
     report = verify(conflicting_path)
-    ok("conflicting forfeits rejected", report["verdict"] == "FAIL")
+    ok(
+        "conflicting forfeits rejected by forfeit semantics",
+        report["verdict"] == "FAIL"
+        and report["chain_ok"] is True
+        and report["forfeit_evidence_replayable"] is False,
+    )
 
     foreign = rechain(base)
     header_body = copy.deepcopy(foreign[0]["body"])
@@ -373,6 +385,26 @@ def check_hostile_transcripts(tmp, valid_path):
         report["verdict"] == "FAIL"
         and report["chain_ok"] is True
         and report["engine_digest_match"] is False,
+    )
+    for verifier in (VERIFY_ROOT, VERIFY_REPLAY):
+        code, out, err = run_child([sys.executable, verifier, foreign_path], 60)
+        ok(
+            f"{os.path.basename(verifier)} fails closed on a foreign engine",
+            code != 0 and "VERDICT: FAIL" in (out + err),
+            (err or out)[-200:],
+        )
+
+    bool_points = copy.deepcopy(base)
+    bool_points[-1]["body"]["points"]["0"] = False
+    bool_points = rechain(bool_points)
+    bool_points_path = os.path.join(tmp, "boolean_result_points.jsonl")
+    write_records(bool_points_path, bool_points)
+    report = verify(bool_points_path)
+    ok(
+        "boolean score values cannot impersonate integer zero",
+        report["verdict"] == "FAIL"
+        and report["chain_ok"] is True
+        and report["result_matches_recomputation"] is False,
     )
 
     for label, hostile_attestation in (
@@ -556,6 +588,13 @@ def check_engine_fault_void(tmp):
         (err or out)[-200:],
     )
     ok("diagnostics sidecar created", os.path.isfile(result["diagnostics"]))
+    with open(result["diagnostics"], "r", encoding="utf-8") as handle:
+        diagnostics_notice = json.loads(handle.readline())
+    ok(
+        "diagnostics sidecar is explicitly non-authoritative and private",
+        diagnostics_notice.get("authoritative") is False
+        and "diagnostics only" in diagnostics_notice.get("note", ""),
+    )
     ok(
         "scratch removed",
         not os.path.exists(os.path.join(fault_dir, f".scratch-{result['match_id']}")),
@@ -670,6 +709,203 @@ def check_teardown_fault_isolation(tmp):
     ok("scratch removal still runs after cleanup faults", not os.path.lexists(scratch))
 
 
+def check_sandbox_lifecycle(tmp):
+    print("sandbox I/O limits and lifecycle deadlines are enforced mid-stream")
+
+    oversized_manifest = manifest("Oversized Stdout")
+    oversized_manifest["cmd"] = [
+        sys.executable,
+        "-c",
+        "import os,time; os.write(1,b'A'*262144); time.sleep(30)",
+    ]
+    oversized = Entrant(
+        oversized_manifest,
+        os.path.join(tmp, "sandbox-oversized"),
+        move_timeout_s=1.0,
+        max_line_bytes=1024,
+        max_total_bytes=8192,
+        max_stderr_bytes=1024,
+    )
+    oversized_failure = None
+    oversized_proc = None
+    try:
+        oversized.start()
+        oversized_proc = oversized._proc
+        oversized.recv(timeout_s=1.0)
+    except EntrantFailure as error:
+        oversized_failure = error
+    finally:
+        oversized.close(grace_s=0.5)
+    ok(
+        "unterminated stdout is rejected before unbounded buffering",
+        oversized_failure is not None
+        and oversized_failure.reason == "protocol_violation"
+        and oversized._bytes_seen <= 1025,
+    )
+    ok("oversized-output entrant is reaped", oversized_proc.poll() is not None)
+
+    stderr_manifest = manifest("Stderr Flood")
+    stderr_manifest["cmd"] = [
+        sys.executable,
+        "-c",
+        (
+            "import os,time; "
+            "os.write(2,b'E'*262144); "
+            "os.write(1,b'{\"type\":\"ready\"}\\n'); "
+            "time.sleep(0.2)"
+        ),
+    ]
+    stderr_entrant = Entrant(
+        stderr_manifest,
+        os.path.join(tmp, "sandbox-stderr"),
+        move_timeout_s=2.0,
+        max_stderr_bytes=1024,
+    )
+    stderr_entrant.start()
+    stderr_proc = stderr_entrant._proc
+    stderr_reply = stderr_entrant.recv(timeout_s=2.0)
+    stderr_entrant.close(grace_s=0.5)
+    ok(
+        "stderr is continuously drained while retained bytes stay capped",
+        stderr_reply == {"type": "ready"}
+        and len(stderr_entrant._stderr_buf) == 1024
+        and stderr_proc.poll() is not None,
+    )
+
+    blocked_manifest = manifest("Blocked Stdin")
+    blocked_manifest["cmd"] = [sys.executable, "-c", "import time; time.sleep(30)"]
+    blocked = Entrant(
+        blocked_manifest,
+        os.path.join(tmp, "sandbox-blocked-stdin"),
+        move_timeout_s=0.2,
+    )
+    blocked.start()
+    blocked_proc = blocked._proc
+    reentry_refused = False
+    try:
+        blocked.start()
+    except RuntimeError:
+        reentry_refused = True
+    started = time.monotonic()
+    blocked_failure = None
+    try:
+        blocked.send({"blob": "x" * (8 * 1024 * 1024)}, timeout_s=0.2)
+    except EntrantFailure as error:
+        blocked_failure = error
+    finally:
+        blocked.close(grace_s=0.5)
+    elapsed = time.monotonic() - started
+    ok("entrant process object rejects a second start", reentry_refused)
+    ok(
+        "non-draining stdin is killed at the bounded write deadline",
+        blocked_failure is not None
+        and blocked_failure.reason == "timeout"
+        and elapsed < 3.0
+        and blocked_proc.poll() is not None,
+        f"elapsed={elapsed:.3f}s reason={getattr(blocked_failure, 'reason', None)}",
+    )
+
+    rejected_timeouts = 0
+    for bad_timeout in (True, 0, float("nan"), float("inf"), 3600.1):
+        try:
+            Entrant(manifest("Bad Timeout"), os.path.join(tmp, "bad-timeout"), bad_timeout)
+        except ValueError:
+            rejected_timeouts += 1
+    ok(
+        "non-finite, boolean, zero, and excessive timeouts are rejected",
+        rejected_timeouts == 5,
+    )
+
+
+def check_match_tail_faults(tmp):
+    print("match tail faults void safely or remove incomplete owned outputs")
+
+    script = os.path.join(ROOT, "entrants", "fantasy_gm_harness.py")
+    playable = [
+        {
+            "name": "Tail Zero",
+            "cmd": [sys.executable, script, "--name", "Tail Zero", "--strategy", "win-now"],
+            "env": [],
+            "claimed_model": "scripted-baseline:v1",
+            "execution_claim": "scripted",
+        },
+        {
+            "name": "Tail One",
+            "cmd": [sys.executable, script, "--name", "Tail One", "--strategy", "long-game"],
+            "env": [],
+            "claimed_model": "scripted-baseline:v1",
+            "execution_claim": "scripted",
+        },
+    ]
+    scoring_out = os.path.join(tmp, "score-tail-fault")
+    with unittest.mock.patch.object(
+        match_module, "score", side_effect=RuntimeError("synthetic score fault")
+    ):
+        score_fault = run_match(
+            game_name=GAME_NAME,
+            seed=SEED + 7,
+            entrants=playable,
+            out_dir=scoring_out,
+            move_timeout_s=5.0,
+        )
+    score_records = load(score_fault["transcript"])
+    ok(
+        "scoring fault becomes a durable zero-point void",
+        score_fault["winner"] is None
+        and score_fault["reason"] == "engine_error"
+        and score_records[-2]["kind"] == "engine_error"
+        and score_records[-1]["kind"] == "result"
+        and verify(score_fault["transcript"])["verdict"] == "PASS",
+    )
+
+    malformed_out = os.path.join(tmp, "malformed-reply")
+    with unittest.mock.patch.object(Entrant, "start", return_value=None), \
+            unittest.mock.patch.object(Entrant, "ask", return_value=[]):
+        malformed = run_match(
+            game_name=GAME_NAME,
+            seed=SEED + 8,
+            entrants=[manifest("Malformed Zero"), manifest("Malformed One")],
+            out_dir=malformed_out,
+            move_timeout_s=5.0,
+        )
+    ok(
+        "non-object entrant reply is charged as a protocol forfeit, not referee fault",
+        malformed["winner"] == 1 and malformed["reason"] == "forfeit:malformed_message",
+    )
+
+    failed_out = os.path.join(tmp, "result-append-fault")
+    failed_pair = [manifest("Append Zero"), manifest("Append One")]
+    failed_mid = match_id_for(GAME_NAME, SEED + 9, [row["name"] for row in failed_pair])
+    real_append = TranscriptWriter.append
+
+    def fail_after_result_append(writer, kind, body):
+        record = real_append(writer, kind, body)
+        if kind == "result":
+            raise OSError("synthetic durable-tail failure")
+        return record
+
+    append_failed = False
+    with unittest.mock.patch.object(Entrant, "start", side_effect=OSError("synthetic start fault")), \
+            unittest.mock.patch.object(TranscriptWriter, "append", fail_after_result_append):
+        try:
+            run_match(
+                game_name=GAME_NAME,
+                seed=SEED + 9,
+                entrants=failed_pair,
+                out_dir=failed_out,
+                move_timeout_s=5.0,
+            )
+        except OSError:
+            append_failed = True
+    ok("result append failure propagates", append_failed)
+    ok(
+        "failed result commit leaves no half transcript, sidecar, or scratch collision",
+        not os.path.lexists(os.path.join(failed_out, f"{failed_mid}.jsonl"))
+        and not os.path.lexists(os.path.join(failed_out, f"{failed_mid}.diagnostics.jsonl"))
+        and not os.path.lexists(os.path.join(failed_out, f".scratch-{failed_mid}")),
+    )
+
+
 def check_proof_pipeline(tmp):
     print("genuine committed two-plan proof stays green under both verifiers")
     proof_out = os.path.join(tmp, "proof-out")
@@ -708,6 +944,43 @@ def check_proof_pipeline(tmp):
                 code == 0 and "VERDICT: PASS" in out,
                 (err or out)[-200:],
             )
+
+    source = sorted(on_disk)[0]
+    forged_result = load(source)
+    result_record = next(record for record in forged_result if record["kind"] == "result")
+    winner = result_record["body"].get("winner")
+    result_record["body"]["winner"] = 1 - winner if winner in (0, 1) else 0
+    forged_result = rechain(forged_result)
+    forged_result_path = os.path.join(tmp, "proof_forged_result.jsonl")
+    write_records(forged_result_path, forged_result)
+    report = verify(forged_result_path)
+    ok(
+        "move-bearing re-chained winner forgery fails at result derivation",
+        report["verdict"] == "FAIL"
+        and report["chain_ok"] is True
+        and report["result_matches_recomputation"] is False,
+    )
+
+    duplicate_move = load(source)
+    accepted = next(
+        record
+        for record in duplicate_move
+        if record["kind"] == "move" and record["body"].get("legal") is True
+    )
+    result_position = next(
+        index for index, record in enumerate(duplicate_move) if record["kind"] == "result"
+    )
+    duplicate_move.insert(result_position, copy.deepcopy(accepted))
+    duplicate_move = rechain(duplicate_move)
+    duplicate_move_path = os.path.join(tmp, "proof_duplicate_move.jsonl")
+    write_records(duplicate_move_path, duplicate_move)
+    report = verify(duplicate_move_path)
+    ok(
+        "move-bearing duplicate accepted action fails replay semantics",
+        report["verdict"] == "FAIL"
+        and report["chain_ok"] is True
+        and report["moves_ok"] is False,
+    )
 
 
 def proof_namespace(proof, out, json_out, timeout=15.0):
@@ -875,6 +1148,8 @@ def main():
             check_engine_fault_void(tmp)
             check_explicit_environment_custody(tmp)
             check_teardown_fault_isolation(tmp)
+            check_sandbox_lifecycle(tmp)
+            check_match_tail_faults(tmp)
             check_proof_pipeline(tmp)
             check_output_collision_and_cleanup(tmp)
             check_no_stale_children()

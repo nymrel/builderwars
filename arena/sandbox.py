@@ -12,11 +12,13 @@ provide.
 """
 
 import json
+import math
 import os
 import queue
 import shutil
 import subprocess
 import threading
+import time
 
 # Passed through so a subprocess can start at all on Windows and POSIX. None of
 # these carry model access.
@@ -33,6 +35,10 @@ _BASE_ENV_KEYS = (
     "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOMEDRIVE", "HOMEPATH",
     "HOME", "LANG", "LC_ALL", "TZ",
 )
+
+_READ_CHUNK_BYTES = 8 * 1024
+_MIN_TIMEOUT_SECONDS = 0.1
+_MAX_TIMEOUT_SECONDS = 3600.0
 
 POLICY = {
     "protocol": "arena/1",
@@ -72,6 +78,27 @@ class EntrantFailure(Exception):
         self.detail = detail
 
 
+def _bounded_timeout(value, *, label="timeout"):
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a finite number")
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{label} must be a finite number") from error
+    if not math.isfinite(seconds) or not _MIN_TIMEOUT_SECONDS <= seconds <= _MAX_TIMEOUT_SECONDS:
+        raise ValueError(
+            f"{label} must be between {_MIN_TIMEOUT_SECONDS:g} and "
+            f"{_MAX_TIMEOUT_SECONDS:g} seconds"
+        )
+    return seconds
+
+
+def _positive_limit(value, *, label):
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise ValueError(f"{label} must be a positive integer")
+    return value
+
+
 class Entrant:
     def __init__(
         self,
@@ -87,10 +114,12 @@ class Entrant:
         self.cmd = list(manifest["cmd"])
         self.declared_env = list(manifest.get("env", []))
         self.workdir = str(workdir)
-        self.move_timeout_s = float(move_timeout_s)
-        self.max_line_bytes = int(max_line_bytes)
-        self.max_total_bytes = int(max_total_bytes)
-        self.max_stderr_bytes = int(max_stderr_bytes)
+        self.move_timeout_s = _bounded_timeout(move_timeout_s, label="move_timeout_s")
+        self.max_line_bytes = _positive_limit(max_line_bytes, label="max_line_bytes")
+        self.max_total_bytes = _positive_limit(max_total_bytes, label="max_total_bytes")
+        self.max_stderr_bytes = _positive_limit(max_stderr_bytes, label="max_stderr_bytes")
+        if self.max_line_bytes > self.max_total_bytes:
+            raise ValueError("max_line_bytes must not exceed max_total_bytes")
         supplied = {} if provisioned_env is None else provisioned_env
         if not isinstance(supplied, dict):
             raise ValueError("provisioned_env must be an object")
@@ -115,6 +144,9 @@ class Entrant:
         self._stderr_buf = bytearray()
         self._stderr_thread = None
         self._bytes_seen = 0
+        self._write_lock = threading.Lock()
+        self._writer_threads = set()
+        self._started_once = False
 
     # -- lifecycle --------------------------------------------------------
 
@@ -127,6 +159,8 @@ class Entrant:
         return env
 
     def start(self):
+        if self._started_once:
+            raise RuntimeError("entrant process objects are single-use")
         os.makedirs(self.workdir, exist_ok=True)
         cmd = list(self.cmd)
         # Resolve the executable against PATH ourselves so a failure to find it
@@ -144,32 +178,67 @@ class Entrant:
             close_fds=True,
             bufsize=0,
         )
-        self._reader = threading.Thread(target=self._pump_stdout, daemon=True)
-        self._reader.start()
-        self._stderr_thread = threading.Thread(target=self._pump_stderr, daemon=True)
-        self._stderr_thread.start()
+        self._started_once = True
+        try:
+            self._reader = threading.Thread(target=self._pump_stdout, daemon=True)
+            self._reader.start()
+            self._stderr_thread = threading.Thread(target=self._pump_stderr, daemon=True)
+            self._stderr_thread.start()
+        except BaseException:
+            try:
+                self.close(grace_s=0.25)
+            except BaseException:
+                pass
+            raise
+
+    def _emit_stdout_line(self, raw):
+        line = bytes(raw).decode("utf-8", errors="replace").strip()
+        if line:
+            self._q.put(("line", line))
 
     def _pump_stdout(self):
+        pending = bytearray()
+        proc = self._proc
+        read_size = max(
+            1,
+            min(_READ_CHUNK_BYTES, self.max_line_bytes + 1, self.max_total_bytes + 1),
+        )
         try:
-            for raw in iter(self._proc.stdout.readline, b""):
+            while True:
+                raw = os.read(proc.stdout.fileno(), read_size)
+                if not raw:
+                    break
                 self._bytes_seen += len(raw)
-                if len(raw) > self.max_line_bytes:
-                    self._q.put(("error", f"stdout line exceeded {self.max_line_bytes} bytes"))
-                    return
                 if self._bytes_seen > self.max_total_bytes:
                     self._q.put(("error", f"stdout exceeded {self.max_total_bytes} bytes total"))
                     return
-                line = raw.decode("utf-8", errors="replace").strip()
-                if line:
-                    self._q.put(("line", line))
+                cursor = 0
+                while cursor < len(raw):
+                    newline = raw.find(b"\n", cursor)
+                    end = len(raw) if newline < 0 else newline
+                    pending.extend(raw[cursor:end])
+                    if len(pending) > self.max_line_bytes:
+                        self._q.put(("error", f"stdout line exceeded {self.max_line_bytes} bytes"))
+                        return
+                    if newline < 0:
+                        break
+                    self._emit_stdout_line(pending)
+                    pending.clear()
+                    cursor = newline + 1
+            if pending:
+                self._emit_stdout_line(pending)
         except Exception as e:  # pipe torn down mid-read
             self._q.put(("error", f"stdout read failed: {e.__class__.__name__}"))
         finally:
             self._q.put(("eof", None))
 
     def _pump_stderr(self):
+        proc = self._proc
         try:
-            for raw in iter(self._proc.stderr.readline, b""):
+            while True:
+                raw = os.read(proc.stderr.fileno(), _READ_CHUNK_BYTES)
+                if not raw:
+                    break
                 room = self.max_stderr_bytes - len(self._stderr_buf)
                 if room > 0:
                     self._stderr_buf.extend(raw[:room])
@@ -178,18 +247,73 @@ class Entrant:
 
     # -- messaging --------------------------------------------------------
 
-    def send(self, payload):
-        if self._proc is None or self._proc.poll() is not None:
-            raise EntrantFailure("entrant_not_running")
-        data = (json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
+    @staticmethod
+    def _abort_blocked_write(proc):
         try:
-            self._proc.stdin.write(data)
-            self._proc.stdin.flush()
-        except (BrokenPipeError, OSError) as e:
-            raise EntrantFailure("entrant_stdin_closed", e.__class__.__name__) from e
+            proc.kill()
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=1.0)
+        except Exception:
+            pass
+
+    def send(self, payload, timeout_s=None):
+        timeout_s = self.move_timeout_s if timeout_s is None else _bounded_timeout(
+            timeout_s, label="send timeout"
+        )
+        data = (json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
+        with self._write_lock:
+            proc = self._proc
+            if proc is None or proc.poll() is not None:
+                raise EntrantFailure("entrant_not_running")
+            outcome = queue.Queue(maxsize=1)
+
+            def write_all():
+                try:
+                    view = memoryview(data)
+                    written = 0
+                    while written < len(view):
+                        count = proc.stdin.write(view[written:])
+                        if count is None or count <= 0:
+                            raise BrokenPipeError("entrant stdin accepted no bytes")
+                        written += count
+                    proc.stdin.flush()
+                    outcome.put((True, None))
+                except BaseException as error:
+                    outcome.put((False, error))
+
+            writer = threading.Thread(target=write_all, daemon=True)
+            self._writer_threads.add(writer)
+            try:
+                writer.start()
+            except BaseException:
+                self._writer_threads.discard(writer)
+                raise
+            writer.join(timeout_s)
+            if writer.is_alive():
+                self._abort_blocked_write(proc)
+                try:
+                    proc.stdin.close()
+                except Exception:
+                    pass
+                writer.join(1.0)
+                if not writer.is_alive():
+                    self._writer_threads.discard(writer)
+                raise EntrantFailure(
+                    "timeout", f"stdin write did not complete within {timeout_s:g}s"
+                )
+            self._writer_threads.discard(writer)
+            succeeded, error = outcome.get_nowait()
+            if not succeeded:
+                if isinstance(error, (BrokenPipeError, OSError, ValueError)):
+                    raise EntrantFailure("entrant_stdin_closed", error.__class__.__name__) from error
+                raise EntrantFailure("entrant_stdin_failed", error.__class__.__name__) from error
 
     def recv(self, timeout_s=None):
-        timeout_s = self.move_timeout_s if timeout_s is None else timeout_s
+        timeout_s = self.move_timeout_s if timeout_s is None else _bounded_timeout(
+            timeout_s, label="receive timeout"
+        )
         try:
             kind, value = self._q.get(timeout=timeout_s)
         except queue.Empty:
@@ -207,8 +331,15 @@ class Entrant:
         return msg
 
     def ask(self, payload, timeout_s=None):
-        self.send(payload)
-        return self.recv(timeout_s)
+        timeout_s = self.move_timeout_s if timeout_s is None else _bounded_timeout(
+            timeout_s, label="request timeout"
+        )
+        deadline = time.monotonic() + timeout_s
+        self.send(payload, timeout_s=timeout_s)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise EntrantFailure("timeout", f"request exceeded {timeout_s:g}s")
+        return self.recv(max(_MIN_TIMEOUT_SECONDS, remaining))
 
     # -- teardown ---------------------------------------------------------
 
@@ -216,27 +347,67 @@ class Entrant:
         return self._stderr_buf.decode("utf-8", errors="replace")
 
     def close(self, grace_s=1.0):
-        if self._proc is None:
+        proc = self._proc
+        if proc is None:
             return
+        grace_s = _bounded_timeout(grace_s, label="close grace")
+        errors = []
+
+        def remember(error):
+            if not errors:
+                errors.append(error)
+
         try:
-            if self._proc.poll() is None:
+            if proc.poll() is None:
                 try:
-                    self._proc.stdin.close()
+                    proc.stdin.close()
                 except Exception:
                     pass
                 try:
-                    self._proc.wait(timeout=grace_s)
+                    proc.wait(timeout=grace_s)
                 except subprocess.TimeoutExpired:
-                    self._proc.kill()
-                    self._proc.wait(timeout=grace_s)
-        except Exception:
+                    try:
+                        proc.kill()
+                    except Exception as error:
+                        remember(error)
+                    try:
+                        proc.wait(timeout=grace_s)
+                    except Exception as error:
+                        remember(error)
+        except Exception as error:
+            remember(error)
             try:
-                self._proc.kill()
-            except Exception:
-                pass
+                proc.kill()
+                proc.wait(timeout=grace_s)
+            except Exception as kill_error:
+                remember(kill_error)
         finally:
-            for stream in (self._proc.stdout, self._proc.stderr, self._proc.stdin):
+            for stream in (proc.stdout, proc.stderr, proc.stdin):
                 try:
                     stream.close()
                 except Exception:
                     pass
+            for thread in (self._reader, self._stderr_thread, *tuple(self._writer_threads)):
+                if thread is not None and thread is not threading.current_thread():
+                    if thread.ident is None:
+                        self._writer_threads.discard(thread)
+                        continue
+                    thread.join(grace_s)
+                    if thread.is_alive():
+                        remember(RuntimeError("entrant I/O thread did not stop"))
+                    else:
+                        self._writer_threads.discard(thread)
+            if proc.poll() is None:
+                try:
+                    proc.kill()
+                    proc.wait(timeout=grace_s)
+                except Exception as error:
+                    remember(error)
+            if proc.poll() is None:
+                remember(RuntimeError("entrant process was not reaped"))
+            else:
+                self._proc = None
+                self._reader = None
+                self._stderr_thread = None
+        if errors:
+            raise errors[0]
