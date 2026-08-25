@@ -1638,6 +1638,12 @@ def check_harnesses():
     require("--provider" in ox_cmd and "opencode" in ox_cmd and
             "--customer-local-v1" in ox_cmd and "--backend" not in ox_cmd,
             "Ox helper uses the contained provider adapter, not legacy OpenCode")
+    signed_ox = ox_match.manifest(
+        "Ox", "win-now", 60, agent_passport="external-seat-passport.json"
+    )
+    require(signed_ox.get("agent_passport") == "external-seat-passport.json"
+            and signed_ox["cmd"] == ox_cmd,
+            "Ox helper can bind a signed public passport without changing runtime argv")
     print("[PASS] provider selection in both harnesses; legacy path byte-pinned")
 
 

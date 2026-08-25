@@ -71,12 +71,18 @@ def deny_tool_policy():
     }
 
 
-def manifest(name, strategy, backend_timeout, game="fantasy_redraft"):
+def manifest(
+    name,
+    strategy,
+    backend_timeout,
+    game="fantasy_redraft",
+    agent_passport=None,
+):
     if game == "ten_fronts":
         harness = TEN_FRONTS_HARNESS
     else:
         harness = os.path.join(ROOT, "entrants", "fantasy_model_harness.py")
-    return {
+    entrant = {
         "name": name,
         "cmd": [
             sys.executable,
@@ -101,6 +107,9 @@ def manifest(name, strategy, backend_timeout, game="fantasy_redraft"):
         # overclaim even if every move in one match happens to come from Ox.
         "execution_claim": "hybrid",
     }
+    if agent_passport is not None:
+        entrant["agent_passport"] = agent_passport
+    return entrant
 
 
 def ten_fronts_final_scores(path):
@@ -115,6 +124,15 @@ def main():
     parser.add_argument("--out", required=True)
     parser.add_argument("--json-out", default=None)
     parser.add_argument("--backend-timeout", type=float, default=300.0)
+    parser.add_argument(
+        "--agent-passports",
+        nargs=2,
+        metavar=("SEAT0_JSON", "SEAT1_JSON"),
+        help=(
+            "optional signed public Agent Passport JSON files in seat order; "
+            "both are verified and harness-bound before either entrant starts"
+        ),
+    )
     args = parser.parse_args()
     if not isinstance(args.seed, int) or args.seed < 0:
         parser.error("--seed must be a non-negative integer")
@@ -127,9 +145,20 @@ def main():
     os.environ["OPENCODE_DISABLE_PROJECT_CONFIG"] = "1"
     os.environ["OPENCODE_PURE"] = "1"
     seats = TEN_FRONTS_SEATS if args.game == "ten_fronts" else FANTASY_SEATS
+    passport_paths = (
+        [None, None]
+        if args.agent_passports is None
+        else [os.path.abspath(path) for path in args.agent_passports]
+    )
     entrants = [
-        manifest(seat["name"], seat["strategy"], args.backend_timeout, game=args.game)
-        for seat in seats
+        manifest(
+            seat["name"],
+            seat["strategy"],
+            args.backend_timeout,
+            game=args.game,
+            agent_passport=passport_paths[index],
+        )
+        for index, seat in enumerate(seats)
     ]
     result = run_match(
         game_name=args.game,
@@ -166,6 +195,9 @@ def main():
         "scores": {entrants[0]["name"]: scores[0], entrants[1]["name"]: scores[1]},
         "moveSourceClaims": sources,
         "modelMoveClaims": model_move_claims,
+        "identityStatus": report.get("identity_status"),
+        "identitySeats": report.get("identity_seats", []),
+        "signedHarnessVersionsVerified": report.get("identity_status") == "verified_signed",
         "modelAttested": False,
         "executionClaimsAttested": False,
         "verified": True,
