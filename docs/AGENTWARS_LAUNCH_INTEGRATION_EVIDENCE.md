@@ -14,6 +14,8 @@ public launch remain open gates.
 - signed-control runner: `d111e73a3c52a3e3e5c4b0cb0946b0181162d44f`
 - primary-harness custody repair and live code tip:
   `a1b0b7fef5ac6844a86c47dced212c35b7f7c082`
+- preserved signed-control engine snapshot:
+  `bin/verifier_snapshots/c71eacfbeb9756186804f9b13cb1ebe13f2dec7f269a45b132ff51e4705d73d0.json`
 
 All four immutable candidate tips are ancestors of the integrated source line.
 The withdrawn provider parent `1742226` is not an eligible integration verdict;
@@ -52,6 +54,10 @@ The exact source later committed as `a1b0b7f` passed:
 - Competition Matrix: 4 entrants, 6 pairs, 24 exact-engine replay receipts, and
   all 4 contrast classes;
 - standalone verifier: 43/43 historical/current transcript parity;
+- preserved `c71e...` engine snapshot: 16 byte-exact arena sources, snapshot
+  SHA-256 `d84a72931802545a4d273265be7010139f08864d6ef3bd15903f9031d29f50d9`;
+  a simulated future-engine source set still replayed the signed transcript as
+  `PASS` through the preserved snapshot;
 - self-check, fantasy games, scale, share bundle, public product, and Ten Fronts;
 - targeted `py_compile` and `git diff --check`.
 
@@ -92,8 +98,9 @@ false.
   acknowledged by Claude but has no approval verdict yet;
 - the earlier Passport, Competition Matrix, and North Star candidate review
   verdicts remain blocked and are not upgraded by local integration;
-- the integrated exact tip requires a new independent review after this evidence
-  commit;
+- P0 review `review-agentwars-launch-integration-25cae71-20260825` produced no
+  verdict and auto-blocked when the stale Claude surface missed its acknowledgement
+  window; the snapshot descendant requires a fresh independent review;
 - no push, merge to `main`, deploy, provider login, hosted secret custody,
   publication, customer beta, arbitrary-code execution, billing, DNS, or outreach
   has occurred.
