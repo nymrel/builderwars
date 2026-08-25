@@ -196,6 +196,43 @@ def build_prompt(observation, strategy):
     )
 
 
+def build_repair_prompt(observation, strategy):
+    """Build one self-contained, closed-choice repair prompt.
+
+    Each backend invocation is a fresh session, so this prompt never refers to
+    a "previous" answer. The rejected response is deliberately absent: it may
+    contain secrets or adversarial text, and the fresh call needs only compact
+    authoritative context plus the finite set of legal response objects.
+    """
+    players = legal_players(observation)
+    score_key = "redraft_points" if strategy == "win-now" else "dynasty_points"
+    candidates = [
+        {
+            "player_id": row["id"],
+            "position": row.get("position"),
+            "score": row.get(score_key),
+        }
+        for row in players
+    ]
+    context = {
+        "format": observation.get("format"),
+        "strategy": strategy,
+        "round": observation.get("round"),
+        "needs": observation.get("needs"),
+        "your_roster": observation.get("your_roster"),
+        "opponent_roster": observation.get("opponent_roster"),
+        "candidates": candidates,
+        "allowed_response_objects": [{"player_id": row["id"]} for row in players],
+    }
+    return (
+        "Make one fresh fantasy football draft choice. Do not run commands, use "
+        "tools, explain, or add markdown. Select one candidate using strategy and "
+        "score. Return exactly one object from allowed_response_objects and nothing "
+        "else.\n"
+        + json.dumps(context, sort_keys=True, separators=(",", ":"))
+    )
+
+
 def extract_strict_move(raw):
     if not isinstance(raw, str) or not raw or len(raw) > MAX_MODEL_OUTPUT_CHARS:
         return None
@@ -218,24 +255,87 @@ def move_is_legal_for_observation(observation, move):
     return move.get("player_id") in legal_ids
 
 
+def _response_digest(raw):
+    if not isinstance(raw, str):
+        return None
+    return hashlib.sha256(raw.encode("utf-8", errors="surrogatepass")).hexdigest()[:16]
+
+
+def _rejection_reason(observation, raw):
+    move = extract_strict_move(raw)
+    if move is None:
+        return "invalid_model_output"
+    if not move_is_legal_for_observation(observation, move):
+        return "illegal_model_move"
+    return None
+
+
+def _note_with_digests(prefix, raw, prior_raw=None):
+    parts = [prefix]
+    response_hash = _response_digest(raw)
+    prior_hash = _response_digest(prior_raw)
+    if response_hash is not None:
+        parts.append(f"response_sha256={response_hash}")
+    if prior_hash is not None:
+        parts.append(f"prior_response_sha256={prior_hash}")
+    return ";".join(parts)
+
+
 def decide(observation, strategy, backend):
     prompt = build_prompt(observation, strategy)
-    raw = None
-    reason = "invalid_model_output"
     try:
         raw = backend.complete(prompt)
-        move = extract_strict_move(raw)
-        if move_is_legal_for_observation(observation, move):
-            response_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
-            return move, f"source=model;response_sha256={response_hash}"
     except Exception as error:
-        reason = f"backend_error:{error.__class__.__name__}"
+        move = fallback_move(observation, strategy)
+        return move, (
+            "source=fallback;"
+            f"reason=backend_error:{error.__class__.__name__};attempts=1"
+        )
+
+    reason = _rejection_reason(observation, raw)
+    if reason is None:
+        prefix = (
+            "source=model"
+            if getattr(backend, "kind", None) == "stub"
+            else "source=model;attempts=1"
+        )
+        return extract_strict_move(raw), _note_with_digests(
+            prefix, raw
+        )
+
+    # Keep deterministic preseason fixture receipts byte-stable. The stub is a
+    # reproducible pseudo-model, not a live provider whose formatting can
+    # benefit from a second inference call.
+    if getattr(backend, "kind", None) == "stub":
+        move = fallback_move(observation, strategy)
+        return move, _note_with_digests(
+            f"source=fallback;reason={reason}", raw
+        )
+
+    try:
+        repair_raw = backend.complete(build_repair_prompt(observation, strategy))
+    except Exception as error:
+        move = fallback_move(observation, strategy)
+        return move, _note_with_digests(
+            "source=fallback;"
+            f"reason=repair_backend_error:{error.__class__.__name__};"
+            f"initial_reason={reason};attempts=2",
+            None,
+            prior_raw=raw,
+        )
+
+    repair_reason = _rejection_reason(observation, repair_raw)
+    if repair_reason is None:
+        return extract_strict_move(repair_raw), _note_with_digests(
+            "source=model;attempts=2", repair_raw, prior_raw=raw
+        )
 
     move = fallback_move(observation, strategy)
-    if raw is not None and isinstance(raw, str):
-        response_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
-        return move, f"source=fallback;reason={reason};response_sha256={response_hash}"
-    return move, f"source=fallback;reason={reason}"
+    return move, _note_with_digests(
+        f"source=fallback;reason={repair_reason};attempts=2",
+        repair_raw,
+        prior_raw=raw,
+    )
 
 
 def main():

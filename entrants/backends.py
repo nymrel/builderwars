@@ -507,6 +507,84 @@ def _resolve_executable(name):
     return executable
 
 
+def _which_outside_cwd(name):
+    """Resolve one command from explicit absolute PATH entries outside cwd.
+
+    Windows may implicitly search the current directory before PATH. A cloned
+    entrant repository is not a trusted location for provider executables, so
+    the contained OpenCode route enumerates explicit PATH directories itself
+    and skips relative, empty, current-directory, and cwd-descendant entries.
+    """
+    raw_path = os.environ.get("PATH")
+    if not raw_path:
+        return None
+    cwd = os.path.normcase(os.path.realpath(os.path.abspath(os.getcwd())))
+    seen = set()
+    for raw_entry in raw_path.split(os.pathsep):
+        entry = os.path.expandvars(raw_entry.strip().strip('"'))
+        if not entry or not os.path.isabs(entry):
+            continue
+        entry = os.path.realpath(os.path.abspath(entry))
+        normalized = os.path.normcase(entry)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        try:
+            if os.path.commonpath((cwd, normalized)) == cwd:
+                continue
+        except ValueError:
+            pass
+        executable = shutil.which(os.path.join(entry, name))
+        if executable is not None:
+            return executable
+    return None
+
+
+def _resolve_opencode_provider_executable():
+    """Resolve OpenCode without putting prompts through a Windows batch shim.
+
+    npm exposes ``opencode.CMD`` on Windows. Passing an authoritative multiline
+    game prompt through that ``%*`` wrapper can change the positional argument
+    before the packaged binary sees it. Prefer any direct ``opencode.exe`` on
+    PATH, then the exact binary installed behind the standard npm wrapper. If
+    neither exists, fail closed instead of silently running a corrupted prompt.
+    Other platforms keep ordinary absolute-PATH executable/script resolution;
+    relative or current-repository PATH entries fail closed everywhere.
+    """
+    executable = _which_outside_cwd("opencode")
+    if executable is None:
+        raise FileNotFoundError(
+            "opencode is not available on an absolute PATH entry outside the "
+            "current repository; install it and complete its own local login "
+            "first (see docs/PROVIDER_CONNECTIONS.md)"
+        )
+    suffix = os.path.splitext(executable)[1].casefold()
+    if os.name != "nt" or suffix not in (".cmd", ".bat"):
+        return executable
+
+    direct_on_path = _which_outside_cwd("opencode.exe")
+    if (
+        direct_on_path
+        and os.path.splitext(direct_on_path)[1].casefold() == ".exe"
+        and os.path.isfile(direct_on_path)
+    ):
+        return direct_on_path
+
+    npm_binary = os.path.join(
+        os.path.dirname(os.path.abspath(executable)),
+        "node_modules",
+        "opencode-ai",
+        "bin",
+        "opencode.exe",
+    )
+    if os.path.isfile(npm_binary):
+        return npm_binary
+    raise RuntimeError(
+        "opencode resolved to a Windows batch shim but its direct packaged "
+        "binary was not found; refusing batch-mediated prompt transport"
+    )
+
+
 MAX_PROMPT_BYTES = 65536
 MAX_CHILD_OUTPUT_BYTES = 2 * 1024 * 1024
 
@@ -848,7 +926,9 @@ class OpenCodeProviderBackend(Backend):
 
     UNMEASURED contract. Ephemeral cwd, `--pure` (no project config), JSON
     event output, the prompt as a direct positional argument per the official
-    CLI contract, and NO `--auto`. The child runs under a process-local
+    CLI contract, and NO `--auto`. On Windows, the adapter unwraps the npm
+    batch shim to its packaged executable so prompt bytes never traverse a
+    `%*` batch expansion. The child runs under a process-local
     OPENCODE_CONFIG_CONTENT agent whose tools and permissions are all denied,
     with external/Claude skill loading disabled and project config disabled via
     OPENCODE_DISABLE_PROJECT_CONFIG=1. The user's local auth store is left
@@ -943,12 +1023,7 @@ class OpenCodeProviderBackend(Backend):
 
     def complete(self, prompt: str) -> str:
         prompt = _prompt_text(prompt, argv_limit=True)
-        executable = shutil.which("opencode")
-        if executable is None:
-            raise FileNotFoundError(
-                "opencode is not available on PATH; run `opencode auth login` "
-                "yourself first. A missing binary never means a missing account."
-            )
+        executable = _resolve_opencode_provider_executable()
         argv = [executable] + self.argv(prompt)[1:]
         stdout = _run_provider_child(
             argv,

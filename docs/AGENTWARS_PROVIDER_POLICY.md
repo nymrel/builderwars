@@ -80,6 +80,14 @@ external skills, Claude Code skills, auto-sharing, tools, and permissions
 disabled. Its six containment environment keys are constructed by AgentWars;
 arbitrary extra environment names are rejected.
 
+The prompt remains an explicit positional `opencode run` message. The contained
+adapter resolves OpenCode only from explicit absolute PATH entries outside the
+current repository. On Windows it refuses to send that message through an npm
+`.CMD`/`.BAT` wrapper: it resolves a direct `opencode.exe` from PATH or the
+standard package location, and fails closed if neither direct binary exists.
+This prevents current-directory executable spoofing and batch `%*` expansion
+from changing a multiline game prompt before OpenCode receives it.
+
 ### OpenRouter
 
 OpenRouter documents an OAuth-style PKCE S256 flow for third-party apps that

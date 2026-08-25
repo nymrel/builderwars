@@ -1146,6 +1146,37 @@ def check_adapters():
     require(policy["permission"]["*"] == "deny", "default deny policy")
     require(policy["agent"][provider_oc.AGENT_NAME]["permission"]["*"] == "deny",
             "selected agent inherits default deny")
+
+    # Windows npm exposes a .CMD shim whose `%*` expansion is not a safe
+    # transport for authoritative multiline prompts. Resolve the direct binary
+    # behind the standard shim or fail before starting any child.
+    windows_shim = r"C:\npm\opencode.CMD"
+    windows_binary = r"C:\npm\node_modules\opencode-ai\bin\opencode.exe"
+    with mock.patch("entrants.backends.shutil.which", return_value=windows_shim), \
+            mock.patch("entrants.backends.os.path.isfile",
+                       side_effect=lambda path: path == windows_binary):
+        require(backends._resolve_opencode_provider_executable() == windows_binary,
+                "Windows npm shim unwraps to direct packaged binary")
+    with mock.patch("entrants.backends.shutil.which", return_value=windows_shim), \
+            mock.patch("entrants.backends.os.path.isfile", return_value=False):
+        expect_error(
+            backends._resolve_opencode_provider_executable,
+            RuntimeError,
+            "refusing batch-mediated prompt transport",
+        )
+    outside = r"C:\trusted-bin\opencode.exe"
+    calls = []
+
+    def path_only_which(candidate):
+        calls.append(candidate)
+        return outside
+
+    with mock.patch.dict(os.environ, {"PATH": r"C:\trusted-bin"}, clear=False), \
+            mock.patch("entrants.backends.shutil.which", side_effect=path_only_which):
+        require(backends._resolve_opencode_provider_executable() == outside,
+                "OpenCode resolves from explicit absolute PATH entry")
+    require(calls and all(os.path.dirname(candidate) for candidate in calls),
+            "OpenCode resolution never asks Windows to search bare cwd command")
     expect_error(
         lambda: backends.OpenCodeProviderBackend(
             "noslash", runtime_intent=runtime_intent
@@ -1331,6 +1362,24 @@ class FixedBackend:
         return self.response
 
 
+class SequencedBackend:
+    label = "fixture:sequenced"
+    kind = "fixture"
+
+    def __init__(self, *responses):
+        self.responses = list(responses)
+        self.prompts = []
+
+    def complete(self, prompt):
+        self.prompts.append(prompt)
+        if not self.responses:
+            raise AssertionError("unexpected extra backend call")
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+
 def _namespace(**kw):
     import argparse
 
@@ -1411,6 +1460,62 @@ def check_harnesses():
     observation = game.observation(state, 0)
     legal_player = fantasy.legal_players(observation)[0]
     legal = json.dumps({"player_id": legal_player["id"]}, separators=(",", ":"))
+
+    # First-pass success performs exactly one inference call.
+    first_pass = SequencedBackend(legal)
+    move, note = fantasy.decide(observation, "win-now", first_pass)
+    require(move == {"player_id": legal_player["id"]}, "first-pass model pick")
+    require(note.startswith("source=model;attempts=1;response_sha256="),
+            f"first-pass attempt truth: {note}")
+    require(len(first_pass.prompts) == 1, "no repair after a legal first answer")
+
+    # Invalid output gets one closed-choice repair. The rejected text is never
+    # reflected into the repair prompt or receipt; only its digest survives.
+    rejected = "SECRET-LOOKING rejected raw output"
+    repaired = SequencedBackend(rejected, legal)
+    move, note = fantasy.decide(observation, "win-now", repaired)
+    require(move == {"player_id": legal_player["id"]}, "repaired model pick")
+    require(note.startswith("source=model;attempts=2;response_sha256="),
+            f"repair attempt truth: {note}")
+    require("prior_response_sha256=" in note, "prior digest retained")
+    require(rejected not in note and rejected not in repaired.prompts[1],
+            "raw rejected output never reflected")
+    require("allowed_response_objects" in repaired.prompts[1], "closed choices present")
+    require(legal in repaired.prompts[1], "legal response object embedded")
+    require("previous" not in repaired.prompts[1].lower(),
+            "stateless repair does not invent prior-session context")
+    require(len(repaired.prompts[1]) <= 4096, "repair prompt stays command-transport safe")
+    require(len(repaired.prompts) == 2, "exactly one repair call")
+
+    # Two invalid answers fall back legally after exactly two calls.
+    exhausted = SequencedBackend("not json", '{"player_id":999999}')
+    move, note = fantasy.decide(observation, "win-now", exhausted)
+    require(fantasy.move_is_legal_for_observation(observation, move), "repair fallback legal")
+    require(note.startswith("source=fallback;reason=illegal_model_move;attempts=2;"),
+            f"repair exhaustion truth: {note}")
+    require("response_sha256=" in note and "prior_response_sha256=" in note,
+            "both rejected response digests retained")
+    require(len(exhausted.prompts) == 2, "repair cannot loop")
+
+    # A backend failure never triggers retry. A repair-call failure is also
+    # sanitized to its exception class and then falls back.
+    unavailable = SequencedBackend(RuntimeError("do not leak this detail"))
+    move, note = fantasy.decide(observation, "win-now", unavailable)
+    require(note == "source=fallback;reason=backend_error:RuntimeError;attempts=1",
+            f"initial backend failure truth: {note}")
+    require(len(unavailable.prompts) == 1, "no retry after backend failure")
+    require(fantasy.move_is_legal_for_observation(observation, move), "backend fallback legal")
+
+    repair_failed = SequencedBackend("not json", RuntimeError("private detail"))
+    move, note = fantasy.decide(observation, "win-now", repair_failed)
+    require(note.startswith(
+        "source=fallback;reason=repair_backend_error:RuntimeError;"
+        "initial_reason=invalid_model_output;attempts=2;"),
+        f"repair backend failure truth: {note}")
+    require("private detail" not in note and "not json" not in note,
+            "repair receipt excludes raw details")
+    require(len(repair_failed.prompts) == 2, "repair failure stops after second call")
+    require(fantasy.move_is_legal_for_observation(observation, move), "repair error fallback legal")
 
     def chat_transport(request, timeout_s=300):
         return json.dumps({"choices": [{"message": {"content": legal}}]}).encode()
