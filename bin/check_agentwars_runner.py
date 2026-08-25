@@ -37,6 +37,9 @@ from provider_hub.local_runner import (  # noqa: E402
     MAX_HTTP_BYTES,
     PAIRING_CLAIM_PATH,
     REQUEST_PROTOCOL,
+    RUNNER_PROBE_BODY,
+    RUNNER_PROBE_FALSE_ATTESTATIONS,
+    RUNNER_PROBE_PATH,
     RunnerClientError,
     RunnerHttpError,
     canonical_runner_request,
@@ -49,6 +52,7 @@ from provider_hub.local_runner import (  # noqa: E402
     validate_claim_response,
     validate_json_body,
     validate_origin,
+    validate_probe_response,
 )
 from provider_hub.runner_state import RunnerStateError, RunnerStateStore  # noqa: E402
 
@@ -127,7 +131,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path == PAIRING_CLAIM_PATH:
             self._claim(body)
             return
-        if self.path == "/api/builderwars/runners/probe":
+        if self.path == RUNNER_PROBE_PATH:
             self._signed(body)
             return
         self._json(404, {"error": "not_found"})
@@ -229,7 +233,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.state.signed_requests.append(
             {"body": body, "headers": headers, "canonical": canonical}
         )
-        self._json(200, {"ok": True, "runnerId": RUNNER_ID})
+        response = {
+            "schemaVersion": 1,
+            "protocolVersion": REQUEST_PROTOCOL,
+            "status": "accepted",
+            "runnerId": RUNNER_ID,
+            "fingerprint": hashlib.sha256(decode_base64url(self.state.public_key)).hexdigest(),
+            "requestBodySha256": hashlib.sha256(body).hexdigest(),
+            "evidenceClass": "active_local_signing_key_possession",
+        }
+        response.update({field: False for field in RUNNER_PROBE_FALSE_ATTESTATIONS})
+        self._json(200, response)
 
     def _json(self, status, value):
         self._raw_json(
@@ -267,29 +281,29 @@ def check_vector():
     signed = sign_runner_request(
         key,
         method="POST",
-        path="/api/builderwars/runners/probe",
-        body=b'{"a":1}',
+        path=RUNNER_PROBE_PATH,
+        body=RUNNER_PROBE_BODY,
         runner_id="awr1_" + "A" * 22,
-        timestamp="2026-08-25T13:00:00.000Z",
+        timestamp="2026-08-25T12:00:00.000Z",
         nonce_bytes=bytes(range(16)),
     )
     check(material.public_key == "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg", "public key vector")
     check(material.fingerprint == "56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c", "fingerprint vector")
     check(signed.nonce == "AAECAwQFBgcICQoLDA0ODw", "nonce vector")
-    check(signed.body_sha256 == "015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862", "body digest vector")
+    check(signed.body_sha256 == "1aa3fcaa140a9ff20462c086d284d4afcadc4d1ddaf901da62ca02b414fd842f", "body digest vector")
     expected = (
         "agentwars.runner_request.v1\n"
         "method:POST\n"
-        "path:/api/builderwars/runners/probe\n"
-        "body-sha256:015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862\n"
-        "timestamp:2026-08-25T13:00:00.000Z\n"
+        f"path:{RUNNER_PROBE_PATH}\n"
+        "body-sha256:1aa3fcaa140a9ff20462c086d284d4afcadc4d1ddaf901da62ca02b414fd842f\n"
+        "timestamp:2026-08-25T12:00:00.000Z\n"
         "nonce:AAECAwQFBgcICQoLDA0ODw\n"
         "runner-id:awr1_AAAAAAAAAAAAAAAAAAAAAA\n"
     )
     check(signed.canonical == expected, "canonical message exact")
     check(signed.canonical.endswith("\n") and not signed.canonical.endswith("\n\n"), "TypeScript join emits one trailing LF")
     check("\r" not in signed.canonical, "canonical message contains no CR")
-    check(signed.signature == "YoZI7mmg43q04TUyutiQvQgusUhS_9NsrC-tdnH6KKLUZaL5XaFgCBLri_Y5aTnxTd7EIPm8BMPgfnUV6d4HCA", "signature vector")
+    check(signed.signature == "FATK2J0R9j77xCut44eEfz7ovRcY7Xv1y6J2BgilIS65yh4LSX4zCUDz2UI2upX63PwNGf3PA1h9E6HKgzpDBA", "signature vector")
     key.public_key().verify(decode_base64url(signed.signature), signed.canonical.encode("utf-8"))
     check(set(signed.headers) == {
         "Content-Type", "agentwars-protocol", "agentwars-runner-id",
@@ -452,8 +466,8 @@ def check_state_and_roundtrip():
             signed = sign_runner_request(
                 second_key,
                 method="POST",
-                path="/api/builderwars/runners/probe",
-                body=b'{"probe":1}',
+                path=RUNNER_PROBE_PATH,
+                body=RUNNER_PROBE_BODY,
                 runner_id=RUNNER_ID,
             )
             generated_nonces = {signed.nonce}
@@ -462,15 +476,21 @@ def check_state_and_roundtrip():
                     sign_runner_request(
                         second_key,
                         method="POST",
-                        path="/api/builderwars/runners/probe",
+                        path=RUNNER_PROBE_PATH,
                         body=json.dumps({"probe": probe}, separators=(",", ":")).encode("utf-8"),
                         runner_id=RUNNER_ID,
                     ).nonce
                 )
             check(len(generated_nonces) == 64, "generated request nonces are fresh across 64 signings")
             status, payload, _raw = send_signed_request(origin=origin, signed=signed)
-            check(status == 200 and payload == {"ok": True, "runnerId": RUNNER_ID}, "signed request roundtrip")
-            check(server_state.signed_requests[-1]["body"] == b'{"probe":1}', "signed body bytes exact")
+            probe = validate_probe_response(
+                payload,
+                runner_id=RUNNER_ID,
+                fingerprint=second_profile["fingerprint"],
+                request_body_sha256=signed.body_sha256,
+            )
+            check(status == 200 and probe.runner_id == RUNNER_ID, "signed probe roundtrip")
+            check(server_state.signed_requests[-1]["body"] == RUNNER_PROBE_BODY, "signed body bytes exact")
             expect_error(lambda: send_signed_request(origin=origin, signed=signed), RunnerHttpError, "HTTP 409")
             check(len(server_state.signed_requests) == 1, "replay not accepted")
 
@@ -696,6 +716,47 @@ def check_claim_response_and_cli_argv():
             ),
             RunnerClientError,
         )
+
+    probe_base = {
+        "schemaVersion": 1,
+        "protocolVersion": REQUEST_PROTOCOL,
+        "status": "accepted",
+        "runnerId": RUNNER_ID,
+        "fingerprint": "f" * 64,
+        "requestBodySha256": "d" * 64,
+        "evidenceClass": "active_local_signing_key_possession",
+        **{field: False for field in RUNNER_PROBE_FALSE_ATTESTATIONS},
+    }
+    result = validate_probe_response(
+        probe_base,
+        runner_id=RUNNER_ID,
+        fingerprint="f" * 64,
+        request_body_sha256="d" * 64,
+    )
+    check(result.runner_id == RUNNER_ID, "exact runner probe response")
+    probe_hostiles = [
+        {**probe_base, "extra": True},
+        {key: value for key, value in probe_base.items() if key != "status"},
+        {**probe_base, "schemaVersion": True},
+        {**probe_base, "schemaVersion": 1.0},
+        {**probe_base, "protocolVersion": PAIRING_CLAIM_PATH},
+        {**probe_base, "status": "Accepted"},
+        {**probe_base, "runnerId": "awr1_" + "Z" * 22},
+        {**probe_base, "fingerprint": "0" * 64},
+        {**probe_base, "requestBodySha256": "0" * 64},
+        {**probe_base, "evidenceClass": "model_attested"},
+        *({**probe_base, field: True} for field in RUNNER_PROBE_FALSE_ATTESTATIONS),
+    ]
+    for hostile in probe_hostiles:
+        expect_error(
+            lambda hostile=hostile: validate_probe_response(
+                hostile,
+                runner_id=RUNNER_ID,
+                fingerprint="f" * 64,
+                request_body_sha256="d" * 64,
+            ),
+            RunnerClientError,
+        )
     process = subprocess.run(
         [sys.executable, os.path.join(ROOT, "bin", "agentwars.py"), "runner", "pair", PAIRING_SECRET],
         cwd=ROOT,
@@ -763,6 +824,83 @@ def check_claim_response_and_cli_argv():
             argparse.ArgumentTypeError,
             "1 to 60",
         )
+
+    cli_key = Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
+    cli_material = public_key_material(cli_key)
+    cli_profile = {
+        "localState": "runner_id_recorded_unverified",
+        "runnerId": RUNNER_ID,
+        "endpointOrigin": "https://nymrel.com",
+        "fingerprint": cli_material.fingerprint,
+    }
+
+    class FakeSecret:
+        @staticmethod
+        def reveal():
+            return PASSPHRASE
+
+    class FakeStore:
+        @staticmethod
+        def load_profile(challenge_id):
+            check(challenge_id == CHALLENGE_ID, "probe loads the exact challenge")
+            return cli_profile
+
+        @staticmethod
+        def load_key(profile, passphrase):
+            check(profile is cli_profile and passphrase == PASSPHRASE, "probe loads the exact encrypted key")
+            return cli_key
+
+    def accepted_probe(*, origin, signed, timeout_seconds):
+        check(origin == "https://nymrel.com" and timeout_seconds == 15, "probe keeps origin and timeout")
+        response = {
+            "schemaVersion": 1,
+            "protocolVersion": REQUEST_PROTOCOL,
+            "status": "accepted",
+            "runnerId": signed.runner_id,
+            "fingerprint": cli_material.fingerprint,
+            "requestBodySha256": signed.body_sha256,
+            "evidenceClass": "active_local_signing_key_possession",
+            **{field: False for field in RUNNER_PROBE_FALSE_ATTESTATIONS},
+        }
+        raw = json.dumps(response, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return 200, response, raw
+
+    original_store = cli.RunnerStateStore
+    original_existing_prompt = cli._existing_key_passphrase
+    original_send_signed_request = cli.send_signed_request
+    try:
+        cli.RunnerStateStore = lambda _state_dir: FakeStore()
+        cli._existing_key_passphrase = lambda: FakeSecret()
+        cli.send_signed_request = accepted_probe
+        probe_stdout = io.StringIO()
+        with contextlib.redirect_stdout(probe_stdout):
+            probe_status = cli.cmd_runner_probe(
+                argparse.Namespace(challenge_id=CHALLENGE_ID, state_dir=None, timeout=15)
+            )
+        probe_output = probe_stdout.getvalue()
+        check(probe_status == 0, "first-class probe command succeeds")
+        check("exact active-key probe contract" in probe_output, "probe reports bounded success")
+        check("attestations remain false" in probe_output, "probe reports trust boundary")
+        check(PASSPHRASE.decode("utf-8") not in probe_output, "probe never prints the key passphrase")
+
+        def overstated_probe(**kwargs):
+            status, response, raw = accepted_probe(**kwargs)
+            response = {**response, "modelAttested": True}
+            return status, response, raw
+
+        cli.send_signed_request = overstated_probe
+        expect_error(
+            lambda: cli.cmd_runner_probe(
+                argparse.Namespace(challenge_id=CHALLENGE_ID, state_dir=None, timeout=15)
+            ),
+            RunnerClientError,
+            "modelAttested",
+        )
+    finally:
+        cli.RunnerStateStore = original_store
+        cli._existing_key_passphrase = original_existing_prompt
+        cli.send_signed_request = original_send_signed_request
+
     check(cli._looks_like_secret_option("--pas=value"), "abbreviated secret option recognized")
     check(not cli._looks_like_secret_option("--path"), "ordinary path option is not secret-shaped")
     original_hidden_prompt = cli._hidden_prompt

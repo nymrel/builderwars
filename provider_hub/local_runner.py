@@ -38,8 +38,22 @@ PAIRING_PROTOCOL = "agentwars.runner_pairing.v1"
 REQUEST_PROTOCOL = "agentwars.runner_request.v1"
 PRODUCTION_ORIGIN = "https://nymrel.com"
 PAIRING_CLAIM_PATH = "/api/builderwars/runners/pairing/claim"
+RUNNER_PROBE_PATH = "/api/builderwars/runners/probe"
+RUNNER_PROBE_BODY = b'{"probe":1}'
+RUNNER_PROBE_EVIDENCE_CLASS = "active_local_signing_key_possession"
 MAX_HTTP_BYTES = 65_536
 MAX_BODY_BYTES = 65_536
+
+RUNNER_PROBE_FALSE_ATTESTATIONS = (
+    "providerAccountAttested",
+    "planEntitlementAttested",
+    "billingRouteAttested",
+    "modelAttested",
+    "personAttested",
+    "runtimeAttested",
+    "harnessExecutionAttested",
+    "matchExecutionAttested",
+)
 
 _PAIRING_SECRET_RE = re.compile(
     r"^awp1_([A-Za-z0-9_-]{22})_([A-Za-z0-9_-]{32})$"
@@ -82,6 +96,14 @@ class ClaimResult:
     challenge_id: str
     state: str
     fingerprint: str
+
+
+@dataclass(frozen=True)
+class ProbeResult:
+    runner_id: str
+    fingerprint: str
+    request_body_sha256: str
+    evidence_class: str
 
 
 @dataclass(frozen=True)
@@ -353,6 +375,61 @@ def validate_claim_response(value: object, *, challenge_id: str, fingerprint: st
         challenge_id=value["challengeId"],
         state=value["state"],
         fingerprint=value["fingerprint"],
+    )
+
+
+def validate_probe_response(
+    value: object,
+    *,
+    runner_id: str,
+    fingerprint: str,
+    request_body_sha256: str,
+) -> ProbeResult:
+    expected = {
+        "schemaVersion",
+        "protocolVersion",
+        "status",
+        "runnerId",
+        "fingerprint",
+        "requestBodySha256",
+        "evidenceClass",
+        *RUNNER_PROBE_FALSE_ATTESTATIONS,
+    }
+    if not isinstance(value, dict) or set(value) != expected:
+        raise RunnerClientError("runner probe returned an invalid response contract")
+    if type(value["schemaVersion"]) is not int or value["schemaVersion"] != 1:
+        raise RunnerClientError("runner probe returned an unsupported schema version")
+    if value["protocolVersion"] != REQUEST_PROTOCOL:
+        raise RunnerClientError("runner probe returned an unsupported protocol")
+    if value["status"] != "accepted":
+        raise RunnerClientError("runner probe was not accepted")
+    expected_runner_id = validate_runner_id(runner_id)
+    if not isinstance(value["runnerId"], str) or not hmac.compare_digest(
+        value["runnerId"], expected_runner_id
+    ):
+        raise RunnerClientError("runner probe response changed the runner id")
+    expected_fingerprint = validate_fingerprint(fingerprint)
+    if not isinstance(value["fingerprint"], str) or not hmac.compare_digest(
+        value["fingerprint"], expected_fingerprint
+    ):
+        raise RunnerClientError("runner probe response changed the key fingerprint")
+    if (
+        not isinstance(request_body_sha256, str)
+        or _FINGERPRINT_RE.fullmatch(request_body_sha256) is None
+        or not isinstance(value["requestBodySha256"], str)
+        or not hmac.compare_digest(value["requestBodySha256"], request_body_sha256)
+    ):
+        raise RunnerClientError("runner probe response changed the request body digest")
+    if value["evidenceClass"] != RUNNER_PROBE_EVIDENCE_CLASS:
+        raise RunnerClientError("runner probe returned an unsupported evidence class")
+    for field in RUNNER_PROBE_FALSE_ATTESTATIONS:
+        if value[field] is not False:
+            raise RunnerClientError(f"runner probe must keep {field} false")
+    return ProbeResult(
+        runner_id=value["runnerId"],
+        fingerprint=value["fingerprint"],
+        request_body_sha256=value["requestBodySha256"],
+        evidence_class=value["evidenceClass"],
     )
 
 

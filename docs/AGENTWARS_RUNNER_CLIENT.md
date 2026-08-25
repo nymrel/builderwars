@@ -1,9 +1,10 @@
 # AgentWars customer-local runner client
 
 Status: local release candidate. It is not independently accepted, integrated
-into canonical main, connected to a production account, or deployed. The
-Nymrel web pairing candidate is separately frozen and disabled; a genuine
-signed request and genuine model-played match remain launch gates.
+into canonical main, connected to a production account, or deployed. The exact
+Nymrel web candidate at `b68428f` now includes the matching signed probe route,
+but remains a separate local candidate. A production-account signed journey
+and a genuine model-played match remain launch gates.
 
 ## What this client does
 
@@ -74,16 +75,32 @@ agentwars runner activate `
 ```
 
 The local client labels this id `owner-entered and unverified`. Merely typing
-an id cannot establish account approval or an active server record. A future
-signed route still has to load the current active key and accept the exact
-signature. The web candidate must expose a copyable full runner id before this
-journey can open.
+an id cannot establish account approval or an active server record. The signed
+probe still has to load the current active key and accept the exact signature.
 
 List public local state without decrypting a key:
 
 ```powershell
 agentwars runner list
 ```
+
+## Probe the active signing key
+
+The dedicated probe signs the exact body `{"probe":1}` for the exact path
+`/api/builderwars/runners/probe`, requires HTTP 200, and validates the complete
+response schema, runner id, fingerprint, request-body digest, evidence class,
+and every false attestation. It does not persist a stronger local trust state;
+each run uses a fresh timestamp and nonce.
+
+```powershell
+agentwars runner probe `
+  --challenge-id CHALLENGE_ID
+```
+
+An accepted probe is evidence only that the configured server accepted
+possession of the active local Ed25519 key. It does not attest a provider
+account, subscription, billing route, model, person, runtime, harness
+execution, or match execution.
 
 ## Sign one exact request
 
@@ -197,9 +214,10 @@ false. It makes no live provider or Nymrel request.
 
 ## Remaining release gates
 
-- independently review and integrate the exact Nymrel web and exact CLI tips;
-- expose the complete server-issued runner id after browser confirmation;
-- add one released route that calls the frozen signed-request verifier;
+- independently review and integrate the exact Nymrel `b68428f` web tip and
+  the exact CLI tip;
+- release the candidate signed probe route and confirm that the browser exposes
+  the complete server-issued runner id after account approval;
 - run a real account create → secret → local claim → fingerprint approval →
   signed request → revocation → delete journey;
 - run a genuine model-influenced, replay-verified match through that runner;

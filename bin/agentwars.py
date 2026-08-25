@@ -5,6 +5,7 @@ Install ``bin`` on PATH and use:
 
     agentwars runner pair ...
     agentwars runner activate --challenge-id ... --runner-id ...
+    agentwars runner probe --challenge-id ...
     agentwars runner request ...
 
 Pairing secrets and key passphrases are accepted only through no-echo prompts.
@@ -32,6 +33,8 @@ from provider_hub.catalog import PROVIDER_IDS  # noqa: E402
 from provider_hub.local_runner import (  # noqa: E402
     MAX_BODY_BYTES,
     PRODUCTION_ORIGIN,
+    RUNNER_PROBE_BODY,
+    RUNNER_PROBE_PATH,
     RunnerClientError,
     claim_runner,
     digest_harness_file,
@@ -39,6 +42,7 @@ from provider_hub.local_runner import (  # noqa: E402
     parse_pairing_secret,
     send_signed_request,
     sign_runner_request,
+    validate_probe_response,
 )
 from provider_hub.runner_state import RunnerStateStore  # noqa: E402
 from provider_hub.secrets import SecretValue  # noqa: E402
@@ -175,6 +179,43 @@ def cmd_runner_list(args) -> int:
         print(f"  digest    : {profile['harnessDigest']}")
         print(f"  fingerprint: {grouped_fingerprint(profile['fingerprint'])}")
         print("  attestations: provider/model/runtime/execution all false")
+    return 0
+
+
+def cmd_runner_probe(args) -> int:
+    store = RunnerStateStore(args.state_dir)
+    profile = store.load_profile(args.challenge_id)
+    if profile["localState"] != "runner_id_recorded_unverified" or profile["runnerId"] is None:
+        raise RunnerClientError("record the browser-issued runner id before probing the active key")
+    passphrase = _existing_key_passphrase()
+    key = store.load_key(profile, passphrase.reveal())
+    signed = sign_runner_request(
+        key,
+        method="POST",
+        path=RUNNER_PROBE_PATH,
+        body=RUNNER_PROBE_BODY,
+        runner_id=profile["runnerId"],
+    )
+    status, payload, raw = send_signed_request(
+        origin=profile["endpointOrigin"],
+        signed=signed,
+        timeout_seconds=args.timeout,
+    )
+    if status != 200:
+        raise RunnerClientError("runner probe returned a contradictory HTTP status")
+    result = validate_probe_response(
+        payload,
+        runner_id=profile["runnerId"],
+        fingerprint=profile["fingerprint"],
+        request_body_sha256=signed.body_sha256,
+    )
+    print("Server returned the exact active-key probe contract.")
+    print(f"runner id   : {result.runner_id}")
+    print(f"fingerprint : {grouped_fingerprint(result.fingerprint)}")
+    print(f"request sha : {result.request_body_sha256}")
+    print(f"response sha: {hashlib.sha256(raw).hexdigest()}")
+    print("This response is evidence only that the configured server accepted possession of this active local signing key.")
+    print("Provider account, subscription, billing, model, person, runtime, harness, and match attestations remain false.")
     return 0
 
 
@@ -322,6 +363,15 @@ def build_parser() -> argparse.ArgumentParser:
     listing = runner_commands.add_parser("list", help="show public local runner metadata")
     listing.add_argument("--state-dir")
     listing.set_defaults(func=cmd_runner_list)
+
+    probe = runner_commands.add_parser(
+        "probe",
+        help="verify that the configured server accepts the recorded active signing key",
+    )
+    probe.add_argument("--challenge-id", required=True)
+    probe.add_argument("--state-dir")
+    probe.add_argument("--timeout", type=_bounded_timeout, default=15)
+    probe.set_defaults(func=cmd_runner_probe)
 
     request = runner_commands.add_parser(
         "request",
