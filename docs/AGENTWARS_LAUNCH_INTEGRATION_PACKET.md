@@ -45,6 +45,7 @@ convert any pending or blocked verdict into approval.
 ## Validation floor
 
 - `python bin/check_provider_hub.py`
+- `python bin/check_agentwars_runner.py`
 - `python bin/check_agent_passport.py`
 - `python bin/check_competition_matrix.py`
 - `python bin/build_verifier.py --check`
