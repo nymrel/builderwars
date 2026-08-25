@@ -25,6 +25,7 @@ Read it before you run it. It is meant to be read.
 import argparse
 import atexit
 import base64
+import binascii
 import json
 import os
 import shutil
@@ -14585,16 +14586,76 @@ SOURCE_SETS = {
 }
 DEFAULT_ENGINE_DIGEST = "da275db125281da2a09decdddf9ddabacc741332e073e44f7371bba565d8be3a"
 
+_MAX_SOURCE_FILES = 256
+_MAX_SOURCE_BYTES = 2 * 1024 * 1024
+_MAX_SOURCE_SET_BYTES = 16 * 1024 * 1024
+_MAX_SOURCE_PATH_BYTES = 240
+_SOURCE_PATH_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/"
+)
+_REQUIRED_ENGINE_SOURCES = frozenset(
+    ("__init__.py", "canonical.py", "integrity.py", "replay.py")
+)
+
+
+def _decode_sources(sources):
+    if not isinstance(sources, dict) or not (1 <= len(sources) <= _MAX_SOURCE_FILES):
+        raise ValueError("embedded source map size is outside the supported bounds")
+    decoded = []
+    seen = set()
+    total = 0
+    for rel, value in sources.items():
+        if not isinstance(rel, str):
+            raise ValueError("embedded source path must be a string")
+        try:
+            encoded = rel.encode("ascii")
+        except UnicodeEncodeError as error:
+            raise ValueError("embedded source path must be ASCII") from error
+        parts = rel.split("/")
+        folded = rel.casefold()
+        if (
+            not encoded
+            or len(encoded) > _MAX_SOURCE_PATH_BYTES
+            or rel.startswith("/")
+            or "\\" in rel
+            or ":" in rel
+            or folded in seen
+            or any(char not in _SOURCE_PATH_CHARS for char in rel)
+            or any(not part or part in (".", "..") for part in parts)
+            or any(len(part.encode("ascii")) > 100 for part in parts)
+            or not parts[-1].endswith(".py")
+        ):
+            raise ValueError("embedded source path is not canonical and package-relative")
+        seen.add(folded)
+        if not isinstance(value, str) or len(value) > ((_MAX_SOURCE_BYTES + 2) // 3) * 4:
+            raise ValueError("embedded source is not a bounded string")
+        try:
+            raw = base64.b64decode(value, validate=True)
+        except (ValueError, binascii.Error) as error:
+            raise ValueError("embedded source is not strict base64") from error
+        if base64.b64encode(raw).decode("ascii") != value or len(raw) > _MAX_SOURCE_BYTES:
+            raise ValueError("embedded source bytes are not canonical or bounded")
+        total += len(raw)
+        if total > _MAX_SOURCE_SET_BYTES:
+            raise ValueError("embedded source set exceeds the total byte limit")
+        decoded.append((rel, parts, raw))
+    if not _REQUIRED_ENGINE_SOURCES.issubset(sources):
+        raise ValueError("embedded source set is missing required engine modules")
+    return decoded
+
 
 def _unpack(sources):
+    decoded = _decode_sources(sources)
     root = tempfile.mkdtemp(prefix="builderwars-verify-")
     atexit.register(shutil.rmtree, root, True)
-    pkg = os.path.join(root, "arena")
-    for rel, b64 in sources.items():
-        dest = os.path.join(pkg, *rel.split("/"))
+    pkg = os.path.abspath(os.path.join(root, "arena"))
+    for _rel, parts, raw in decoded:
+        dest = os.path.abspath(os.path.join(pkg, *parts))
+        if os.path.commonpath((pkg, dest)) != pkg:
+            raise ValueError("embedded source path escapes the package root")
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, "wb") as fh:          # binary: hashes are over raw bytes
-            fh.write(base64.b64decode(b64))
+            fh.write(raw)
     sys.path.insert(0, root)
     return root
 
@@ -14666,7 +14727,11 @@ def main():
 
     path, source_url = _fetch(args.match)
     recorded_digest, signed_present, transcript_preflight_error = _inspect_transcript(path)
-    selected_digest = recorded_digest if recorded_digest in SOURCE_SETS else DEFAULT_ENGINE_DIGEST
+    selected_digest = (
+        recorded_digest
+        if isinstance(recorded_digest, str) and recorded_digest in SOURCE_SETS
+        else DEFAULT_ENGINE_DIGEST
+    )
     signed_verifier_capable = "passport.py" in SOURCE_SETS[selected_digest]
     _unpack(SOURCE_SETS[selected_digest])
     from arena.replay import verify          # the digest-matched referee verifier

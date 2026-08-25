@@ -32,6 +32,7 @@ Regenerate after ANY change under `arena/`:
 
 import argparse
 import base64
+import binascii
 import glob
 import hashlib
 import json
@@ -46,6 +47,154 @@ OUT = os.path.join(ROOT, "verify.py")
 SNAPSHOT_DIR = os.path.join(ROOT, "bin", "verifier_snapshots")
 
 DEFAULT_BASE = "https://nymrel.com/builderwars"
+
+_MAX_SOURCE_FILES = 256
+_MAX_SOURCE_BYTES = 2 * 1024 * 1024
+_MAX_SOURCE_SET_BYTES = 16 * 1024 * 1024
+_MAX_SNAPSHOT_BYTES = 24 * 1024 * 1024
+_MAX_SOURCE_PATH_BYTES = 240
+_SOURCE_PATH_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/"
+)
+_REQUIRED_ENGINE_SOURCES = frozenset(
+    {"__init__.py", "canonical.py", "integrity.py", "replay.py"}
+)
+
+
+class SnapshotError(ValueError):
+    """A preserved verifier source set failed its custody contract."""
+
+
+class _DuplicateSnapshotKey(SnapshotError):
+    pass
+
+
+def _object_without_duplicate_snapshot_keys(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise _DuplicateSnapshotKey("duplicate object key")
+        value[key] = item
+    return value
+
+
+def _valid_digest(value):
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and value == value.lower()
+        and all(char in "0123456789abcdef" for char in value)
+    )
+
+
+def _validate_source_path(rel):
+    if not isinstance(rel, str):
+        raise SnapshotError("source path must be a string")
+    try:
+        encoded = rel.encode("ascii")
+    except UnicodeEncodeError as error:
+        raise SnapshotError("source path must be ASCII") from error
+    parts = rel.split("/")
+    if (
+        not encoded
+        or len(encoded) > _MAX_SOURCE_PATH_BYTES
+        or rel.startswith("/")
+        or "\\" in rel
+        or ":" in rel
+        or any(char not in _SOURCE_PATH_CHARS for char in rel)
+        or any(not part or part in (".", "..") for part in parts)
+        or any(len(part.encode("ascii")) > 100 for part in parts)
+        or not parts[-1].endswith(".py")
+    ):
+        raise SnapshotError("source path is not a canonical package-relative Python path")
+    return parts
+
+
+def _engine_walk_order(paths):
+    """Reconstruct integrity.engine_files' files-before-subdirs walk order."""
+    root = {"files": {}, "dirs": {}}
+    for rel in paths:
+        parts = _validate_source_path(rel)
+        node = root
+        for part in parts[:-1]:
+            folded = part.casefold()
+            if folded in node["files"]:
+                raise SnapshotError("source path collides with a file on case-insensitive hosts")
+            entry = node["dirs"].setdefault(folded, (part, {"files": {}, "dirs": {}}))
+            if entry[0] != part:
+                raise SnapshotError("source paths collide on case-insensitive hosts")
+            node = entry[1]
+        name = parts[-1]
+        folded = name.casefold()
+        if folded in node["dirs"] or folded in node["files"]:
+            raise SnapshotError("source paths collide on case-insensitive hosts")
+        node["files"][folded] = (name, rel)
+
+    ordered = []
+
+    def walk(node):
+        for _folded, (_name, rel) in sorted(
+            node["files"].items(), key=lambda row: row[1][0]
+        ):
+            ordered.append(rel)
+        for _folded, (_name, child) in sorted(
+            node["dirs"].items(), key=lambda row: row[1][0]
+        ):
+            walk(child)
+
+    walk(root)
+    return ordered
+
+
+def _decode_source_map(sources):
+    if not isinstance(sources, dict) or not (1 <= len(sources) <= _MAX_SOURCE_FILES):
+        raise SnapshotError("source map size is outside the supported bounds")
+    decoded = {}
+    total = 0
+    for rel, value in sources.items():
+        _validate_source_path(rel)
+        if not isinstance(value, str) or len(value) > ((_MAX_SOURCE_BYTES + 2) // 3) * 4:
+            raise SnapshotError("encoded source is not a bounded string")
+        try:
+            raw = base64.b64decode(value, validate=True)
+        except (binascii.Error, ValueError) as error:
+            raise SnapshotError("source is not strict base64") from error
+        if base64.b64encode(raw).decode("ascii") != value:
+            raise SnapshotError("source base64 is not canonical")
+        if len(raw) > _MAX_SOURCE_BYTES:
+            raise SnapshotError("source exceeds the per-file byte limit")
+        total += len(raw)
+        if total > _MAX_SOURCE_SET_BYTES:
+            raise SnapshotError("source set exceeds the total byte limit")
+        decoded[rel] = raw
+    if not _REQUIRED_ENGINE_SOURCES.issubset(decoded):
+        raise SnapshotError("source set is missing required engine modules")
+    return [(rel, decoded[rel]) for rel in _engine_walk_order(decoded)]
+
+
+def _load_snapshot(path):
+    if os.path.getsize(path) > _MAX_SNAPSHOT_BYTES:
+        raise SnapshotError("snapshot exceeds the byte limit")
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            payload = json.load(
+                fh, object_pairs_hook=_object_without_duplicate_snapshot_keys
+            )
+    except (OSError, UnicodeError, ValueError, RecursionError) as error:
+        if isinstance(error, SnapshotError):
+            raise
+        raise SnapshotError(f"snapshot JSON is invalid ({error.__class__.__name__})") from error
+    if not isinstance(payload, dict) or set(payload) != {"engineDigest", "sources"}:
+        raise SnapshotError("snapshot must contain exactly engineDigest and sources")
+    engine_digest = payload["engineDigest"]
+    if not _valid_digest(engine_digest):
+        raise SnapshotError("engineDigest must be 64-char lowercase hex")
+    if os.path.basename(path) != f"{engine_digest}.json":
+        raise SnapshotError("snapshot filename must match engineDigest")
+    files = _decode_source_map(payload["sources"])
+    if digest_for(files) != engine_digest:
+        raise SnapshotError("snapshot sources do not bind to engineDigest")
+    return engine_digest, encode_sources(files)
 
 
 def collect():
@@ -94,14 +243,41 @@ def snapshot_current():
         "sources": encode_sources(files),
     }
     if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as fh:
-            if json.load(fh) != payload:
-                raise SystemExit(f"snapshot collision for {engine_digest}")
+        try:
+            existing_digest, existing_sources = _load_snapshot(path)
+        except SnapshotError as error:
+            raise SystemExit(
+                f"invalid existing verifier snapshot {engine_digest}: {error}"
+            ) from error
+        if existing_digest != engine_digest or existing_sources != payload["sources"]:
+            raise SystemExit(f"snapshot collision for {engine_digest}")
         print(f"snapshot already current: {os.path.relpath(path, ROOT)}")
         return path
-    with open(path, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(payload, fh, sort_keys=True, separators=(",", ":"))
-        fh.write("\n")
+    serialized = (
+        json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode("utf-8")
+    fd, staged = tempfile.mkstemp(prefix=".verifier-snapshot-", suffix=".tmp", dir=SNAPSHOT_DIR)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(serialized)
+            fh.flush()
+            os.fsync(fh.fileno())
+        try:
+            os.link(staged, path)
+        except FileExistsError:
+            try:
+                existing_digest, existing_sources = _load_snapshot(path)
+            except SnapshotError as error:
+                raise SystemExit(
+                    f"invalid concurrently-created verifier snapshot {engine_digest}: {error}"
+                ) from error
+            if existing_digest != engine_digest or existing_sources != payload["sources"]:
+                raise SystemExit(f"snapshot collision for {engine_digest}")
+    finally:
+        try:
+            os.unlink(staged)
+        except FileNotFoundError:
+            pass
     print(f"snapshotted {len(files)} files -> {os.path.relpath(path, ROOT)}")
     return path
 
@@ -111,16 +287,20 @@ def source_sets(current_files):
     sets = {}
     if os.path.isdir(SNAPSHOT_DIR):
         for path in sorted(glob.glob(os.path.join(SNAPSHOT_DIR, "*.json"))):
-            with open(path, "r", encoding="utf-8") as fh:
-                payload = json.load(fh)
-            engine_digest = payload.get("engineDigest")
-            sources = payload.get("sources")
-            if not isinstance(engine_digest, str) or not isinstance(sources, dict):
-                raise SystemExit(f"invalid verifier snapshot: {path}")
+            try:
+                engine_digest, sources = _load_snapshot(path)
+            except SnapshotError as error:
+                raise SystemExit(
+                    f"invalid verifier snapshot {os.path.basename(path)}: {error}"
+                ) from error
             if engine_digest in sets and sets[engine_digest] != sources:
                 raise SystemExit(f"duplicate verifier digest with different bytes: {engine_digest}")
             sets[engine_digest] = sources
-    sets[digest_for(current_files)] = encode_sources(current_files)
+    current_digest = digest_for(current_files)
+    current_sources = encode_sources(_decode_source_map(encode_sources(current_files)))
+    if current_digest in sets and sets[current_digest] != current_sources:
+        raise SystemExit(f"current verifier digest collides with preserved bytes: {current_digest}")
+    sets[current_digest] = current_sources
     return sets
 
 
@@ -167,6 +347,7 @@ Read it before you run it. It is meant to be read.
 import argparse
 import atexit
 import base64
+import binascii
 import json
 import os
 import shutil
@@ -181,16 +362,76 @@ BASE = os.environ.get("BUILDERWARS_BASE", "{base}")
 SOURCE_SETS = {source_sets}
 DEFAULT_ENGINE_DIGEST = "{engine_digest}"
 
+_MAX_SOURCE_FILES = 256
+_MAX_SOURCE_BYTES = 2 * 1024 * 1024
+_MAX_SOURCE_SET_BYTES = 16 * 1024 * 1024
+_MAX_SOURCE_PATH_BYTES = 240
+_SOURCE_PATH_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/"
+)
+_REQUIRED_ENGINE_SOURCES = frozenset(
+    ("__init__.py", "canonical.py", "integrity.py", "replay.py")
+)
+
+
+def _decode_sources(sources):
+    if not isinstance(sources, dict) or not (1 <= len(sources) <= _MAX_SOURCE_FILES):
+        raise ValueError("embedded source map size is outside the supported bounds")
+    decoded = []
+    seen = set()
+    total = 0
+    for rel, value in sources.items():
+        if not isinstance(rel, str):
+            raise ValueError("embedded source path must be a string")
+        try:
+            encoded = rel.encode("ascii")
+        except UnicodeEncodeError as error:
+            raise ValueError("embedded source path must be ASCII") from error
+        parts = rel.split("/")
+        folded = rel.casefold()
+        if (
+            not encoded
+            or len(encoded) > _MAX_SOURCE_PATH_BYTES
+            or rel.startswith("/")
+            or "\\\\" in rel
+            or ":" in rel
+            or folded in seen
+            or any(char not in _SOURCE_PATH_CHARS for char in rel)
+            or any(not part or part in (".", "..") for part in parts)
+            or any(len(part.encode("ascii")) > 100 for part in parts)
+            or not parts[-1].endswith(".py")
+        ):
+            raise ValueError("embedded source path is not canonical and package-relative")
+        seen.add(folded)
+        if not isinstance(value, str) or len(value) > ((_MAX_SOURCE_BYTES + 2) // 3) * 4:
+            raise ValueError("embedded source is not a bounded string")
+        try:
+            raw = base64.b64decode(value, validate=True)
+        except (ValueError, binascii.Error) as error:
+            raise ValueError("embedded source is not strict base64") from error
+        if base64.b64encode(raw).decode("ascii") != value or len(raw) > _MAX_SOURCE_BYTES:
+            raise ValueError("embedded source bytes are not canonical or bounded")
+        total += len(raw)
+        if total > _MAX_SOURCE_SET_BYTES:
+            raise ValueError("embedded source set exceeds the total byte limit")
+        decoded.append((rel, parts, raw))
+    if not _REQUIRED_ENGINE_SOURCES.issubset(sources):
+        raise ValueError("embedded source set is missing required engine modules")
+    return decoded
+
 
 def _unpack(sources):
+    decoded = _decode_sources(sources)
     root = tempfile.mkdtemp(prefix="builderwars-verify-")
     atexit.register(shutil.rmtree, root, True)
-    pkg = os.path.join(root, "arena")
-    for rel, b64 in sources.items():
-        dest = os.path.join(pkg, *rel.split("/"))
+    pkg = os.path.abspath(os.path.join(root, "arena"))
+    for _rel, parts, raw in decoded:
+        dest = os.path.abspath(os.path.join(pkg, *parts))
+        if os.path.commonpath((pkg, dest)) != pkg:
+            raise ValueError("embedded source path escapes the package root")
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, "wb") as fh:          # binary: hashes are over raw bytes
-            fh.write(base64.b64decode(b64))
+            fh.write(raw)
     sys.path.insert(0, root)
     return root
 
@@ -262,7 +503,11 @@ def main():
 
     path, source_url = _fetch(args.match)
     recorded_digest, signed_present, transcript_preflight_error = _inspect_transcript(path)
-    selected_digest = recorded_digest if recorded_digest in SOURCE_SETS else DEFAULT_ENGINE_DIGEST
+    selected_digest = (
+        recorded_digest
+        if isinstance(recorded_digest, str) and recorded_digest in SOURCE_SETS
+        else DEFAULT_ENGINE_DIGEST
+    )
     signed_verifier_capable = "passport.py" in SOURCE_SETS[selected_digest]
     _unpack(SOURCE_SETS[selected_digest])
     from arena.replay import verify          # the digest-matched referee verifier
@@ -346,20 +591,33 @@ def build(base_url):
         source_sets=render_source_sets(sets),
         engine_digest=engine_digest,
     )
-    with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(src)
+    fd, staged = tempfile.mkstemp(prefix=".verify-", suffix=".py", dir=ROOT)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(src)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(staged, OUT)
+    finally:
+        try:
+            os.unlink(staged)
+        except FileNotFoundError:
+            pass
     return files, engine_digest, len(sets)
 
 
 def verdict_with_sources(sources, transcript):
     """Run one preserved referee in a fresh interpreter and return its verdict."""
+    decoded = _decode_source_map(sources)
     with tempfile.TemporaryDirectory(prefix="builderwars-check-") as root:
-        package = os.path.join(root, "arena")
-        for rel, b64 in sources.items():
-            path = os.path.join(package, *rel.split("/"))
+        package = os.path.abspath(os.path.join(root, "arena"))
+        for rel, raw in decoded:
+            path = os.path.abspath(os.path.join(package, *rel.split("/")))
+            if os.path.commonpath((package, path)) != package:
+                raise SnapshotError("source path escapes the package root")
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "wb") as fh:
-                fh.write(base64.b64decode(b64))
+                fh.write(raw)
         env = dict(os.environ)
         env["PYTHONPATH"] = root
         proc = subprocess.run(
@@ -381,6 +639,146 @@ def verdict_with_sources(sources, transcript):
             return f"CRASH({proc.stderr.decode('utf-8', 'replace')[:120]})"
 
 
+def check_snapshot_guards():
+    """Exercise the preserved-source parser with release-material attacks."""
+    files = collect()
+    engine_digest = digest_for(files)
+    sources = encode_sources(files)
+    payload = {"engineDigest": engine_digest, "sources": sources}
+    checks = 0
+
+    with tempfile.TemporaryDirectory(prefix="builderwars-snapshot-guards-") as root:
+        path = os.path.join(root, f"{engine_digest}.json")
+
+        def write_payload(value):
+            with open(path, "w", encoding="utf-8", newline="\n") as fh:
+                json.dump(value, fh, sort_keys=True, separators=(",", ":"))
+                fh.write("\n")
+
+        def reject(label, *, value=None, raw=None, target=path):
+            nonlocal checks
+            if raw is not None:
+                with open(target, "w", encoding="utf-8", newline="\n") as fh:
+                    fh.write(raw)
+            else:
+                write_payload(value)
+            try:
+                _load_snapshot(target)
+            except SnapshotError:
+                checks += 1
+                return
+            raise AssertionError(f"snapshot guard accepted {label}")
+
+        write_payload(payload)
+        loaded_digest, loaded_sources = _load_snapshot(path)
+        if loaded_digest != engine_digest or loaded_sources != sources:
+            raise AssertionError("valid snapshot did not round-trip exactly")
+        checks += 1
+
+        reject(
+            "duplicate keys",
+            raw=(
+                '{"engineDigest":"' + engine_digest + '",'
+                '"engineDigest":"' + engine_digest + '","sources":{}}\n'
+            ),
+        )
+
+        for label, hostile_path in (
+            ("forward traversal", "../../escape.py"),
+            ("backslash traversal", "..\\..\\escape.py"),
+            ("drive path", "C:/escape.py"),
+        ):
+            hostile_sources = dict(sources)
+            hostile_sources[hostile_path] = base64.b64encode(b"pass\n").decode("ascii")
+            reject(label, value={"engineDigest": engine_digest, "sources": hostile_sources})
+
+        malformed_b64 = dict(sources)
+        malformed_b64["canonical.py"] = "***"
+        reject(
+            "non-base64 source",
+            value={"engineDigest": engine_digest, "sources": malformed_b64},
+        )
+
+        case_collision = dict(sources)
+        case_collision["CANONICAL.py"] = case_collision["canonical.py"]
+        reject(
+            "case-insensitive source collision",
+            value={"engineDigest": engine_digest, "sources": case_collision},
+        )
+
+        wrong_digest = "0" * 64
+        wrong_path = os.path.join(root, f"{wrong_digest}.json")
+        with open(wrong_path, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(
+                {"engineDigest": wrong_digest, "sources": sources},
+                fh,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            fh.write("\n")
+        with open(wrong_path, "r", encoding="utf-8") as fh:
+            wrong_raw = fh.read()
+        reject(
+            "digest-content mismatch",
+            raw=wrong_raw,
+            target=wrong_path,
+        )
+
+    return checks
+
+
+def check_runtime_unpack_guard():
+    """Prove a tampered embedded path cannot write outside the temp package."""
+    files = collect()
+    engine_digest = digest_for(files)
+    sources = encode_sources(files)
+    handle = tempfile.NamedTemporaryFile(
+        prefix="builderwars-verifier-escape-",
+        suffix=".py",
+        dir=tempfile.gettempdir(),
+        delete=False,
+    )
+    escape_path = handle.name
+    handle.close()
+    os.unlink(escape_path)
+    hostile = dict(sources)
+    hostile["../../" + os.path.basename(escape_path)] = base64.b64encode(
+        b"raise RuntimeError('escaped verifier source')\n"
+    ).decode("ascii")
+    script = HEADER.format(
+        base=DEFAULT_BASE,
+        source_sets=render_source_sets({engine_digest: hostile}),
+        engine_digest=engine_digest,
+    )
+    try:
+        with tempfile.TemporaryDirectory(prefix="builderwars-unpack-guard-") as root:
+            verifier = os.path.join(root, "verify-hostile.py")
+            transcript = os.path.join(root, "empty.jsonl")
+            with open(verifier, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(script)
+            with open(transcript, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write("{}\n")
+            proc = subprocess.run(
+                [sys.executable, verifier, transcript, "--json"],
+                cwd=root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=15,
+            )
+        escaped = os.path.exists(escape_path)
+        marker = b"embedded source path is not canonical and package-relative"
+        if proc.returncode == 0 or escaped or marker not in proc.stderr:
+            raise AssertionError(
+                "standalone verifier path guard did not fail at the intended boundary"
+            )
+    finally:
+        try:
+            os.unlink(escape_path)
+        except FileNotFoundError:
+            pass
+    return 1
+
+
 def check():
     """Conformance: the single file must agree with the package on every transcript.
 
@@ -391,6 +789,12 @@ def check():
     sys.path.insert(0, ROOT)
     from arena.integrity import engine_digest as current_engine_digest
     from arena.replay import verify
+    try:
+        guard_checks = check_snapshot_guards() + check_runtime_unpack_guard()
+    except Exception as error:
+        print(f"snapshot custody guards: FAIL ({error.__class__.__name__}: {error})")
+        return 1
+    print(f"snapshot custody guards: PASS ({guard_checks} adversarial checks)")
     preserved = source_sets(collect())
 
     transcripts = sorted(

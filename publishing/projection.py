@@ -212,7 +212,10 @@ def _verified_passport_row(raw):
             "passport entrant present but the in-engine passport verifier is unavailable"
         ) from error
     except Exception as error:
-        raise PublicationError(f"entrant passport fails offline verification: {error}") from error
+        raise PublicationError(
+            "entrant passport fails offline verification "
+            f"({error.__class__.__name__})"
+        ) from error
     script = raw.get("script")
     if not isinstance(script, dict) or script.get("sha256") != normalized["harnessSha256"]:
         raise PublicationError("entrant passport does not bind the recorded harness digest")
@@ -241,9 +244,14 @@ def public_entrants(header: dict[str, Any]) -> list[dict[str, Any]]:
     raw_rows = header.get("entrants")
     if not isinstance(raw_rows, list) or len(raw_rows) != 2:
         raise PublicationError("public receipts require exactly two entrants")
+    if any(not isinstance(raw, dict) for raw in raw_rows):
+        raise PublicationError("public receipt entrants must be objects")
     rows = []
     for raw in sorted(raw_rows, key=lambda item: item.get("seat", -1)):
-        if not isinstance(raw, dict) or raw.get("seat") not in (0, 1):
+        if (
+            type(raw.get("seat")) is not int
+            or raw.get("seat") not in (0, 1)
+        ):
             raise PublicationError("entrant seats must be exactly 0 and 1")
         name = safe_text(raw.get("name", "unnamed"))
         execution_claim = raw.get("execution_claim", "unspecified")
@@ -378,12 +386,19 @@ def fantasy_scores(state: dict[str, Any] | None) -> list[int] | None:
         raise PublicationError("fantasy final state has malformed players or rosters")
     by_id = {row.get("id"): row for row in players if isinstance(row, dict)}
     metric = "dynasty_points" if state["format"] == "dynasty" else "redraft_points"
+
+    def exact_points(player_id, field):
+        value = by_id[player_id][field]
+        if type(value) is not int:
+            raise PublicationError("fantasy score inputs must be exact integers")
+        return value
+
     try:
-        scores = [sum(by_id[player_id][metric] for player_id in roster) for roster in rosters]
+        scores = [sum(exact_points(player_id, metric) for player_id in roster) for roster in rosters]
         if state["format"] == "qb_surge":
             for seat, roster in enumerate(rosters):
                 scores[seat] += sum(
-                    by_id[player_id]["redraft_points"]
+                    exact_points(player_id, "redraft_points")
                     for player_id in roster
                     if by_id[player_id]["position"] == "QB"
                 )
@@ -471,20 +486,20 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     }
     fixture_id = digest(fixture_core)
     winner = result.get("winner")
-    if winner not in (None, 0, 1):
+    if winner is not None and (type(winner) is not int or winner not in (0, 1)):
         raise PublicationError("result winner must be seat 0, seat 1, or null")
-    final = _final_state(records)
-    scores = (
-        ten_fronts_scores(final)
-        if game_name == "ten_fronts"
-        else fantasy_scores(final)
-    )
-    reason = safe_text(result.get("reason", "verified_result"), 160)
     outcome_status = (
         "void"
         if any(row.get("kind") == "engine_error" for row in records)
         else "final"
     )
+    final = _final_state(records)
+    scores = None if outcome_status == "void" else (
+        ten_fronts_scores(final) if game_name == "ten_fronts" else fantasy_scores(final)
+    )
+    reason = safe_text(result.get("reason", "verified_result"), 160)
+    if outcome_status == "void":
+        winner = None
     result_type = "void" if outcome_status == "void" else (
         "draw" if winner is None else "win"
     )
@@ -522,9 +537,11 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         "outcome": {
             "status": outcome_status,
             "resultType": result_type,
-            "decisive": result.get("decisive") is True,
+            "decisive": outcome_status != "void" and result.get("decisive") is True,
             "winnerSeat": winner,
-            "winnerEntrantId": entrants[winner]["entrantId"] if winner in (0, 1) else None,
+            "winnerEntrantId": (
+                entrants[winner]["entrantId"] if type(winner) is int and winner in (0, 1) else None
+            ),
             "reason": reason,
             "scores": scores,
         },
@@ -607,7 +624,8 @@ def public_clip(receipt: dict[str, Any], records: list[dict[str, Any]]) -> dict[
     else:
         selected, kind, label = legal_moves[-1], "final_accepted_move", "Final accepted move"
     body = selected.get("body", {})
-    seat = body.get("player") if body.get("player") in (0, 1) else None
+    player = body.get("player")
+    seat = player if type(player) is int and player in (0, 1) else None
     internal_seed = {
         "receiptId": receipt["receiptId"],
         "seq": selected.get("seq"),

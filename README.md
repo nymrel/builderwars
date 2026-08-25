@@ -392,6 +392,13 @@ exact embedded snapshot selection all pass. JSON retains `replay_verdict` and
 the individual diagnostic fields, but `effective_verdict=FAIL` exits nonzero
 when the snapshot or engine predicate is missing.
 
+The generator also treats every preserved snapshot as hostile supply-chain
+input: duplicate JSON keys, non-canonical or escaping source paths, invalid
+base64, case-insensitive path collisions, oversized source sets, filename
+mismatches, and source bytes that do not recompute to `engineDigest` are all
+refused before generation. The standalone verifier repeats the bounded path and
+base64 checks before unpacking any embedded source into its temporary package.
+
 ## Built by attacking it
 
 The self-check does not assert the engine works. It attacks the engine and

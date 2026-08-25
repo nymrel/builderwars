@@ -10,11 +10,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unittest.mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "bin"))
 
+from arena import match as match_module  # noqa: E402
+from arena import passport as passport_module  # noqa: E402
 from arena.canonical import GENESIS, chain, digest  # noqa: E402
 from arena.match import run_match  # noqa: E402
 from build_share_bundle import build_manifest  # noqa: E402
@@ -113,6 +116,26 @@ def _scripted_manifest(name, strategy):
         "cmd": [sys.executable, script, "--name", name, "--strategy", strategy],
         "env": [],
         "claimed_model": "scripted-baseline:v1",
+        "execution_claim": "scripted",
+    }
+
+
+def _ten_fronts_manifest(name, strategy):
+    script = os.path.join(ROOT, "entrants", "ten_fronts_model_harness.py")
+    return {
+        "name": name,
+        "cmd": [
+            sys.executable,
+            script,
+            "--name",
+            name,
+            "--strategy",
+            strategy,
+            "--backend",
+            "stub:v1",
+        ],
+        "env": [],
+        "claimed_model": "stub:v1",
         "execution_claim": "scripted",
     }
 
@@ -553,6 +576,157 @@ def _rechained_copy(source, destination, mutate):
             handle.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
 
 
+def check_projection_adversarial_boundaries():
+    with tempfile.TemporaryDirectory(prefix="agentwars-projection-boundary-") as work:
+        forged = os.path.join(work, "forged-winner.jsonl")
+
+        def flip_result(records):
+            result = next(row for row in records if row.get("kind") == "result")
+            winner = result["body"]["winner"]
+            result["body"]["winner"] = 1 - winner
+            result["body"]["points"] = (
+                {"0": 1, "1": 0}
+                if result["body"]["winner"] == 0
+                else {"0": 0, "1": 1}
+            )
+
+        _rechained_copy(REFERENCE, forged, flip_result)
+        expect_publication_error(
+            lambda: project_receipt(forged),
+            "unverified transcript",
+        )
+
+        bool_winner = os.path.join(work, "bool-winner.jsonl")
+
+        def inject_bool_winner(records):
+            result = next(row for row in records if row.get("kind") == "result")
+            result["body"]["winner"] = True
+
+        _rechained_copy(REFERENCE, bool_winner, inject_bool_winner)
+
+        def synthetic_exact_report(path):
+            with open(path, "r", encoding="utf-8") as handle:
+                records = [json.loads(line) for line in handle if line.strip()]
+            return {
+                "effective_verdict": "PASS",
+                "verdict": "PASS",
+                "engine_digest_match": True,
+                "verifier_snapshot_match": True,
+                "engine_digest_recorded": "a" * 64,
+                "chain_head": records[-1]["hash"],
+            }
+
+        with unittest.mock.patch.object(
+            projection_module, "verify_with_snapshot", side_effect=synthetic_exact_report
+        ):
+            expect_publication_error(
+                lambda: project_receipt(bool_winner),
+                "winner must be seat 0",
+            )
+
+        with open(REFERENCE, "r", encoding="utf-8") as handle:
+            header = json.loads(handle.readline())["body"]
+        bool_seat_header = copy.deepcopy(header)
+        bool_seat_header["entrants"][1]["seat"] = True
+        expect_publication_error(
+            lambda: projection_module.public_entrants(bool_seat_header),
+            "entrant seats",
+        )
+        scalar_entrant_header = copy.deepcopy(header)
+        scalar_entrant_header["entrants"][1] = None
+        expect_publication_error(
+            lambda: projection_module.public_entrants(scalar_entrant_header),
+            "entrants must be objects",
+        )
+
+        bool_score_state = {
+            "format": "redraft",
+            "players": [
+                {
+                    "id": 1,
+                    "position": "RB",
+                    "redraft_points": True,
+                    "dynasty_points": 1,
+                }
+            ],
+            "rosters": [[1], []],
+        }
+        expect_publication_error(
+            lambda: projection_module.fantasy_scores(bool_score_state),
+            "exact integers",
+        )
+
+        clip = projection_module.public_clip(
+            {
+                "receiptId": "a" * 64,
+                "fixtureId": "b" * 64,
+                "entrants": [
+                    {"entrantId": "c" * 64},
+                    {"entrantId": "d" * 64},
+                ],
+            },
+            [
+                {
+                    "kind": "move",
+                    "seq": 1,
+                    "hash": "e" * 64,
+                    "body": {"legal": True, "player": True},
+                }
+            ],
+        )
+        require(
+            clip["seat"] is None and clip["entrantId"] is None,
+            "bool player cannot impersonate seat 1 in a public clip",
+        )
+
+        private_marker = os.path.join(work, "private-agent-key.pem")
+        with unittest.mock.patch.object(
+            passport_module,
+            "verify_passport",
+            side_effect=RuntimeError(private_marker),
+        ):
+            try:
+                projection_module._verified_passport_row({"agent_passport": {}})
+            except PublicationError as error:
+                require(private_marker not in str(error), "passport exception text stays private")
+                require("RuntimeError" in str(error), "passport refusal retains only the error class")
+            else:
+                raise AssertionError("synthetic passport failure crossed the public boundary")
+
+        void_out = os.path.join(work, "void")
+        with unittest.mock.patch.object(
+            match_module, "score", side_effect=RuntimeError("synthetic scoring fault")
+        ):
+            void_result = run_match(
+                game_name="ten_fronts",
+                seed=7000,
+                entrants=[
+                    _ten_fronts_manifest("Void Pressure", "value-blitz"),
+                    _ten_fronts_manifest("Void Reserve", "even-pressure"),
+                ],
+                out_dir=void_out,
+                move_timeout_s=5.0,
+            )
+        void_receipt, void_records = project_receipt(void_result["transcript"])
+        final_state = [
+            row["body"]["state"] for row in void_records if row.get("kind") == "state"
+        ][-1]
+        require(any(final_state["scores"]), "void fixture must retain nonzero interim game scores")
+        require(
+            void_receipt["outcome"]
+            == {
+                "status": "void",
+                "resultType": "void",
+                "decisive": False,
+                "winnerSeat": None,
+                "winnerEntrantId": None,
+                "reason": "engine_error",
+                "scores": None,
+            },
+            "verified referee void publishes no score, winner, or decisive claim",
+        )
+
+
 def check_ten_fronts_score_extractor():
     require(ten_fronts_scores({"scores": [319, 226]}) == [319, 226], "canonical scores accepted")
     for hostile in (
@@ -704,6 +878,7 @@ def main():
     check_allowlist_and_parity()
     check_hostile_paths_no_outside_writes()
     check_duplicate_fixture_distinct_receipts()
+    check_projection_adversarial_boundaries()
     check_ten_fronts_score_extractor()
     check_ten_fronts_public_source()
     check_public_safety_and_product_mechanics()
