@@ -411,6 +411,7 @@ _WINDOWS_DEVICE_STEMS = frozenset(
     )
 )
 _MAX_TRANSCRIPT_BYTES = 64 * 1024 * 1024
+_MAX_PREFLIGHT_NODES = 1_000_000
 
 
 def _decode_sources(sources):
@@ -495,6 +496,24 @@ def _object_without_duplicate_keys(pairs):
     return obj
 
 
+def _contains_object_key(value, needle):
+    """Bounded iterative key scan used only for fail-closed trust preflight."""
+    pending = [value]
+    visited = 0
+    while pending:
+        current = pending.pop()
+        visited += 1
+        if visited > _MAX_PREFLIGHT_NODES:
+            raise ValueError("transcript preflight exceeds the object-node limit")
+        if isinstance(current, dict):
+            if needle in current:
+                return True
+            pending.extend(current.values())
+        elif isinstance(current, list):
+            pending.extend(current)
+    return False
+
+
 def _inspect_transcript(path):
     """Return (engine digest, signed-block-present, preflight error).
 
@@ -502,24 +521,57 @@ def _inspect_transcript(path):
     duplicate-key and passport handling. A signed block can never be silently
     interpreted by a legacy-only snapshot.
     """
+    signed = False
     try:
+        header = None
+        header_positions = []
+        record_count = 0
+        row_shape_error = None
         with open(path, "r", encoding="utf-8") as fh:
-            records = [
-                json.loads(line, object_pairs_hook=_object_without_duplicate_keys)
-                for line in fh
-                if line.strip()
-            ]
-        header = next((row for row in records if row.get("kind") == "header"), None)
-        if not isinstance(header, dict):
-            return None, False, "transcript preflight: no header record"
-        body = header.get("body", {{}})
+            for line in fh:
+                if not line.strip():
+                    continue
+                row = json.loads(line, object_pairs_hook=_object_without_duplicate_keys)
+                signed = signed or _contains_object_key(row, "agent_passport")
+                if not isinstance(row, dict):
+                    if row_shape_error is None:
+                        row_shape_error = "transcript preflight: every record must be an object"
+                elif row.get("kind") == "header":
+                    header_positions.append(record_count)
+                    if header is None:
+                        header = row
+                record_count += 1
+        if row_shape_error is not None:
+            return None, signed, row_shape_error
+        if header_positions != [0] or not isinstance(header, dict):
+            return None, signed, "transcript preflight: transcript must open with exactly one header"
+        body = header.get("body")
+        if not isinstance(body, dict):
+            return None, signed, "transcript preflight: header body must be an object"
+        engine = body.get("engine")
+        recorded_digest = engine.get("digest") if isinstance(engine, dict) else None
         entrants = body.get("entrants")
-        signed = isinstance(entrants, list) and any(
+        entrants_are_canonical = (
+            isinstance(entrants, list)
+            and len(entrants) == 2
+            and all(isinstance(row, dict) for row in entrants)
+            and all(type(row.get("seat")) is int for row in entrants)
+            and [row["seat"] for row in entrants] == [0, 1]
+        )
+        if not entrants_are_canonical:
+            return recorded_digest, signed, (
+                "transcript preflight: header must contain exactly ordered entrant seats 0 and 1"
+            )
+        canonical_signed = any(
             isinstance(row, dict) and "agent_passport" in row for row in entrants
         )
-        return body.get("engine", {{}}).get("digest"), signed, None
+        if signed != canonical_signed:
+            return recorded_digest, signed, (
+                "transcript preflight: agent_passport appears outside canonical entrant rows"
+            )
+        return recorded_digest, signed, None
     except Exception as error:
-        return None, False, f"transcript preflight: {{error.__class__.__name__}}: {{error}}"
+        return None, signed, f"transcript preflight: {{error.__class__.__name__}}: {{error}}"
 
 
 def _fetch(arg):
@@ -904,6 +956,89 @@ def check_runtime_unpack_guard():
     return 3
 
 
+def check_runtime_transcript_preflight():
+    """Attack wrapper trust labels independently of the selected referee version."""
+    engine_digest = digest_for(collect())
+    base_header = {
+        "kind": "header",
+        "body": {
+            "engine": {"digest": engine_digest},
+            "entrants": [{"seat": 0}, {"seat": 1}],
+        },
+    }
+
+    def inspect(records):
+        with tempfile.TemporaryDirectory(prefix="builderwars-preflight-") as root:
+            transcript = os.path.join(root, "attack.jsonl")
+            with open(transcript, "w", encoding="utf-8", newline="\n") as fh:
+                for record in records:
+                    fh.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
+            proc = subprocess.run(
+                [sys.executable, OUT, transcript, "--json"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=15,
+            )
+        try:
+            report = json.loads(proc.stdout.decode("utf-8"))
+        except Exception as error:
+            raise AssertionError(
+                f"standalone verifier preflight did not emit JSON: {proc.stderr[:200]!r}"
+            ) from error
+        return proc, report
+
+    proc, report = inspect([base_header])
+    if report.get("transcript_preflight_error") is not None:
+        raise AssertionError("canonical unsigned header failed wrapper preflight")
+    if report.get("signed_passport_present") is not False:
+        raise AssertionError("canonical unsigned header was mislabeled signed")
+
+    signed_header = json.loads(json.dumps(base_header))
+    signed_header["body"]["entrants"][0]["agent_passport"] = {"schema": "attack"}
+    proc, report = inspect([signed_header])
+    if report.get("transcript_preflight_error") is not None:
+        raise AssertionError("canonical signed header failed wrapper structure preflight")
+    if report.get("signed_passport_present") is not True:
+        raise AssertionError("canonical signed header was mislabeled unsigned")
+
+    duplicate = json.loads(json.dumps(base_header))
+    duplicate["body"]["entrants"][1]["agent_passport"] = {"schema": "attack"}
+    proc, report = inspect([base_header, duplicate])
+    if (
+        proc.returncode == 0
+        or report.get("effective_verdict") != "FAIL"
+        or report.get("signed_passport_present") is not True
+        or "exactly one header" not in str(report.get("transcript_preflight_error"))
+    ):
+        raise AssertionError("duplicate signed header did not fail closed in wrapper preflight")
+
+    mapped_entrants = json.loads(json.dumps(base_header))
+    mapped_entrants["body"]["entrants"] = {
+        "0": {"seat": 0, "agent_passport": {"schema": "attack"}},
+        "1": {"seat": 1},
+    }
+    proc, report = inspect([mapped_entrants])
+    if (
+        proc.returncode == 0
+        or report.get("effective_verdict") != "FAIL"
+        or report.get("signed_passport_present") is not True
+        or "ordered entrant seats" not in str(report.get("transcript_preflight_error"))
+    ):
+        raise AssertionError("mapped signed entrants did not fail closed in wrapper preflight")
+
+    misplaced = json.loads(json.dumps(base_header))
+    misplaced["body"]["metadata"] = {"agent_passport": {"schema": "attack"}}
+    proc, report = inspect([misplaced])
+    if (
+        proc.returncode == 0
+        or report.get("effective_verdict") != "FAIL"
+        or report.get("signed_passport_present") is not True
+        or "outside canonical entrant rows" not in str(report.get("transcript_preflight_error"))
+    ):
+        raise AssertionError("misplaced passport block did not fail closed in wrapper preflight")
+    return 5
+
+
 def check():
     """Conformance: the single file must agree with the package on every transcript.
 
@@ -915,7 +1050,11 @@ def check():
     from arena.integrity import engine_digest as current_engine_digest
     from arena.replay import verify
     try:
-        guard_checks = check_snapshot_guards() + check_runtime_unpack_guard()
+        guard_checks = (
+            check_snapshot_guards()
+            + check_runtime_unpack_guard()
+            + check_runtime_transcript_preflight()
+        )
     except Exception as error:
         print(f"snapshot custody guards: FAIL ({error.__class__.__name__}: {error})")
         return 1
