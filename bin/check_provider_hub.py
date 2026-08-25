@@ -36,6 +36,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "bin"))
 
+from provider_hub import catalog as catalog_mod  # noqa: E402
 from provider_hub import pkce as pkce_mod  # noqa: E402
 from provider_hub.catalog import (  # noqa: E402
     CONNECTION_MODES,
@@ -290,6 +291,14 @@ def check_catalog():
     require(not {"local_api_key", "unsupported"} & {
         entry["connection_mode"] for _pid, entry in listing
     }, "reserved modes cannot silently enable a provider")
+    for reserved_mode in ("local_api_key", "unsupported"):
+        raw_entry = copy.deepcopy(catalog_mod._CATALOG["openrouter"])
+        raw_entry["connection_mode"] = reserved_mode
+        expect_error(
+            lambda raw_entry=raw_entry: catalog_mod._freeze(raw_entry),
+            RuntimeError,
+            "reserved connection mode",
+        )
     require(model_required_for("hermes") is True, "hermes needs a model")
     require(backend_kind_for("custom_agent") == "custom_cli", "custom kind")
 
@@ -440,13 +449,14 @@ def check_schemas():
         )
 
     # every envelope validates and roundtrips canonically
+    job_sample = job_payload()
     samples = [
         identity_payload(),
         link_payload(),
         link_v2_payload(),
         pairing_payload(generate_pairing_key()),
         capabilities_payload(),
-        job_payload(),
+        job_sample,
         result_payload(),
     ]
     for sample in samples:
@@ -457,7 +467,7 @@ def check_schemas():
             encode_canonical(decode_strict(canonical)) == canonical,
             "canonical encoding is stable",
         )
-    result_payload(samples[-2])  # binds cleanly against its job fixture
+    result_payload(job_sample)  # binds cleanly against its job fixture
 
     def reject(mutate, fragment):
         for factory in (

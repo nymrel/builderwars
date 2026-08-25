@@ -478,9 +478,9 @@ def _freeze(entry):
         raise RuntimeError(
             f"catalog integrity: bad connection mode {entry['connection_mode']!r}"
         )
-    if entry["connection_mode"] == "unsupported":
+    if entry["connection_mode"] in {"local_api_key", "unsupported"}:
         raise RuntimeError(
-            "catalog integrity: supported provider cannot select unsupported"
+            "catalog integrity: supported provider cannot select a reserved connection mode"
         )
     if entry["credential_custody"] != "customer_only":
         raise RuntimeError("catalog integrity: custody must always be customer_only")
