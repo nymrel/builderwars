@@ -243,7 +243,11 @@ def main():
 
         print("\n=== 2. version identity: same content -> same id; changed field -> different id ===")
         stable = p1["versionId"]
-        changed = []
+        check("same declaration and key reproduce the same version address",
+              p1_again["versionId"] == stable,
+              "identical declarations could fork into different version identities",
+              f"first={stable}; repeated={p1_again['versionId']}")
+        changed = {}
         variants = [
             ("harness", dict(display_name="Alpha", version_label="v1", harness_sha256=fake_harness)),
             ("model", dict(display_name="Alpha", version_label="v1", harness_sha256=real_harness, claimed_model="stub:v2")),
@@ -253,13 +257,19 @@ def main():
         ]
         for label, kw in variants:
             other = sign_passport(key_a, **kw)
-            changed.append(other["versionId"] != stable)
+            changed[label] = other["versionId"] != stable
+        unchanged = sorted(label for label, differs in changed.items() if not differs)
         check("changed harness/model/parent/label/name each produce a new version address",
-              all(changed) and len(set([stable])) == 1,
-              "silent mutation of ranked history would look like training")
+              all(changed.values()),
+              "silent mutation of ranked history would look like training",
+              "all changed fields produced distinct addresses" if not unchanged
+              else f"unchanged addresses: {', '.join(unchanged)}")
 
         print("\n=== 3. adversarial passports are rejected (wrong key, mutation, encodings, bounds) ===")
-        rejects = []
+        controlled_rejects = []
+        accepted = []
+        fixture_errors = []
+        uncontrolled_errors = []
         expect_reject = [
             ("wrong key", lambda: dict(p1, publicKey=base64.b64encode(
                 bytes(range(32))).decode())),
@@ -282,14 +292,34 @@ def main():
         ]
         for label, build in expect_reject:
             try:
-                verify_passport(build())
-            except (PassportError, AttributeError, TypeError):
-                rejects.append(label)
-            except Exception:
-                rejects.append(label + "?uncontrolled")
-        check(f"{len(expect_reject)} hostile passport shapes fail closed", len(rejects) == len(expect_reject),
+                hostile = build()
+            except Exception as error:
+                fixture_errors.append(f"{label}:{type(error).__name__}")
+                continue
+            try:
+                verify_passport(hostile)
+            except PassportError:
+                controlled_rejects.append(label)
+            except Exception as error:
+                uncontrolled_errors.append(f"{label}:{type(error).__name__}")
+            else:
+                accepted.append(label)
+        hostile_contract_ok = (
+            len(controlled_rejects) == len(expect_reject)
+            and not accepted
+            and not fixture_errors
+            and not uncontrolled_errors
+        )
+        hostile_detail = (
+            f"controlled: {', '.join(controlled_rejects)}; "
+            f"accepted: {', '.join(accepted) or 'none'}; "
+            f"fixture errors: {', '.join(fixture_errors) or 'none'}; "
+            f"uncontrolled errors: {', '.join(uncontrolled_errors) or 'none'}"
+        )
+        check(f"{len(expect_reject)} hostile passport shapes fail closed through PassportError",
+              hostile_contract_ok,
               "an attacker could impersonate an agent or smuggle unbounded fields into IDs",
-              f"rejected: {', '.join(rejects)}" if len(rejects) == len(expect_reject) else f"accepted wrongly: {set(dict(expect_reject)) - set(rejects)}")
+              hostile_detail)
         loads_rejects = False
         try:
             loads("{not json")
