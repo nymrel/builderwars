@@ -39,6 +39,7 @@ PROTOCOL = "arena/1"
 EXPECTED_GAME = "fantasy_redraft"
 EXPECTED_FORMAT = "redraft"
 EXPECTED_SEED = 9300
+EXPECTED_BOARD_SHA256 = "aa63466ad9ef2ccd9f9d9d8115e9313406450049fc5fe5fcbe36f0e2397a9bad"
 MODEL_CLAIM = "ox-alpha-free"
 REASONING_EFFORT = "max"
 MAX_TOKENS = 131072
@@ -355,13 +356,28 @@ def load_artifact(path):
         raise PlanArtifactError("source_route")
 
     rows = _validate_board(value["board"])
+    board_bytes = json.dumps(
+        rows,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    if hashlib.sha256(board_bytes).hexdigest() != EXPECTED_BOARD_SHA256:
+        raise PlanArtifactError("board_seed_mismatch")
 
     raw_plan = value["rawPlan"]
     if not isinstance(raw_plan, str) or not raw_plan:
         raise PlanArtifactError("raw_plan_not_string")
-    computed_plan_sha = hashlib.sha256(raw_plan.encode("utf-8")).hexdigest()
+    try:
+        raw_plan_bytes = raw_plan.encode("utf-8")
+    except UnicodeEncodeError:
+        raise PlanArtifactError("raw_plan_not_utf8") from None
+    computed_plan_sha = hashlib.sha256(raw_plan_bytes).hexdigest()
     if computed_plan_sha != plan_line_sha:
         raise PlanArtifactError("raw_plan_digest_mismatch")
+    if terminal_exact_plan != (terminal_text_sha == computed_plan_sha):
+        raise PlanArtifactError("source_terminal_claim_contradiction")
     parsed = _parse_strict_artifact(raw_plan, "raw_plan_invalid_json")
     _ban_floats(parsed)
     if not isinstance(parsed, dict) or set(parsed) != set(PLAN_KEYS):
@@ -444,6 +460,8 @@ class PlanSession:
         return move, None
 
     def _validate(self, message, observation):
+        if not isinstance(message, dict):
+            return "bad_request_shape"
         if set(message) != MOVE_REQUEST_KEYS:
             return "bad_request_shape"
         timeout_ms = message["move_timeout_ms"]

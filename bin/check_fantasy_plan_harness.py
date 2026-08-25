@@ -119,12 +119,15 @@ def build_artifact(ranking, exact_plan=True, strategy=STRATEGY):
     plan = raw_plan_text(ranking, strategy)
     source = build_source(plan)
     source["terminalTextExactPlan"] = exact_plan
+    source["terminalTextSha256"] = source["planLineSha256"] if exact_plan else TERMINAL_TEXT_SHA
     return {"schema": ARTIFACT_SCHEMA, "source": source, "board": copy.deepcopy(BOARD), "rawPlan": plan}
 
 
 def resign(artifact):
     """Re-bind the verified digest after a rawPlan mutation."""
     artifact["source"]["planLineSha256"] = sha256_hex(artifact["rawPlan"])
+    if artifact["source"]["terminalTextExactPlan"]:
+        artifact["source"]["terminalTextSha256"] = artifact["source"]["planLineSha256"]
     return artifact
 
 
@@ -209,6 +212,9 @@ def check_valid_load_and_projection(harness, tmp):
        and sorted(ranking_a) == sorted(ranking_b))
     plan_path = write_plan(tmp, "valid.json", artifact_text(build_artifact(ranking_a)))
     project = harness.load_artifact(plan_path)
+    ok("direct non-object move request stays controlled",
+       harness.PlanSession(project, 0).handle_move_request(None)
+       == (None, "bad_request_shape"))
 
     ok("projection exposes exactly the documented keys", set(project) == {
         "artifact_sha256", "plan_sha256", "run_id", "receipt_sha256",
@@ -374,6 +380,26 @@ def check_hostile_json(harness, tmp):
     wrong_seed = with_plan(ranking_a, raw_plan_text(ranking_a).replace('"seed":9300', '"seed":9200'))
     expect_code(harness, tmp, "wrong seed in plan", artifact_text(wrong_seed), "raw_plan_seed")
 
+    surrogate_plan = build_artifact(ranking_a)
+    surrogate_plan["rawPlan"] = "\ud800"
+    surrogate_text = json.dumps(surrogate_plan, separators=(",", ":"), ensure_ascii=True)
+    expect_code(harness, tmp, "lone surrogate rawPlan stays controlled", surrogate_text,
+                "raw_plan_not_utf8")
+
+    exact_but_hashes_differ = build_artifact(ranking_a, exact_plan=True)
+    exact_but_hashes_differ["source"]["terminalTextSha256"] = TERMINAL_TEXT_SHA
+    expect_code(harness, tmp, "exact-terminal claim requires matching hashes",
+                artifact_text(exact_but_hashes_differ),
+                "source_terminal_claim_contradiction")
+
+    appended_but_hashes_match = build_artifact(ranking_a, exact_plan=False)
+    appended_but_hashes_match["source"]["terminalTextSha256"] = (
+        appended_but_hashes_match["source"]["planLineSha256"]
+    )
+    expect_code(harness, tmp, "appended-terminal claim requires distinct hashes",
+                artifact_text(appended_but_hashes_match),
+                "source_terminal_claim_contradiction")
+
     mismatched = good()
     mismatched["source"]["planLineSha256"] = "ee" * 32
     expect_code(harness, tmp, "plan digest mismatch", artifact_text(mismatched),
@@ -400,6 +426,10 @@ def check_hostile_json(harness, tmp):
     duplicate_board["board"][1]["id"] = duplicate_board["board"][0]["id"]
     expect_code(harness, tmp, "duplicate board id", artifact_text(duplicate_board),
                 "board_duplicate_id")
+    different_seed_board = good()
+    different_seed_board["board"][0]["redraft_points"] += 1
+    expect_code(harness, tmp, "board must be the exact seed-9300 snapshot",
+                artifact_text(different_seed_board), "board_seed_mismatch")
     short_board = good()
     short_board["board"] = short_board["board"][:-1]
     expect_code(harness, tmp, "wrong board size", artifact_text(short_board), "board_shape")
@@ -817,11 +847,34 @@ def check_league_and_verdicts(harness, tmp):
     print("transcript headers, notes, and standalone verdicts")
     transcripts = find_transcripts(league_root)
     ok("exactly two transcripts on disk", len(transcripts) == 2, str(len(transcripts)))
+    expected_transcript_identities = {
+        match["matchId"]: (match["seat0"], match["seat1"]) for match in matches
+    }
+    observed_transcript_identities = {}
+    transcript_digests = set()
     for transcript in transcripts:
         tag = os.path.basename(transcript)[:12]
-        records = [json.loads(line)
-                   for line in open(transcript, "r", encoding="utf-8") if line.strip()]
+        with open(transcript, "rb") as transcript_file:
+            transcript_bytes = transcript_file.read()
+        transcript_digests.add(hashlib.sha256(transcript_bytes).hexdigest())
+        records = [
+            json.loads(line)
+            for line in transcript_bytes.decode("utf-8").splitlines()
+            if line.strip()
+        ]
         header = next(record["body"] for record in records if record["kind"] == "header")
+        header_match_id = header["match_id"]
+        header_seat_order = tuple(
+            row["name"] for row in sorted(header["entrants"], key=lambda row: row["seat"])
+        )
+        ok(f"transcript filename binds header match id [{tag}]",
+           os.path.basename(transcript) == f"{header_match_id}.jsonl")
+        ok(f"transcript header identity binds summary [{tag}]",
+           expected_transcript_identities.get(header_match_id) == header_seat_order,
+           repr((header_match_id, header_seat_order)))
+        require(header_match_id not in observed_transcript_identities,
+                f"duplicate transcript match id: {header_match_id}")
+        observed_transcript_identities[header_match_id] = header_seat_order
         ok(f"header attestation false [{tag}]",
            header["attestation"]["model_attested"] is False
            and header["attestation"]["execution_claims_attested"] is False)
@@ -847,6 +900,11 @@ def check_league_and_verdicts(harness, tmp):
             ok(f"{label} PASS exit 0 [{tag}]",
                completed.returncode == 0 and "VERDICT: PASS" in completed.stdout,
                completed.stdout[-300:])
+    ok("transcripts cover the two distinct summary matches exactly once",
+       observed_transcript_identities == expected_transcript_identities
+       and len(transcript_digests) == len(transcripts),
+       repr((observed_transcript_identities, expected_transcript_identities,
+             len(transcript_digests))))
 
 
 def main():
