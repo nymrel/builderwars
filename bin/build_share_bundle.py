@@ -558,9 +558,10 @@ def build_manifest(transcript_path, public_base_url=None):
             "executionClaimsAttested": False,
             "entrantIdentityAttested": False,
             "boundary": (
-                "Replay proves the accepted moves, state, scoring, and result. Entrant execution "
+                "Replay reproduces accepted moves, state, scoring, and the published result; "
+                "runtime-only forfeits are excluded. Entrant execution "
                 "classes, display names, and move-source notes are hash-bound self-declarations, "
-                "not independent entrant, provider, or model attestation."
+                "not proof that the run occurred or independent entrant, provider, or model attestation."
             ),
         },
         "verification": {

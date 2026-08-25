@@ -108,6 +108,12 @@ def _require(condition, code):
         raise ProofBlocked(code)
 
 
+def _is_model_plan_note(note):
+    return isinstance(note, str) and (
+        note == "source=model_plan" or note.startswith("source=model_plan;")
+    )
+
+
 def _validated_public_source(source):
     _require(
         isinstance(source, dict) and all(key in source for key in SOURCE_PUBLIC_KEYS),
@@ -147,6 +153,10 @@ def _validated_public_source(source):
         and len(public["modelClaim"]) <= 200
         and _MODEL_ID_RE.fullmatch(public["modelClaim"]) is not None
         and "://" not in public["modelClaim"],
+        "model_claim_type",
+    )
+    _require(
+        re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:/", public["modelClaim"]) is None,
         "model_claim_type",
     )
     return public
@@ -256,7 +266,7 @@ def _audit_transcript(harness, plans, path, league_row):
         seat = record["body"]["player"]
         _require(record["body"].get("legal") is True, "illegal_move_recorded")
         note = record["body"].get("entrant_message", {}).get("note", "")
-        _require(note.startswith("source=model_plan"), "non_model_move_note")
+        _require(_is_model_plan_note(note), "non_model_move_note")
         per_seat[seat] += 1
     _require(all(count == MOVES_PER_SEAT_PER_MATCH for count in per_seat.values()), "per_seat_move_count")
 

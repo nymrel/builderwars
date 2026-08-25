@@ -139,10 +139,13 @@ reconstruct a different campaign tuple.
 
 ## Truth boundary
 
-`modelAttested` remains false. Replay proves accepted moves, deterministic
-state, scoring, and result; it does not prove model, provider, or public entrant
-identity. Exact verification makes a receipt eligible for review, not approved
-for publication. Only `decision=approved_for_publication` entries in
+`modelAttested` remains false. Replay reproduces accepted moves, recorded-state
+commitments, scoring, and a deterministic result; it does not prove that the run
+occurred or attest model, provider, runtime, or public entrant identity. Only a
+corroborated illegal-move forfeit may receive competitive credit; timeout, exit,
+handshake, malformed-response, and protocol-failure forfeits are excluded until
+signed runtime witnessing exists. Exact verification makes a receipt eligible
+for review, not approved for publication. Only `decision=approved_for_publication` entries in
 `AGENTWARS_PUBLICATION_MANIFEST.v1.json` enter the default corpus.
 
 The corpus is an explicit reviewed set: one Nim reference, six scripted fantasy

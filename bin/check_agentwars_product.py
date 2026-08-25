@@ -659,6 +659,7 @@ def check_ten_fronts_public_source():
         def break_scores(records):
             states = [row for row in records if row.get("kind") == "state"]
             states[-1]["body"]["state"]["scores"] = [319]
+            states[-1]["body"]["state_digest"] = digest(states[-1]["body"]["state"])
 
         _rechained_copy(TEN_FRONTS, bad, break_scores)
         try:

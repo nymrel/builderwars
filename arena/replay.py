@@ -7,12 +7,14 @@ the score from state alone. Then it compares all of that to what the transcript
 claims.
 
 What a PASS proves:
-  - the transcript has not been altered since it was written
+  - the records form one internally consistent hash chain ending at the
+    reported chain head
   - the opening position really does follow from the recorded seed
   - every move that was accepted was legal, and every move that was rejected was
     genuinely illegal
   - each recorded position follows from the previous one under the stated rules
-  - the recorded winner follows from the state history, not from anyone's say-so
+  - a competitive result follows from deterministic state or an immediately
+    preceding, reproducible illegal-move ruling
   - the engine that verified is byte-identical to the engine that refereed
     (reported separately; a mismatch does not silently pass)
 
@@ -20,8 +22,10 @@ What a PASS does NOT prove:
   - that a move came from the model the entrant claimed. The engine never
     contacts a model, so it cannot witness one. Results carry `model_attested:
     false` for this reason.
-  - wall-clock events. A timeout is a recorded fact about the machine the match
-    ran on; replay verifies the adjudication that followed it, not the timing.
+  - that the chain head was externally anchored when the match ran, or even that
+    the recorded run happened. Publication needs a separate trusted anchor.
+  - wall-clock or process events. Timeout, exit, handshake, and protocol-failure
+    forfeits cannot PASS without separate runtime attestation.
 
 Identity is a separate axis reported alongside the verdict: a legacy unsigned
 transcript can still PASS with `identity_status="self_declared_legacy"`; mixed
@@ -45,6 +49,65 @@ _HEX_DIGITS = frozenset("0123456789abcdef")
 
 def _hex64(value):
     return isinstance(value, str) and len(value) == 64 and set(value) <= _HEX_DIGITS
+
+
+def replayable_forfeit_evidence(records):
+    """Classify whether a forfeit is reproducible from deterministic records.
+
+    The hash chain is not a runtime witness. A timeout, process exit, malformed
+    response, or handshake failure can be written into a self-consistent chain
+    by anyone who has the public engine. Until signed runtime receipts exist,
+    only an illegal-move forfeit immediately corroborated by the rejected move
+    is eligible for replay PASS or public competitive credit.
+    """
+
+    try:
+        positions = [
+            (index, record)
+            for index, record in enumerate(records)
+            if isinstance(record, dict) and record.get("kind") == "forfeit"
+        ]
+        if not positions:
+            return {"ok": True, "class": "none"}
+        if len(positions) != 1:
+            return {"ok": False, "class": "invalid"}
+        index, record = positions[0]
+        body = record.get("body")
+        if not isinstance(body, dict):
+            return {"ok": False, "class": "invalid"}
+        if body.get("reason") != "illegal_move":
+            return {"ok": False, "class": "runtime_observation_unattested"}
+        if (
+            set(body) != {"player", "reason", "detail", "phase", "turn"}
+            or body.get("phase") != "move"
+            or type(body.get("player")) is not int
+            or body["player"] not in (0, 1)
+            or type(body.get("turn")) is not int
+            or body["turn"] < 0
+            or not isinstance(body.get("detail"), str)
+            or not body["detail"]
+            or index != len(records) - 2
+            or index == 0
+        ):
+            return {"ok": False, "class": "invalid"}
+        previous = records[index - 1]
+        move = previous.get("body") if isinstance(previous, dict) else None
+        corroborated = (
+            isinstance(move, dict)
+            and previous.get("kind") == "move"
+            and type(move.get("player")) is int
+            and move.get("player") == body["player"]
+            and type(move.get("turn")) is int
+            and move.get("turn") == body["turn"]
+            and move.get("legal") is False
+            and move.get("rejected_because") == body["detail"]
+        )
+        return {
+            "ok": corroborated,
+            "class": "deterministic_illegal_move" if corroborated else "invalid",
+        }
+    except Exception:
+        return {"ok": False, "class": "invalid"}
 
 
 def _verify_header_identity(header):
@@ -185,6 +248,8 @@ def verify(transcript_path):
         "chain_ok": False,
         "engine_digest_match": None,
         "attestation_ok": False,
+        "forfeit_evidence_replayable": False,
+        "forfeit_evidence_class": "invalid",
         "abort_free": False,
         "engine_error_integrity": False,
         "setup_ok": False,
@@ -296,6 +361,8 @@ def verify(transcript_path):
     # 3. replay
     computed = None
     seen_initial = False
+    expected_turn = 0
+    state_expected = True
     move_count = 0
     states_ok = True
     moves_ok = True
@@ -317,16 +384,37 @@ def verify(transcript_path):
                 if not seen_initial:
                     computed = game.setup(random.Random(h["seed"]))
                     seen_initial = True
-                    setup_ok = digest(computed) == body["state_digest"]
+                    state_position_ok = state_expected
+                    turn_ok = type(body.get("turn")) is int and body["turn"] == expected_turn
+                    recorded_digest = body.get("state_digest")
+                    recorded_state = body.get("state")
+                    state_binding_ok = (
+                        _hex64(recorded_digest)
+                        and digest(recorded_state) == recorded_digest
+                        and digest(computed) == recorded_digest
+                    )
+                    setup_ok = state_position_ok and turn_ok and state_binding_ok
                     note(
                         "opening_position_from_seed",
                         setup_ok,
-                        None if setup_ok else "seed does not reproduce the recorded opening position",
+                        None
+                        if setup_ok
+                        else "seed, recorded state bytes, digest, turn, or stream position disagree",
                     )
                     if not setup_ok:
                         states_ok = False
                 else:
-                    match_ = digest(computed) == body["state_digest"]
+                    state_position_ok = state_expected
+                    turn_ok = type(body.get("turn")) is int and body["turn"] == expected_turn
+                    recorded_digest = body.get("state_digest")
+                    recorded_state = body.get("state")
+                    match_ = (
+                        state_position_ok
+                        and turn_ok
+                        and _hex64(recorded_digest)
+                        and digest(recorded_state) == recorded_digest
+                        and digest(computed) == recorded_digest
+                    )
                     if not match_:
                         states_ok = False
                         note(
@@ -334,15 +422,32 @@ def verify(transcript_path):
                             False,
                             "position does not follow from the previous move",
                         )
+                state_expected = False
 
             elif kind == "move":
                 move_count += 1
-                if computed is None:
+                move_shape_ok = (
+                    computed is not None
+                    and not state_expected
+                    and type(body.get("player")) is int
+                    and body["player"] in (0, 1)
+                    and type(body.get("turn")) is int
+                    and body["turn"] == expected_turn
+                    and type(body.get("legal")) is bool
+                    and isinstance(computed, dict)
+                    and body["player"] == computed.get("to_move")
+                    and game.terminal(computed) is None
+                )
+                if not move_shape_ok:
                     moves_ok = False
-                    note(f"move_turn_{body.get('turn')}", False, "a move precedes any recorded position")
+                    note(
+                        f"move_turn_{body.get('turn')}",
+                        False,
+                        "move seat, turn, legal flag, terminal state, or stream position is invalid",
+                    )
                     continue
                 ok_here, why = game.legal(computed, body.get("move"))
-                claimed_legal = bool(body.get("legal"))
+                claimed_legal = body["legal"]
                 if ok_here != claimed_legal:
                     moves_ok = False
                     note(
@@ -352,6 +457,8 @@ def verify(transcript_path):
                     )
                 elif claimed_legal:
                     computed = game.apply(computed, body["move"])
+                    expected_turn += 1
+                    state_expected = True
 
             elif kind == "forfeit":
                 forfeits.append(body)
@@ -375,35 +482,37 @@ def verify(transcript_path):
     report["states_ok"] = states_ok
     report["moves_ok"] = moves_ok
     report["moves_replayed"] = move_count
+    partial_state_closed_by_void = (
+        state_expected
+        and bool(engine_errors)
+        and len(records) >= 2
+        and records[-2].get("kind") == "engine_error"
+    )
+    if state_expected and seen_initial and not partial_state_closed_by_void:
+        states_ok = False
+        report["states_ok"] = False
+        note("state_after_final_accepted_move", False, "accepted move has no committed successor state")
     note("all_positions_follow_the_rules", states_ok)
     note("all_move_rulings_reproduce", moves_ok)
 
-    # 4. forfeit integrity, then adjudication: at most one forfeit, fully typed,
-    # and the forfeiting seat must be the one that lost
-    forfeit_ok = len(forfeits) <= 1
-    if forfeits:
-        fb = forfeits[0]
-        forfeit_ok = (
-            forfeit_ok
-            and isinstance(fb.get("player"), int)
-            and not isinstance(fb.get("player"), bool)
-            and fb["player"] in (0, 1)
-            and isinstance(fb.get("reason"), str)
-            and bool(fb["reason"])
-            and isinstance(fb.get("phase"), str)
-            and bool(fb["phase"])
-        )
+    # 4. forfeit integrity. Runtime observations are not independently
+    # replayable; only a deterministic illegal-move ruling can decide a match.
+    forfeit_evidence = replayable_forfeit_evidence(records)
+    forfeit_ok = forfeit_evidence["ok"]
+    report["forfeit_evidence_replayable"] = forfeit_ok
+    report["forfeit_evidence_class"] = forfeit_evidence["class"]
     note(
         "forfeit_integrity",
         forfeit_ok,
-        None if forfeit_ok else "forfeit records must be singular and well-formed",
+        None
+        if forfeit_ok
+        else "runtime-only or malformed forfeits cannot receive replay-verified competitive credit",
     )
-    adjudication_ok = True
+    adjudication_ok = not forfeits
     recorded_result = first(records, "result")
     if recorded_result and forfeits and forfeit_ok:
         loser = forfeits[0]["player"]
-        if recorded_result["body"].get("winner") != 1 - loser:
-            adjudication_ok = False
+        adjudication_ok = recorded_result["body"].get("winner") == 1 - loser
     note("forfeit_adjudication", adjudication_ok, None if adjudication_ok else "forfeiting seat was not ruled the loser")
 
     abort_free = not aborts
@@ -557,11 +666,11 @@ def verify(transcript_path):
     report["verdict"] = "PASS" if passed else "FAIL"
 
     report["proves"] = [
-        "transcript unaltered since it was written (hash chain recomputed)",
+        "records form an internally consistent hash chain ending at the reported chain head",
         "opening position follows from the recorded seed",
         "every move ruling reproduces under this engine's rules",
         "every position follows from the previous one",
-        "the recorded winner follows from state, not from any entrant's claim",
+        "the competitive result follows from deterministic state or a corroborated illegal-move ruling",
     ]
     if identity_status in ("verified_signed", "mixed_verified_and_legacy"):
         report["proves"].append(
@@ -570,10 +679,10 @@ def verify(transcript_path):
         )
     model_attested = attestation.get("model_attested") if isinstance(attestation, dict) else None
     report["does_not_prove"] = [
+        "that the chain head was externally anchored when the match ran, or that the recorded run occurred",
         "which model produced any move (the engine never contacts a model; "
         f"model_attested={model_attested})",
-        "wall-clock events such as timeouts, which are recorded facts about the "
-        "machine the match ran on",
+        "wall-clock or process events; timeout, exit, handshake, and protocol-failure forfeits are rejected",
     ]
     if identity_status in ("verified_signed", "mixed_verified_and_legacy"):
         report["does_not_prove"].append(

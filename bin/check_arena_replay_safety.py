@@ -405,6 +405,59 @@ def check_hostile_transcripts(tmp, valid_path):
         report["verdict"] == "FAIL" and report.get("identity_status") == "invalid",
     )
 
+    state_mismatch = copy.deepcopy(base)
+    state_record = next(record for record in state_mismatch if record["kind"] == "state")
+    state_record["body"]["state"]["turn"] = 999
+    state_mismatch = rechain(state_mismatch)
+    state_mismatch_path = os.path.join(tmp, "state_body_digest_mismatch.jsonl")
+    write_records(state_mismatch_path, state_mismatch)
+    report = verify(state_mismatch_path)
+    ok(
+        "recorded state bytes cannot diverge from their committed digest",
+        report["verdict"] == "FAIL" and report["states_ok"] is False,
+    )
+
+    timeout_result = copy.deepcopy(base[-1])
+    timeout_result["body"].update(
+        {
+            "winner": 0,
+            "reason": "forfeit:timeout",
+            "moves": 0,
+            "points": {"0": 1, "1": 0},
+            "decisive": True,
+        }
+    )
+    forged_timeout = rechain(
+        base[:-1]
+        + [
+            {
+                "kind": "forfeit",
+                "seq": 99,
+                "body": {
+                    "player": 1,
+                    "reason": "timeout",
+                    "detail": "no response within 5s",
+                    "phase": "move",
+                    "turn": 0,
+                },
+                "prev": "",
+                "hash": "",
+            },
+            timeout_result,
+        ]
+    )
+    forged_timeout_path = os.path.join(tmp, "forged_timeout_forfeit.jsonl")
+    write_records(forged_timeout_path, forged_timeout)
+    report = verify(forged_timeout_path)
+    ok(
+        "correctly re-chained runtime forfeit cannot self-award a competitive PASS",
+        report["verdict"] == "FAIL"
+        and report["chain_ok"] is True
+        and report["result_matches_recomputation"] is True
+        and report["forfeit_evidence_replayable"] is False
+        and report["forfeit_evidence_class"] == "runtime_observation_unattested",
+    )
+
     aborted = rechain(
         base[:-1]
         + [
@@ -731,6 +784,20 @@ def check_output_collision_and_cleanup(tmp):
         raise AssertionError("path-shaped model claim entered public summary")
     except proof.ProofBlocked as error:
         ok("path-shaped public source value is rejected", error.code == "model_claim_type")
+
+    slash_path_source = dict(valid_source)
+    slash_path_source["modelClaim"] = "C:/Users/synthetic/private/model"
+    try:
+        proof._validated_public_source(slash_path_source)
+        raise AssertionError("forward-slash drive path entered public summary")
+    except proof.ProofBlocked as error:
+        ok("forward-slash drive path is rejected", error.code == "model_claim_type")
+
+    ok(
+        "model-plan source note requires an exact token boundary",
+        proof._is_model_plan_note("source=model_plan;artifact_sha256=abc")
+        and not proof._is_model_plan_note("source=model_plan_anything"),
+    )
 
     mixed_rendered = r'{"leak":"C:\\/synthetic\\private/proof"}'
     try:

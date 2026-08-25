@@ -217,7 +217,7 @@ def check_tamper_refusal_has_no_partial_output():
         require(not os.path.exists(out), "failed verification must leave no output directory")
 
 
-def check_replay_valid_forfeit_bundle():
+def check_runtime_forfeit_refusal():
     with tempfile.TemporaryDirectory(prefix="agentwars-share-forfeit-") as work:
         script = os.path.join(ROOT, "entrants", "fantasy_gm_harness.py")
         entrants = [
@@ -243,13 +243,21 @@ def check_replay_valid_forfeit_bundle():
             out_dir=os.path.join(work, "match"),
         )
         require(result["reason"] == "forfeit:entrant_exited", "forfeit fixture must be decisive")
-        outputs = build_outputs(result["transcript"])
-        manifest = json.loads(outputs["manifest.json"])
-        require(manifest["highlight"]["kind"] == "forfeit_adjudication",
-                "replay-valid forfeit needs a deterministic terminal highlight")
-        require("by forfeit" in manifest["story"]["headline"],
-                "forfeit story must not present an empty-roster score")
-        require("0–0" not in outputs["copy.md"], "forfeit copy must not invent a fantasy scoreline")
+        expect_bundle_error(
+            lambda: build_outputs(result["transcript"]),
+            "runtime-only or malformed forfeits",
+        )
+        export, report = summarise(result["transcript"])
+        require(
+            export is None and report["verdict"] == "FAIL",
+            "site export excludes an unattested runtime-forfeit win",
+        )
+        out = os.path.join(work, "must-not-exist")
+        expect_bundle_error(
+            lambda: write_bundle(result["transcript"], out),
+            "runtime-only or malformed forfeits",
+        )
+        require(not os.path.exists(out), "runtime-forfeit refusal leaves no partial bundle")
 
 
 def check_generic_historical_match():
@@ -374,7 +382,7 @@ def main():
     check_public_identity_guard()
     check_hostile_match_id_is_refused()
     check_tamper_refusal_has_no_partial_output()
-    check_replay_valid_forfeit_bundle()
+    check_runtime_forfeit_refusal()
     check_generic_historical_match()
     check_ten_fronts_moment_bundle()
     check_url_guard()

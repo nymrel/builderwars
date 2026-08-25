@@ -17,6 +17,7 @@ import unicodedata
 from typing import Any
 
 from arena.canonical import canonical_bytes, digest
+from arena.replay import replayable_forfeit_evidence
 from arena.transcript import load
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -70,6 +71,65 @@ def _required(records: list[dict[str, Any]], kind: str) -> dict[str, Any]:
     if row is None or not isinstance(row.get("body"), dict):
         raise PublicationError(f"verified transcript is missing {kind!r}")
     return row
+
+
+def validate_public_stream(records: list[dict[str, Any]]) -> None:
+    """Apply current publication invariants even to historical engine snapshots."""
+
+    current_state = None
+    current_turn = None
+    awaiting_state = False
+    try:
+        for record in records:
+            kind = record.get("kind")
+            body = record.get("body")
+            if not isinstance(body, dict):
+                raise PublicationError("public transcript record body is malformed")
+            if kind == "state":
+                recorded_digest = body.get("state_digest")
+                turn = body.get("turn")
+                if (
+                    not isinstance(recorded_digest, str)
+                    or HEX64_RE.fullmatch(recorded_digest) is None
+                    or digest(body.get("state")) != recorded_digest
+                    or type(turn) is not int
+                    or turn < 0
+                    or (current_turn is None and turn != 0)
+                    or (current_turn is not None and (not awaiting_state or turn != current_turn + 1))
+                ):
+                    raise PublicationError("recorded state bytes, digest, turn, or stream position disagree")
+                current_state = body["state"]
+                current_turn = turn
+                awaiting_state = False
+            elif kind == "move":
+                player = body.get("player")
+                turn = body.get("turn")
+                if (
+                    not isinstance(current_state, dict)
+                    or awaiting_state
+                    or type(player) is not int
+                    or player not in (0, 1)
+                    or player != current_state.get("to_move")
+                    or type(turn) is not int
+                    or turn != current_turn
+                    or type(body.get("legal")) is not bool
+                ):
+                    raise PublicationError("move seat, turn, legal flag, or stream position is invalid")
+                awaiting_state = body["legal"] is True
+        if awaiting_state:
+            raise PublicationError("accepted move has no committed successor state")
+    except PublicationError:
+        raise
+    except Exception as error:
+        raise PublicationError(
+            f"public transcript stream validation failed safely: {error.__class__.__name__}"
+        ) from error
+
+    forfeit_evidence = replayable_forfeit_evidence(records)
+    if not forfeit_evidence["ok"]:
+        raise PublicationError(
+            "runtime-only or malformed forfeits cannot receive public competitive credit"
+        )
 
 
 def _exact_pass(report: dict[str, Any], returncode: int) -> bool:
@@ -375,6 +435,7 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         records = load(path)
     except Exception as error:
         raise PublicationError(f"could not load transcript: {error.__class__.__name__}") from error
+    validate_public_stream(records)
     header = _required(records, "header")["body"]
     result = _required(records, "result")["body"]
     entrants = public_entrants(header)
@@ -436,9 +497,10 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         else "partial" if signed_passport_count else "none"
     )
     truth_boundary = (
-        "Replay proves accepted moves, deterministic state, scoring, and result. "
+        "Replay reproduces accepted moves, deterministic state, scoring, and the published result. "
+        "Runtime-only forfeits are excluded from public competitive credit. "
         "Entrant names, execution classes, and move-source labels remain hash-bound "
-        "self-declarations; they do not prove provider or model identity."
+        "self-declarations; this does not prove the run occurred or attest provider or model identity."
     )
     if signed_passport_count:
         truth_boundary += (

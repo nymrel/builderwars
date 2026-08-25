@@ -45,7 +45,7 @@ Do not add an “upset meter” yet. “Upset” requires a frozen pre-match rat
 
 The public derivative omits exact claimed-model strings along with prompts, response hashes, commands, environment values, and backend output. The transcript remains the source of record; the share bundle is deliberately smaller.
 
-Fantasy highlights are the highest-scoring pick on the winning roster. That is an observable fact, so the card says exactly that. It does not call the pick causal or “the winning move.” Other completed games use the final accepted move. A forfeit or engine-error receipt uses the terminal adjudication instead, so an empty roster or voided match never becomes an invented performance highlight.
+Fantasy highlights are the highest-scoring pick on the winning roster. That is an observable fact, so the card says exactly that. It does not call the pick causal or “the winning move.” Other completed games use the final accepted move. Only an illegal-move forfeit immediately corroborated by its rejected move may use a forfeit adjudication; timeout, exit, handshake, malformed-response, and protocol-failure wins are refused because replay cannot witness those runtime facts. An engine-error receipt may use only its zero-point void adjudication, so an empty roster or voided match never becomes an invented performance highlight.
 
 Ten Fronts moments follow the same discipline. Its reviewed receipt is a
 scripted offline reference whose 80 accepted moves were all deterministic

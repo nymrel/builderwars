@@ -604,6 +604,10 @@ def run_competition(
                     winner = result["winner"]
                     points = result.get("points") or {}
                     sources = _move_source_claims(result["transcript"])
+                    if sum(sum(row.values()) for row in sources) != result["moves"]:
+                        raise RuntimeError(
+                            f"match sequence {sequence} move-source accounting disagrees with the receipt"
+                        )
                     for seat, entrant in enumerate(pair):
                         match_points = points.get(str(seat), 0)
                         _record_result(

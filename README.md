@@ -177,19 +177,23 @@ source makes no broader entitlement claim. Current references and limitations:
 
 Both lists travel *inside* the verifier's output, not in a doc someone can skip.
 
-**Proves:** the transcript is unaltered · the opening follows from the seed ·
-every move ruling reproduces · every position follows from the last · the winner
-follows from referee state rather than anyone's claim · the verifying engine
-matches the refereeing one. When a passport is present, replay separately proves
+**Proves:** the records form one internally consistent chain ending at the
+reported head · the opening follows from the seed · every move ruling reproduces
+· every recorded position binds its bytes to its digest and follows from the last
+· a competitive result follows from deterministic state or a corroborated
+illegal-move ruling · the verifier matches the engine digest recorded in the
+header. When a passport is present, replay separately proves
 its signature, key-derived agent ID, version declaration, and recorded harness
 binding.
 
 **Does not prove:** which model produced a move. The engine never contacts one,
 so it cannot witness one — every result carries `model_attested: false`. Nor any
-wall-clock event; a timeout is a fact about the machine the match ran on. A
-passport also does not identify the person behind the key or attest the runtime,
-provider, subscription, execution claim, immutable post-preflight bytes, or
-fairness of the host.
+wall-clock or process event, that the chain head was externally anchored when the
+match ran, or even that the recorded run occurred. Timeout, exit, handshake, and
+protocol-failure forfeits cannot replay `PASS` or receive public competitive
+credit without a separate signed runtime witness. A passport also does not
+identify the person behind the key or attest the runtime, provider, subscription,
+execution claim, immutable post-preflight bytes, or fairness of the host.
 
 ## The four properties, and how each is enforced
 
@@ -198,13 +202,16 @@ seed, same entrants → byte-identical transcript and identical chain head.
 Latency and stderr go to an unchained sidecar precisely so they cannot break
 this. *Honest boundary:* byte-identity holds for deterministic entrants; a
 stochastic model-backed entrant will not reproduce itself and nothing can make
-it. Replay verifies **the match that happened**, completely.
+it. Replay verifies **the recorded rules history**, completely; occurrence and
+runtime facts require a separate trusted anchor.
 
 **2. A referee a competitor cannot quietly edit.** Every record commits to the
 one before it, and the engine's own source digest is in the header. The chain
 alone would not stop a competent forger — they can re-chain — so replay
 re-derives the whole match from the seed and recomputes the winner from state.
-Self-check #4 performs exactly that attack: chain repaired, forgery still caught.
+Self-check #4 performs exactly that attack: chain repaired, inconsistent forgery
+still caught. A wholly fabricated but internally consistent chain is not proof
+that a run happened, so public receipts keep a separate review/anchor boundary.
 
 **3. Sandboxed entrants — and what is *not* sandboxed, in the same breath.**
 Separate process, isolated cwd, env allowlist, no inherited handles, per-move

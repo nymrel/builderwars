@@ -92,6 +92,13 @@ change it. Exit promptly.
 | `forfeit:entrant_exited` | process died mid-match |
 | `forfeit:protocol_violation` | output line or total output exceeded its cap |
 
+A local referee records each ruling, but replay is not a clock or process
+witness. Only `forfeit:illegal_move` is reproducible from deterministic evidence:
+the immediately preceding rejected move. Timeout, malformed-response, handshake,
+exit, and protocol-failure forfeits therefore cannot replay `PASS`, enter public
+standings, or generate a verified share until a separate signed runtime receipt
+exists. They may still appear in local diagnostics and unverified match output.
+
 A `move` of `null` is an illegal move, not a pass. If your model did not answer,
 **send your own fallback** — that is the harness's job, and in the reference
 matches it is worth the entire win rate.
