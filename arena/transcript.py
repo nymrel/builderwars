@@ -61,7 +61,7 @@ class TranscriptWriter:
         self._records.append(copy.deepcopy(line))
         self.prev = h
         self.seq += 1
-        return line
+        return copy.deepcopy(line)
 
     @property
     def records(self):
@@ -94,7 +94,7 @@ def load(path):
                 parsed = json.loads(line, object_pairs_hook=_object_without_duplicate_keys)
             except _DuplicateKey as e:
                 raise ChainBroken(f"line {lineno}: duplicate object key") from e
-            except (json.JSONDecodeError, RecursionError) as e:
+            except (ValueError, RecursionError) as e:
                 raise ChainBroken(f"line {lineno}: not valid JSON ({e.__class__.__name__})") from e
             if not isinstance(parsed, dict):
                 raise ChainBroken(f"line {lineno}: record must be a JSON object")

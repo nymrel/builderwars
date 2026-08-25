@@ -25,6 +25,7 @@ from competitions.matrix import (  # noqa: E402
 EXAMPLE = os.path.join(ROOT, "competitions", "examples", "nim_matrix.json")
 SECRET_ENV = "AGENTWARS_MATRIX_TEST_SECRET"
 SECRET_VALUE = "matrix-secret-value-must-never-appear"
+EXPLICIT_VALUE = "matrix-explicit-value-must-never-appear"
 
 
 def require(condition, message):
@@ -299,6 +300,7 @@ def check_report_safety(report):
     require(all(row["launchMode"] in {"direct", "interpreter"} for row in report["entrants"]),
             "public entrants include only bounded launch modes")
     require(SECRET_VALUE not in rendered, "environment value is never serialized")
+    require(EXPLICIT_VALUE not in rendered, "explicit environment value is never serialized")
     require(SECRET_ENV not in rendered, "environment name is omitted from the public report")
     require("--backend" not in rendered, "raw argv is omitted")
     require("entrants/solver_harness.py" not in rendered, "raw harness argv path is omitted")
@@ -317,6 +319,9 @@ def check_end_to_end(base):
     os.environ[SECRET_ENV] = SECRET_VALUE
     try:
         with tempfile.TemporaryDirectory(prefix="agentwars-matrix-") as work:
+            provisioned_envs = {
+                config["entrants"][0]["name"]: {SECRET_ENV: EXPLICIT_VALUE},
+            }
             invalid_launch = copy.deepcopy(config)
             invalid_launch["entrants"][0]["argv"] = [
                 "python", "-c", "print('not the harness')", "entrants/solver_harness.py",
@@ -345,17 +350,33 @@ def check_end_to_end(base):
                 "authorized max_matches ceiling",
             )
             require(not os.path.exists(blocked_dir), "schedule ceiling fails before output creation")
+            missing_env_dir = os.path.join(work, "missing-explicit-env")
+            expect_config_error(
+                lambda: run_competition(
+                    config,
+                    matches_dir=missing_env_dir,
+                    repo_root=ROOT,
+                    move_timeout_s=5.0,
+                ),
+                "exactly match each entrant declaration",
+            )
+            require(
+                not os.path.exists(missing_env_dir),
+                "missing explicit environment values fail before output creation",
+            )
             first = run_competition(
                 config,
                 matches_dir=os.path.join(work, "first", "matches"),
                 repo_root=ROOT,
                 move_timeout_s=5.0,
+                provisioned_envs=provisioned_envs,
             )
             second = run_competition(
                 config,
                 matches_dir=os.path.join(work, "second", "matches"),
                 repo_root=ROOT,
                 move_timeout_s=5.0,
+                provisioned_envs=provisioned_envs,
             )
             expect_config_error(
                 lambda: run_competition(
@@ -363,6 +384,7 @@ def check_end_to_end(base):
                     matches_dir=os.path.join(work, "first", "matches"),
                     repo_root=ROOT,
                     move_timeout_s=5.0,
+                    provisioned_envs=provisioned_envs,
                 ),
                 "must be empty",
             )

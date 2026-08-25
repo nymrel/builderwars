@@ -31,7 +31,7 @@ from arena.match import _Sidecar, match_id_for, run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.sandbox import POLICY, Entrant  # noqa: E402
 from arena.scoring import referee_projection, score  # noqa: E402
-from arena.transcript import TranscriptWriter, load  # noqa: E402
+from arena.transcript import ChainBroken, TranscriptWriter, load  # noqa: E402
 
 PROOF_RUNNER = os.path.join(ROOT, "bin", "run_fantasy_plan_proof.py")
 VERIFY_ROOT = os.path.join(ROOT, "verify.py")
@@ -208,6 +208,33 @@ def check_sentinel_refusals(tmp):
         not os.path.lexists(os.path.join(match_dir, f"{match_id}.jsonl")),
     )
 
+    scratch_match_dir = os.path.join(tmp, "occupied-scratch-match")
+    scratch_pair = [manifest("Scratch Zero"), manifest("Scratch One")]
+    scratch_mid = match_id_for(GAME_NAME, SEED, [row["name"] for row in scratch_pair])
+    occupied_scratch = os.path.join(scratch_match_dir, f".scratch-{scratch_mid}")
+    os.makedirs(occupied_scratch)
+    scratch_marker = os.path.join(occupied_scratch, "sentinel.bin")
+    write_raw(scratch_marker, payload)
+    try:
+        run_match(
+            game_name=GAME_NAME,
+            seed=SEED,
+            entrants=scratch_pair,
+            out_dir=scratch_match_dir,
+            move_timeout_s=5.0,
+        )
+        raise AssertionError("existing scratch entry was reused")
+    except FileExistsError:
+        pass
+    ok("match-level scratch collision preserves sentinel", read_bytes(scratch_marker) == payload)
+    ok(
+        "scratch collision creates no transcript or sidecar",
+        not os.path.lexists(os.path.join(scratch_match_dir, f"{scratch_mid}.jsonl"))
+        and not os.path.lexists(
+            os.path.join(scratch_match_dir, f"{scratch_mid}.diagnostics.jsonl")
+        ),
+    )
+
     race_target = os.path.join(tmp, "race.jsonl")
     real_open = os.open
 
@@ -235,12 +262,17 @@ def check_sentinel_refusals(tmp):
     detached_path = os.path.join(tmp, "retained-records.jsonl")
     nested = {"nested": {"value": 1}}
     with TranscriptWriter(detached_path) as writer:
-        writer.append("probe", nested)
+        returned = writer.append("probe", nested)
         nested["nested"]["value"] = 999
+        returned["body"]["nested"]["value"] = 777
         first_snapshot = writer.records
         first_snapshot[0]["body"]["nested"]["value"] = 555
         ok(
             "retained records detach from caller-owned nested values",
+            writer.records[0]["body"]["nested"]["value"] == 1,
+        )
+        ok(
+            "append return value detaches from retained records",
             writer.records[0]["body"]["nested"]["value"] == 1,
         )
         ok(
@@ -265,6 +297,16 @@ def check_hostile_transcripts(tmp, valid_path):
     array = os.path.join(tmp, "array.jsonl")
     write_raw(array, b"[1,2]\n")
     ok("array transcript returns controlled FAIL", verify(array)["verdict"] == "FAIL")
+
+    oversized = os.path.join(tmp, "oversized_integer.jsonl")
+    write_raw(oversized, ('{"seq":' + ('9' * 5000) + '}\n').encode("ascii"))
+    try:
+        load(oversized)
+        raise AssertionError("oversized integer escaped ChainBroken normalization")
+    except ChainBroken:
+        pass
+    ok("oversized JSON integer normalizes to ChainBroken", True)
+    ok("oversized JSON integer returns controlled FAIL", verify(oversized)["verdict"] == "FAIL")
 
     extra = rechain(base)
     extra[1]["extra"] = "unhashed-smuggled"
@@ -333,6 +375,88 @@ def check_hostile_transcripts(tmp, valid_path):
         and report["engine_digest_match"] is False,
     )
 
+    for label, hostile_attestation in (
+        ("null", None),
+        ("scalar", "not-an-object"),
+        ("array", []),
+    ):
+        hostile = copy.deepcopy(base)
+        hostile[0]["body"]["attestation"] = hostile_attestation
+        hostile = rechain(hostile)
+        hostile_path = os.path.join(tmp, f"attestation_{label}.jsonl")
+        write_records(hostile_path, hostile)
+        report = verify(hostile_path)
+        ok(
+            f"{label} attestation returns controlled FAIL",
+            report["verdict"] == "FAIL"
+            and report["chain_ok"] is True
+            and report["attestation_ok"] is False,
+        )
+
+    bool_seats = copy.deepcopy(base)
+    bool_seats[0]["body"]["entrants"][0]["seat"] = False
+    bool_seats[0]["body"]["entrants"][1]["seat"] = True
+    bool_seats = rechain(bool_seats)
+    bool_seats_path = os.path.join(tmp, "boolean_seats.jsonl")
+    write_records(bool_seats_path, bool_seats)
+    report = verify(bool_seats_path)
+    ok(
+        "boolean seats cannot impersonate integer seats",
+        report["verdict"] == "FAIL" and report.get("identity_status") == "invalid",
+    )
+
+    aborted = rechain(
+        base[:-1]
+        + [
+            {
+                "kind": "abort",
+                "seq": 99,
+                "body": {"reason": "move_bound_exceeded", "bound": 1},
+                "prev": "",
+                "hash": "",
+            }
+        ]
+        + base[-1:]
+    )
+    aborted_path = os.path.join(tmp, "aborted.jsonl")
+    write_records(aborted_path, aborted)
+    report = verify(aborted_path)
+    ok(
+        "abort record blocks replay PASS",
+        report["verdict"] == "FAIL" and report["abort_free"] is False,
+    )
+
+    malformed_error_result = copy.deepcopy(base[-1])
+    malformed_error_result["body"].update(
+        {
+            "winner": None,
+            "reason": "engine_error",
+            "moves": 0,
+            "points": {"0": 0, "1": 0},
+            "decisive": False,
+        }
+    )
+    malformed_error = rechain(
+        base[:-1]
+        + [
+            {
+                "kind": "engine_error",
+                "seq": 99,
+                "body": {"detail": "synthetic"},
+                "prev": "",
+                "hash": "",
+            },
+            malformed_error_result,
+        ]
+    )
+    malformed_error_path = os.path.join(tmp, "malformed_engine_error.jsonl")
+    write_records(malformed_error_path, malformed_error)
+    report = verify(malformed_error_path)
+    ok(
+        "malformed engine error cannot self-bless a void",
+        report["verdict"] == "FAIL" and report["engine_error_integrity"] is False,
+    )
+
 
 def check_engine_fault_void(tmp):
     print("referee-side handshake fault becomes a replayable void")
@@ -363,7 +487,15 @@ def check_engine_fault_void(tmp):
         and "OSError" in raw,
     )
     report = verify(result["transcript"])
-    ok("fault transcript independently replays PASS", report["verdict"] == "PASS")
+    ok(
+        "fault transcript independently replays only as a valid void",
+        report["verdict"] == "PASS"
+        and report["engine_error_integrity"] is True
+        and report["abort_free"] is True
+        and report["recomputed"]["winner"] is None
+        and report["recomputed"]["reason"] == "engine_error"
+        and report["recomputed"]["decisive"] is False,
+    )
     code, out, err = run_child([sys.executable, VERIFY_REPLAY, result["transcript"]], 60)
     ok(
         "standalone replay verifier agrees PASS",
@@ -375,6 +507,114 @@ def check_engine_fault_void(tmp):
         "scratch removed",
         not os.path.exists(os.path.join(fault_dir, f".scratch-{result['match_id']}")),
     )
+
+
+def check_explicit_environment_custody(tmp):
+    print("manifest names never authorize ambient environment reads")
+    env_name = "AGENTWARS_SYNTHETIC_TOKEN"
+    declared = manifest("Env Declared")
+    declared["env"] = [env_name]
+    ambient_value = "synthetic-ambient-must-not-pass"
+    explicit_value = "synthetic-explicit-value"
+
+    with unittest.mock.patch.dict(os.environ, {env_name: ambient_value}, clear=False):
+        try:
+            Entrant(declared, os.path.join(tmp, "env-direct"))
+            raise AssertionError("declared name inherited an ambient value")
+        except ValueError:
+            pass
+        entrant = Entrant(
+            declared,
+            os.path.join(tmp, "env-explicit"),
+            provisioned_env={env_name: explicit_value},
+        )
+        child_env = entrant._child_env()
+    ok(
+        "ambient value is never inherited by declaration alone",
+        child_env.get(env_name) == explicit_value and ambient_value not in child_env.values(),
+    )
+
+    missing_out = os.path.join(tmp, "env-missing-match")
+    try:
+        run_match(
+            game_name=GAME_NAME,
+            seed=SEED,
+            entrants=[declared, manifest("Env Plain")],
+            out_dir=missing_out,
+            move_timeout_s=5.0,
+        )
+        raise AssertionError("missing explicit per-seat environment was accepted")
+    except ValueError:
+        pass
+    ok(
+        "missing explicit provisioning refuses before output creation",
+        not os.path.lexists(missing_out),
+    )
+
+    extra_out = os.path.join(tmp, "env-extra-match")
+    try:
+        run_match(
+            game_name=GAME_NAME,
+            seed=SEED,
+            entrants=[declared, manifest("Env Other")],
+            out_dir=extra_out,
+            move_timeout_s=5.0,
+            provisioned_envs=[
+                {env_name: explicit_value, "AGENTWARS_UNDECLARED": "synthetic"},
+                {},
+            ],
+        )
+        raise AssertionError("undeclared explicit environment value was accepted")
+    except ValueError:
+        pass
+    ok(
+        "extra provisioned names refuse before output creation",
+        not os.path.lexists(extra_out),
+    )
+
+
+def check_teardown_fault_isolation(tmp):
+    print("teardown faults cannot skip entrant or scratch cleanup")
+    out_dir = os.path.join(tmp, "teardown-fault")
+    pair = [manifest("Cleanup Zero"), manifest("Cleanup One")]
+    mid = match_id_for(GAME_NAME, SEED, [row["name"] for row in pair])
+    scratch = os.path.join(out_dir, f".scratch-{mid}")
+    close_attempts = []
+    final_write_attempts = []
+    original_close = Entrant.close
+    original_write = _Sidecar.write
+
+    def tracked_close(entrant, *args, **kwargs):
+        close_attempts.append(entrant.name)
+        return original_close(entrant, *args, **kwargs)
+
+    def failing_final_write(sidecar, kind, **fields):
+        if kind == "stderr_final":
+            final_write_attempts.append(fields.get("entrant"))
+            raise OSError("synthetic diagnostics close-path fault")
+        return original_write(sidecar, kind, **fields)
+
+    raised = False
+    with unittest.mock.patch.object(Entrant, "start", side_effect=OSError("synthetic")), \
+            unittest.mock.patch.object(Entrant, "close", tracked_close), \
+            unittest.mock.patch.object(_Sidecar, "write", failing_final_write):
+        try:
+            run_match(
+                game_name=GAME_NAME,
+                seed=SEED,
+                entrants=pair,
+                out_dir=out_dir,
+                move_timeout_s=5.0,
+            )
+        except OSError:
+            raised = True
+    ok("cleanup failure is surfaced after all attempts", raised)
+    ok(
+        "both entrants close before diagnostics can fail",
+        close_attempts == ["Cleanup Zero", "Cleanup One"]
+        and final_write_attempts == ["Cleanup Zero", "Cleanup One"],
+    )
+    ok("scratch removal still runs after cleanup faults", not os.path.lexists(scratch))
 
 
 def check_proof_pipeline(tmp):
@@ -476,15 +716,44 @@ def check_output_collision_and_cleanup(tmp):
         and not os.path.lexists(os.path.join(tmp, "timeout-summary.json")),
     )
 
+    with open(proof.DEFAULT_PLAN_A, "r", encoding="utf-8") as handle:
+        valid_source = json.load(handle)["source"]
+    validated_source = proof._validated_public_source(valid_source)
+    ok(
+        "public source fields are strictly typed before projection",
+        validated_source["runId"] == valid_source["runId"]
+        and validated_source["maxTokens"] == 131072,
+    )
+    hostile_source = dict(valid_source)
+    hostile_source["modelClaim"] = r"C:\synthetic-private\model"
+    try:
+        proof._validated_public_source(hostile_source)
+        raise AssertionError("path-shaped model claim entered public summary")
+    except proof.ProofBlocked as error:
+        ok("path-shaped public source value is rejected", error.code == "model_claim_type")
+
+    mixed_rendered = r'{"leak":"C:\\/synthetic\\private/proof"}'
+    try:
+        proof._assert_no_paths(mixed_rendered, {r"C:\synthetic/private\proof"})
+        raise AssertionError("mixed-separator path escaped summary hygiene")
+    except proof.ProofBlocked as error:
+        ok("mixed-separator JSON path is detected", error.code == "path_in_summary")
+
     original_loader = proof._load_module
-
-    def refusing_loader(name, path):
-        if name == "run_agentwars_league":
-            raise proof.ProofBlocked("simulated_league_refusal")
-        return original_loader(name, path)
-
     cleanup_out = os.path.join(tmp, "cleanup-out")
     cleanup_summary = os.path.join(tmp, "cleanup-summary.json")
+    post_creation_observed = []
+
+    def refusing_loader(name, path):
+        module = original_loader(name, path)
+        if name == "run_agentwars_league":
+            def refusing_run_league(*_args, **_kwargs):
+                post_creation_observed.append(os.path.isdir(cleanup_out))
+                raise proof.ProofBlocked("simulated_league_refusal")
+
+            module.run_league = refusing_run_league
+        return module
+
     proof._load_module = refusing_loader
     try:
         expect_blocked(
@@ -494,6 +763,7 @@ def check_output_collision_and_cleanup(tmp):
         )
     finally:
         proof._load_module = original_loader
+    ok("cleanup refusal occurs after output-root creation", post_creation_observed == [True])
     ok(
         "failed run removes its own out-root and writes no summary",
         not os.path.lexists(cleanup_out) and not os.path.lexists(cleanup_summary),
@@ -536,6 +806,8 @@ def main():
             check_sentinel_refusals(tmp)
             check_hostile_transcripts(tmp, valid_path)
             check_engine_fault_void(tmp)
+            check_explicit_environment_custody(tmp)
+            check_teardown_fault_isolation(tmp)
             check_proof_pipeline(tmp)
             check_output_collision_and_cleanup(tmp)
             check_no_stale_children()

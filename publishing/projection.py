@@ -73,11 +73,14 @@ def _required(records: list[dict[str, Any]], kind: str) -> dict[str, Any]:
 
 
 def _exact_pass(report: dict[str, Any], returncode: int) -> bool:
+    recorded_digest = report.get("engine_digest_recorded")
     return (
         returncode == 0
         and report.get("verdict") == "PASS"
         and report.get("engine_digest_match") is True
         and report.get("verifier_snapshot_match") is True
+        and isinstance(recorded_digest, str)
+        and HEX64_RE.fullmatch(recorded_digest) is not None
     )
 
 

@@ -1779,6 +1779,8 @@ def check_harnesses():
     require("--provider" in ox_cmd and "opencode" in ox_cmd and
             "--customer-local-v1" in ox_cmd and "--backend" not in ox_cmd,
             "Ox helper uses the contained provider adapter, not legacy OpenCode")
+    require(ox_match.manifest("Ox", "win-now", 60)["env"] == [],
+            "Ox helper needs no arena-level environment passthrough")
     signed_ox = ox_match.manifest(
         "Ox", "win-now", 60, agent_passport="external-seat-passport.json"
     )
@@ -1816,12 +1818,28 @@ def check_manifest_env_names():
         ),
         ValueError, "names")
 
-    sentinel = "sk-" + "or-v1-EXAMPLE-manifest-sentinel"
+    sentinel = "sk-" + "or-v1-EXAMPLE-ambient-sentinel"
+    explicit = "sk-" + "or-v1-EXAMPLE-explicit-sentinel"
     with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": sentinel}):
-        entrant = Entrant(base, workdir=os.path.join(ROOT, "__pycache__"))
+        expect_error(
+            lambda: Entrant(base, workdir=os.path.join(ROOT, "__pycache__")),
+            ValueError, "exactly match")
+        entrant = Entrant(
+            base,
+            workdir=os.path.join(ROOT, "__pycache__"),
+            provisioned_env={"OPENROUTER_API_KEY": explicit},
+        )
         child_env = entrant._child_env()
-    require(child_env.get("OPENROUTER_API_KEY") == sentinel,
-            "sandbox passes DECLARED names from parent env, values untouched")
+    require(child_env.get("OPENROUTER_API_KEY") == explicit and
+            sentinel not in child_env.values(),
+            "manifest names never authorize ambient secret inheritance")
+    expect_error(
+        lambda: Entrant(
+            base,
+            workdir=os.path.join(ROOT, "__pycache__"),
+            provisioned_env={"OPENROUTER_API_KEY": explicit, "EXTRA": "synthetic"},
+        ),
+        ValueError, "exactly match")
     require("OPENROUTER_API_KEY=" + "sk-" + "or" not in encode_canonical(base).decode(),
             "manifest bytes carry the name, never a literal value")
 
@@ -1841,7 +1859,7 @@ def check_manifest_env_names():
         for marker in re.finditer(r"sk-or-[A-Za-z0-9-]{16,}", text):
             require(marker.group(0).startswith("sk-or-v1-EXAMPLE") or "EXAMPLE" in marker.group(0),
                     f"{relpath} must contain only placeholder keys, found {marker.group(0)[:20]}")
-    print("[PASS] manifests and docs carry env names, never values")
+    print("[PASS] manifests carry names only; values require exact trusted provisioning")
 
 
 # ---------------------------------------------------------------------------

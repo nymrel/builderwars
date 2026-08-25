@@ -39,7 +39,7 @@ POLICY = {
     "enforced": [
         "separate_os_process (no shared memory or imports with the referee)",
         "cwd_isolated_scratch_dir (entrant is started in a per-match scratch dir)",
-        "env_allowlist (only base OS vars plus names the entrant manifest declares)",
+        "env_allowlist (base OS vars plus exact per-seat values explicitly provisioned by the trusted caller; manifest names never read the referee environment)",
         "no_inherited_file_handles (close_fds)",
         "transcript_path_withheld (entrant is never told where the record is written)",
         "per_move_wall_clock_timeout (exceeded -> forfeit)",
@@ -52,6 +52,7 @@ POLICY = {
         "network_egress_blocking (an entrant CAN reach the network; not restricted by the host in v1)",
         "filesystem_confinement (cwd is set, not chrooted; an entrant CAN read outside it)",
         "cpu_and_memory_limits (no job object / cgroup applied in v1)",
+        "process_tree_containment (only the direct entrant PID is terminated in v1)",
     ],
     "note": (
         "The unenforced items need an OS-level jail (container, WSL cgroup, Windows job "
@@ -80,6 +81,7 @@ class Entrant:
         max_line_bytes=64 * 1024,
         max_total_bytes=4 * 1024 * 1024,
         max_stderr_bytes=64 * 1024,
+        provisioned_env=None,
     ):
         self.name = manifest["name"]
         self.cmd = list(manifest["cmd"])
@@ -89,6 +91,23 @@ class Entrant:
         self.max_line_bytes = int(max_line_bytes)
         self.max_total_bytes = int(max_total_bytes)
         self.max_stderr_bytes = int(max_stderr_bytes)
+        supplied = {} if provisioned_env is None else provisioned_env
+        if not isinstance(supplied, dict):
+            raise ValueError("provisioned_env must be an object")
+        if len(self.declared_env) != len(set(self.declared_env)):
+            raise ValueError("declared environment names must be unique")
+        if set(supplied) != set(self.declared_env):
+            raise ValueError("provisioned environment names must exactly match the manifest declaration")
+        if any(
+            not isinstance(name, str)
+            or not isinstance(value, str)
+            or "\x00" in value
+            for name, value in supplied.items()
+        ):
+            raise ValueError("provisioned environment names and values must be strings without NUL")
+        # Values are process-local custody, never logged, hashed, or recovered
+        # from the referee's ambient environment merely because a manifest asks.
+        self._provisioned_env = dict(supplied)
 
         self._proc = None
         self._q = queue.Queue()
@@ -101,11 +120,7 @@ class Entrant:
 
     def _child_env(self):
         env = {k: os.environ[k] for k in _BASE_ENV_KEYS if k in os.environ}
-        # The entrant declares which credential-bearing variables it needs. The
-        # engine passes them through without reading, logging or hashing values.
-        for name in self.declared_env:
-            if name in os.environ:
-                env[name] = os.environ[name]
+        env.update(self._provisioned_env)
         env["PYTHONUNBUFFERED"] = "1"
         env["PYTHONIOENCODING"] = "utf-8"
         env["ARENA_PROTOCOL"] = "arena/1"

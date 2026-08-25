@@ -682,6 +682,13 @@ def check_ten_fronts_public_source():
                 "chain_head": records[-1]["hash"],
             }
 
+        malformed_digest_report = bypass_replay(bad)
+        malformed_digest_report["engine_digest_recorded"] = "not-a-digest"
+        require(
+            projection_module._exact_pass(malformed_digest_report, 0) is False,
+            "publication gate rejects malformed verifier engine digests",
+        )
+
         projection_module.verify_with_snapshot = bypass_replay
         try:
             expect_publication_error(lambda: project_receipt(bad), "exactly two non-negative")

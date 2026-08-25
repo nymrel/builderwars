@@ -18,10 +18,12 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
 import time
+import uuid
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HARNESS_PATH = os.path.join(ROOT, "entrants", "fantasy_plan_harness.py")
@@ -63,6 +65,11 @@ SOURCE_PUBLIC_KEYS = (
     "fallbacksAllowed",
     "route",
 )
+_HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
+_SIMPLE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+_MODEL_ID_RE = re.compile(
+    r"^[A-Za-z0-9][A-Za-z0-9._:@+-]*(?:/[A-Za-z0-9][A-Za-z0-9._:@+-]*)*$"
+)
 
 
 class ProofBlocked(Exception):
@@ -101,6 +108,50 @@ def _require(condition, code):
         raise ProofBlocked(code)
 
 
+def _validated_public_source(source):
+    _require(
+        isinstance(source, dict) and all(key in source for key in SOURCE_PUBLIC_KEYS),
+        "source_fields_missing",
+    )
+    public = {key: source[key] for key in SOURCE_PUBLIC_KEYS}
+    run_id = public["runId"]
+    try:
+        canonical_run_id = str(uuid.UUID(run_id)) if isinstance(run_id, str) else None
+    except (ValueError, AttributeError):
+        canonical_run_id = None
+    _require(canonical_run_id == run_id, "source_run_id_type")
+    for key in ("receiptSha256", "terminalTextSha256"):
+        _require(
+            isinstance(public[key], str) and _HEX64_RE.fullmatch(public[key]) is not None,
+            "source_sha256_type",
+        )
+    _require(type(public["terminalTextExactPlan"]) is bool, "terminal_exact_plan_type")
+    _require(type(public["fallbacksAllowed"]) is bool, "fallbacks_allowed_type")
+    _require(public["fallbacksAllowed"] is False, "fallbacks_allowed")
+    _require(
+        type(public["maxTokens"]) is int and 0 < public["maxTokens"] <= 10_000_000,
+        "max_tokens_type",
+    )
+    _require(
+        isinstance(public["reasoningEffort"], str)
+        and _SIMPLE_ID_RE.fullmatch(public["reasoningEffort"]) is not None,
+        "reasoning_effort_type",
+    )
+    _require(
+        isinstance(public["route"], str)
+        and _SIMPLE_ID_RE.fullmatch(public["route"]) is not None,
+        "route_type",
+    )
+    _require(
+        isinstance(public["modelClaim"], str)
+        and len(public["modelClaim"]) <= 200
+        and _MODEL_ID_RE.fullmatch(public["modelClaim"]) is not None
+        and "://" not in public["modelClaim"],
+        "model_claim_type",
+    )
+    return public
+
+
 def _load_plan(harness, raw_path):
     path = os.path.abspath(raw_path)
     _require(os.path.isfile(path), "artifact_not_found")
@@ -115,18 +166,9 @@ def _load_plan(harness, raw_path):
     except (UnicodeDecodeError, ValueError):
         raise ProofBlocked("artifact_invalid_json") from None
     source = parsed.get("source") if isinstance(parsed, dict) else None
-    _require(
-        isinstance(source, dict) and all(key in source for key in SOURCE_PUBLIC_KEYS),
-        "source_fields_missing",
-    )
+    public_source = _validated_public_source(source)
     _require(source["runId"] == projection["run_id"], "source_run_id_mismatch")
     _require(source["receiptSha256"] == projection["receipt_sha256"], "source_receipt_mismatch")
-    public_source = {key: source[key] for key in SOURCE_PUBLIC_KEYS}
-    _require(public_source["fallbacksAllowed"] is False, "fallbacks_allowed")
-    _require(
-        isinstance(public_source["terminalTextExactPlan"], bool),
-        "terminal_exact_plan_type",
-    )
     return {
         "abs_path": path,
         "name": "plan-" + artifact_sha[:12],
@@ -267,12 +309,11 @@ def _build_plan_source(plan):
 
 
 def _assert_no_paths(rendered, secrets):
-    lowered = rendered.lower()
+    normalized = re.sub(r"[\\/]+", "/", rendered.casefold())
     for secret in secrets:
-        base = secret.lower()
-        for variant in (base, base.replace("\\", "\\\\"), base.replace("\\", "/")):
-            if variant and variant in lowered:
-                raise ProofBlocked("path_in_summary")
+        candidate = re.sub(r"[\\/]+", "/", str(secret).casefold())
+        if candidate and candidate in normalized:
+            raise ProofBlocked("path_in_summary")
 
 
 def execute(args):
@@ -394,6 +435,7 @@ def execute(args):
             "summary_identity_binding",
         )
 
+        ordered_audits = sorted(audits, key=lambda match: (match["seat0"], match["seat1"]))
         doc = {
             "proofSchema": PROOF_SCHEMA,
             "game": GAME,
@@ -406,11 +448,11 @@ def execute(args):
             "planSources": sorted(
                 (_build_plan_source(plan) for plan in plans), key=lambda entry: entry["entrant"]
             ),
-            "matches": sorted(audits, key=lambda match: (match["seat0"], match["seat1"])),
+            "matches": ordered_audits,
             "transcripts": {
                 "count": len(audits),
                 "distinctSha256": MATCHES_EXPECTED,
-                "replayVerdicts": ["PASS", "PASS"],
+                "replayVerdicts": [match["replayVerdict"] for match in ordered_audits],
             },
         }
         rendered = json.dumps(doc, indent=2, ensure_ascii=False) + "\n"

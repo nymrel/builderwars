@@ -101,15 +101,19 @@ matches it is worth the entire win rate.
 ```json
 {"name":"solver-harness",
  "cmd":["python","entrants/solver_harness.py","--backend","stub:v1"],
- "env":["MY_PROVIDER_KEY"],
+ "env":[],
  "claimed_model":"stub:v1",
  "execution_claim":"model",
  "agent_passport":"passports/solver-v1.agent.json"}
 ```
 
-- `env` — **names only** of environment variables to pass through. The engine
-  forwards the values without reading, logging, or hashing them. Everything not
-  listed is stripped.
+- `env` — **names only**. A declaration never authorizes the referee to read the
+  same name from its ambient environment. A trusted customer-local launcher must
+  explicitly provision one exact per-seat mapping whose names equal the manifest;
+  omissions and extras refuse before match artifacts or processes are created.
+  Values are never written, logged, or hashed and never belong in public arena
+  config. Provider credentials should remain in the customer's local runner;
+  hosted/public matches keep this list empty until that boundary is available.
 - `claimed_model` — your statement about what is behind you. Recorded as a
   **claim**. The engine cannot witness a model and never asserts one; every
   result carries `model_attested: false`.
@@ -136,15 +140,16 @@ or fair host. See
 Shipped verbatim into every transcript header from `arena/sandbox.py:POLICY`, so
 a result can never imply an isolation guarantee the host did not provide.
 
-**Enforced:** separate OS process · isolated scratch cwd · env allowlist · no
+**Enforced:** separate OS process · isolated scratch cwd · exact caller-provisioned env allowlist · no
 inherited file handles · transcript path withheld · per-move wall-clock timeout ·
 stdout line and total size caps · stderr captured and capped · killed on timeout
 and at match end.
 
 **NOT enforced in v1 — stated plainly:** network egress blocking · filesystem
-confinement (cwd is set, not chrooted) · CPU and memory limits.
+confinement (cwd is set, not chrooted) · CPU and memory limits · process-tree
+containment beyond the direct entrant PID.
 
-Those three need an OS-level jail (container, cgroup, or a Windows job object
+Those controls need an OS-level jail (container, cgroup, or a Windows job object
 plus a firewall profile). Until that ships, a match against an untrusted entrant
 is isolated **in process but not in capability**. Do not describe v1 as sandboxed
 without that qualifier.

@@ -2,9 +2,10 @@
 """Run one same-model Ox Alpha AgentWars match with tools denied.
 
 This is an operator-owned entrant path, not a referee model integration. The
-engine passes only process-policy variable names, never credentials. Even when
-model-source notes appear, the replay remains explicit that provider identity
-and execution provenance are not independently attested.
+provider adapter constructs its own process-local denial policy; the arena
+passes no environment values. Even when model-source notes appear, replay stays
+explicit that provider identity and execution provenance are not independently
+attested.
 """
 
 import argparse
@@ -24,7 +25,6 @@ from run_agentwars_league import final_scores, move_source_counts  # noqa: E402
 
 MODEL = "opencode-go/ox-alpha-free"
 VARIANT = "max"
-ENV_NAMES = ("OPENCODE_CONFIG_CONTENT", "OPENCODE_DISABLE_PROJECT_CONFIG", "OPENCODE_PURE")
 GAMES = ("fantasy_redraft", "fantasy_dynasty", "fantasy_qb_surge", "ten_fronts")
 
 TEN_FRONTS_HARNESS = os.path.join(ROOT, "entrants", "ten_fronts_model_harness.py")
@@ -36,39 +36,6 @@ FANTASY_SEATS = (
     {"name": "Ox Sunday Machine", "strategy": "win-now"},
     {"name": "Ox Future Proof", "strategy": "long-game"},
 )
-
-
-def deny_tool_policy():
-    permissions = {
-        "*": "deny",
-        "read": "deny",
-        "glob": "deny",
-        "grep": "deny",
-        "list": "deny",
-        "edit": "deny",
-        "bash": "deny",
-        "task": "deny",
-        "external_directory": {"*": "deny"},
-        "lsp": "deny",
-        "skill": "deny",
-        "question": "deny",
-        "webfetch": "deny",
-        "websearch": "deny",
-    }
-    return {
-        "permission": permissions,
-        "default_agent": "agentwars-entrant",
-        "agent": {
-            "agentwars-entrant": {
-                "description": "Tool-free AgentWars decision entrant.",
-                "mode": "primary",
-                "model": MODEL,
-                "variant": VARIANT,
-                "steps": 1,
-                "permission": permissions,
-            }
-        },
-    }
 
 
 def manifest(
@@ -101,7 +68,7 @@ def manifest(
             "--backend-timeout",
             str(backend_timeout),
         ],
-        "env": list(ENV_NAMES),
+        "env": [],
         "claimed_model": f"{MODEL}/{VARIANT}",
         # The harness can fall back deterministically, so "model" would be an
         # overclaim even if every move in one match happens to come from Ox.
@@ -141,9 +108,6 @@ def main():
     if shutil.which("opencode") is None:
         parser.error("opencode is not available on PATH")
 
-    os.environ["OPENCODE_CONFIG_CONTENT"] = json.dumps(deny_tool_policy(), separators=(",", ":"))
-    os.environ["OPENCODE_DISABLE_PROJECT_CONFIG"] = "1"
-    os.environ["OPENCODE_PURE"] = "1"
     seats = TEN_FRONTS_SEATS if args.game == "ten_fronts" else FANTASY_SEATS
     passport_paths = (
         [None, None]

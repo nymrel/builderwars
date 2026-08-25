@@ -10,9 +10,11 @@ Three properties this file is built to hold:
      it can change anything.
   2. Everything that decided the outcome is committed to a hash chain as it
      happens, including the engine's own source digest.
-  3. Nothing in here opens a network connection, reads a credential, or knows
-     what a model is. Inference, if any, happens on the far side of a pipe, at
-     the entrant's own expense.
+  3. Nothing in here opens a network connection or resolves requested names from
+     the referee's ambient environment. Explicit per-seat values, when a trusted
+     local caller supplies them, are copied opaquely into only that entrant's
+     process and never logged or hashed. Inference remains on the far side of a
+     pipe, at the entrant's own expense.
 """
 
 import json
@@ -20,6 +22,7 @@ import os
 import random
 import re
 import shutil
+import sys
 import time
 
 from .canonical import digest
@@ -187,6 +190,29 @@ def validate_manifest(manifest):
     return manifest
 
 
+def _normalize_provisioned_envs(entrants, provisioned_envs):
+    """Bind exact per-seat values without consulting the referee environment."""
+    supplied_rows = [{} for _ in entrants] if provisioned_envs is None else provisioned_envs
+    if not isinstance(supplied_rows, (list, tuple)) or len(supplied_rows) != len(entrants):
+        raise ValueError("provisioned_envs must contain exactly one object per entrant")
+    normalized = []
+    for manifest, supplied in zip(entrants, supplied_rows):
+        if not isinstance(supplied, dict):
+            raise ValueError("each provisioned environment must be an object")
+        declared = manifest.get("env", [])
+        if len(supplied) != len(declared) or set(supplied) != set(declared):
+            raise ValueError("provisioned environment names must exactly match each manifest")
+        if any(
+            not isinstance(name, str)
+            or not isinstance(value, str)
+            or "\x00" in value
+            for name, value in supplied.items()
+        ):
+            raise ValueError("provisioned environment names and values must be strings without NUL")
+        normalized.append(dict(supplied))
+    return normalized
+
+
 def run_match(
     *,
     game_name,
@@ -196,6 +222,7 @@ def run_match(
     move_timeout_s=15.0,
     match_id=None,
     keep_scratch=False,
+    provisioned_envs=None,
 ):
     if len(entrants) != 2:
         raise ValueError("this runner plays two-seat games; got %d entrants" % len(entrants))
@@ -203,6 +230,7 @@ def run_match(
         raise ValueError("seed must be an int so it can be canonically encoded")
     for manifest in entrants:
         validate_manifest(manifest)
+    seat_envs = _normalize_provisioned_envs(entrants, provisioned_envs)
     if entrants[0]["name"].casefold() == entrants[1]["name"].casefold():
         raise ValueError("entrant names must be unique within a match")
 
@@ -237,8 +265,12 @@ def run_match(
     # Refuse the pair before creating either entry. The exclusive opens below
     # remain the race-safe authority; this preflight prevents a known collision
     # on one path from leaving a new empty counterpart on the other.
-    if os.path.lexists(transcript_path) or os.path.lexists(sidecar_path):
-        raise FileExistsError("match transcript or diagnostics output already exists")
+    if (
+        os.path.lexists(transcript_path)
+        or os.path.lexists(sidecar_path)
+        or os.path.lexists(scratch_root)
+    ):
+        raise FileExistsError("match transcript, diagnostics, or scratch output already exists")
 
     procs = []
     tw = None
@@ -296,7 +328,12 @@ def run_match(
         # -- start entrants -------------------------------------------------
         for i, manifest in enumerate(entrants):
             workdir = os.path.join(scratch_root, f"seat{i}")
-            p = Entrant(manifest, workdir, move_timeout_s=move_timeout_s)
+            p = Entrant(
+                manifest,
+                workdir,
+                move_timeout_s=move_timeout_s,
+                provisioned_env=seat_envs[i],
+            )
             procs.append(p)
 
         state = game.setup(random.Random(seed))
@@ -485,16 +522,36 @@ def run_match(
             **result_body,
         }
     finally:
-        if tw is not None:
-            tw.close()
+        active_exception = sys.exc_info()[1]
+        cleanup_error = None
+
+        def attempt(action):
+            nonlocal cleanup_error
+            try:
+                action()
+            except BaseException as error:
+                if cleanup_error is None:
+                    cleanup_error = error
+
+        # Entrants are the first custody obligation. No fallible diagnostic or
+        # transcript operation may prevent either direct process close attempt.
         for p in procs:
-            p.close()
+            attempt(p.close)
+        for p in procs:
             if side is not None:
-                side.write("stderr_final", entrant=p.name, tail=p.stderr_text()[-2000:])
+                attempt(
+                    lambda p=p: side.write(
+                        "stderr_final", entrant=p.name, tail=p.stderr_text()[-2000:]
+                    )
+                )
         if side is not None:
-            side.close()
+            attempt(side.close)
+        if tw is not None:
+            attempt(tw.close)
         if not keep_scratch:
-            shutil.rmtree(scratch_root, ignore_errors=True)
+            attempt(lambda: shutil.rmtree(scratch_root, ignore_errors=True))
+        if active_exception is None and cleanup_error is not None:
+            raise cleanup_error
 
 
 def _encodable(value):

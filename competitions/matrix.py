@@ -474,6 +474,43 @@ def _truth_status(entrants: list[dict]) -> str:
     return "mixed_unattested"
 
 
+def _runtime_env_values(entrants: list[dict], provisioned_envs: object) -> dict[str, dict[str, str]]:
+    """Bind caller-owned values to normalized entrants without serializing them."""
+
+    supplied = {} if provisioned_envs is None else provisioned_envs
+    _require(
+        isinstance(supplied, dict),
+        "provisioned_envs must be an object keyed by exact entrant name",
+    )
+    known_names = {row["name"] for row in entrants}
+    _require(
+        set(supplied) <= known_names,
+        "provisioned_envs contains an unknown entrant name",
+    )
+    normalized = {}
+    for entrant in entrants:
+        values = supplied.get(entrant["name"], {})
+        _require(
+            isinstance(values, dict),
+            "each provisioned entrant environment must be an object",
+        )
+        _require(
+            set(values) == set(entrant["env"]),
+            "provisioned environment names must exactly match each entrant declaration",
+        )
+        _require(
+            all(
+                isinstance(name, str)
+                and isinstance(value, str)
+                and "\x00" not in value
+                for name, value in values.items()
+            ),
+            "provisioned environment names and values must be strings without NUL",
+        )
+        normalized[entrant["agentBuildId"]] = dict(values)
+    return normalized
+
+
 def run_competition(
     config: object,
     *,
@@ -481,8 +518,15 @@ def run_competition(
     repo_root: os.PathLike | str,
     move_timeout_s: float = 15.0,
     max_matches: int = 512,
+    provisioned_envs: object = None,
 ) -> dict:
-    """Run every pair, seed, and seat order and return a public-safe report."""
+    """Run every pair, seed, and seat order and return a public-safe report.
+
+    Credential-bearing values, when required by a customer-local harness, must
+    arrive in ``provisioned_envs`` keyed by exact entrant name. They never enter
+    the public config, report, competition identity, transcript, or ambient
+    referee environment.
+    """
 
     _require(
         isinstance(move_timeout_s, (int, float))
@@ -503,6 +547,7 @@ def run_competition(
         expected_matches <= max_matches,
         f"planned schedule has {expected_matches} matches, above the authorized max_matches ceiling",
     )
+    runtime_envs = _runtime_env_values(entrants, provisioned_envs)
     output_root = Path(matches_dir).resolve()
     if output_root.exists():
         _require(output_root.is_dir(), "matches_dir must identify a directory")
@@ -546,6 +591,10 @@ def run_competition(
                         entrants=runtime_pair,
                         out_dir=str(match_dir),
                         move_timeout_s=normalized_timeout_s,
+                        provisioned_envs=[
+                            runtime_envs[pair[0]["agentBuildId"]],
+                            runtime_envs[pair[1]["agentBuildId"]],
+                        ],
                     )
                     replay = verify(result["transcript"])
                     if replay.get("verdict") != "PASS" or replay.get("engine_digest_match") is not True:

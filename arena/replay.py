@@ -40,6 +40,12 @@ from .integrity import engine_digest
 from .scoring import referee_projection, score
 from .transcript import first, load, verify_chain
 
+_HEX_DIGITS = frozenset("0123456789abcdef")
+
+
+def _hex64(value):
+    return isinstance(value, str) and len(value) == 64 and set(value) <= _HEX_DIGITS
+
 
 def _verify_header_identity(header):
     """Re-verify embedded passport evidence offline. Separate axis from rules.
@@ -59,7 +65,9 @@ def _verify_header_identity(header):
         if (
             not isinstance(rows, list)
             or len(rows) != 2
-            or [row.get("seat") if isinstance(row, dict) else None for row in rows] != [0, 1]
+            or any(not isinstance(row, dict) for row in rows)
+            or any(type(row.get("seat")) is not int for row in rows)
+            or [row["seat"] for row in rows] != [0, 1]
         ):
             return "invalid", [], "header must contain exactly ordered entrant seats 0 and 1"
         present = []
@@ -176,6 +184,9 @@ def verify(transcript_path):
         "transcript": str(transcript_path),
         "chain_ok": False,
         "engine_digest_match": None,
+        "attestation_ok": False,
+        "abort_free": False,
+        "engine_error_integrity": False,
         "setup_ok": False,
         "moves_ok": False,
         "states_ok": False,
@@ -240,17 +251,36 @@ def verify(transcript_path):
     game_block = h.get("game")
     report["game"] = game_block.get("name") if isinstance(game_block, dict) else None
 
+    attestation = h.get("attestation")
+    attestation_ok = (
+        isinstance(attestation, dict)
+        and attestation.get("model_attested") is False
+        and attestation.get("execution_claims_attested") is False
+    )
+    report["attestation_ok"] = attestation_ok
+    note(
+        "attestation_boundary",
+        attestation_ok,
+        None
+        if attestation_ok
+        else "attestation must be an object with model and execution claims exactly false",
+    )
+
     # 2. is the verifying engine the refereeing engine?
     mine = engine_digest()
     engine_block = h.get("engine")
     theirs = engine_block.get("digest") if isinstance(engine_block, dict) else None
-    report["engine_digest_match"] = mine == theirs
+    digest_fields_ok = _hex64(mine) and _hex64(theirs)
+    digest_match = digest_fields_ok and mine == theirs
+    report["engine_digest_match"] = digest_match
     report["engine_digest_recorded"] = theirs
     report["engine_digest_verifier"] = mine
     note(
         "engine_digest",
-        mine == theirs,
-        None if mine == theirs else "verifier engine differs from the engine that refereed",
+        digest_match,
+        None
+        if digest_match
+        else "engine digests must be 64-char lowercase hex and match exactly",
     )
 
     try:
@@ -271,6 +301,8 @@ def verify(transcript_path):
     moves_ok = True
     setup_ok = False
     forfeits = []
+    aborts = []
+    engine_errors = []
 
     # A transcript handed to this function is untrusted input — it may be
     # crafted, truncated, or produced by a buggy engine. `verify` must always
@@ -324,7 +356,11 @@ def verify(transcript_path):
             elif kind == "forfeit":
                 forfeits.append(body)
 
+            elif kind == "abort":
+                aborts.append(body)
+
             elif kind == "engine_error":
+                engine_errors.append(body)
                 report["engine_error_recorded"] = body.get("detail")
     except Exception as e:
         note(
@@ -370,6 +406,48 @@ def verify(transcript_path):
             adjudication_ok = False
     note("forfeit_adjudication", adjudication_ok, None if adjudication_ok else "forfeiting seat was not ruled the loser")
 
+    abort_free = not aborts
+    report["abort_free"] = abort_free
+    note(
+        "abort_free",
+        abort_free,
+        None if abort_free else "an aborted match is incomplete and cannot replay PASS",
+    )
+
+    engine_error_shape_ok = len(engine_errors) <= 1
+    if engine_errors:
+        eb = engine_errors[0]
+        common_ok = (
+            isinstance(eb.get("detail"), str)
+            and 0 < len(eb["detail"]) <= 160
+            and isinstance(eb.get("code"), str)
+            and isinstance(eb.get("phase"), str)
+        )
+        handshake_ok = (
+            set(eb) == {"detail", "code", "phase", "seat"}
+            and eb.get("code") == "handshake_failed"
+            and eb.get("phase") == "handshake"
+            and type(eb.get("seat")) is int
+            and eb["seat"] in (0, 1)
+        )
+        referee_ok = (
+            set(eb) == {"detail", "code", "phase", "turn"}
+            and eb.get("code") == "referee_fault"
+            and eb.get("phase") == "referee"
+            and type(eb.get("turn")) is int
+            and eb["turn"] >= 0
+        )
+        engine_error_shape_ok = engine_error_shape_ok and common_ok and (
+            handshake_ok or referee_ok
+        )
+    note(
+        "engine_error_shape",
+        engine_error_shape_ok,
+        None
+        if engine_error_shape_ok
+        else "engine-error records must be singular, bounded, and fully typed",
+    )
+
     # 5. recompute the score from referee state, ignoring the recorded result
     try:
         recomputed = score(referee_projection(records), game)
@@ -389,6 +467,27 @@ def verify(transcript_path):
         "recorded_result_follows_from_state",
         same,
         None if same else f"recorded {report['recorded']} vs recomputed {recomputed}",
+    )
+    engine_error_outcome_ok = True
+    if engine_errors:
+        engine_error_outcome_ok = (
+            recomputed.get("winner") is None
+            and recomputed.get("reason") == "engine_error"
+            and recomputed.get("decisive") is False
+            and recomputed.get("points") == {"0": 0, "1": 0}
+            and rb.get("winner") is None
+            and rb.get("reason") == "engine_error"
+            and rb.get("decisive") is False
+            and rb.get("points") == {"0": 0, "1": 0}
+        )
+    engine_error_integrity = engine_error_shape_ok and engine_error_outcome_ok
+    report["engine_error_integrity"] = engine_error_integrity
+    note(
+        "engine_error_void_adjudication",
+        engine_error_integrity,
+        None
+        if engine_error_integrity
+        else "an engine error must produce an exact non-decisive zero-point void",
     )
 
     # 6. identity is a separate axis: rules replay and signed identity are
@@ -442,6 +541,7 @@ def verify(transcript_path):
     passed = (
         report["chain_ok"]
         and report["engine_digest_match"] is True
+        and attestation_ok
         and structure_ok
         and kinds_ok
         and setup_ok
@@ -449,6 +549,8 @@ def verify(transcript_path):
         and moves_ok
         and forfeit_ok
         and adjudication_ok
+        and abort_free
+        and engine_error_integrity
         and same
         and identity_status != "invalid"
     )
@@ -466,9 +568,10 @@ def verify(transcript_path):
             "each supplied passport's signature verifies offline against its "
             "declared version content, key-derived IDs, and recorded preflight harness digest"
         )
+    model_attested = attestation.get("model_attested") if isinstance(attestation, dict) else None
     report["does_not_prove"] = [
         "which model produced any move (the engine never contacts a model; "
-        f"model_attested={h.get('attestation', {}).get('model_attested')})",
+        f"model_attested={model_attested})",
         "wall-clock events such as timeouts, which are recorded facts about the "
         "machine the match ran on",
     ]
