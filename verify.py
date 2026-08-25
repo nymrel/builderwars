@@ -33,7 +33,7 @@ import sys
 import tempfile
 import urllib.request
 
-BASE = os.environ.get("BUILDERWARS_BASE", "https://nymrel.com/builderwars")
+BASE = os.environ.get("BUILDERWARS_BASE", 'https://nymrel.com/builderwars')
 
 # engine digest -> (relpath -> base64 bytes). Historical referee builds remain
 # embedded so a new game cannot strand already-published match receipts.
@@ -14596,6 +14596,14 @@ _SOURCE_PATH_CHARS = frozenset(
 _REQUIRED_ENGINE_SOURCES = frozenset(
     ("__init__.py", "canonical.py", "integrity.py", "replay.py")
 )
+_WINDOWS_DEVICE_STEMS = frozenset(
+    (
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    )
+)
+_MAX_TRANSCRIPT_BYTES = 64 * 1024 * 1024
 
 
 def _decode_sources(sources):
@@ -14622,6 +14630,8 @@ def _decode_sources(sources):
             or folded in seen
             or any(char not in _SOURCE_PATH_CHARS for char in rel)
             or any(not part or part in (".", "..") for part in parts)
+            or any(part != part.rstrip(". ") for part in parts)
+            or any(part.split(".", 1)[0].upper() in _WINDOWS_DEVICE_STEMS for part in parts)
             or any(len(part.encode("ascii")) > 100 for part in parts)
             or not parts[-1].endswith(".py")
         ):
@@ -14641,6 +14651,11 @@ def _decode_sources(sources):
         decoded.append((rel, parts, raw))
     if not _REQUIRED_ENGINE_SOURCES.issubset(sources):
         raise ValueError("embedded source set is missing required engine modules")
+    folded_paths = {rel.casefold() for rel in sources}
+    for rel, _parts, _raw in decoded:
+        parts = rel.casefold().split("/")
+        if any("/".join(parts[:index]) in folded_paths for index in range(1, len(parts))):
+            raise ValueError("embedded source path collides with a file prefix")
     return decoded
 
 
@@ -14703,14 +14718,20 @@ def _inspect_transcript(path):
 def _fetch(arg):
     """A local path is used as-is. Anything else is treated as a match id or URL."""
     if os.path.exists(arg):
+        if not os.path.isfile(arg) or os.path.getsize(arg) > _MAX_TRANSCRIPT_BYTES:
+            raise SystemExit("local transcript is not one bounded regular file")
         return arg, None
     url = arg if arg.startswith(("http://", "https://")) else f"{BASE}/m/{arg}.jsonl"
     tmp = tempfile.NamedTemporaryFile(prefix="builderwars-", suffix=".jsonl", delete=False)
     atexit.register(os.unlink, tmp.name)
     try:
         with urllib.request.urlopen(url, timeout=30) as resp:
-            tmp.write(resp.read())
+            payload = resp.read(_MAX_TRANSCRIPT_BYTES + 1)
+            if len(payload) > _MAX_TRANSCRIPT_BYTES:
+                raise ValueError("transcript exceeds 64 MiB")
+            tmp.write(payload)
     except Exception as e:
+        tmp.close()
         sys.stderr.write(f"could not fetch {url}\n  {e.__class__.__name__}: {e}\n")
         raise SystemExit(2)
     tmp.close()

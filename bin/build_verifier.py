@@ -37,6 +37,7 @@ import glob
 import hashlib
 import json
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -58,6 +59,13 @@ _SOURCE_PATH_CHARS = frozenset(
 )
 _REQUIRED_ENGINE_SOURCES = frozenset(
     {"__init__.py", "canonical.py", "integrity.py", "replay.py"}
+)
+_WINDOWS_DEVICE_STEMS = frozenset(
+    (
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    )
 )
 
 
@@ -87,6 +95,18 @@ def _valid_digest(value):
     )
 
 
+def _validated_base_url(value):
+    if (
+        not isinstance(value, str)
+        or not (1 <= len(value) <= 2048)
+        or not value.startswith(("https://", "http://"))
+        or any(ord(char) < 32 or ord(char) == 127 for char in value)
+        or any(char in value for char in ("\\", '"', "'"))
+    ):
+        raise ValueError("verifier base URL must be one bounded HTTP(S) URL")
+    return value
+
+
 def _validate_source_path(rel):
     if not isinstance(rel, str):
         raise SnapshotError("source path must be a string")
@@ -103,6 +123,8 @@ def _validate_source_path(rel):
         or ":" in rel
         or any(char not in _SOURCE_PATH_CHARS for char in rel)
         or any(not part or part in (".", "..") for part in parts)
+        or any(part != part.rstrip(". ") for part in parts)
+        or any(part.split(".", 1)[0].upper() in _WINDOWS_DEVICE_STEMS for part in parts)
         or any(len(part.encode("ascii")) > 100 for part in parts)
         or not parts[-1].endswith(".py")
     ):
@@ -173,7 +195,16 @@ def _decode_source_map(sources):
 
 
 def _load_snapshot(path):
-    if os.path.getsize(path) > _MAX_SNAPSHOT_BYTES:
+    try:
+        file_stat = os.lstat(path)
+    except OSError as error:
+        raise SnapshotError("snapshot metadata is unavailable") from error
+    if (
+        not stat.S_ISREG(file_stat.st_mode)
+        or os.path.islink(path)
+    ):
+        raise SnapshotError("snapshot must be one ordinary, non-symlink file")
+    if file_stat.st_size > _MAX_SNAPSHOT_BYTES:
         raise SnapshotError("snapshot exceeds the byte limit")
     try:
         with open(path, "r", encoding="utf-8") as fh:
@@ -355,7 +386,7 @@ import sys
 import tempfile
 import urllib.request
 
-BASE = os.environ.get("BUILDERWARS_BASE", "{base}")
+BASE = os.environ.get("BUILDERWARS_BASE", {base_literal})
 
 # engine digest -> (relpath -> base64 bytes). Historical referee builds remain
 # embedded so a new game cannot strand already-published match receipts.
@@ -372,6 +403,14 @@ _SOURCE_PATH_CHARS = frozenset(
 _REQUIRED_ENGINE_SOURCES = frozenset(
     ("__init__.py", "canonical.py", "integrity.py", "replay.py")
 )
+_WINDOWS_DEVICE_STEMS = frozenset(
+    (
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    )
+)
+_MAX_TRANSCRIPT_BYTES = 64 * 1024 * 1024
 
 
 def _decode_sources(sources):
@@ -398,6 +437,8 @@ def _decode_sources(sources):
             or folded in seen
             or any(char not in _SOURCE_PATH_CHARS for char in rel)
             or any(not part or part in (".", "..") for part in parts)
+            or any(part != part.rstrip(". ") for part in parts)
+            or any(part.split(".", 1)[0].upper() in _WINDOWS_DEVICE_STEMS for part in parts)
             or any(len(part.encode("ascii")) > 100 for part in parts)
             or not parts[-1].endswith(".py")
         ):
@@ -417,6 +458,11 @@ def _decode_sources(sources):
         decoded.append((rel, parts, raw))
     if not _REQUIRED_ENGINE_SOURCES.issubset(sources):
         raise ValueError("embedded source set is missing required engine modules")
+    folded_paths = {{rel.casefold() for rel in sources}}
+    for rel, _parts, _raw in decoded:
+        parts = rel.casefold().split("/")
+        if any("/".join(parts[:index]) in folded_paths for index in range(1, len(parts))):
+            raise ValueError("embedded source path collides with a file prefix")
     return decoded
 
 
@@ -479,14 +525,20 @@ def _inspect_transcript(path):
 def _fetch(arg):
     """A local path is used as-is. Anything else is treated as a match id or URL."""
     if os.path.exists(arg):
+        if not os.path.isfile(arg) or os.path.getsize(arg) > _MAX_TRANSCRIPT_BYTES:
+            raise SystemExit("local transcript is not one bounded regular file")
         return arg, None
     url = arg if arg.startswith(("http://", "https://")) else f"{{BASE}}/m/{{arg}}.jsonl"
     tmp = tempfile.NamedTemporaryFile(prefix="builderwars-", suffix=".jsonl", delete=False)
     atexit.register(os.unlink, tmp.name)
     try:
         with urllib.request.urlopen(url, timeout=30) as resp:
-            tmp.write(resp.read())
+            payload = resp.read(_MAX_TRANSCRIPT_BYTES + 1)
+            if len(payload) > _MAX_TRANSCRIPT_BYTES:
+                raise ValueError("transcript exceeds 64 MiB")
+            tmp.write(payload)
     except Exception as e:
+        tmp.close()
         sys.stderr.write(f"could not fetch {{url}}\\n  {{e.__class__.__name__}}: {{e}}\\n")
         raise SystemExit(2)
     tmp.close()
@@ -582,12 +634,13 @@ if __name__ == "__main__":
 
 
 def build(base_url):
+    base_url = _validated_base_url(base_url)
     files = collect()
     engine_digest = digest_for(files)
     sets = source_sets(files)
 
     src = HEADER.format(
-        base=base_url,
+        base_literal=repr(base_url),
         source_sets=render_source_sets(sets),
         engine_digest=engine_digest,
     )
@@ -687,6 +740,8 @@ def check_snapshot_guards():
             ("forward traversal", "../../escape.py"),
             ("backslash traversal", "..\\..\\escape.py"),
             ("drive path", "C:/escape.py"),
+            ("trailing-dot directory", "games./escape.py"),
+            ("reserved Windows device", "CON.py"),
         ):
             hostile_sources = dict(sources)
             hostile_sources[hostile_path] = base64.b64encode(b"pass\n").decode("ascii")
@@ -724,6 +779,22 @@ def check_snapshot_guards():
             target=wrong_path,
         )
 
+        local_base = "http://127.0.0.1:8080/builderwars"
+        if _validated_base_url(local_base) != local_base:
+            raise AssertionError("bounded local HTTP verifier base was not retained")
+        checks += 1
+        for hostile_base in (
+            "file:///private/transcript",
+            'https://example.invalid/";raise RuntimeError()',
+            "https://example.invalid/\nINJECT",
+        ):
+            try:
+                _validated_base_url(hostile_base)
+            except ValueError:
+                checks += 1
+            else:
+                raise AssertionError("verifier base URL guard accepted code-shaped input")
+
     return checks
 
 
@@ -746,7 +817,7 @@ def check_runtime_unpack_guard():
         b"raise RuntimeError('escaped verifier source')\n"
     ).decode("ascii")
     script = HEADER.format(
-        base=DEFAULT_BASE,
+        base_literal=repr(DEFAULT_BASE),
         source_sets=render_source_sets({engine_digest: hostile}),
         engine_digest=engine_digest,
     )
@@ -776,7 +847,61 @@ def check_runtime_unpack_guard():
             os.unlink(escape_path)
         except FileNotFoundError:
             pass
-    return 1
+    prefix_hostile = dict(sources)
+    prefix_hostile["prefix.py"] = base64.b64encode(b"pass\n").decode("ascii")
+    prefix_hostile["prefix.py/child.py"] = base64.b64encode(b"pass\n").decode("ascii")
+    prefix_script = HEADER.format(
+        base_literal=repr(DEFAULT_BASE),
+        source_sets=render_source_sets({engine_digest: prefix_hostile}),
+        engine_digest=engine_digest,
+    )
+    with tempfile.TemporaryDirectory(prefix="builderwars-prefix-guard-") as root:
+        verifier = os.path.join(root, "verify-hostile.py")
+        transcript = os.path.join(root, "empty.jsonl")
+        with open(verifier, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(prefix_script)
+        with open(transcript, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("{}\n")
+        proc = subprocess.run(
+            [sys.executable, verifier, transcript, "--json"],
+            cwd=root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=15,
+        )
+    if (
+        proc.returncode == 0
+        or b"embedded source path collides with a file prefix" not in proc.stderr
+    ):
+        raise AssertionError("standalone verifier file-prefix guard was not reached")
+
+    trailing_hostile = dict(sources)
+    trailing_hostile["games./escape.py"] = base64.b64encode(b"pass\n").decode("ascii")
+    trailing_script = HEADER.format(
+        base_literal=repr(DEFAULT_BASE),
+        source_sets=render_source_sets({engine_digest: trailing_hostile}),
+        engine_digest=engine_digest,
+    )
+    with tempfile.TemporaryDirectory(prefix="builderwars-trailing-dot-guard-") as root:
+        verifier = os.path.join(root, "verify-hostile.py")
+        transcript = os.path.join(root, "empty.jsonl")
+        with open(verifier, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(trailing_script)
+        with open(transcript, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("{}\n")
+        proc = subprocess.run(
+            [sys.executable, verifier, transcript, "--json"],
+            cwd=root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=15,
+        )
+    if (
+        proc.returncode == 0
+        or b"embedded source path is not canonical and package-relative" not in proc.stderr
+    ):
+        raise AssertionError("standalone verifier trailing-dot guard was not reached")
+    return 3
 
 
 def check():
