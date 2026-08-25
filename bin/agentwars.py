@@ -46,6 +46,7 @@ from provider_hub.secrets import SecretValue  # noqa: E402
 
 _PAIRING_SECRET_ARG_RE = re.compile(r"awp1_[A-Za-z0-9_-]{22}_[A-Za-z0-9_-]{32}")
 _SECRET_OPTION_NAMES = frozenset(("--pairing-secret", "--passphrase", "--key-passphrase"))
+_SECRET_OPTION_STEMS = tuple(option.removeprefix("--") for option in _SECRET_OPTION_NAMES)
 
 
 def _hidden_prompt(label: str) -> str:
@@ -82,6 +83,24 @@ def _pairing_secret_prompt() -> SecretValue:
     value = _hidden_prompt("one-time AgentWars pairing secret: ")
     parse_pairing_secret(value)
     return SecretValue(value)
+
+
+def _bounded_timeout(value: str) -> int:
+    try:
+        timeout = int(value)
+    except (TypeError, ValueError) as error:
+        raise argparse.ArgumentTypeError("timeout must be an integer from 1 to 60 seconds") from error
+    if not 1 <= timeout <= 60:
+        raise argparse.ArgumentTypeError("timeout must be an integer from 1 to 60 seconds")
+    return timeout
+
+
+def _looks_like_secret_option(argument: object) -> bool:
+    token = str(argument)
+    if not token.startswith("-"):
+        return False
+    name = token.split("=", 1)[0].lstrip("-").lower().replace("_", "-")
+    return len(name) >= 3 and any(stem.startswith(name) for stem in _SECRET_OPTION_STEMS)
 
 
 def cmd_runner_pair(args) -> int:
@@ -186,8 +205,10 @@ def _write_response(path: str, raw: bytes):
         raise RunnerClientError("response output directory could not be created") from error
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
     descriptor = None
+    created = False
     try:
         descriptor = os.open(target, flags, 0o600)
+        created = True
         with os.fdopen(descriptor, "wb") as handle:
             descriptor = None
             handle.write(raw)
@@ -197,13 +218,16 @@ def _write_response(path: str, raw: bytes):
             os.chmod(target, 0o600)
         except OSError:
             pass
-    except Exception:
+    except Exception as error:
         if descriptor is not None:
             os.close(descriptor)
-        try:
-            target.unlink()
-        except OSError:
-            pass
+        if created:
+            try:
+                target.unlink()
+            except OSError:
+                pass
+        if isinstance(error, OSError):
+            raise RunnerClientError("response file could not be written") from error
         raise
 
 
@@ -280,7 +304,7 @@ def build_parser() -> argparse.ArgumentParser:
     pair.add_argument("--harness-file", required=True)
     pair.add_argument("--origin", default=PRODUCTION_ORIGIN)
     pair.add_argument("--state-dir")
-    pair.add_argument("--timeout", type=int, default=15)
+    pair.add_argument("--timeout", type=_bounded_timeout, default=15)
     pair.set_defaults(func=cmd_runner_pair)
 
     activate = runner_commands.add_parser(
@@ -306,7 +330,7 @@ def build_parser() -> argparse.ArgumentParser:
     request.add_argument("--body-file", required=True, help="exact UTF-8 JSON object bytes, or - for stdin")
     request.add_argument("--response-out", help="new file for the bounded JSON response; never overwritten")
     request.add_argument("--state-dir")
-    request.add_argument("--timeout", type=int, default=15)
+    request.add_argument("--timeout", type=_bounded_timeout, default=15)
     request.set_defaults(func=cmd_runner_request)
 
     forget = runner_commands.add_parser(
@@ -325,11 +349,7 @@ def main(argv=None) -> int:
     if any(_PAIRING_SECRET_ARG_RE.search(str(argument)) for argument in raw_argv):
         print("ERROR: pairing-secret-shaped argv is forbidden; use the no-echo prompt", file=sys.stderr)
         return 2
-    if any(
-        str(argument) in _SECRET_OPTION_NAMES
-        or any(str(argument).startswith(option + "=") for option in _SECRET_OPTION_NAMES)
-        for argument in raw_argv
-    ):
+    if any(_looks_like_secret_option(argument) for argument in raw_argv):
         print("ERROR: secret and passphrase arguments are forbidden; use the no-echo prompt", file=sys.stderr)
         return 2
     parser = build_parser()

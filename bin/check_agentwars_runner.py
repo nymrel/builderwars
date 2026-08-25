@@ -7,6 +7,7 @@ all state lives in a temporary directory and is removed on exit.
 
 from __future__ import annotations
 
+import argparse
 import base64
 import contextlib
 import hashlib
@@ -16,6 +17,7 @@ import io
 import json
 import os
 import pathlib
+import socket
 import subprocess
 import sys
 import tempfile
@@ -96,6 +98,7 @@ class ServerState:
         self.redirect_hits = 0
         self.public_key = None
         self.nonces = set()
+        self.accepted_claims = 0
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -150,8 +153,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(MAX_HTTP_BYTES + 1))
             self.end_headers()
             return
+        if self.state.mode == "chunked_oversize":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.end_headers()
+            raw = b"x" * (MAX_HTTP_BYTES + 1)
+            self.wfile.write(f"{len(raw):x}\r\n".encode("ascii") + raw + b"\r\n0\r\n\r\n")
+            return
         request = json.loads(body.decode("utf-8"))
         challenge_id, _random_code = parse_pairing_secret(request["pairingSecret"])
+        if self.state.mode == "drop_after_accept":
+            self.state.accepted_claims += 1
+            self.close_connection = True
+            with contextlib.suppress(OSError):
+                self.connection.shutdown(socket.SHUT_RDWR)
+            return
         if self.state.mode == "server_error":
             self._json(503, {"error": "echo", "detail": request["pairingSecret"]})
             return
@@ -312,6 +329,19 @@ def check_origins_and_bodies():
         lambda: canonical_runner_request(**{**canonical_fields, "nonce": ("A" * 21) + "B"}),
         RunnerClientError,
     )
+    for field, hostile, message_part in (
+        ("method", "GET", "method"),
+        ("path", "/api/probe?admin=1", "path"),
+        ("path", "/api/probe\nrunner-id:awr1_fake", "path"),
+        ("runner_id", "awr1_bad:runner", "runner id"),
+    ):
+        expect_error(
+            lambda field=field, hostile=hostile: canonical_runner_request(
+                **{**canonical_fields, field: hostile}
+            ),
+            RunnerClientError,
+            message_part,
+        )
 
 
 def check_state_and_roundtrip():
@@ -322,44 +352,49 @@ def check_state_and_roundtrip():
         harness.write_bytes(b"print('runner')\n")
         harness_digest = digest_harness_file(harness)
         store = RunnerStateStore(state_dir)
+        candidate = {
+            "endpoint_origin": "http://127.0.0.1:1",
+            "provider_id": "chatgpt_codex",
+            "display_label": "Redraft Runner",
+            "harness_id": "agentwars-cli",
+            "harness_version": "1.0.0",
+            "harness_digest": harness_digest,
+        }
         profile, key, created = store.prepare(
             challenge_id=CHALLENGE_ID,
             passphrase=PASSPHRASE,
-            endpoint_origin="http://127.0.0.1:1",
-            provider_id="chatgpt_codex",
-            display_label="Redraft Runner",
-            harness_id="agentwars-cli",
-            harness_version="1.0.0",
-            harness_digest=harness_digest,
+            **candidate,
         )
         check(created and profile["localState"] == "prepared", "new prepared profile")
         profile_again, key_again, created_again = store.prepare(
             challenge_id=CHALLENGE_ID,
             passphrase=PASSPHRASE,
-            endpoint_origin="http://127.0.0.1:1",
-            provider_id="chatgpt_codex",
-            display_label="Redraft Runner",
-            harness_id="agentwars-cli",
-            harness_version="1.0.0",
-            harness_digest=harness_digest,
+            **candidate,
         )
         check(not created_again and profile_again["fingerprint"] == profile["fingerprint"], "retry reuses profile")
         check(public_key_material(key_again) == public_key_material(key), "retry reuses key")
+        for field, changed, profile_field in (
+            ("endpoint_origin", "http://127.0.0.1:2", "endpointOrigin"),
+            ("provider_id", "claude_code", "providerId"),
+            ("display_label", "Changed Runner", "displayLabel"),
+            ("harness_id", "changed-harness", "harnessId"),
+            ("harness_version", "2.0.0", "harnessVersion"),
+            ("harness_digest", "f" * 64, "harnessDigest"),
+        ):
+            expect_error(
+                lambda field=field, changed=changed: store.prepare(
+                    challenge_id=CHALLENGE_ID,
+                    passphrase=PASSPHRASE,
+                    **{**candidate, field: changed},
+                ),
+                RunnerStateError,
+                profile_field,
+            )
         expect_error(
-            lambda: store.prepare(
-                challenge_id=CHALLENGE_ID,
-                passphrase=PASSPHRASE,
-                endpoint_origin="http://127.0.0.1:1",
-                provider_id="chatgpt_codex",
-                display_label="Changed Runner",
-                harness_id="agentwars-cli",
-                harness_version="1.0.0",
-                harness_digest=harness_digest,
-            ),
+            lambda: store.load_key(profile, b"wrong passphrase value"),
             RunnerStateError,
-            "metadata drift",
+            "passphrase",
         )
-        expect_error(lambda: store.load_key(profile, b"wrong passphrase value"), RunnerStateError)
         key_bytes = store.key_path(CHALLENGE_ID).read_bytes()
         profile_bytes = store.profile_path(CHALLENGE_ID).read_bytes()
         check(b"ENCRYPTED PRIVATE KEY" in key_bytes, "PKCS8 key encrypted")
@@ -413,14 +448,18 @@ def check_state_and_roundtrip():
                 body=b'{"probe":1}',
                 runner_id=RUNNER_ID,
             )
-            fresh_signed = sign_runner_request(
-                second_key,
-                method="POST",
-                path="/api/builderwars/runners/probe",
-                body=b'{"probe":2}',
-                runner_id=RUNNER_ID,
-            )
-            check(fresh_signed.nonce != signed.nonce, "generated request nonces are fresh")
+            generated_nonces = {signed.nonce}
+            for probe in range(2, 65):
+                generated_nonces.add(
+                    sign_runner_request(
+                        second_key,
+                        method="POST",
+                        path="/api/builderwars/runners/probe",
+                        body=json.dumps({"probe": probe}, separators=(",", ":")).encode("utf-8"),
+                        runner_id=RUNNER_ID,
+                    ).nonce
+                )
+            check(len(generated_nonces) == 64, "generated request nonces are fresh across 64 signings")
             status, payload, _raw = send_signed_request(origin=origin, signed=signed)
             check(status == 200 and payload == {"ok": True, "runnerId": RUNNER_ID}, "signed request roundtrip")
             check(server_state.signed_requests[-1]["body"] == b'{"probe":1}', "signed body bytes exact")
@@ -446,12 +485,13 @@ def check_state_and_roundtrip():
             check(server_state.redirect_hits == 0, "redirect never receives secret")
 
             for mode, error_type, message_part in (
-                ("mismatch", RunnerClientError, None),
-                ("unknown_key", RunnerClientError, None),
-                ("duplicate_key", RunnerClientError, None),
-                ("wrong_status", RunnerClientError, None),
+                ("mismatch", RunnerClientError, "fingerprint"),
+                ("unknown_key", RunnerClientError, "response contract"),
+                ("duplicate_key", RunnerClientError, "duplicate JSON keys"),
+                ("wrong_status", RunnerClientError, "HTTP status contradicts"),
                 ("non_json", RunnerHttpError, "non-JSON response"),
                 ("oversize", RunnerHttpError, "response is too large"),
+                ("chunked_oversize", RunnerHttpError, "response is too large"),
             ):
                 server_state.mode = mode
                 expect_error(
@@ -486,7 +526,37 @@ def check_state_and_roundtrip():
             )
             check(second_secret not in str(error), "remote error cannot reflect secret")
 
-        ambiguous_profile = store.record_runner_id(CHALLENGE_ID, RUNNER_ID)
+            ambiguous_id = "A" * 22
+            ambiguous_secret = f"awp1_{ambiguous_id}_{'U' * 32}"
+            ambiguous_profile, _ambiguous_key, _ = store.prepare(
+                challenge_id=ambiguous_id,
+                passphrase=PASSPHRASE,
+                endpoint_origin=origin,
+                provider_id="chatgpt_codex",
+                display_label="Ambiguous Runner",
+                harness_id="agentwars-cli",
+                harness_version="1.0.0",
+                harness_digest=harness_digest,
+            )
+            server_state.mode = "drop_after_accept"
+            expect_error(
+                lambda: claim_runner(
+                    origin=origin,
+                    pairing_secret=ambiguous_secret,
+                    provider_id=ambiguous_profile["providerId"],
+                    display_label=ambiguous_profile["displayLabel"],
+                    harness_id=ambiguous_profile["harnessId"],
+                    harness_version=ambiguous_profile["harnessVersion"],
+                    harness_digest=ambiguous_profile["harnessDigest"],
+                    public_key=ambiguous_profile["publicKey"],
+                    fingerprint=ambiguous_profile["fingerprint"],
+                ),
+                RunnerHttpError,
+                "could not be reached",
+            )
+            check(server_state.accepted_claims == 1, "server accepted claim before response connection dropped")
+
+        ambiguous_profile = store.record_runner_id(ambiguous_id, RUNNER_ID)
         check(
             ambiguous_profile["localState"] == "runner_id_recorded_unverified",
             "owner can record a browser-issued id after an ambiguous claim response",
@@ -494,6 +564,28 @@ def check_state_and_roundtrip():
         check(
             ambiguous_profile["serverClaimStatus"] == "not_confirmed",
             "ambiguous recovery preserves the missing local claim receipt",
+        )
+
+        tampered_id = "P" * 22
+        tampered_profile, _tampered_key, _ = store.prepare(
+            challenge_id=tampered_id,
+            passphrase=PASSPHRASE,
+            endpoint_origin="http://127.0.0.1:1",
+            provider_id="chatgpt_codex",
+            display_label="Tamper Probe",
+            harness_id="agentwars-cli",
+            harness_version="1.0.0",
+            harness_digest=harness_digest,
+        )
+        tampered_profile["fingerprint"] = "0" * 64
+        store.profile_path(tampered_id).write_bytes(
+            (json.dumps(tampered_profile, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        )
+        loaded_tampered_profile = store.load_profile(tampered_id)
+        expect_error(
+            lambda: store.load_key(loaded_tampered_profile, PASSPHRASE),
+            RunnerStateError,
+            "does not match",
         )
 
         removed = store.forget(CHALLENGE_ID)
@@ -507,6 +599,18 @@ def check_state_and_roundtrip():
         os.link(linked_target, linked_root / ".state.lock")
         expect_error(linked_store.list_profiles, RunnerStateError, "lock path is unsafe")
         check(linked_target.read_bytes() == b"protected", "hard-linked lock target is never modified")
+
+        directory_lock_store = RunnerStateStore(pathlib.Path(temporary) / "directory-lock-state")
+        (directory_lock_store.ensure() / ".state.lock").mkdir()
+        expect_error(directory_lock_store.list_profiles, RunnerStateError, "lock could not be opened")
+
+        dangling_root = pathlib.Path(temporary) / "dangling-state-root"
+        try:
+            dangling_root.symlink_to(pathlib.Path(temporary) / "missing-state-target", target_is_directory=True)
+        except (NotImplementedError, OSError):
+            pass
+        else:
+            expect_error(RunnerStateStore(dangling_root).ensure, RunnerStateError, "must not be a symlink")
 
 
 def check_claim_response_and_cli_argv():
@@ -523,8 +627,12 @@ def check_claim_response_and_cli_argv():
     for hostile in (
         {**base, "extra": True},
         {**base, "schemaVersion": True},
+        {**base, "schemaVersion": 1.0},
+        {**base, "challengeId": "Z" * 22},
+        {**base, "status": "Claimed"},
         {**base, "state": "active"},
         {**base, "fingerprint": "0" * 64},
+        {**base, "fingerprint": "F" * 64},
     ):
         expect_error(
             lambda hostile=hostile: validate_claim_response(
@@ -568,11 +676,34 @@ def check_claim_response_and_cli_argv():
     check(passphrase_marker not in combined, "passphrase absent from argv error output")
     check("no-echo prompt" in combined, "passphrase argv refusal points to hidden prompt")
 
+    process = subprocess.run(
+        [
+            sys.executable,
+            os.path.join(ROOT, "bin", "agentwars.py"),
+            "runner",
+            "pair",
+            f"--pas={passphrase_marker}",
+        ],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    combined = process.stdout + process.stderr
+    check(process.returncode == 2, "abbreviated passphrase argv refused")
+    check(passphrase_marker not in combined, "passphrase absent from abbreviated argv error output")
+
     cli_path = os.path.join(ROOT, "bin", "agentwars.py")
     spec = importlib.util.spec_from_file_location("agentwars_cli_interrupt_test", cli_path)
     check(spec is not None and spec.loader is not None, "CLI module can be loaded for interrupt test")
     cli = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(cli)
+    check(cli._bounded_timeout("60") == 60, "maximum bounded CLI timeout accepted")
+    expect_error(lambda: cli._bounded_timeout("0"), argparse.ArgumentTypeError, "1 to 60")
+    check(cli._looks_like_secret_option("--pas=value"), "abbreviated secret option recognized")
+    check(not cli._looks_like_secret_option("--path"), "ordinary path option is not secret-shaped")
     original_hidden_prompt = cli._hidden_prompt
     cli._hidden_prompt = lambda _label: ""
     expect_error(cli._pairing_secret_prompt, RunnerClientError)
@@ -609,6 +740,41 @@ def check_claim_response_and_cli_argv():
             RunnerClientError,
             "output directory",
         )
+
+        race_target = pathlib.Path(temporary) / "race-response.json"
+        original_os_open = cli.os.open
+
+        def concurrent_creator(path, flags, mode):
+            winner = original_os_open(path, flags, mode)
+            try:
+                os.write(winner, b"winner")
+            finally:
+                os.close(winner)
+            raise FileExistsError("simulated O_EXCL loser")
+
+        cli.os.open = concurrent_creator
+        try:
+            expect_error(
+                lambda: cli._write_response(str(race_target), b"loser"),
+                RunnerClientError,
+                "could not be written",
+            )
+        finally:
+            cli.os.open = original_os_open
+        check(race_target.read_bytes() == b"winner", "response race loser never deletes winner file")
+
+        failed_write_target = pathlib.Path(temporary) / "failed-write-response.json"
+        original_fdopen = cli.os.fdopen
+        cli.os.fdopen = lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("simulated write failure"))
+        try:
+            expect_error(
+                lambda: cli._write_response(str(failed_write_target), b"partial"),
+                RunnerClientError,
+                "could not be written",
+            )
+        finally:
+            cli.os.fdopen = original_fdopen
+        check(not failed_write_target.exists(), "failed response write removes only its own new file")
 
     class InterruptingParser:
         @staticmethod

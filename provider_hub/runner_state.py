@@ -112,9 +112,10 @@ class RunnerStateStore:
         self.root = Path(root) if root is not None else default_state_directory()
 
     def ensure(self) -> Path:
-        absolute = self.root.expanduser().resolve(strict=False)
-        if self.root.exists() and self.root.is_symlink():
+        expanded = self.root.expanduser()
+        if expanded.is_symlink():
             raise RunnerStateError("runner state directory must not be a symlink")
+        absolute = expanded.resolve(strict=False)
         try:
             absolute.mkdir(parents=True, mode=0o700, exist_ok=True)
         except OSError as error:
@@ -160,9 +161,13 @@ class RunnerStateStore:
             descriptor = os.open(lock_path, flags, 0o600)
         except OSError as error:
             raise RunnerStateError("runner state lock could not be opened") from error
-        try:
-            opened = os.fstat(descriptor)
-            linked = os.lstat(lock_path)
+
+        def inspect_lock_path():
+            try:
+                opened = os.fstat(descriptor)
+                linked = os.lstat(lock_path)
+            except OSError as error:
+                raise RunnerStateError("runner state lock could not be inspected") from error
             if (
                 not stat.S_ISREG(opened.st_mode)
                 or stat.S_ISLNK(linked.st_mode)
@@ -177,6 +182,9 @@ class RunnerStateStore:
                     raise RunnerStateError("runner state lock must be owned by the current user")
                 if stat.S_IMODE(opened.st_mode) & 0o077:
                     raise RunnerStateError("runner state lock is accessible to another POSIX user")
+
+        try:
+            inspect_lock_path()
             if os.name == "nt":
                 import msvcrt
 
@@ -195,6 +203,7 @@ class RunnerStateStore:
                     fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 except OSError as error:
                     raise RunnerStateError("another AgentWars runner process is changing local state") from error
+            inspect_lock_path()
             yield
         finally:
             try:
