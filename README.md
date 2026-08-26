@@ -344,6 +344,32 @@ the phase-1 tree: regenerating it so its embedded `buildIntegrity.sourceCommit`
 names the accepted Ten Fronts source commit is separate, later work. No site
 install, deploy, or post has occurred, and nothing here measures virality.
 
+### Prepare an offline reviewer-case source candidate without publishing
+
+One protected Nymrel reviewer-detail export can now be checked offline before a
+source-control reviewer decides whether it belongs in the allowlist:
+
+```bash
+python bin/prepare_publication_candidate.py \
+  --reviewer-export PATH_TO_EXACT_REVIEWER_DETAIL.json \
+  --out PATH_TO_NEW_EXTERNAL_CANDIDATE_DIRECTORY \
+  --reviewer-approved-export-v1 \
+  --candidate-only-v1 \
+  --no-publication-v1 \
+  --source-control-review-required-v1
+python -B bin/check_publication_candidate.py
+```
+
+The tool independently replays the embedded transcript, rebuilds the public
+projection, checks every cross-system commitment and false-attestation field,
+and atomically writes four review files outside this repository. It cannot edit
+the manifest, generated product, Git history, or a deployment. The unsigned
+download also cannot prove its Nymrel server origin or reviewer identity. Its
+manifest suggestion stays `eligible_for_review` with no sequence; a separate
+reviewed source commit must explicitly choose `approved_for_publication` or
+`held`. Full contract:
+[`docs/AGENTWARS_PUBLIC_PROMOTION_CANDIDATE.md`](docs/AGENTWARS_PUBLIC_PROMOTION_CANDIDATE.md).
+
 ### Turn a receipt into a verified moment
 
 Every match whose exact referee snapshot is embedded and replay-verifies can
