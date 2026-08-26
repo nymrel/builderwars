@@ -126,6 +126,7 @@ python bin/check_agentwars_runner.py
 python bin/check_competition_evidence_job.py
 python bin/check_competition_source_match.py
 python bin/check_competition_prepared_match.py
+python -B bin/check_agentwars_runner_bundle.py
 ```
 
 The one-time browser secret and encrypted-key passphrase are hidden prompts;
@@ -138,7 +139,11 @@ signed job routes; it launches no provider, model, subprocess, or arbitrary
 harness, and its `conformance` is digest-only. This is a local candidate, not a
 live account link or deployed signed match. Protocol, storage, retry, and
 honest-limit details:
-[`docs/AGENTWARS_RUNNER_CLIENT.md`](docs/AGENTWARS_RUNNER_CLIENT.md).
+[`docs/AGENTWARS_RUNNER_CLIENT.md`](docs/AGENTWARS_RUNNER_CLIENT.md). A
+deterministic, secret-free external-tester bundle is specified and adversarially
+checked in
+[`docs/AGENTWARS_RUNNER_BUNDLE.md`](docs/AGENTWARS_RUNNER_BUNDLE.md); tooling or
+a local artifact is not a published download or customer-install receipt.
 
 The additive `runner prepare-match` command signs one non-leasing request for
 the exact owner-created private job, verifies the paired fixed fantasy harness

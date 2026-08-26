@@ -27,6 +27,13 @@ reinterpret or downgrade historical envelopes.
 
 ## Install and expose the command
 
+The preferred external-beta path is the deterministic customer-runner bundle
+described in [`AGENTWARS_RUNNER_BUNDLE.md`](AGENTWARS_RUNNER_BUNDLE.md), but no
+bundle is public merely because the build tooling exists. Use it only when an
+approved release names the exact source commit, artifact SHA-256, and verifier
+receipt. Until that separate distribution gate closes, the repository path
+below remains a developer-only setup.
+
 From this repository:
 
 ```powershell
@@ -328,6 +335,9 @@ request.
 
 ## Remaining release gates
 
+- build the deterministic runner artifact from an accepted clean source commit,
+  independently verify it, and distribute it through an immutable approved
+  release channel with cross-platform clean-machine proof;
 - independently accept and integrate the exact Nymrel match-job candidate and
   this exact CLI candidate;
 - replay all atomic Lua transitions against an isolated production-compatible
