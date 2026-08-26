@@ -310,9 +310,18 @@ def build_seat_runtime(spec: SeatSpec, *, backend_timeout: float) -> SeatRuntime
     )
 
 
-def audit_transcript(*, result: dict, report: dict, runtimes: list[SeatRuntime]) -> dict:
+def audit_transcript(
+    *,
+    result: dict,
+    report: dict,
+    runtimes: list[SeatRuntime],
+    expected_game: str,
+    expected_seed: int,
+) -> dict:
     if len(runtimes) != 2:
         raise CrossProviderMatchError("seat_count_invalid")
+    if expected_game not in FANTASY_GAMES or type(expected_seed) is not int:
+        raise CrossProviderMatchError("audit_expectation_invalid")
     if report.get("verdict") != "PASS" or report.get("effective_verdict") != "PASS":
         raise CrossProviderMatchError("replay_not_pass")
     if report.get("engine_digest_match") is not True or report.get("verifier_snapshot_match") is not True:
@@ -327,6 +336,14 @@ def audit_transcript(*, result: dict, report: dict, runtimes: list[SeatRuntime])
     terminal = first(records, "result")
     if header is None or terminal is None:
         raise CrossProviderMatchError("transcript_terminal_shape_invalid")
+    header_game = header["body"].get("game")
+    if (
+        not isinstance(header_game, dict)
+        or header_game.get("name") != expected_game
+        or type(header["body"].get("seed")) is not int
+        or header["body"].get("seed") != expected_seed
+    ):
+        raise CrossProviderMatchError("transcript_invocation_mismatch")
     if find(records, "forfeit") or find(records, "abort") or find(records, "engine_error"):
         raise CrossProviderMatchError("competitive_match_not_clean")
     if terminal["body"].get("decisive") is not True or not _is_seat(terminal["body"].get("winner")):
@@ -380,9 +397,12 @@ def audit_transcript(*, result: dict, report: dict, runtimes: list[SeatRuntime])
     moves_by_seat = [0, 0]
     for row in find(records, "move"):
         seat = row["body"].get("player")
-        note = row["body"].get("entrant_message", {}).get("note")
+        message = row["body"].get("entrant_message")
         if not _is_seat(seat):
             raise CrossProviderMatchError("move_seat_invalid")
+        if not isinstance(message, dict):
+            raise CrossProviderMatchError("move_source_claim_invalid")
+        note = message.get("note")
         if not _valid_move_source_note(note):
             raise CrossProviderMatchError("move_source_claim_invalid")
         moves_by_seat[seat] += 1
@@ -616,7 +636,14 @@ def write_json_exclusive(path: str, value: dict) -> None:
 
 
 def parser() -> argparse.ArgumentParser:
-    command = argparse.ArgumentParser(description="Run one customer-local AgentWars provider match.")
+    command = argparse.ArgumentParser(
+        description="Run one customer-local AgentWars provider match.",
+        epilog=(
+            "Exit 0: every accepted move was model-claimed. Exit 2: a valid replay-verified summary was "
+            "written, but at least one accepted move used fallback. Exit 1: blocked or failed; no accepted "
+            "summary was produced."
+        ),
+    )
     command.add_argument("--game", choices=FANTASY_GAMES, default="fantasy_redraft")
     command.add_argument("--seed", type=int, default=9400)
     command.add_argument("--out", required=True)
@@ -695,7 +722,13 @@ def run(args) -> tuple[dict, int]:
             move_timeout_s=timeout + 30,
         )
         report = verify_with_snapshot(result["transcript"])
-        audit_transcript(result=result, report=report, runtimes=runtimes)
+        audit_transcript(
+            result=result,
+            report=report,
+            runtimes=runtimes,
+            expected_game=args.game,
+            expected_seed=args.seed,
+        )
         sources = move_source_counts(result["transcript"], [row.manifest for row in runtimes])
         scores = final_scores(result["transcript"])
         summary = build_summary(
@@ -713,32 +746,39 @@ def run(args) -> tuple[dict, int]:
     return summary, 0 if summary["allAcceptedMovesModelClaimed"] else 2
 
 
+def _emit_blocked(error: BaseException, *, error_code: str | None = None) -> int:
+    # Provider stderr, responses, credentials, and local paths are never copied
+    # into this public failure envelope.
+    error_class = error.__class__.__name__
+    if _ERROR_CLASS_RE.fullmatch(error_class) is None:
+        error_class = "Exception"
+    payload = {
+        "schemaVersion": SUMMARY_SCHEMA,
+        "status": "blocked",
+        "errorClass": error_class,
+    }
+    if isinstance(error, CrossProviderMatchError):
+        payload["errorCode"] = error.code
+    elif error_code is not None:
+        payload["errorCode"] = error_code
+    print(json.dumps(payload), file=sys.stderr)
+    return 1
+
+
 def main(argv=None) -> int:
     try:
         args = parser().parse_args(argv)
+    except SystemExit:
+        # Preserve argparse's standard help and invalid-argument contract only.
+        raise
+    try:
         summary, status = run(args)
         print(json.dumps(summary, indent=2, sort_keys=True))
         return status
-    except SystemExit:
-        raise
+    except SystemExit as error:
+        return _emit_blocked(error, error_code="dependency_system_exit")
     except Exception as error:
-        # Provider stderr, responses, credentials, and local paths are never
-        # copied into this public failure envelope.
-        error_class = error.__class__.__name__
-        if _ERROR_CLASS_RE.fullmatch(error_class) is None:
-            error_class = "Exception"
-        payload = {
-            "schemaVersion": SUMMARY_SCHEMA,
-            "status": "blocked",
-            "errorClass": error_class,
-        }
-        if isinstance(error, CrossProviderMatchError):
-            payload["errorCode"] = error.code
-        print(
-            json.dumps(payload),
-            file=sys.stderr,
-        )
-        return 1
+        return _emit_blocked(error)
 
 
 if __name__ == "__main__":

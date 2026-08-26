@@ -214,6 +214,10 @@ def check_provider_manifests(work):
             ),
             "provider_variant_invalid",
         )
+    help_text = candidate.parser().format_help()
+    check("Exit 0:" in help_text, "CLI help documents all-model success")
+    check("Exit 2:" in help_text, "CLI help documents replay-verified fallback completion")
+    check("Exit 1:" in help_text, "CLI help documents blocked or failed execution")
     check(len(runtimes) == len(candidate.SUPPORTED_PROVIDERS), "every public provider has a construction check")
 
     stderr = io.StringIO()
@@ -447,8 +451,44 @@ def check_offline_match_and_summary(work):
     check(report["verdict"] == "PASS", "offline fixture core replay passes")
     check(report["effective_verdict"] == "PASS", "offline fixture exact snapshot replay passes")
     check(report["verifier_snapshot_match"] is True, "offline fixture selects exact embedded verifier")
-    audit = candidate.audit_transcript(result=result, report=report, runtimes=runtimes)
+    audit = candidate.audit_transcript(
+        result=result,
+        report=report,
+        runtimes=runtimes,
+        expected_game="fantasy_redraft",
+        expected_seed=9400,
+    )
     check(audit == {"movesBySeat": [6, 6], "decisive": True, "clean": True}, "offline transcript audit")
+    expect_error(
+        lambda: candidate.audit_transcript(
+            result=result,
+            report=report,
+            runtimes=runtimes,
+            expected_game="fantasy_dynasty",
+            expected_seed=9400,
+        ),
+        "transcript_invocation_mismatch",
+    )
+    expect_error(
+        lambda: candidate.audit_transcript(
+            result=result,
+            report=report,
+            runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=9401,
+        ),
+        "transcript_invocation_mismatch",
+    )
+    expect_error(
+        lambda: candidate.audit_transcript(
+            result=result,
+            report=report,
+            runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=True,
+        ),
+        "audit_expectation_invalid",
+    )
 
     sources = move_source_counts(result["transcript"], [runtime.manifest for runtime in runtimes])
     scores = final_scores(result["transcript"])
@@ -523,7 +563,13 @@ def check_offline_match_and_summary(work):
 
     stale_result = {**result, "transcript": str(work / "different.jsonl")}
     expect_error(
-        lambda: candidate.audit_transcript(result=stale_result, report=report, runtimes=runtimes),
+        lambda: candidate.audit_transcript(
+            result=stale_result,
+            report=report,
+            runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=9400,
+        ),
         "replay_report_transcript_mismatch",
     )
 
@@ -539,7 +585,13 @@ def check_offline_match_and_summary(work):
     check(script_report["effective_verdict"] == "PASS", "replay alone permits self-declared script-label rewrite")
     script_result = {**result, "transcript": str(script_path), "chain_head": script_head}
     expect_error(
-        lambda: candidate.audit_transcript(result=script_result, report=script_report, runtimes=runtimes),
+        lambda: candidate.audit_transcript(
+            result=script_result,
+            report=script_report,
+            runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=9400,
+        ),
         "header_entrant_binding_mismatch",
     )
 
@@ -551,7 +603,13 @@ def check_offline_match_and_summary(work):
     check(ready_report["effective_verdict"] == "PASS", "replay alone permits self-declared ready-label rewrite")
     ready_result = {**result, "transcript": str(ready_path), "chain_head": ready_head}
     expect_error(
-        lambda: candidate.audit_transcript(result=ready_result, report=ready_report, runtimes=runtimes),
+        lambda: candidate.audit_transcript(
+            result=ready_result,
+            report=ready_report,
+            runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=9400,
+        ),
         "ready_backend_binding_mismatch",
     )
 
@@ -566,6 +624,8 @@ def check_offline_match_and_summary(work):
             result=ready_seat_result,
             report=ready_seat_report,
             runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=9400,
         ),
         "ready_seat_invalid",
     )
@@ -588,8 +648,31 @@ def check_offline_match_and_summary(work):
             result=move_seat_result,
             report=move_seat_report,
             runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=9400,
         ),
         "move_seat_invalid",
+    )
+
+    move_message_tamper = copy.deepcopy(records)
+    next(row for row in move_message_tamper if row["kind"] == "move")["body"]["entrant_message"] = "not-an-object"
+    move_message_path = work / "move-message-rechained.jsonl"
+    move_message_head = rechain(move_message_tamper, move_message_path)
+    move_message_report = {
+        **report,
+        "transcript": str(move_message_path),
+        "chain_head": move_message_head,
+    }
+    move_message_result = {**result, "transcript": str(move_message_path), "chain_head": move_message_head}
+    expect_error(
+        lambda: candidate.audit_transcript(
+            result=move_message_result,
+            report=move_message_report,
+            runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=9400,
+        ),
+        "move_source_claim_invalid",
     )
 
     source_tamper = copy.deepcopy(records)
@@ -600,7 +683,13 @@ def check_offline_match_and_summary(work):
     check(source_report["effective_verdict"] == "PASS", "replay alone permits self-declared source-label rewrite")
     source_result = {**result, "transcript": str(source_path), "chain_head": source_head}
     expect_error(
-        lambda: candidate.audit_transcript(result=source_result, report=source_report, runtimes=runtimes),
+        lambda: candidate.audit_transcript(
+            result=source_result,
+            report=source_report,
+            runtimes=runtimes,
+            expected_game="fantasy_redraft",
+            expected_seed=9400,
+        ),
         "move_source_claim_invalid",
     )
     check(
@@ -618,6 +707,16 @@ def check_offline_match_and_summary(work):
 
 
 def check_main_failure_envelope(work):
+    stdout = io.StringIO()
+    with contextlib.redirect_stdout(stdout):
+        try:
+            candidate.main(["--help"])
+        except SystemExit as error:
+            check(error.code == 0, "argparse help keeps its standard successful SystemExit")
+        else:
+            raise AssertionError("argparse help did not raise SystemExit")
+    check("Exit 2:" in stdout.getvalue(), "argparse help exposes the replay-verified fallback exit")
+
     stderr = io.StringIO()
     with contextlib.redirect_stderr(stderr):
         status = candidate.main(["--out", str(work / "blocked"), "--json-out", str(work / "blocked.json")])
@@ -665,6 +764,25 @@ def check_main_failure_envelope(work):
     check(status == 1, "invalid runner code returns blocked status")
     check(payload["errorCode"] == "cross_provider_match_error", "invalid runner code is replaced by a fixed generic code")
     check(SECRET_SENTINEL not in stderr.getvalue(), "invalid runner code cannot echo secret-shaped input")
+
+    stderr = io.StringIO()
+    with (
+        mock.patch.object(candidate, "run", side_effect=SystemExit(0)),
+        contextlib.redirect_stderr(stderr),
+    ):
+        status = candidate.main(base_argv(work / "dependency-exit", work / "dependency-exit.json"))
+    payload = json.loads(stderr.getvalue())
+    check(status == 1, "dependency SystemExit cannot report process success")
+    check(
+        payload
+        == {
+            "schemaVersion": candidate.SUMMARY_SCHEMA,
+            "status": "blocked",
+            "errorClass": "SystemExit",
+            "errorCode": "dependency_system_exit",
+        },
+        "dependency SystemExit becomes a bounded blocked envelope",
+    )
 
 
 def main():
