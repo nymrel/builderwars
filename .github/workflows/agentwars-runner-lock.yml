@@ -15,6 +15,8 @@ on:
   push:
     branches:
       - main
+      # Bootstrap this new workflow before PR #6 places it on the default branch.
+      - codex/agentwars-launch-integration-20260825
     paths:
       - ".github/workflows/agentwars-runner-lock.yml"
       - "requirements.lock"
