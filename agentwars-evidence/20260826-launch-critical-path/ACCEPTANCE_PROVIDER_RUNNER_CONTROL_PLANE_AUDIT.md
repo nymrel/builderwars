@@ -51,3 +51,28 @@ This slice needs no credential, operator account action, provider contact, exter
 ## Truth boundary
 
 Acceptance of this audit does not claim that the recommended implementation exists, that SQLite is the production service, that real Redis behavior has been proved, that a provider/model executed, that a user signed up, that a match was genuine, or that AgentWars is deployed or publicly launched. Each remains a separate evidence gate.
+
+## Implementation correction round 1
+
+Status: `CORRECTED_PENDING_FRESH_EXACT_BYTE_REVIEW`
+
+- Original implementation commit: `679357e95647563360de5b6b6f97c25188f4a644`.
+- Corrected implementation commit: `884bfa756f16996bdbf8701b8aa99370ecd90a75`.
+- Ox pairing/nonce review `33fcb8d1-c35b-422c-a1f4-ce514cb7939a`: `VERDICT: REJECT`; one P1 on the store trusting an observation clock supplied by its caller.
+- Ox signed-boundary review `7d5cd1e6-3c8d-4033-a97a-1901b0344379`: `VERDICT: APPROVE`; no P0/P1.
+- Ox hostile-test review `e0540733-d251-41ea-8037-661aa7720517`: `VERDICT: REJECT`; seven P1 test-gate gaps.
+- Every accepting review used `opencode-go / ox-alpha-free / max`, no fallback, immutable Git-object evidence, zero tools, unchanged VCS, passed cleanup, and a released provider seat.
+
+The correction moves request-age constants into the transactional store contract, derives nonce observation time from an independently injected store clock, validates the nonce again at the store boundary, binds duplicate result receipts to the job runner, requires exact POST methods on runner mutation handlers, normalizes parsing failures, rejects unknown poll terminal states, and preserves the job creation timestamp across joined rows.
+
+The hosted suite now has 15 tests. New hostile coverage proves distinct-key claim races, reject/confirm idempotency, cross-owner key reuse refusal, nonce-retention clock-jump defense, 20 repeated two-poller races, mismatch recording, foreign/late/wrong-attempt/abandoned result refusal, key/runner/path/method/protocol binding, invalid UTF-8 rejection before nonce use, and cross-owner delete isolation. Incorrect self-consistent output remains an accepted result with `conformance: "mismatch"`; this is intentional competitive truth, because rejecting it would let a losing runner hide behind retries.
+
+Local verification after `884bfa756f16996bdbf8701b8aa99370ecd90a75`:
+
+- hosted unit suite: `15/15 PASS`;
+- AgentWars runner verifier: `154 PASS`;
+- Provider Hub full verifier: all 10 sections and downstream regression ladder PASS;
+- AgentWars public product contracts: PASS;
+- AgentWars scale contracts: PASS.
+
+This correction is not accepted for hosted integration until a fresh immutable capsule of the corrected bytes receives zero P0/P1 from Ox Alpha MAX. It still proves no provider/model execution, production storage, authenticated account adapter, deployment, signup, or genuine public match.
