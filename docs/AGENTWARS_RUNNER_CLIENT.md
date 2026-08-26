@@ -130,6 +130,46 @@ server's withheld commitment. Even `conformance: match` is digest conformance
 only. Provider account, plan, billing, model, person, runtime, harness
 execution, and match execution attestations all remain exactly `false`.
 
+## Prepare one exact source match without executing it
+
+`runner prepare-match` signs a fixed request to the non-leasing preparation
+route. A queued response must bind the recorded runner id and fingerprint, the
+paired harness id and digest, current engine snapshot, exact game and seed, two
+different provider claims, and either two complete signed Agent Passport
+versions or none. The client re-verifies both passport signatures, agent and
+version ids, display names, claimed backends, and harness digests before it
+writes a plan.
+
+```powershell
+agentwars runner prepare-match `
+  --challenge-id CHALLENGE_ID `
+  --plan-out C:\customer\match-9400-plan.json `
+  --match-dir C:\customer\match-9400 `
+  --summary-file C:\customer\match-9400-summary.json `
+  --agent-passports C:\public\seat0.json C:\public\seat1.json `
+  --once
+```
+
+The plan, match directory, and summary path must all be new, distinct, and
+non-nested. The plan pins the fixed runner-script digest, current harness,
+exact job commitment, passport-file digests, and an argv array. It omits the
+two fresh execution consent flags. After inspecting it, a customer may
+separately start the existing fixed local runner from the repository root:
+
+```powershell
+$sourcePlan = Get-Content C:\customer\match-9400-plan.json -Raw | ConvertFrom-Json
+$launchArgs = @($sourcePlan.launch.argv)
+python bin/run_agentwars_cross_provider_match.py @launchArgs `
+  --customer-local-v1 `
+  --provider-usage-v1
+```
+
+Preparation acquires no competition attempt, launches no provider or
+subprocess, and cannot accept a server-selected entrypoint, command,
+environment value, or arbitrary harness. `busy`, `completed`, and `exhausted`
+responses create no plan. The plan remains a local declaration, not execution
+evidence or an attestation.
+
 ## Submit one existing match for private review
 
 `runner submit-match` polls a separate exact competition evidence job, replays
@@ -261,6 +301,7 @@ the server record; revoke that separately in the authenticated browser.
 ```powershell
 python bin/check_agentwars_runner.py
 python bin/check_competition_evidence_job.py
+python bin/check_competition_source_match.py
 python bin/check_provider_hub.py
 python bin/check_agent_passport.py
 ```

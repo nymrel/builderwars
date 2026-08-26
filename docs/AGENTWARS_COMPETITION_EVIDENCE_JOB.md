@@ -31,10 +31,37 @@ Those requirements cannot be inferred from a successful evidence submission.
 1. The signed-in owner creates a private competition submission job for one
    paired runner, game, seed, the current exact engine snapshot, two provider claims,
    two entrant names, and—when required—two signed Agent Passport versions.
-2. The customer runs the existing cross-provider command locally with the
-   explicit customer-local and provider-usage flags. Provider credentials stay
-   inside official local clients or the customer runner process.
-3. The customer reviews the local summary and transcript, then explicitly
+2. The customer signs one non-leasing preparation request and writes a new
+   local plan. The command verifies the exact job, current fixed fantasy
+   harness, disjoint unused output paths, and both assigned passport signatures
+   before any provider call:
+
+```powershell
+agentwars runner prepare-match `
+  --challenge-id CHALLENGE_ID `
+  --plan-out C:\customer\match-9400-plan.json `
+  --match-dir C:\customer\match-9400 `
+  --summary-file C:\customer\match-9400-summary.json `
+  --agent-passports C:\public\seat0.json C:\public\seat1.json `
+  --once
+```
+
+3. The customer inspects the JSON plan and separately starts only the fixed
+   local runner from the BuilderWars repository root. Fresh consent is required
+   at execution time and is deliberately not serialized into the plan:
+
+```powershell
+$sourcePlan = Get-Content C:\customer\match-9400-plan.json -Raw | ConvertFrom-Json
+$launchArgs = @($sourcePlan.launch.argv)
+python bin/run_agentwars_cross_provider_match.py @launchArgs `
+  --customer-local-v1 `
+  --provider-usage-v1
+```
+
+   Provider credentials stay inside official local clients or the customer
+   runner process. The prepare command does not launch this process for the
+   customer and the server cannot insert an arbitrary entrypoint or harness.
+4. The customer reviews the local summary and transcript, then explicitly
    consents to their private upload:
 
 ```powershell
@@ -48,20 +75,20 @@ agentwars runner submit-match `
   --private-evidence-upload-v1
 ```
 
-4. The runner signs one fixed poll. It rejects unknown fields, commands,
+5. The runner signs one fixed poll. It rejects unknown fields, commands,
    environment values, unsupported providers/games, impossible provider/model/
    variant combinations, changed backend labels, same-provider seats,
    changed harness commitments, partial passport binding, publication requests,
    ranking requests, or any true execution attestation.
-5. The runner independently replays the exact embedded verifier snapshot,
+6. The runner independently replays the exact embedded verifier snapshot,
    applies the public projection safety boundary, and binds the job, summary,
    transcript, engine, entrants, scores, move-source claims, passports, and
    every false attestation into one evidence-bundle digest.
-6. The transcript is zlib-compressed and canonical-base64url encoded only after
+7. The transcript is zlib-compressed and canonical-base64url encoded only after
    replay. Raw transcript size, compressed size, JSON body size, decompressed
    size, stream completion, trailing data, and all digests are bounded and
    checked. This is transport encoding, not secrecy.
-7. The runner signs one exact result body. A conforming server must independently
+8. The runner signs one exact result body. A conforming server must independently
    decode and replay it, store it as `verified_private`, and echo the exact
    commitments with `not_reviewed_not_published` and `rankingEligible:false`.
 
@@ -86,6 +113,13 @@ because a paired runner signed its upload.
 
 ## Failure and retry behavior
 
+- Preparation never grants or recovers a lease. A queued job returns its full
+  safe declaration; leased work returns only `busy`, completed/exhausted work
+  returns a bounded terminal status, and no plan is written for those states.
+- A launch plan is exclusively created, digest-bound, local-only, and carries
+  the fixed runner-script digest, harness digest, job commitment, passport-file
+  digests, exact argv, and all eight false attestations. It is not itself proof
+  that execution occurred.
 - The command polls at most one job and never overwrites or deletes either
   customer file.
 - Local validation failure sends no result. The server lease must expire and
@@ -101,6 +135,7 @@ because a paired runner signed its upload.
 ```powershell
 python -m py_compile competitions/evidence_job.py bin/agentwars.py bin/check_competition_evidence_job.py
 python bin/check_competition_evidence_job.py
+python bin/check_competition_source_match.py
 python bin/check_provider_hub.py
 ```
 

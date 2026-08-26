@@ -46,6 +46,10 @@ COMPETITION_JOB_SCHEMA_VERSION = 1
 COMPETITION_JOB_PROTOCOL = "agentwars.competition_job.v1"
 COMPETITION_JOB_KIND = "closed_fantasy_evidence_submission"
 COMPETITION_JOB_EVIDENCE_CLASS = "active_local_signing_key_possession"
+COMPETITION_JOB_PREPARE_PATH = "/api/builderwars/competitions/prepare"
+COMPETITION_JOB_PREPARE_BODY = (
+    b'{"prepare":1,"protocolVersion":"agentwars.competition_job.v1"}'
+)
 COMPETITION_JOB_POLL_PATH = "/api/builderwars/competitions/poll"
 COMPETITION_JOB_RESULT_PATH = "/api/builderwars/competitions/result"
 COMPETITION_JOB_POLL_BODY = (
@@ -202,6 +206,21 @@ class CompetitionGrant:
 
 
 @dataclasses.dataclass(frozen=True)
+class CompetitionPreparation:
+    request_body_sha256: str
+    job: CompetitionJob
+
+
+@dataclasses.dataclass(frozen=True)
+class CompetitionPrepareTerminal:
+    status: str
+    request_body_sha256: str
+    truth_status: str | None
+    job_id: str | None
+    competition_id: str | None
+
+
+@dataclasses.dataclass(frozen=True)
 class CompetitionPollTerminal:
     status: str
     request_body_sha256: str
@@ -229,9 +248,93 @@ class CompetitionResultReceipt:
     request_body_sha256: str
 
 
+def validate_competition_prepare_response(value, *, profile, request_body_sha256):
+    if not isinstance(value, dict):
+        raise RunnerClientError(
+            "competition preparation returned an invalid response contract"
+        )
+    status = value.get("status")
+    if status == "ready":
+        _validate_response_base(
+            value,
+            profile=profile,
+            request_body_sha256=request_body_sha256,
+            extra_keys={"status", "job"},
+        )
+        return CompetitionPreparation(
+            request_body_sha256=_digest(request_body_sha256, "request body digest"),
+            job=_validate_job(value["job"], profile=profile),
+        )
+    if status in ("busy", "exhausted"):
+        _validate_response_base(
+            value,
+            profile=profile,
+            request_body_sha256=request_body_sha256,
+            extra_keys={"status", "job"},
+        )
+        row = _exact_dict(
+            value["job"],
+            {"jobId", "competitionId", "attemptsUsed", "maxAttempts"},
+            "competition preparation terminal job",
+        )
+        attempts_used = _integer(
+            row["attemptsUsed"],
+            "preparation attempts used",
+            1,
+            COMPETITION_JOB_MAX_ATTEMPTS,
+        )
+        maximum = _integer(
+            row["maxAttempts"],
+            "preparation maximum attempts",
+            1,
+            COMPETITION_JOB_MAX_ATTEMPTS,
+        )
+        if maximum != COMPETITION_JOB_MAX_ATTEMPTS:
+            raise RunnerClientError(
+                "competition preparation maximum attempts is unsupported"
+            )
+        if status == "exhausted" and attempts_used != COMPETITION_JOB_MAX_ATTEMPTS:
+            raise RunnerClientError(
+                "competition preparation exhaustion is contradictory"
+            )
+        return CompetitionPrepareTerminal(
+            status=status,
+            request_body_sha256=_digest(request_body_sha256, "request body digest"),
+            truth_status=None,
+            job_id=_canonical_token(
+                row["jobId"], _JOB_ID_RE, 16, "job id", prefix="awj1_"
+            ),
+            competition_id=_canonical_token(
+                row["competitionId"],
+                _COMPETITION_ID_RE,
+                16,
+                "competition id",
+                prefix="awc1_",
+            ),
+        )
+    if status == "completed":
+        _validate_response_base(
+            value,
+            profile=profile,
+            request_body_sha256=request_body_sha256,
+            extra_keys={"status", "result"},
+        )
+        result = _validate_private_result(value["result"])
+        return CompetitionPrepareTerminal(
+            status="completed",
+            request_body_sha256=_digest(request_body_sha256, "request body digest"),
+            truth_status=result["truthStatus"],
+            job_id=result["jobId"],
+            competition_id=result["competitionId"],
+        )
+    raise RunnerClientError("competition preparation returned an unsupported status")
+
+
 def validate_competition_poll_response(value, *, profile, request_body_sha256):
     if not isinstance(value, dict):
-        raise RunnerClientError("competition-job poll returned an invalid response contract")
+        raise RunnerClientError(
+            "competition-job poll returned an invalid response contract"
+        )
     status = value.get("status")
     if status == "granted":
         _validate_response_base(
@@ -257,7 +360,9 @@ def validate_competition_poll_response(value, *, profile, request_body_sha256):
             attempt["attemptNumber"], "attempt number", 1, COMPETITION_JOB_MAX_ATTEMPTS
         )
         if attempt_number != lease_epoch:
-            raise RunnerClientError("competition-job attempt counters are contradictory")
+            raise RunnerClientError(
+                "competition-job attempt counters are contradictory"
+            )
         return CompetitionGrant(
             recovery=value["recovery"],
             request_body_sha256=_digest(request_body_sha256, "request body digest"),
@@ -275,7 +380,9 @@ def validate_competition_poll_response(value, *, profile, request_body_sha256):
             extra_keys={"status", "result"},
         )
         result = _validate_private_result(value["result"])
-        return CompetitionPollTerminal("completed", request_body_sha256, result["truthStatus"])
+        return CompetitionPollTerminal(
+            "completed", request_body_sha256, result["truthStatus"]
+        )
     if status == "exhausted":
         _validate_response_base(
             value,
@@ -284,7 +391,9 @@ def validate_competition_poll_response(value, *, profile, request_body_sha256):
             extra_keys={"status", "job"},
         )
         exhausted = _exact_dict(
-            value["job"], {"jobId", "kind", "attemptsUsed", "maxAttempts"}, "exhausted job"
+            value["job"],
+            {"jobId", "kind", "attemptsUsed", "maxAttempts"},
+            "exhausted job",
         )
         _canonical_token(exhausted["jobId"], _JOB_ID_RE, 16, "job id", prefix="awj1_")
         if exhausted["kind"] != COMPETITION_JOB_KIND:
@@ -293,10 +402,18 @@ def validate_competition_poll_response(value, *, profile, request_body_sha256):
             exhausted["attemptsUsed"], "attempts used", 1, COMPETITION_JOB_MAX_ATTEMPTS
         )
         maximum = _integer(
-            exhausted["maxAttempts"], "maximum attempts", 1, COMPETITION_JOB_MAX_ATTEMPTS
+            exhausted["maxAttempts"],
+            "maximum attempts",
+            1,
+            COMPETITION_JOB_MAX_ATTEMPTS,
         )
-        if used != COMPETITION_JOB_MAX_ATTEMPTS or maximum != COMPETITION_JOB_MAX_ATTEMPTS:
-            raise RunnerClientError("exhausted competition-job attempt count is contradictory")
+        if (
+            used != COMPETITION_JOB_MAX_ATTEMPTS
+            or maximum != COMPETITION_JOB_MAX_ATTEMPTS
+        ):
+            raise RunnerClientError(
+                "exhausted competition-job attempt count is contradictory"
+            )
         return CompetitionPollTerminal("exhausted", request_body_sha256, None)
     raise RunnerClientError("competition-job poll returned an unsupported status")
 
@@ -314,12 +431,16 @@ def build_competition_evidence(
     if os.path.normcase(str(summary_file)) == os.path.normcase(str(transcript_file)):
         raise RunnerClientError("competition summary and transcript paths must differ")
 
-    summary_bytes = _read_bounded(summary_file, MAX_SUMMARY_BYTES, "competition summary")
+    summary_bytes = _read_bounded(
+        summary_file, MAX_SUMMARY_BYTES, "competition summary"
+    )
     transcript_bytes = _read_bounded(
         transcript_file, MAX_TRANSCRIPT_BYTES, "competition transcript"
     )
     if not transcript_bytes.endswith(b"\n"):
-        raise RunnerClientError("competition transcript must end with one complete JSONL record")
+        raise RunnerClientError(
+            "competition transcript must end with one complete JSONL record"
+        )
     summary = _decode_summary(summary_bytes)
     projection = _verify_evidence_bindings(
         grant.job,
@@ -331,11 +452,15 @@ def build_competition_evidence(
         transcript_bytes,
         _read_bounded(transcript_file, MAX_TRANSCRIPT_BYTES, "competition transcript"),
     ):
-        raise RunnerClientError("competition transcript changed during replay verification")
+        raise RunnerClientError(
+            "competition transcript changed during replay verification"
+        )
 
     compressed = zlib.compress(transcript_bytes, level=9)
     if not compressed or len(compressed) > MAX_COMPRESSED_TRANSCRIPT_BYTES:
-        raise RunnerClientError("competition transcript cannot fit the signed result envelope")
+        raise RunnerClientError(
+            "competition transcript cannot fit the signed result envelope"
+        )
     encoded_transcript = _base64url(compressed)
     transcript_sha256 = hashlib.sha256(transcript_bytes).hexdigest()
     compressed_sha256 = hashlib.sha256(compressed).hexdigest()
@@ -396,16 +521,22 @@ def decode_competition_transcript(value, *, expected_sha256: str) -> bytes:
     try:
         raw = inflater.decompress(compressed, MAX_TRANSCRIPT_BYTES + 1)
     except zlib.error as error:
-        raise RunnerClientError("compressed competition transcript is invalid") from error
+        raise RunnerClientError(
+            "compressed competition transcript is invalid"
+        ) from error
     if (
         len(raw) > MAX_TRANSCRIPT_BYTES
         or inflater.unconsumed_tail
         or inflater.unused_data
         or not inflater.eof
     ):
-        raise RunnerClientError("compressed competition transcript exceeds its exact frame")
+        raise RunnerClientError(
+            "compressed competition transcript exceeds its exact frame"
+        )
     if not hmac.compare_digest(hashlib.sha256(raw).hexdigest(), expected_sha256):
-        raise RunnerClientError("competition transcript digest does not match its envelope")
+        raise RunnerClientError(
+            "competition transcript digest does not match its envelope"
+        )
     return raw
 
 
@@ -417,7 +548,9 @@ def validate_competition_result_response(
     grant: CompetitionGrant,
     evidence: CompetitionEvidence,
 ) -> CompetitionResultReceipt:
-    if not isinstance(grant, CompetitionGrant) or not isinstance(evidence, CompetitionEvidence):
+    if not isinstance(grant, CompetitionGrant) or not isinstance(
+        evidence, CompetitionEvidence
+    ):
         raise RunnerClientError("competition result validation inputs are invalid")
     _validate_response_base(
         value,
@@ -504,7 +637,9 @@ def _validate_job(value, *, profile) -> CompetitionJob:
     if job["requiredTruthStatus"] != COMPETITION_REQUIRED_TRUTH_STATUS:
         raise RunnerClientError("competition required truth status is unsupported")
     if job["publicationMode"] != COMPETITION_PUBLICATION_MODE:
-        raise RunnerClientError("competition publication mode must remain private review only")
+        raise RunnerClientError(
+            "competition publication mode must remain private review only"
+        )
     maximum = _integer(
         job["maxAttempts"], "maximum attempts", 1, COMPETITION_JOB_MAX_ATTEMPTS
     )
@@ -512,20 +647,30 @@ def _validate_job(value, *, profile) -> CompetitionJob:
         raise RunnerClientError("competition maximum attempts is unsupported")
     if not isinstance(job["seats"], list) or len(job["seats"]) != 2:
         raise RunnerClientError("competition job must contain exactly two seats")
-    seats = tuple(_validate_seat(row, expected_seat=index) for index, row in enumerate(job["seats"]))
+    seats = tuple(
+        _validate_seat(row, expected_seat=index)
+        for index, row in enumerate(job["seats"])
+    )
     if seats[0].provider_claim == seats[1].provider_claim:
         raise RunnerClientError("competition job provider claims must differ")
     if seats[0].entrant.casefold() == seats[1].entrant.casefold():
         raise RunnerClientError("competition entrant names must be unique")
     signed = [seat.agent_id is not None for seat in seats]
     if any(signed) and not all(signed):
-        raise RunnerClientError("competition job cannot partially bind signed passports")
+        raise RunnerClientError(
+            "competition job cannot partially bind signed passports"
+        )
     if job["requireSignedPassports"] and not all(signed):
-        raise RunnerClientError("competition job requires two signed passport commitments")
+        raise RunnerClientError(
+            "competition job requires two signed passport commitments"
+        )
     if all(signed) and (
-        seats[0].agent_id == seats[1].agent_id or seats[0].version_id == seats[1].version_id
+        seats[0].agent_id == seats[1].agent_id
+        or seats[0].version_id == seats[1].version_id
     ):
-        raise RunnerClientError("competition job requires distinct signed agent versions")
+        raise RunnerClientError(
+            "competition job requires distinct signed agent versions"
+        )
     return CompetitionJob(
         job_id=job_id,
         competition_id=competition_id,
@@ -569,13 +714,17 @@ def _validate_seat(value, *, expected_seat: int) -> CompetitionSeat:
     backend = _bounded_text(seat["backendClaim"], "backend claim", 240)
     expected_backend = _expected_backend_claim(provider, model=model, variant=variant)
     if backend != expected_backend:
-        raise RunnerClientError("competition backend claim does not match provider options")
+        raise RunnerClientError(
+            "competition backend claim does not match provider options"
+        )
     if seat["strategy"] not in STRATEGIES:
         raise RunnerClientError("competition strategy is unsupported")
     agent_id = _optional_digest(seat["agentId"], "agent id")
     version_id = _optional_digest(seat["versionId"], "version id")
     if (agent_id is None) != (version_id is None):
-        raise RunnerClientError("competition agent and version commitments must be paired")
+        raise RunnerClientError(
+            "competition agent and version commitments must be paired"
+        )
     return CompetitionSeat(
         seat=expected_seat,
         entrant=entrant,
@@ -589,7 +738,9 @@ def _validate_seat(value, *, expected_seat: int) -> CompetitionSeat:
     )
 
 
-def _expected_backend_claim(provider: str, *, model: str | None, variant: str | None) -> str:
+def _expected_backend_claim(
+    provider: str, *, model: str | None, variant: str | None
+) -> str:
     entry = get_provider(provider)
     if entry["model_required"] and model is None:
         raise RunnerClientError("competition provider model claim is required")
@@ -614,7 +765,9 @@ def _expected_backend_claim(provider: str, *, model: str | None, variant: str | 
         ):
             raise RunnerClientError("competition provider model claim is invalid")
         return _bounded_text(
-            f"opencode-provider:{model}@{variant or 'max'}", "derived backend claim", 240
+            f"opencode-provider:{model}@{variant or 'max'}",
+            "derived backend claim",
+            240,
         )
     if provider == "openrouter":
         return _bounded_text(f"openrouter:{model}", "derived backend claim", 240)
@@ -642,21 +795,31 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
     if summary["truthBoundary"] != CROSS_PROVIDER_TRUTH_BOUNDARY:
         raise RunnerClientError("competition summary truth boundary is unsupported")
     if summary["status"] != job.required_truth_status:
-        raise RunnerClientError("competition summary does not meet the required truth status")
+        raise RunnerClientError(
+            "competition summary does not meet the required truth status"
+        )
     if summary["publicationDecision"] != "not_reviewed_not_published":
         raise RunnerClientError("competition summary is not private and unpublished")
     if summary["universalProviderOrModelRankingEligible"] is not False:
-        raise RunnerClientError("competition summary cannot claim universal ranking eligibility")
+        raise RunnerClientError(
+            "competition summary cannot claim universal ranking eligibility"
+        )
     if summary["allAcceptedMovesModelClaimed"] is not True:
         raise RunnerClientError("competition summary is not an all-model-claimed match")
     if summary["providerClaimsDiffer"] is not True:
-        raise RunnerClientError("competition summary does not retain distinct provider claims")
+        raise RunnerClientError(
+            "competition summary does not retain distinct provider claims"
+        )
     for field in FALSE_ATTESTATIONS:
         if summary[field] is not False:
             raise RunnerClientError(f"competition summary must keep {field} false")
     core = {key: value for key, value in summary.items() if key != "summaryDigest"}
-    if not hmac.compare_digest(_digest(summary["summaryDigest"], "summary digest"), digest(core)):
-        raise RunnerClientError("competition summary digest does not cover its exact body")
+    if not hmac.compare_digest(
+        _digest(summary["summaryDigest"], "summary digest"), digest(core)
+    ):
+        raise RunnerClientError(
+            "competition summary digest does not cover its exact body"
+        )
     if (
         summary["game"] != job.game
         or type(summary["seed"]) is not int
@@ -665,9 +828,12 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
         raise RunnerClientError("competition summary changed the assigned game or seed")
     transcript_sha256 = hashlib.sha256(transcript_bytes).hexdigest()
     if not hmac.compare_digest(
-        _digest(summary["transcriptSha256"], "summary transcript digest"), transcript_sha256
+        _digest(summary["transcriptSha256"], "summary transcript digest"),
+        transcript_sha256,
     ):
-        raise RunnerClientError("competition summary does not bind the submitted transcript")
+        raise RunnerClientError(
+            "competition summary does not bind the submitted transcript"
+        )
     verification = _exact_dict(
         summary["verification"], _SUMMARY_VERIFICATION_KEYS, "summary verification"
     )
@@ -683,7 +849,9 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
     try:
         projection, records = project_receipt(transcript_path)
     except (PublicationError, OSError, ValueError, TypeError, RecursionError) as error:
-        raise RunnerClientError("competition transcript fails the public replay boundary") from error
+        raise RunnerClientError(
+            "competition transcript fails the public replay boundary"
+        ) from error
     if not records or records[0].get("kind") != "header":
         raise RunnerClientError("competition transcript has no exact header")
     header = records[0].get("body")
@@ -701,7 +869,9 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
         or projection.get("truth", {}).get("executionClaimsAttested") is not False
         or projection.get("truth", {}).get("entrantIdentityAttested") is not False
     ):
-        raise RunnerClientError("competition public projection contradicts the private summary")
+        raise RunnerClientError(
+            "competition public projection contradicts the private summary"
+        )
     if summary["matchId"] != header.get("match_id"):
         raise RunnerClientError("competition summary changed the transcript match id")
 
@@ -721,7 +891,9 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
     if not isinstance(projected_scores, list) or len(projected_scores) != 2:
         raise RunnerClientError("competition projection has no exact score pair")
     for index, assigned in enumerate(job.seats):
-        row = _exact_dict(summary_seats[index], _SUMMARY_SEAT_KEYS, "competition summary seat")
+        row = _exact_dict(
+            summary_seats[index], _SUMMARY_SEAT_KEYS, "competition summary seat"
+        )
         raw = transcript_seats[index]
         projected = projected_seats[index]
         if not isinstance(raw, dict) or not isinstance(projected, dict):
@@ -745,16 +917,28 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
             raise RunnerClientError("competition summary score type is invalid")
         for key, expected_value in expected.items():
             if row[key] != expected_value:
-                raise RunnerClientError(f"competition summary changed seat {index} {key}")
-        if row["score"] != projected_scores[index] or projected.get("name") != assigned.entrant:
-            raise RunnerClientError("competition summary score or entrant differs from replay")
+                raise RunnerClientError(
+                    f"competition summary changed seat {index} {key}"
+                )
+        if (
+            row["score"] != projected_scores[index]
+            or projected.get("name") != assigned.entrant
+        ):
+            raise RunnerClientError(
+                "competition summary score or entrant differs from replay"
+            )
         summary_counts = _exact_dict(
             row["moveSourceClaims"],
             {"model", "fallback", "scripted", "other"},
             "competition summary move-source claims",
         )
-        if any(type(summary_counts[key]) is not int or summary_counts[key] < 0 for key in summary_counts):
-            raise RunnerClientError("competition summary move-source claim type is invalid")
+        if any(
+            type(summary_counts[key]) is not int or summary_counts[key] < 0
+            for key in summary_counts
+        ):
+            raise RunnerClientError(
+                "competition summary move-source claim type is invalid"
+            )
         projected_counts = next(
             (
                 counts
@@ -764,9 +948,12 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
             None,
         )
         if not isinstance(projected_counts, dict) or summary_counts != {
-            key: projected_counts.get(key) for key in ("model", "fallback", "scripted", "other")
+            key: projected_counts.get(key)
+            for key in ("model", "fallback", "scripted", "other")
         }:
-            raise RunnerClientError("competition summary move-source claims differ from replay")
+            raise RunnerClientError(
+                "competition summary move-source claims differ from replay"
+            )
         script = raw.get("script")
         if (
             not isinstance(script, dict)
@@ -778,20 +965,30 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
             or raw.get("name") != assigned.entrant
             or raw.get("seat") != index
         ):
-            raise RunnerClientError("competition transcript changed an assigned entrant commitment")
+            raise RunnerClientError(
+                "competition transcript changed an assigned entrant commitment"
+            )
         passport = raw.get("agent_passport")
         if assigned.agent_id is None:
             if passport is not None:
-                raise RunnerClientError("competition transcript added an unassigned passport")
+                raise RunnerClientError(
+                    "competition transcript added an unassigned passport"
+                )
             if projected.get("identityStatus") == "verified_signed":
-                raise RunnerClientError("competition projection invented signed identity")
+                raise RunnerClientError(
+                    "competition projection invented signed identity"
+                )
         else:
             if not isinstance(passport, dict):
-                raise RunnerClientError("competition transcript omitted an assigned passport")
+                raise RunnerClientError(
+                    "competition transcript omitted an assigned passport"
+                )
             try:
                 normalized = verify_passport(passport)
             except PassportError as error:
-                raise RunnerClientError("competition passport fails offline verification") from error
+                raise RunnerClientError(
+                    "competition passport fails offline verification"
+                ) from error
             if (
                 normalized["agentId"] != assigned.agent_id
                 or normalized["versionId"] != assigned.version_id
@@ -802,7 +999,9 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
                 or projected.get("entrantId") != assigned.agent_id
                 or projected.get("identityStatus") != "verified_signed"
             ):
-                raise RunnerClientError("competition passport changed an assigned agent version")
+                raise RunnerClientError(
+                    "competition passport changed an assigned agent version"
+                )
 
     if (
         type(summary["winnerSeat"]) is not int
@@ -812,10 +1011,10 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
     ):
         raise RunnerClientError("competition summary winner differs from replay")
     signed_expected = all(seat.agent_id is not None for seat in job.seats)
-    if (
-        verification["signedHarnessVersionsVerified"] is not signed_expected
-        or verification["identityStatus"]
-        != ("verified_signed" if signed_expected else "self_declared_legacy")
+    if verification[
+        "signedHarnessVersionsVerified"
+    ] is not signed_expected or verification["identityStatus"] != (
+        "verified_signed" if signed_expected else "self_declared_legacy"
     ):
         raise RunnerClientError("competition signed-passport coverage is contradictory")
     return projection
@@ -848,7 +1047,9 @@ def _validate_private_result(value):
         "competition private result",
     )
     out = {
-        "jobId": _canonical_token(result["jobId"], _JOB_ID_RE, 16, "job id", prefix="awj1_"),
+        "jobId": _canonical_token(
+            result["jobId"], _JOB_ID_RE, 16, "job id", prefix="awj1_"
+        ),
         "attemptId": _canonical_token(
             result["attemptId"], _ATTEMPT_ID_RE, 16, "attempt id", prefix="awa1_"
         ),
@@ -863,7 +1064,9 @@ def _validate_private_result(value):
             prefix="awc1_",
         ),
         "jobCommitmentSha256": _digest(result["jobCommitmentSha256"], "job commitment"),
-        "evidenceBundleSha256": _digest(result["evidenceBundleSha256"], "bundle digest"),
+        "evidenceBundleSha256": _digest(
+            result["evidenceBundleSha256"], "bundle digest"
+        ),
         "engineSha256": _digest(result["engineSha256"], "engine digest"),
         "summarySha256": _digest(result["summarySha256"], "summary object digest"),
         "summaryDigest": _digest(result["summaryDigest"], "summary digest"),
@@ -886,7 +1089,9 @@ def _validate_private_result(value):
         or out["rankingEligible"] is not False
         or out["verificationStatus"] != "verified_private"
     ):
-        raise RunnerClientError("competition private result overstates its release status")
+        raise RunnerClientError(
+            "competition private result overstates its release status"
+        )
     return out
 
 
@@ -927,8 +1132,16 @@ def _job_commitment_sha256(job: CompetitionJob) -> str:
     )
 
 
+def competition_job_commitment_sha256(job: CompetitionJob) -> str:
+    """Return the exact public commitment for one validated competition job."""
+
+    return _job_commitment_sha256(job)
+
+
 def _validate_response_base(value, *, profile, request_body_sha256, extra_keys):
-    if not isinstance(value, dict) or set(value) != _BASE_RESPONSE_KEYS | set(extra_keys):
+    if not isinstance(value, dict) or set(value) != _BASE_RESPONSE_KEYS | set(
+        extra_keys
+    ):
         raise RunnerClientError("competition-job response has an invalid exact schema")
     if (
         type(value["schemaVersion"]) is not int
@@ -941,14 +1154,21 @@ def _validate_response_base(value, *, profile, request_body_sha256, extra_keys):
         raise RunnerClientError("competition-job response changed the runner id")
     fingerprint = validate_fingerprint(profile.get("fingerprint"))
     if not hmac.compare_digest(validate_fingerprint(value["fingerprint"]), fingerprint):
-        raise RunnerClientError("competition-job response changed the runner fingerprint")
+        raise RunnerClientError(
+            "competition-job response changed the runner fingerprint"
+        )
     request_digest = _digest(request_body_sha256, "request body digest")
     if not hmac.compare_digest(
-        _digest(value["requestBodySha256"], "response request body digest"), request_digest
+        _digest(value["requestBodySha256"], "response request body digest"),
+        request_digest,
     ):
-        raise RunnerClientError("competition-job response changed the request body digest")
+        raise RunnerClientError(
+            "competition-job response changed the request body digest"
+        )
     if value["evidenceClass"] != COMPETITION_JOB_EVIDENCE_CLASS:
-        raise RunnerClientError("competition-job transport evidence class is unsupported")
+        raise RunnerClientError(
+            "competition-job transport evidence class is unsupported"
+        )
     for field in FALSE_ATTESTATIONS:
         if value[field] is not False:
             raise RunnerClientError(f"competition-job response must keep {field} false")
@@ -970,7 +1190,9 @@ def _decode_summary(raw: bytes):
         TypeError,
         RecursionError,
     ) as error:
-        raise RunnerClientError("competition summary is not strict UTF-8 JSON") from error
+        raise RunnerClientError(
+            "competition summary is not strict UTF-8 JSON"
+        ) from error
     if not isinstance(value, dict):
         raise RunnerClientError("competition summary must be one JSON object")
     return value
@@ -1037,7 +1259,10 @@ def _bounded_text(value, label, maximum):
         or not value
         or value != value.strip()
         or len(value) > maximum
-        or any(ord(ch) < 0x20 or ord(ch) == 0x7F or 0xD800 <= ord(ch) <= 0xDFFF for ch in value)
+        or any(
+            ord(ch) < 0x20 or ord(ch) == 0x7F or 0xD800 <= ord(ch) <= 0xDFFF
+            for ch in value
+        )
     ):
         raise RunnerClientError(f"{label} is invalid")
     return value
@@ -1067,10 +1292,9 @@ def _decode_canonical_base64url(value, expected_bytes, label):
         decoded = base64.b64decode(padded, altchars=b"-_", validate=True)
     except (ValueError, TypeError) as error:
         raise RunnerClientError(f"{label} is invalid") from error
-    if (
-        (expected_bytes is not None and len(decoded) != expected_bytes)
-        or _base64url(decoded) != value
-    ):
+    if (expected_bytes is not None and len(decoded) != expected_bytes) or _base64url(
+        decoded
+    ) != value:
         raise RunnerClientError(f"{label} is not canonical base64url")
     return decoded
 

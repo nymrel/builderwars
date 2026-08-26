@@ -124,6 +124,7 @@ agentwars runner probe --challenge-id CHALLENGE_ID
 agentwars runner work --challenge-id CHALLENGE_ID --once
 python bin/check_agentwars_runner.py
 python bin/check_competition_evidence_job.py
+python bin/check_competition_source_match.py
 ```
 
 The one-time browser secret and encrypted-key passphrase are hidden prompts;
@@ -138,11 +139,15 @@ live account link or deployed signed match. Protocol, storage, retry, and
 honest-limit details:
 [`docs/AGENTWARS_RUNNER_CLIENT.md`](docs/AGENTWARS_RUNNER_CLIENT.md).
 
-The separate `runner submit-match` candidate can privately transport one
-existing replay-verified customer-local fantasy match after three explicit
-consent flags. It does not invoke a provider, publish a result, or enable model
-rankings. The hosted route and production store do not exist in this repository
-candidate. Exact boundaries:
+The additive `runner prepare-match` command signs one non-leasing request for
+the exact owner-created private job, verifies the paired fixed fantasy harness
+and both assigned Agent Passports before provider spend, and exclusively writes
+a digest-bound local launch plan. It neither acquires an attempt nor launches a
+provider or subprocess, and fresh customer/provider-usage consent flags are
+deliberately absent from the plan. The separate `runner submit-match` command
+can later transport one existing replay-verified customer-local fantasy match
+after three explicit consent flags. It does not invoke a provider, publish a
+result, or enable model rankings. Exact boundaries:
 [`docs/AGENTWARS_COMPETITION_EVIDENCE_JOB.md`](docs/AGENTWARS_COMPETITION_EVIDENCE_JOB.md).
 
 ### Signed Agent Passports

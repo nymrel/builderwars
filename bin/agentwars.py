@@ -7,6 +7,7 @@ Install ``bin`` on PATH and use:
     agentwars runner activate --challenge-id ... --runner-id ...
     agentwars runner probe --challenge-id ...
     agentwars runner work --challenge-id ... --once
+    agentwars runner prepare-match --challenge-id ... --once ...
     agentwars runner submit-match --challenge-id ... --once ...
     agentwars runner request ...
 
@@ -31,13 +32,21 @@ sys.path.insert(0, ROOT)
 
 from agent_identity.keys import MIN_PASSPHRASE_CHARACTERS  # noqa: E402
 from competitions.evidence_job import (  # noqa: E402
+    COMPETITION_JOB_PREPARE_BODY,
+    COMPETITION_JOB_PREPARE_PATH,
     COMPETITION_JOB_POLL_BODY,
     COMPETITION_JOB_POLL_PATH,
     COMPETITION_JOB_RESULT_PATH,
     CompetitionGrant,
+    CompetitionPreparation,
     build_competition_evidence,
+    validate_competition_prepare_response,
     validate_competition_poll_response,
     validate_competition_result_response,
+)
+from competitions.source_match import (  # noqa: E402
+    build_source_match_plan,
+    write_source_match_plan,
 )
 from provider_hub.catalog import PROVIDER_IDS  # noqa: E402
 from provider_hub.local_runner import (  # noqa: E402
@@ -69,8 +78,12 @@ from provider_hub.secrets import SecretValue  # noqa: E402
 
 
 _PAIRING_SECRET_ARG_RE = re.compile(r"awp1_[A-Za-z0-9_-]{22}_[A-Za-z0-9_-]{32}")
-_SECRET_OPTION_NAMES = frozenset(("--pairing-secret", "--passphrase", "--key-passphrase"))
-_SECRET_OPTION_STEMS = tuple(option.removeprefix("--") for option in _SECRET_OPTION_NAMES)
+_SECRET_OPTION_NAMES = frozenset(
+    ("--pairing-secret", "--passphrase", "--key-passphrase")
+)
+_SECRET_OPTION_STEMS = tuple(
+    option.removeprefix("--") for option in _SECRET_OPTION_NAMES
+)
 
 
 def _hidden_prompt(label: str) -> str:
@@ -79,7 +92,9 @@ def _hidden_prompt(label: str) -> str:
             warnings.simplefilter("error", getpass.GetPassWarning)
             return getpass.getpass(label)
     except (getpass.GetPassWarning, EOFError) as error:
-        raise RunnerClientError("a real interactive no-echo terminal is required") from error
+        raise RunnerClientError(
+            "a real interactive no-echo terminal is required"
+        ) from error
 
 
 def _new_key_passphrase() -> SecretValue:
@@ -113,10 +128,28 @@ def _bounded_timeout(value: str) -> int:
     try:
         timeout = int(value)
     except (TypeError, ValueError) as error:
-        raise argparse.ArgumentTypeError("timeout must be an integer from 1 to 60 seconds") from error
+        raise argparse.ArgumentTypeError(
+            "timeout must be an integer from 1 to 60 seconds"
+        ) from error
     if not 1 <= timeout <= 60:
-        raise argparse.ArgumentTypeError("timeout must be an integer from 1 to 60 seconds")
+        raise argparse.ArgumentTypeError(
+            "timeout must be an integer from 1 to 60 seconds"
+        )
     return timeout
+
+
+def _bounded_backend_timeout(value: str) -> float:
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError) as error:
+        raise argparse.ArgumentTypeError(
+            "backend timeout must be a number from 10 to 900 seconds"
+        ) from error
+    if not 10 <= timeout <= 900:
+        raise argparse.ArgumentTypeError(
+            "backend timeout must be a number from 10 to 900 seconds"
+        )
+    return float(format(timeout, ".3f"))
 
 
 def _looks_like_secret_option(argument: object) -> bool:
@@ -124,7 +157,9 @@ def _looks_like_secret_option(argument: object) -> bool:
     if not token.startswith("-"):
         return False
     name = token.split("=", 1)[0].lstrip("-").lower().replace("_", "-")
-    return len(name) >= 3 and any(stem.startswith(name) for stem in _SECRET_OPTION_STEMS)
+    return len(name) >= 3 and any(
+        stem.startswith(name) for stem in _SECRET_OPTION_STEMS
+    )
 
 
 def cmd_runner_pair(args) -> int:
@@ -161,16 +196,22 @@ def cmd_runner_pair(args) -> int:
     print("Local runner claim accepted; browser confirmation is still required.")
     print(f"challenge   : {challenge_id}")
     print(f"fingerprint : {grouped_fingerprint(profile['fingerprint'])}")
-    print(f"key custody : encrypted local PKCS#8 ({'created' if created else 'reused'})")
+    print(
+        f"key custody : encrypted local PKCS#8 ({'created' if created else 'reused'})"
+    )
     print()
-    print("Compare every fingerprint group with the signed-in browser, then confirm there.")
+    print(
+        "Compare every fingerprint group with the signed-in browser, then confirm there."
+    )
     print("After confirmation, copy the public runner id and record it locally:")
     activate = f"  agentwars runner activate --challenge-id {challenge_id} --runner-id awr1_..."
     if args.state_dir:
         activate += f' --state-dir "{store.root}"'
     print(activate)
     print()
-    print("This claim does not attest a provider, plan, billing route, model, runtime, or match.")
+    print(
+        "This claim does not attest a provider, plan, billing route, model, runtime, or match."
+    )
     return 0
 
 
@@ -205,8 +246,13 @@ def cmd_runner_list(args) -> int:
 def cmd_runner_probe(args) -> int:
     store = RunnerStateStore(args.state_dir)
     profile = store.load_profile(args.challenge_id)
-    if profile["localState"] != "runner_id_recorded_unverified" or profile["runnerId"] is None:
-        raise RunnerClientError("record the browser-issued runner id before probing the active key")
+    if (
+        profile["localState"] != "runner_id_recorded_unverified"
+        or profile["runnerId"] is None
+    ):
+        raise RunnerClientError(
+            "record the browser-issued runner id before probing the active key"
+        )
     passphrase = _existing_key_passphrase()
     key = store.load_key(profile, passphrase.reveal())
     signed = sign_runner_request(
@@ -234,8 +280,12 @@ def cmd_runner_probe(args) -> int:
     print(f"fingerprint : {grouped_fingerprint(result.fingerprint)}")
     print(f"request sha : {result.request_body_sha256}")
     print(f"response sha: {hashlib.sha256(raw).hexdigest()}")
-    print("This response is evidence only that the configured server accepted possession of this active local signing key.")
-    print("Provider account, subscription, billing, model, person, runtime, harness, and match attestations remain false.")
+    print(
+        "This response is evidence only that the configured server accepted possession of this active local signing key."
+    )
+    print(
+        "Provider account, subscription, billing, model, person, runtime, harness, and match attestations remain false."
+    )
     return 0
 
 
@@ -246,8 +296,13 @@ def cmd_runner_work(args) -> int:
         raise RunnerClientError("runner work requires explicit --once consent")
     store = RunnerStateStore(args.state_dir)
     profile = store.load_profile(args.challenge_id)
-    if profile["localState"] != "runner_id_recorded_unverified" or profile["runnerId"] is None:
-        raise RunnerClientError("record the browser-issued runner id before polling for work")
+    if (
+        profile["localState"] != "runner_id_recorded_unverified"
+        or profile["runnerId"] is None
+    ):
+        raise RunnerClientError(
+            "record the browser-issued runner id before polling for work"
+        )
     passphrase = _existing_key_passphrase()
     key = store.load_key(profile, passphrase.reveal())
 
@@ -271,10 +326,14 @@ def cmd_runner_work(args) -> int:
         request_body_sha256=poll.body_sha256,
     )
     if not isinstance(grant_or_terminal, FixtureGrant):
-        print(f"Server reports the deterministic fixture job as {grant_or_terminal.status}.")
+        print(
+            f"Server reports the deterministic fixture job as {grant_or_terminal.status}."
+        )
         if grant_or_terminal.conformance is not None:
             print(f"digest conformance : {grant_or_terminal.conformance}")
-        print("No provider, model, subprocess, or arbitrary harness was invoked by this command.")
+        print(
+            "No provider, model, subprocess, or arbitrary harness was invoked by this command."
+        )
         print("Provider/model/runtime/harness/match attestations remain false.")
         return 0 if grant_or_terminal.conformance == "match" else 1
 
@@ -308,7 +367,9 @@ def cmd_runner_work(args) -> int:
     print(f"transcript sha256  : {computation.transcript_sha256}")
     print(f"digest conformance : {receipt.conformance}")
     print(f"duplicate receipt  : {'yes' if receipt.duplicate else 'no'}")
-    print("This is digest conformance only; no provider, model, subprocess, or arbitrary harness was invoked.")
+    print(
+        "This is digest conformance only; no provider, model, subprocess, or arbitrary harness was invoked."
+    )
     print("Provider/model/runtime/harness/match attestations remain false.")
     return 0 if receipt.conformance == "match" else 1
 
@@ -327,8 +388,13 @@ def cmd_runner_submit_match(args) -> int:
         )
     store = RunnerStateStore(args.state_dir)
     profile = store.load_profile(args.challenge_id)
-    if profile["localState"] != "runner_id_recorded_unverified" or profile["runnerId"] is None:
-        raise RunnerClientError("record the browser-issued runner id before submitting a match")
+    if (
+        profile["localState"] != "runner_id_recorded_unverified"
+        or profile["runnerId"] is None
+    ):
+        raise RunnerClientError(
+            "record the browser-issued runner id before submitting a match"
+        )
     passphrase = _existing_key_passphrase()
     key = store.load_key(profile, passphrase.reveal())
 
@@ -345,17 +411,23 @@ def cmd_runner_submit_match(args) -> int:
         timeout_seconds=args.timeout,
     )
     if poll_status != 200:
-        raise RunnerClientError("competition-job poll returned a contradictory HTTP status")
+        raise RunnerClientError(
+            "competition-job poll returned a contradictory HTTP status"
+        )
     grant_or_terminal = validate_competition_poll_response(
         poll_payload,
         profile=profile,
         request_body_sha256=poll.body_sha256,
     )
     if not isinstance(grant_or_terminal, CompetitionGrant):
-        print(f"Server reports the private competition job as {grant_or_terminal.status}.")
+        print(
+            f"Server reports the private competition job as {grant_or_terminal.status}."
+        )
         if grant_or_terminal.truth_status is not None:
             print(f"truth status : {grant_or_terminal.truth_status}")
-        print("No provider, model, subprocess, or arbitrary harness was invoked by this command.")
+        print(
+            "No provider, model, subprocess, or arbitrary harness was invoked by this command."
+        )
         print("No publication or provider/model ranking was requested.")
         return 0 if grant_or_terminal.status == "completed" else 1
 
@@ -377,7 +449,9 @@ def cmd_runner_submit_match(args) -> int:
         timeout_seconds=args.timeout,
     )
     if result_status != 200:
-        raise RunnerClientError("competition result returned a contradictory HTTP status")
+        raise RunnerClientError(
+            "competition result returned a contradictory HTTP status"
+        )
     receipt = validate_competition_result_response(
         result_payload,
         profile=profile,
@@ -394,8 +468,88 @@ def cmd_runner_submit_match(args) -> int:
     print(f"verification    : {receipt.verification_status}")
     print(f"duplicate       : {'yes' if receipt.duplicate else 'no'}")
     print("The source files remain customer-local and are not deleted by this command.")
-    print("The server receipt remains private, unpublished, ranking-ineligible, and unattested.")
-    print("No provider, model, subprocess, or arbitrary harness was invoked by this command.")
+    print(
+        "The server receipt remains private, unpublished, ranking-ineligible, and unattested."
+    )
+    print(
+        "No provider, model, subprocess, or arbitrary harness was invoked by this command."
+    )
+    return 0
+
+
+def cmd_runner_prepare_match(args) -> int:
+    """Prepare, but never execute, one exact customer-local source match."""
+
+    if args.once is not True:
+        raise RunnerClientError("match preparation requires --once")
+    store = RunnerStateStore(args.state_dir)
+    profile = store.load_profile(args.challenge_id)
+    if (
+        profile["localState"] != "runner_id_recorded_unverified"
+        or profile["runnerId"] is None
+    ):
+        raise RunnerClientError(
+            "record the browser-issued runner id before preparing a match"
+        )
+    passphrase = _existing_key_passphrase()
+    key = store.load_key(profile, passphrase.reveal())
+    request = sign_runner_request(
+        key,
+        method="POST",
+        path=COMPETITION_JOB_PREPARE_PATH,
+        body=COMPETITION_JOB_PREPARE_BODY,
+        runner_id=profile["runnerId"],
+    )
+    status, payload, _raw = send_signed_request(
+        origin=profile["endpointOrigin"],
+        signed=request,
+        timeout_seconds=args.timeout,
+    )
+    if status != 200:
+        raise RunnerClientError(
+            "competition preparation returned a contradictory HTTP status"
+        )
+    preparation = validate_competition_prepare_response(
+        payload,
+        profile=profile,
+        request_body_sha256=request.body_sha256,
+    )
+    if not isinstance(preparation, CompetitionPreparation):
+        print(f"Server reports the private competition job as {preparation.status}.")
+        if preparation.job_id is not None:
+            print(f"job id         : {preparation.job_id}")
+        if preparation.competition_id is not None:
+            print(f"competition id : {preparation.competition_id}")
+        if preparation.truth_status is not None:
+            print(f"truth status   : {preparation.truth_status}")
+        print(
+            "No lease was acquired and no provider, model, subprocess, or harness was invoked."
+        )
+        return 0 if preparation.status == "completed" else 1
+
+    passport_paths = (
+        tuple(args.agent_passports) if args.agent_passports is not None else None
+    )
+    plan = build_source_match_plan(
+        preparation,
+        profile=profile,
+        plan_path=args.plan_out,
+        match_directory=args.match_dir,
+        summary_path=args.summary_file,
+        passport_paths=passport_paths,
+        backend_timeout=args.backend_timeout,
+    )
+    target = write_source_match_plan(args.plan_out, plan)
+    print("Prepared one exact customer-local AgentWars source match.")
+    print(f"job id            : {preparation.job.job_id}")
+    print(f"competition id    : {preparation.job.competition_id}")
+    print(f"launch plan       : {target}")
+    print(f"launch plan sha256: {plan['launchPlanDigest']}")
+    print("Inspect the plan before separately starting its fixed local match runner.")
+    print(
+        "This command acquired no lease, spent no provider quota, and launched no subprocess."
+    )
+    print("Provider/model/runtime/harness/match attestations remain false.")
     return 0
 
 
@@ -405,7 +559,9 @@ def _read_request_body(path: str) -> bytes:
     else:
         candidate = Path(path)
         if candidate.is_symlink() or not candidate.is_file():
-            raise RunnerClientError("request body path must be one regular non-symlink file")
+            raise RunnerClientError(
+                "request body path must be one regular non-symlink file"
+            )
         try:
             with candidate.open("rb") as handle:
                 raw = handle.read(MAX_BODY_BYTES + 1)
@@ -423,7 +579,9 @@ def _write_response(path: str, raw: bytes):
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
     except OSError as error:
-        raise RunnerClientError("response output directory could not be created") from error
+        raise RunnerClientError(
+            "response output directory could not be created"
+        ) from error
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
     descriptor = None
     created = False
@@ -458,8 +616,13 @@ def _write_response(path: str, raw: bytes):
 def cmd_runner_request(args) -> int:
     store = RunnerStateStore(args.state_dir)
     profile = store.load_profile(args.challenge_id)
-    if profile["localState"] != "runner_id_recorded_unverified" or profile["runnerId"] is None:
-        raise RunnerClientError("record the browser-issued runner id before signing a request")
+    if (
+        profile["localState"] != "runner_id_recorded_unverified"
+        or profile["runnerId"] is None
+    ):
+        raise RunnerClientError(
+            "record the browser-issued runner id before signing a request"
+        )
     passphrase = _existing_key_passphrase()
     key = store.load_key(profile, passphrase.reveal())
     signed = sign_runner_request(
@@ -483,8 +646,12 @@ def cmd_runner_request(args) -> int:
     if args.response_out:
         print(f"response written    : {args.response_out}")
     else:
-        print("response body not printed; use --response-out with a new path to retain it")
-    print("A 2xx response is transport evidence only; the CLI cannot attest server implementation or model execution.")
+        print(
+            "response body not printed; use --response-out with a new path to retain it"
+        )
+    print(
+        "A 2xx response is transport evidence only; the CLI cannot attest server implementation or model execution."
+    )
     return 0
 
 
@@ -498,13 +665,17 @@ def cmd_runner_forget(args) -> int:
                 f"({profile['fingerprint'][-8:]})? Type DELETE: "
             )
         except EOFError as error:
-            raise RunnerClientError("an interactive DELETE confirmation or --yes is required") from error
+            raise RunnerClientError(
+                "an interactive DELETE confirmation or --yes is required"
+            ) from error
         if answer != "DELETE":
             print("Local key retained.")
             return 1
     removed = store.forget(args.challenge_id)
     print(f"Deleted local encrypted key and profile for {removed['displayLabel']}.")
-    print("This local deletion cannot be recovered. Revoke the server runner separately if needed.")
+    print(
+        "This local deletion cannot be recovered. Revoke the server runner separately if needed."
+    )
     return 0
 
 
@@ -514,7 +685,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="Customer-local AgentWars runner pairing and signed requests.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    runner = commands.add_parser("runner", help="manage one customer-local signing runner")
+    runner = commands.add_parser(
+        "runner", help="manage one customer-local signing runner"
+    )
     runner_commands = runner.add_subparsers(dest="runner_command", required=True)
 
     pair = runner_commands.add_parser(
@@ -540,7 +713,9 @@ def build_parser() -> argparse.ArgumentParser:
     activate.add_argument("--state-dir")
     activate.set_defaults(func=cmd_runner_activate)
 
-    listing = runner_commands.add_parser("list", help="show public local runner metadata")
+    listing = runner_commands.add_parser(
+        "list", help="show public local runner metadata"
+    )
     listing.add_argument("--state-dir")
     listing.set_defaults(func=cmd_runner_list)
 
@@ -567,6 +742,38 @@ def build_parser() -> argparse.ArgumentParser:
     work.add_argument("--state-dir")
     work.add_argument("--timeout", type=_bounded_timeout, default=15)
     work.set_defaults(func=cmd_runner_work)
+
+    prepare = runner_commands.add_parser(
+        "prepare-match",
+        help="write one exact non-executing customer-local source-match plan",
+        description=(
+            "Fetch one signed non-leasing private job declaration, verify its paired "
+            "harness and optional Agent Passports, and write a new immutable local "
+            "launch plan. This command never calls a provider or starts a subprocess."
+        ),
+    )
+    prepare.add_argument("--challenge-id", required=True)
+    prepare.add_argument("--plan-out", required=True)
+    prepare.add_argument("--match-dir", required=True)
+    prepare.add_argument("--summary-file", required=True)
+    prepare.add_argument(
+        "--backend-timeout", type=_bounded_backend_timeout, default=180.0
+    )
+    prepare.add_argument(
+        "--agent-passports",
+        nargs=2,
+        metavar=("SEAT0_JSON", "SEAT1_JSON"),
+        help="two public signed passport files when the job binds signed agent versions",
+    )
+    prepare.add_argument(
+        "--once",
+        action="store_true",
+        required=True,
+        help="explicitly limit this invocation to one non-leasing preparation request",
+    )
+    prepare.add_argument("--state-dir")
+    prepare.add_argument("--timeout", type=_bounded_timeout, default=15)
+    prepare.set_defaults(func=cmd_runner_prepare_match)
 
     submit = runner_commands.add_parser(
         "submit-match",
@@ -613,10 +820,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="send one exact JSON request signed by a recorded runner key",
     )
     request.add_argument("--challenge-id", required=True)
-    request.add_argument("--method", choices=("POST", "PUT", "PATCH", "DELETE"), required=True)
-    request.add_argument("--path", required=True, help="exact server pathname; query strings are refused")
-    request.add_argument("--body-file", required=True, help="exact UTF-8 JSON object bytes, or - for stdin")
-    request.add_argument("--response-out", help="new file for the bounded JSON response; never overwritten")
+    request.add_argument(
+        "--method", choices=("POST", "PUT", "PATCH", "DELETE"), required=True
+    )
+    request.add_argument(
+        "--path", required=True, help="exact server pathname; query strings are refused"
+    )
+    request.add_argument(
+        "--body-file",
+        required=True,
+        help="exact UTF-8 JSON object bytes, or - for stdin",
+    )
+    request.add_argument(
+        "--response-out",
+        help="new file for the bounded JSON response; never overwritten",
+    )
     request.add_argument("--state-dir")
     request.add_argument("--timeout", type=_bounded_timeout, default=15)
     request.set_defaults(func=cmd_runner_request)
@@ -627,7 +845,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     forget.add_argument("--challenge-id", required=True)
     forget.add_argument("--state-dir")
-    forget.add_argument("--yes", action="store_true", help="skip the DELETE confirmation prompt")
+    forget.add_argument(
+        "--yes", action="store_true", help="skip the DELETE confirmation prompt"
+    )
     forget.set_defaults(func=cmd_runner_forget)
     return parser
 
@@ -635,10 +855,16 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if any(_PAIRING_SECRET_ARG_RE.search(str(argument)) for argument in raw_argv):
-        print("ERROR: pairing-secret-shaped argv is forbidden; use the no-echo prompt", file=sys.stderr)
+        print(
+            "ERROR: pairing-secret-shaped argv is forbidden; use the no-echo prompt",
+            file=sys.stderr,
+        )
         return 2
     if any(_looks_like_secret_option(argument) for argument in raw_argv):
-        print("ERROR: secret and passphrase arguments are forbidden; use the no-echo prompt", file=sys.stderr)
+        print(
+            "ERROR: secret and passphrase arguments are forbidden; use the no-echo prompt",
+            file=sys.stderr,
+        )
         return 2
     parser = build_parser()
     args = parser.parse_args(raw_argv)
