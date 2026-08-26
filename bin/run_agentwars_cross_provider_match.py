@@ -107,7 +107,9 @@ def _bounded_name(value: str) -> str:
 def _timeout(value: float) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not 10 <= value <= 900:
         raise CrossProviderMatchError("provider_timeout_invalid")
-    return float(value)
+    # Normalize once so the child-adapter timeout and arena move timeout cannot
+    # diverge on a sub-millisecond input.
+    return float(format(float(value), ".3f"))
 
 
 def _timeout_text(value: float) -> str:
@@ -124,6 +126,22 @@ def _bounded_provider_option(value: str | None, field: str) -> str | None:
     ):
         raise CrossProviderMatchError(f"{field}_invalid")
     return value
+
+
+def _bounded_backend_label(value: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or value != value.strip()
+        or len(value) > 240
+        or any(ord(ch) < 0x20 or ord(ch) == 0x7F or 0xD800 <= ord(ch) <= 0xDFFF for ch in value)
+    ):
+        raise CrossProviderMatchError("backend_label_invalid")
+    return value
+
+
+def _is_seat(value: object) -> bool:
+    return type(value) is int and value in (0, 1)
 
 
 def _openrouter_environment() -> dict[str, str]:
@@ -244,6 +262,7 @@ def build_seat_runtime(spec: SeatSpec, *, backend_timeout: float) -> SeatRuntime
         )
     except (TypeError, ValueError, RuntimeError) as error:
         raise CrossProviderMatchError("provider_options_invalid") from error
+    backend_label = _bounded_backend_label(backend.label)
 
     harness = os.path.join(ROOT, "entrants", "fantasy_model_harness.py")
     command = [
@@ -270,7 +289,7 @@ def build_seat_runtime(spec: SeatSpec, *, backend_timeout: float) -> SeatRuntime
         "name": name,
         "cmd": command,
         "env": declared_environment,
-        "claimed_model": backend.label,
+        "claimed_model": backend_label,
         # The harness can take a deterministic fallback after a malformed or
         # failed provider response, so the declaration can never be `model`.
         "execution_claim": "hybrid",
@@ -282,7 +301,7 @@ def build_seat_runtime(spec: SeatSpec, *, backend_timeout: float) -> SeatRuntime
     validate_manifest(manifest)
     return SeatRuntime(
         spec=normalized_spec,
-        backend_label=backend.label,
+        backend_label=backend_label,
         connection_mode=entry["connection_mode"],
         provider_class=entry["provider_class"],
         harness_class=entry["harness_class"],
@@ -310,7 +329,7 @@ def audit_transcript(*, result: dict, report: dict, runtimes: list[SeatRuntime])
         raise CrossProviderMatchError("transcript_terminal_shape_invalid")
     if find(records, "forfeit") or find(records, "abort") or find(records, "engine_error"):
         raise CrossProviderMatchError("competitive_match_not_clean")
-    if terminal["body"].get("decisive") is not True or terminal["body"].get("winner") not in (0, 1):
+    if terminal["body"].get("decisive") is not True or not _is_seat(terminal["body"].get("winner")):
         raise CrossProviderMatchError("competitive_match_not_decisive")
     if terminal["body"].get("winner") != result.get("winner"):
         raise CrossProviderMatchError("result_winner_mismatch")
@@ -332,12 +351,15 @@ def audit_transcript(*, result: dict, report: dict, runtimes: list[SeatRuntime])
     ready = find(records, "ready")
     if len(ready) != 2:
         raise CrossProviderMatchError("ready_record_count_invalid")
+    if any(not _is_seat(row["body"].get("player")) for row in ready):
+        raise CrossProviderMatchError("ready_seat_invalid")
     ready_by_seat = {row["body"].get("player"): row["body"].get("entrant_message") for row in ready}
     for seat, runtime in enumerate(runtimes):
         expected = runtime.manifest
         observed = entrants[seat]
         if (
             not isinstance(observed, dict)
+            or not _is_seat(observed.get("seat"))
             or observed.get("seat") != seat
             or observed.get("name") != expected["name"]
             or observed.get("claimed_model") != expected["claimed_model"]
@@ -359,7 +381,7 @@ def audit_transcript(*, result: dict, report: dict, runtimes: list[SeatRuntime])
     for row in find(records, "move"):
         seat = row["body"].get("player")
         note = row["body"].get("entrant_message", {}).get("note")
-        if seat not in (0, 1):
+        if not _is_seat(seat):
             raise CrossProviderMatchError("move_seat_invalid")
         if not _valid_move_source_note(note):
             raise CrossProviderMatchError("move_source_claim_invalid")
@@ -419,7 +441,7 @@ def build_summary(
     path = result.get("transcript")
     if not isinstance(path, str) or not os.path.isfile(path):
         raise CrossProviderMatchError("summary_transcript_invalid")
-    if result.get("winner") not in (0, 1):
+    if not _is_seat(result.get("winner")):
         raise CrossProviderMatchError("summary_winner_invalid")
     recorded = report.get("recorded")
     if (
@@ -541,7 +563,7 @@ class _ReservedJsonOutput:
                 handle.write(encoded)
                 handle.flush()
                 os.fsync(handle.fileno())
-        except Exception:
+        except BaseException:
             self.abort()
             raise
         self.committed = True
@@ -588,7 +610,7 @@ def write_json_exclusive(path: str, value: dict) -> None:
     reservation = reserve_json_output(path)
     try:
         reservation.commit(value)
-    except Exception:
+    except BaseException:
         reservation.abort()
         raise
 
@@ -660,7 +682,7 @@ def run(args) -> tuple[dict, int]:
     reservation = reserve_json_output(summary_path)
     try:
         reserve_match_output_directory(out_root)
-    except Exception:
+    except BaseException:
         reservation.abort()
         raise
     try:
@@ -684,7 +706,7 @@ def run(args) -> tuple[dict, int]:
             scores=scores,
         )
         reservation.commit(summary)
-    except Exception:
+    except BaseException:
         reservation.abort()
         remove_empty_match_output_directory(out_root)
         raise

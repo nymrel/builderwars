@@ -182,6 +182,16 @@ def check_provider_manifests(work):
         ),
         "provider_timeout_invalid",
     )
+    check(candidate._timeout(180.0004) == 180.0, "timeout normalization rounds sub-millisecond input once")
+    check(candidate._timeout(180.0006) == 180.001, "timeout normalization preserves the next millisecond")
+    check(candidate._timeout_text(candidate._timeout(180.0006)) == "180.001", "child timeout uses normalized value")
+    with mock.patch.object(candidate, "get_provider_backend", return_value=mock.Mock(label="x" * 241)):
+        expect_error(
+            lambda: candidate.build_seat_runtime(
+                candidate.SeatSpec("Bad Label", "chatgpt_codex", "win-now"), backend_timeout=180
+            ),
+            "backend_label_invalid",
+        )
     for invalid_model in ("-provider/model", " provider/model", "provider model", "x" * 241, "provider/model\n"):
         expect_error(
             lambda invalid_model=invalid_model: candidate.build_seat_runtime(
@@ -294,6 +304,19 @@ def check_summary_reservation(work):
             raise AssertionError("synthetic provider failure was swallowed")
     check(not failure_summary.exists(), "failed match removes its unused summary reservation")
     check(not failure_out.exists(), "mocked failed match creates no match evidence")
+
+    interrupt_summary = work / "reserved-interrupt.json"
+    interrupt_out = work / "reserved-interrupt-match"
+    interrupt_args = parse(base_argv(interrupt_out, interrupt_summary))
+    with mock.patch.object(candidate, "run_match", side_effect=KeyboardInterrupt):
+        try:
+            candidate.run(interrupt_args)
+        except KeyboardInterrupt:
+            check(True, "provider interrupt is re-raised")
+        else:
+            raise AssertionError("synthetic provider interrupt was swallowed")
+    check(not interrupt_summary.exists(), "provider interrupt removes its unused summary reservation")
+    check(not interrupt_out.exists(), "provider interrupt removes its empty match reservation")
 
     race_summary = work / "reservation-race.json"
     race_out = work / "reservation-race-match"
@@ -487,6 +510,10 @@ def check_offline_match_and_summary(work):
         lambda: summary_with_counts({**result, "winner": None}, report, runtimes, scores, sources),
         "summary_winner_invalid",
     )
+    expect_error(
+        lambda: summary_with_counts({**result, "winner": True}, report, runtimes, scores, sources),
+        "summary_winner_invalid",
+    )
 
     output = work / "exclusive-summary.json"
     candidate.write_json_exclusive(str(output), baseline)
@@ -526,6 +553,43 @@ def check_offline_match_and_summary(work):
     expect_error(
         lambda: candidate.audit_transcript(result=ready_result, report=ready_report, runtimes=runtimes),
         "ready_backend_binding_mismatch",
+    )
+
+    ready_seat_tamper = copy.deepcopy(records)
+    next(row for row in ready_seat_tamper if row["kind"] == "ready" and row["body"]["player"] == 1)["body"]["player"] = True
+    ready_seat_path = work / "ready-seat-rechained.jsonl"
+    ready_seat_head = rechain(ready_seat_tamper, ready_seat_path)
+    ready_seat_report = verify_with_snapshot(str(ready_seat_path))
+    ready_seat_result = {**result, "transcript": str(ready_seat_path), "chain_head": ready_seat_head}
+    expect_error(
+        lambda: candidate.audit_transcript(
+            result=ready_seat_result,
+            report=ready_seat_report,
+            runtimes=runtimes,
+        ),
+        "ready_seat_invalid",
+    )
+
+    move_seat_tamper = copy.deepcopy(records)
+    next(row for row in move_seat_tamper if row["kind"] == "move" and row["body"]["player"] == 1)["body"]["player"] = True
+    move_seat_path = work / "move-seat-rechained.jsonl"
+    move_seat_head = rechain(move_seat_tamper, move_seat_path)
+    # A move-seat rewrite correctly breaks the engine digest. Keep the already
+    # verified baseline report fields while rebinding only the audit identity so
+    # this unit check reaches the runner's independent strict-type guard.
+    move_seat_report = {
+        **report,
+        "transcript": str(move_seat_path),
+        "chain_head": move_seat_head,
+    }
+    move_seat_result = {**result, "transcript": str(move_seat_path), "chain_head": move_seat_head}
+    expect_error(
+        lambda: candidate.audit_transcript(
+            result=move_seat_result,
+            report=move_seat_report,
+            runtimes=runtimes,
+        ),
+        "move_seat_invalid",
     )
 
     source_tamper = copy.deepcopy(records)
