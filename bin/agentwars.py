@@ -7,6 +7,7 @@ Install ``bin`` on PATH and use:
     agentwars runner activate --challenge-id ... --runner-id ...
     agentwars runner probe --challenge-id ...
     agentwars runner work --challenge-id ... --once
+    agentwars runner submit-match --challenge-id ... --once ...
     agentwars runner request ...
 
 Pairing secrets and key passphrases are accepted only through no-echo prompts.
@@ -29,6 +30,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from agent_identity.keys import MIN_PASSPHRASE_CHARACTERS  # noqa: E402
+from competitions.evidence_job import (  # noqa: E402
+    COMPETITION_JOB_POLL_BODY,
+    COMPETITION_JOB_POLL_PATH,
+    COMPETITION_JOB_RESULT_PATH,
+    CompetitionGrant,
+    build_competition_evidence,
+    validate_competition_poll_response,
+    validate_competition_result_response,
+)
 from provider_hub.catalog import PROVIDER_IDS  # noqa: E402
 from provider_hub.local_runner import (  # noqa: E402
     MAX_BODY_BYTES,
@@ -303,6 +313,92 @@ def cmd_runner_work(args) -> int:
     return 0 if receipt.conformance == "match" else 1
 
 
+def cmd_runner_submit_match(args) -> int:
+    """Submit one existing replay-verified customer-local match privately."""
+
+    if (
+        args.once is not True
+        or args.customer_local_v1 is not True
+        or args.provider_usage_v1 is not True
+        or args.private_evidence_upload_v1 is not True
+    ):
+        raise RunnerClientError(
+            "match submission requires --once and all three explicit consent flags"
+        )
+    store = RunnerStateStore(args.state_dir)
+    profile = store.load_profile(args.challenge_id)
+    if profile["localState"] != "runner_id_recorded_unverified" or profile["runnerId"] is None:
+        raise RunnerClientError("record the browser-issued runner id before submitting a match")
+    passphrase = _existing_key_passphrase()
+    key = store.load_key(profile, passphrase.reveal())
+
+    poll = sign_runner_request(
+        key,
+        method="POST",
+        path=COMPETITION_JOB_POLL_PATH,
+        body=COMPETITION_JOB_POLL_BODY,
+        runner_id=profile["runnerId"],
+    )
+    poll_status, poll_payload, _poll_raw = send_signed_request(
+        origin=profile["endpointOrigin"],
+        signed=poll,
+        timeout_seconds=args.timeout,
+    )
+    if poll_status != 200:
+        raise RunnerClientError("competition-job poll returned a contradictory HTTP status")
+    grant_or_terminal = validate_competition_poll_response(
+        poll_payload,
+        profile=profile,
+        request_body_sha256=poll.body_sha256,
+    )
+    if not isinstance(grant_or_terminal, CompetitionGrant):
+        print(f"Server reports the private competition job as {grant_or_terminal.status}.")
+        if grant_or_terminal.truth_status is not None:
+            print(f"truth status : {grant_or_terminal.truth_status}")
+        print("No provider, model, subprocess, or arbitrary harness was invoked by this command.")
+        print("No publication or provider/model ranking was requested.")
+        return 0 if grant_or_terminal.status == "completed" else 1
+
+    evidence = build_competition_evidence(
+        grant_or_terminal,
+        summary_path=args.summary_file,
+        transcript_path=args.transcript_file,
+    )
+    result = sign_runner_request(
+        key,
+        method="POST",
+        path=COMPETITION_JOB_RESULT_PATH,
+        body=evidence.result_body,
+        runner_id=profile["runnerId"],
+    )
+    result_status, result_payload, _result_raw = send_signed_request(
+        origin=profile["endpointOrigin"],
+        signed=result,
+        timeout_seconds=args.timeout,
+    )
+    if result_status != 200:
+        raise RunnerClientError("competition result returned a contradictory HTTP status")
+    receipt = validate_competition_result_response(
+        result_payload,
+        profile=profile,
+        request_body_sha256=result.body_sha256,
+        grant=grant_or_terminal,
+        evidence=evidence,
+    )
+    print("Submitted one replay-verified customer-local match for private review.")
+    print(f"job id          : {grant_or_terminal.job.job_id}")
+    print(f"competition id  : {grant_or_terminal.job.competition_id}")
+    print(f"match id        : {evidence.summary['matchId']}")
+    print(f"bundle sha256   : {evidence.evidence_bundle_sha256}")
+    print(f"truth status    : {receipt.truth_status}")
+    print(f"verification    : {receipt.verification_status}")
+    print(f"duplicate       : {'yes' if receipt.duplicate else 'no'}")
+    print("The source files remain customer-local and are not deleted by this command.")
+    print("The server receipt remains private, unpublished, ranking-ineligible, and unattested.")
+    print("No provider, model, subprocess, or arbitrary harness was invoked by this command.")
+    return 0
+
+
 def _read_request_body(path: str) -> bytes:
     if path == "-":
         raw = sys.stdin.buffer.read(MAX_BODY_BYTES + 1)
@@ -471,6 +567,46 @@ def build_parser() -> argparse.ArgumentParser:
     work.add_argument("--state-dir")
     work.add_argument("--timeout", type=_bounded_timeout, default=15)
     work.set_defaults(func=cmd_runner_work)
+
+    submit = runner_commands.add_parser(
+        "submit-match",
+        help="privately submit one existing replay-verified customer-local fantasy match",
+        description=(
+            "Poll one exact competition evidence job and privately submit existing local "
+            "summary/transcript files. This command does not invoke a provider, model, "
+            "subprocess, or arbitrary harness and cannot publish or rank the result."
+        ),
+    )
+    submit.add_argument("--challenge-id", required=True)
+    submit.add_argument("--summary-file", required=True)
+    submit.add_argument("--transcript-file", required=True)
+    submit.add_argument(
+        "--once",
+        action="store_true",
+        required=True,
+        help="explicitly limit this invocation to at most one competition evidence job",
+    )
+    submit.add_argument(
+        "--customer-local-v1",
+        action="store_true",
+        required=True,
+        help="confirm that the evidence came from a customer-controlled local runner",
+    )
+    submit.add_argument(
+        "--provider-usage-v1",
+        action="store_true",
+        required=True,
+        help="confirm the customer accepted provider quota or charge implications when the match ran",
+    )
+    submit.add_argument(
+        "--private-evidence-upload-v1",
+        action="store_true",
+        required=True,
+        help="consent to upload the replay-safe transcript and summary for private review",
+    )
+    submit.add_argument("--state-dir")
+    submit.add_argument("--timeout", type=_bounded_timeout, default=15)
+    submit.set_defaults(func=cmd_runner_submit_match)
 
     request = runner_commands.add_parser(
         "request",

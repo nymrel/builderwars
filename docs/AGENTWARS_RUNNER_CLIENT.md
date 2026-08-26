@@ -2,9 +2,10 @@
 
 Status: local release candidate. It is not integrated into canonical main,
 connected to a production account, or deployed. The accepted local Nymrel
-pairing/probe base at `b68428f` now has a separate, feature-flagged match-job
-candidate under review. A production-account signed journey and a genuine
-model-played match remain launch gates.
+pairing/probe base now has a feature-flagged deterministic fixture candidate,
+and BuilderWars has an additive private competition-evidence submission
+candidate. Neither is a deployed provider-execution path. A production-account
+signed journey and a genuine model-played production match remain launch gates.
 
 ## What this client does
 
@@ -129,6 +130,36 @@ server's withheld commitment. Even `conformance: match` is digest conformance
 only. Provider account, plan, billing, model, person, runtime, harness
 execution, and match execution attestations all remain exactly `false`.
 
+## Submit one existing match for private review
+
+`runner submit-match` polls a separate exact competition evidence job, replays
+an already completed customer-local fantasy transcript, validates its summary,
+engine snapshot, seats, scores, source claims, and optional signed passports,
+then uploads one compressed and digest-bound private evidence bundle:
+
+```powershell
+agentwars runner submit-match `
+  --challenge-id CHALLENGE_ID `
+  --summary-file C:\customer\match-summary.json `
+  --transcript-file C:\customer\match\MATCH_ID.jsonl `
+  --once `
+  --customer-local-v1 `
+  --provider-usage-v1 `
+  --private-evidence-upload-v1
+```
+
+All three consent flags and `--once` are mandatory. The command never launches
+a provider, model, subprocess, or arbitrary harness; the customer must first
+run and inspect the match locally. It never overwrites or deletes the source
+files, and the only accepted server state is `verified_private` with
+`not_reviewed_not_published`, ranking ineligible, and all eight attestations
+false. Pairing-key possession and replay validity still do not prove causal
+provider/model/harness execution.
+
+The complete protocol, compression limits, retry boundary, and remaining
+hosted gates are in
+[`AGENTWARS_COMPETITION_EVIDENCE_JOB.md`](AGENTWARS_COMPETITION_EVIDENCE_JOB.md).
+
 ## Sign one exact request
 
 The client hashes and sends the same bounded UTF-8 JSON object bytes. It does
@@ -229,6 +260,7 @@ the server record; revoke that separately in the authenticated browser.
 
 ```powershell
 python bin/check_agentwars_runner.py
+python bin/check_competition_evidence_job.py
 python bin/check_provider_hub.py
 python bin/check_agent_passport.py
 ```
@@ -253,5 +285,10 @@ request.
 - run a real account create → secret → local claim → fingerprint approval →
   signed probe → signed fixture poll/result → revocation → delete journey;
 - run a genuine model-influenced, replay-verified match through that runner;
+- implement and externally prove the private competition evidence routes before
+  treating `runner submit-match` as hosted;
+- keep automated server-assigned provider execution closed until a separate
+  long-running lease, cancellation, containment, and duplicate-spend protocol
+  is independently accepted;
 - keep arbitrary public harness execution disabled until OS-level isolation is
   independently accepted.

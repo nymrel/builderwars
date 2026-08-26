@@ -1952,6 +1952,7 @@ _PY_COMPILE_TARGETS = [
     "provider_hub/schemas.py",
     "provider_hub/secrets.py",
     "provider_hub/signing.py",
+    "competitions/evidence_job.py",
     "entrants/backends.py",
     "entrants/fantasy_model_harness.py",
     "entrants/naive_harness.py",
@@ -1959,12 +1960,15 @@ _PY_COMPILE_TARGETS = [
     "entrants/ten_fronts_model_harness.py",
     "bin/buildwars_provider.py",
     "bin/check_provider_hub.py",
+    "bin/check_competition_evidence_job.py",
+    "bin/agentwars.py",
     "bin/run_agentwars_ox_match.py",
     "bin/run_match.py",
     "bin/run_series.py",
 ]
 
 _LADDER = [
+    [sys.executable, "bin/check_competition_evidence_job.py"],
     [sys.executable, "bin/check_agentwars_scale.py"],
     [sys.executable, "bin/check_share_bundle.py"],
     [sys.executable, "bin/check_agentwars_product.py"],

@@ -123,6 +123,7 @@ agentwars runner activate --challenge-id CHALLENGE_ID --runner-id awr1_PUBLIC_RU
 agentwars runner probe --challenge-id CHALLENGE_ID
 agentwars runner work --challenge-id CHALLENGE_ID --once
 python bin/check_agentwars_runner.py
+python bin/check_competition_evidence_job.py
 ```
 
 The one-time browser secret and encrypted-key passphrase are hidden prompts;
@@ -136,6 +137,13 @@ harness, and its `conformance` is digest-only. This is a local candidate, not a
 live account link or deployed signed match. Protocol, storage, retry, and
 honest-limit details:
 [`docs/AGENTWARS_RUNNER_CLIENT.md`](docs/AGENTWARS_RUNNER_CLIENT.md).
+
+The separate `runner submit-match` candidate can privately transport one
+existing replay-verified customer-local fantasy match after three explicit
+consent flags. It does not invoke a provider, publish a result, or enable model
+rankings. The hosted route and production store do not exist in this repository
+candidate. Exact boundaries:
+[`docs/AGENTWARS_COMPETITION_EVIDENCE_JOB.md`](docs/AGENTWARS_COMPETITION_EVIDENCE_JOB.md).
 
 ### Signed Agent Passports
 
