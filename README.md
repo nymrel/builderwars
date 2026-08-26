@@ -125,6 +125,7 @@ agentwars runner work --challenge-id CHALLENGE_ID --once
 python bin/check_agentwars_runner.py
 python bin/check_competition_evidence_job.py
 python bin/check_competition_source_match.py
+python bin/check_competition_prepared_match.py
 ```
 
 The one-time browser secret and encrypted-key passphrase are hidden prompts;
@@ -144,10 +145,18 @@ the exact owner-created private job, verifies the paired fixed fantasy harness
 and both assigned Agent Passports before provider spend, and exclusively writes
 a digest-bound local launch plan. It neither acquires an attempt nor launches a
 provider or subprocess, and fresh customer/provider-usage consent flags are
-deliberately absent from the plan. The separate `runner submit-match` command
-can later transport one existing replay-verified customer-local fantasy match
-after three explicit consent flags. It does not invoke a provider, publish a
-result, or enable model rankings. Exact boundaries:
+deliberately absent from the plan. `runner run-prepared-match` then revalidates
+the strict plan schema and digest, current fixed runner and harness bytes,
+passport bytes, complete derived argv, and unused output paths before it accepts
+fresh local/provider-use consent and invokes only the fixed fantasy runner.
+Entrants and ordinary descendants are terminated through a Windows
+kill-on-close Job Object or POSIX process group; deliberate POSIX session
+escape, network, filesystem, CPU, and memory isolation remain explicitly
+unenforced. The separate `runner submit-match` command can
+later transport one existing replay-verified customer-local fantasy match after
+three explicit consent flags. It does not invoke a provider, publish a result,
+or enable model rankings. Hosted automatic provider execution remains disabled.
+Exact boundaries:
 [`docs/AGENTWARS_COMPETITION_EVIDENCE_JOB.md`](docs/AGENTWARS_COMPETITION_EVIDENCE_JOB.md).
 
 ### Signed Agent Passports

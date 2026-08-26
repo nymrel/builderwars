@@ -599,7 +599,12 @@ def run_match(
                 )
         if not keep_scratch:
             attempt(lambda: shutil.rmtree(scratch_root, ignore_errors=True))
-        if active_exception is None and cleanup_error is not None:
+        if cleanup_error is not None:
+            if active_exception is not None:
+                cleanup_error.add_note(
+                    "entrant cleanup failed while another match exception was active"
+                )
+                raise cleanup_error from active_exception
             raise cleanup_error
 
 

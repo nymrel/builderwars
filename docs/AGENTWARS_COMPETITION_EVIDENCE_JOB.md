@@ -15,16 +15,19 @@ gate.
 A genuine two-provider fantasy match may take many minutes. The current hosted
 fixture lease is designed for a short SHA-256 computation and cannot honestly
 supervise model processes, renewals, cancellation, or process-tree cleanup.
-This first competition protocol therefore transports evidence only. A later
+This signed competition protocol therefore still transports evidence only. The
+customer-local CLI now has a separate explicit prepared-plan executor with
+descendant-process cleanup, but no hosted job may trigger it. A future hosted
 execution job must independently prove:
 
 - durable heartbeat and lease-renewal behavior for the full match duration;
-- cancellation that stops the referee and every provider descendant;
+- durable remote cancellation delivery before a runner or network partition;
 - bounded CPU, memory, process, filesystem, network, time, and secret access;
 - recovery after runner, network, store, or hosted-service interruption; and
 - no duplicate provider spend after an ambiguous completion.
 
-Those requirements cannot be inferred from a successful evidence submission.
+Those requirements cannot be inferred from a successful local execution or
+evidence submission.
 
 ## Exact customer flow
 
@@ -46,21 +49,25 @@ agentwars runner prepare-match `
   --once
 ```
 
-3. The customer inspects the JSON plan and separately starts only the fixed
-   local runner from the BuilderWars repository root. Fresh consent is required
-   at execution time and is deliberately not serialized into the plan:
+3. The customer inspects the JSON plan and separately asks the CLI to
+   revalidate and run it from the BuilderWars repository root. Fresh consent is
+   required at execution time and is deliberately not serialized into the plan:
 
 ```powershell
-$sourcePlan = Get-Content C:\customer\match-9400-plan.json -Raw | ConvertFrom-Json
-$launchArgs = @($sourcePlan.launch.argv)
-python bin/run_agentwars_cross_provider_match.py @launchArgs `
+agentwars runner run-prepared-match `
+  --plan C:\customer\match-9400-plan.json `
+  --once `
   --customer-local-v1 `
   --provider-usage-v1
 ```
 
-   Provider credentials stay inside official local clients or the customer
-   runner process. The prepare command does not launch this process for the
-   customer and the server cannot insert an arbitrary entrypoint or harness.
+   The executor rejects unknown fields, duplicate JSON keys, non-integer JSON
+   numbers, a changed plan digest, runner, harness, engine, job commitment,
+   provider/backend mapping, passport, entrypoint, argv, output path, consent
+   list, or release/attestation flag. It rebuilds the complete argv instead of
+   treating the plan as a command. Provider credentials stay inside official
+   local clients or the customer runner process. The server cannot insert an
+   arbitrary entrypoint, command, environment, harness, or consent flag.
 4. The customer reviews the local summary and transcript, then explicitly
    consents to their private upload:
 
@@ -120,6 +127,12 @@ because a paired runner signed its upload.
   the fixed runner-script digest, harness digest, job commitment, passport-file
   digests, exact argv, and all eight false attestations. It is not itself proof
   that execution occurred.
+- The prepared executor creates no server lease. Each entrant starts inside a
+  Windows kill-on-close Job Object or POSIX process group. Match cancellation
+  closes both custody groups, including ordinary provider descendants, and
+  cleanup failure overrides an earlier match exception instead of being hidden.
+  A deliberately detaching POSIX descendant can escape its group. This is
+  process custody, not a hostile-code, network, filesystem, CPU, or memory sandbox.
 - The command polls at most one job and never overwrites or deletes either
   customer file.
 - Local validation failure sends no result. The server lease must expire and
@@ -136,6 +149,8 @@ because a paired runner signed its upload.
 python -m py_compile competitions/evidence_job.py bin/agentwars.py bin/check_competition_evidence_job.py
 python bin/check_competition_evidence_job.py
 python bin/check_competition_source_match.py
+python bin/check_competition_prepared_match.py
+python bin/build_verifier.py --snapshot-current --check
 python bin/check_provider_hub.py
 ```
 

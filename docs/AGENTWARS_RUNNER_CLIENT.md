@@ -153,22 +153,33 @@ agentwars runner prepare-match `
 The plan, match directory, and summary path must all be new, distinct, and
 non-nested. The plan pins the fixed runner-script digest, current harness,
 exact job commitment, passport-file digests, and an argv array. It omits the
-two fresh execution consent flags. After inspecting it, a customer may
-separately start the existing fixed local runner from the repository root:
+two fresh execution consent flags. After inspecting it, a customer may ask the
+CLI to revalidate and run only the existing fixed local runner:
 
 ```powershell
-$sourcePlan = Get-Content C:\customer\match-9400-plan.json -Raw | ConvertFrom-Json
-$launchArgs = @($sourcePlan.launch.argv)
-python bin/run_agentwars_cross_provider_match.py @launchArgs `
+agentwars runner run-prepared-match `
+  --plan C:\customer\match-9400-plan.json `
+  --once `
   --customer-local-v1 `
   --provider-usage-v1
 ```
 
-Preparation acquires no competition attempt, launches no provider or
-subprocess, and cannot accept a server-selected entrypoint, command,
-environment value, or arbitrary harness. `busy`, `completed`, and `exhausted`
-responses create no plan. The plan remains a local declaration, not execution
-evidence or an attestation.
+`run-prepared-match` rejects unknown fields and duplicate/non-integer JSON,
+recomputes the plan and job commitments, re-hashes the current fixed runner,
+harness, and passports, rebuilds the complete argv, and requires every output
+path to remain unused. The plan cannot select an entrypoint, command,
+environment, harness, or consent flag. Each entrant and its provider
+ordinary descendants are held in a Windows kill-on-close Job Object or POSIX
+process group, so cancellation and match teardown terminate that custody group.
+A deliberately detaching POSIX descendant can escape its group. This does not
+enforce hostile-code containment, network egress, filesystem, CPU, or memory
+isolation.
+
+Preparation itself acquires no competition attempt and launches no provider or
+subprocess. `busy`, `completed`, and `exhausted` responses create no plan. The
+plan and a successful local run remain declarations/evidence, not provider,
+model, runtime, person, or billing attestations. Hosted automatic execution
+remains disabled.
 
 ## Submit one existing match for private review
 
@@ -302,6 +313,7 @@ the server record; revoke that separately in the authenticated browser.
 python bin/check_agentwars_runner.py
 python bin/check_competition_evidence_job.py
 python bin/check_competition_source_match.py
+python bin/check_competition_prepared_match.py
 python bin/check_provider_hub.py
 python bin/check_agent_passport.py
 ```

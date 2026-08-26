@@ -20,6 +20,8 @@ import subprocess
 import threading
 import time
 
+from .process_tree import ProcessTree
+
 # Passed through so a subprocess can start at all on Windows and POSIX. None of
 # these carry model access.
 #
@@ -53,16 +55,17 @@ POLICY = {
         "stdout_total_size_cap",
         "stderr_captured_and_capped",
         "kill_on_timeout_and_at_match_end",
+        "descendant_process_tree_termination (Windows kill-on-close job; POSIX process group)",
     ],
     "unenforced_v1": [
         "network_egress_blocking (an entrant CAN reach the network; not restricted by the host in v1)",
         "filesystem_confinement (cwd is set, not chrooted; an entrant CAN read outside it)",
-        "cpu_and_memory_limits (no job object / cgroup applied in v1)",
-        "process_tree_containment (only the direct entrant PID is terminated in v1)",
+        "cpu_and_memory_limits (no resource limits are applied to the job object / process group in v1)",
+        "deliberate_posix_session_escape_prevention (a permitted descendant can detach from a process group)",
     ],
     "note": (
         "The unenforced items need an OS-level jail (container, WSL cgroup, Windows job "
-        "object plus a firewall profile). Until that ships, a match run on an untrusted "
+        "resource limits plus a firewall profile). Until that ships, a match run on an untrusted "
         "entrant is isolated in process but not in capability, and results should be "
         "labelled accordingly."
     ),
@@ -139,6 +142,7 @@ class Entrant:
         self._provisioned_env = dict(supplied)
 
         self._proc = None
+        self._process_tree = None
         self._q = queue.Queue()
         self._reader = None
         self._stderr_buf = bytearray()
@@ -169,7 +173,7 @@ class Entrant:
         exe = shutil.which(cmd[0])
         if exe:
             cmd[0] = exe
-        self._proc = subprocess.Popen(
+        self._process_tree = ProcessTree.spawn(
             cmd,
             cwd=self.workdir,
             env=self._child_env(),
@@ -179,6 +183,7 @@ class Entrant:
             close_fds=True,
             bufsize=0,
         )
+        self._proc = self._process_tree.process
         self._started_once = True
         try:
             self._reader = threading.Thread(target=self._pump_stdout, daemon=True)
@@ -248,10 +253,12 @@ class Entrant:
 
     # -- messaging --------------------------------------------------------
 
-    @staticmethod
-    def _abort_blocked_write(proc):
+    def _abort_blocked_write(self, proc):
         try:
-            proc.kill()
+            if self._process_tree is not None:
+                self._process_tree.close(grace_s=1.0)
+            else:
+                proc.kill()
         except Exception:
             pass
         try:
@@ -380,7 +387,10 @@ class Entrant:
                     proc.wait(timeout=grace_s)
                 except subprocess.TimeoutExpired:
                     try:
-                        proc.kill()
+                        if self._process_tree is not None:
+                            self._process_tree.close(grace_s=grace_s)
+                        else:
+                            proc.kill()
                     except Exception as error:
                         remember(error)
                     try:
@@ -390,11 +400,21 @@ class Entrant:
         except Exception as error:
             remember(error)
             try:
-                proc.kill()
-                proc.wait(timeout=grace_s)
+                if self._process_tree is not None:
+                    self._process_tree.close(grace_s=grace_s)
+                else:
+                    proc.kill()
+                    proc.wait(timeout=grace_s)
             except Exception as kill_error:
                 remember(kill_error)
         finally:
+            # Release the custody container even after a clean direct-process
+            # exit so an improperly detached provider descendant cannot linger.
+            if self._process_tree is not None:
+                try:
+                    self._process_tree.close(grace_s=grace_s)
+                except Exception as error:
+                    remember(error)
             for stream in (proc.stdout, proc.stderr, proc.stdin):
                 try:
                     stream.close()
@@ -412,14 +432,18 @@ class Entrant:
                         self._writer_threads.discard(thread)
             if proc.poll() is None:
                 try:
-                    proc.kill()
-                    proc.wait(timeout=grace_s)
+                    if self._process_tree is not None:
+                        self._process_tree.close(grace_s=grace_s)
+                    else:
+                        proc.kill()
+                        proc.wait(timeout=grace_s)
                 except Exception as error:
                     remember(error)
             if proc.poll() is None:
                 remember(RuntimeError("entrant process was not reaped"))
             else:
                 self._proc = None
+                self._process_tree = None
                 self._reader = None
                 self._stderr_thread = None
             while True:

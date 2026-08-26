@@ -8,6 +8,7 @@ Install ``bin`` on PATH and use:
     agentwars runner probe --challenge-id ...
     agentwars runner work --challenge-id ... --once
     agentwars runner prepare-match --challenge-id ... --once ...
+    agentwars runner run-prepared-match --plan ... --once ...
     agentwars runner submit-match --challenge-id ... --once ...
     agentwars runner request ...
 
@@ -48,6 +49,7 @@ from competitions.source_match import (  # noqa: E402
     build_source_match_plan,
     write_source_match_plan,
 )
+from competitions.prepared_match import execute_prepared_match  # noqa: E402
 from provider_hub.catalog import PROVIDER_IDS  # noqa: E402
 from provider_hub.local_runner import (  # noqa: E402
     MAX_BODY_BYTES,
@@ -553,6 +555,27 @@ def cmd_runner_prepare_match(args) -> int:
     return 0
 
 
+def cmd_runner_run_prepared_match(args) -> int:
+    prepared, status = execute_prepared_match(
+        args.plan,
+        customer_local_v1=args.customer_local_v1,
+        provider_usage_v1=args.provider_usage_v1,
+    )
+    if status in (0, 2):
+        print("Completed one fixed customer-local prepared match.")
+        print(f"job id            : {prepared.job_id}")
+        print(f"competition id    : {prepared.competition_id}")
+        print(f"launch plan sha256: {prepared.launch_plan_digest}")
+        print(f"match directory   : {prepared.match_directory}")
+        print(f"summary file      : {prepared.summary_file}")
+        if status == 2:
+            print(
+                "The match replay passed, but at least one accepted move used the declared fallback path."
+            )
+        print("Provider/model/runtime/harness/match attestations remain false.")
+    return status
+
+
 def _read_request_body(path: str) -> bytes:
     if path == "-":
         raw = sys.stdin.buffer.read(MAX_BODY_BYTES + 1)
@@ -775,6 +798,37 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("--timeout", type=_bounded_timeout, default=15)
     prepare.set_defaults(func=cmd_runner_prepare_match)
 
+    run_prepared = runner_commands.add_parser(
+        "run-prepared-match",
+        help="validate and run one fixed customer-local source-match plan",
+        description=(
+            "Revalidate one digest-bound local plan, current fixed runner and harness, "
+            "public Agent Passports, exact argv, and unused output paths before starting "
+            "the fixed cross-provider fantasy runner. The plan cannot supply a command, "
+            "entrypoint, environment, or execution consent."
+        ),
+    )
+    run_prepared.add_argument("--plan", required=True)
+    run_prepared.add_argument(
+        "--once",
+        action="store_true",
+        required=True,
+        help="explicitly limit this invocation to one prepared local match",
+    )
+    run_prepared.add_argument(
+        "--customer-local-v1",
+        action="store_true",
+        required=True,
+        help="confirm this match runs on a customer-controlled local machine",
+    )
+    run_prepared.add_argument(
+        "--provider-usage-v1",
+        action="store_true",
+        required=True,
+        help="accept that provider calls consume customer-owned quota or may incur charges",
+    )
+    run_prepared.set_defaults(func=cmd_runner_run_prepared_match)
+
     submit = runner_commands.add_parser(
         "submit-match",
         help="privately submit one existing replay-verified customer-local fantasy match",
@@ -875,8 +929,9 @@ def main(argv=None) -> int:
         return 2
     except KeyboardInterrupt:
         print(
-            "ERROR: operation cancelled; encrypted local state may already exist. "
-            "Inspect `agentwars runner list` before retrying.",
+            "ERROR: operation cancelled; encrypted local state may already exist, and match "
+            "output paths may already be reserved. Descendant-process cleanup was requested. "
+            "Inspect runner state and exact outputs before retrying.",
             file=sys.stderr,
         )
         return 130
