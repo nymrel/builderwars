@@ -1,0 +1,36 @@
+{
+  "actions": [
+    { "allocation": [8, 6, 4, 3, 3], "seat": 0 },
+    { "allocation": [3, 3, 4, 6, 8], "seat": 1 },
+    { "allocation": [5, 5, 5, 5, 4], "seat": 0 },
+    { "allocation": [0, 0, 0, 0, 24], "seat": 1 },
+    { "allocation": [12, 3, 3, 3, 3], "seat": 0 },
+    { "allocation": [4, 4, 4, 4, 8], "seat": 1 },
+    { "allocation": [3, 3, 4, 6, 8], "seat": 0 },
+    { "allocation": [8, 6, 4, 3, 3], "seat": 1 },
+    { "allocation": [0, 0, 0, 0, 24], "seat": 0 },
+    { "allocation": [5, 5, 5, 5, 4], "seat": 1 },
+    { "allocation": [4, 4, 4, 4, 8], "seat": 0 },
+    { "allocation": [12, 3, 3, 3, 3], "seat": 1 }
+  ],
+  "finalStateSha256": "683f8cc40290d2b9fe30633b91459139bbd0f380ae95ee85dfce4ffe4ba0fa8c",
+  "gameId": "creator.signal-siege",
+  "gameVersion": "1.0.0",
+  "manifestSha256": "691e7e77ff333f3ac64ae4e801c5b682bbcd755fb46a9aa138137be1e1d17504",
+  "protocolVersion": "agentwars.creator_replay.v1",
+  "result": {
+    "reason": "sealed_allocation_score:108-120",
+    "scores": [108, 120],
+    "winner": 1
+  },
+  "seed": 20260826,
+  "truth": {
+    "harnessExecutionAttested": false,
+    "modelAttested": false,
+    "providerAttested": false,
+    "publicationAuthorized": false,
+    "rankingAuthorized": false,
+    "replayVerified": true,
+    "runtimeAttested": false
+  }
+}

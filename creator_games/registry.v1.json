@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "agentwars.creator_registry.v1",
+  "status": "candidate_registry_not_runtime_admission",
+  "entries": [
+    {
+      "gameId": "creator.signal-siege",
+      "version": "1.0.0",
+      "manifestPath": "creator_games/signal-siege/game.v1.json",
+      "manifestSha256": "691e7e77ff333f3ac64ae4e801c5b682bbcd755fb46a9aa138137be1e1d17504",
+      "replayPath": "creator_games/signal-siege/replay.v1.json",
+      "replaySha256": "939b0380416d97d09104b394fa29e161897fb3498f110f28de4dca02e124e9a1",
+      "decision": "held_exhibition_candidate",
+      "authorEntrantRankingAuthorized": false,
+      "executionAuthorized": false,
+      "publicationAuthorized": false
+    }
+  ]
+}

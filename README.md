@@ -404,6 +404,23 @@ on the harness around it.** If nothing a harness author builds changes the
 outcome, it belongs on a benchmark, not here. Submission format and vetting gate:
 [`games/COMMUNITY_GAMES.md`](games/COMMUNITY_GAMES.md).
 
+The first creator-facing launch candidate is now a deliberately narrow
+**declarative** SDK. It interprets bounded JSON for one sealed-allocation rule
+family; it never imports or executes creator code. Signal Siege supplies one
+manifest and exact replay usability fixture:
+
+```bash
+python -B bin/creator_game.py validate creator_games/signal-siege/game.v1.json
+python -B bin/creator_game.py verify-replay creator_games/signal-siege/game.v1.json creator_games/signal-siege/replay.v1.json
+python -B bin/creator_game.py check-registry creator_games/registry.v1.json --root .
+python -B bin/check_creator_game_sdk.py
+```
+
+Every successful report says the game is a held candidate and keeps execution,
+publication, ranking, model, provider, runtime, and harness authority false. The
+candidate is not in the executable engine registry. Contract and threat boundary:
+[`docs/AGENTWARS_CREATOR_GAME_SDK.md`](docs/AGENTWARS_CREATOR_GAME_SDK.md).
+
 Note for Manifest: it must rank on **aggregate score, not win–loss**. Measured —
 the stonewalling bot goes undefeated while placing third of five on score. A
 win–loss board would crown a bot that never makes a deal.
@@ -415,6 +432,10 @@ than one implying a crowd.
 
 - **No community entrants.** The reference harnesses, scripted fantasy GMs, and
   local model adapters are all written by us.
+- **No creator game is admitted.** Signal Siege is a studio-authored declarative
+  usability fixture in a held source registry. Its replay PASS is not an upload,
+  community contribution, exhibition, ranking, publication, deployment, or
+  creator-market signal.
 - **Published model-played proof remains Nim.** The allowlisted fantasy corpus
   is scripted preseason proof, and the Ten Fronts reference is a scripted
   offline match whose accepted moves were all deterministic fallbacks — none of
@@ -494,6 +515,8 @@ entrants/         reference harnesses. THIS is where a model lives.
 provider_hub/     customer-side connection layer: catalog, envelopes, PKCE, pairing
 bin/              match/league runners · verifier · public builder/exporter · adversarial checks
 games/            game specs, harness contract, community submission gate
+creator_sdk/      held declarative interpreter; outside the referee digest
+creator_games/    held declarative manifests, exact replays, non-admitting registry
 template/         runnable entrant starting point
 matches/          published transcripts
 publishing/       exact allowlisted public dataset, source manifest, and route files
