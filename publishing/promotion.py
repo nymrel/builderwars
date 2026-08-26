@@ -23,6 +23,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from provider_hub.catalog import EXECUTABLE_PROVIDER_IDS, get_provider
+
 from .product import load_publication_manifest
 from .projection import PublicationError, project_receipt, source_kind
 
@@ -288,36 +290,14 @@ SECRET_PATTERNS = (
 )
 
 PROVIDERS = {
-    "chatgpt_codex": {
-        "connectionModeClaim": "local_subscription_session",
-        "providerClass": "official_local_client_delegation",
-        "harnessClass": "official_first_party_cli",
-        "modelRequired": False,
-    },
-    "claude_code": {
-        "connectionModeClaim": "local_subscription_session",
-        "providerClass": "official_local_client_delegation",
-        "harnessClass": "official_first_party_cli",
-        "modelRequired": False,
-    },
-    "opencode": {
-        "connectionModeClaim": "local_provider_session",
-        "providerClass": "route_dependent_harness",
-        "harnessClass": "third_party_local_harness",
-        "modelRequired": True,
-    },
-    "openrouter": {
-        "connectionModeClaim": "web_oauth_pkce",
-        "providerClass": "direct_api_customer_key",
-        "harnessClass": "none",
-        "modelRequired": True,
-    },
-    "hermes": {
-        "connectionModeClaim": "local_provider_session",
-        "providerClass": "route_dependent_harness",
-        "harnessClass": "third_party_local_harness",
-        "modelRequired": True,
-    },
+    provider_id: {
+        "connectionModeClaim": get_provider(provider_id)["connection_mode"],
+        "providerClass": get_provider(provider_id)["provider_class"],
+        "harnessClass": get_provider(provider_id)["harness_class"],
+        "modelRequired": get_provider(provider_id)["model_required"],
+    }
+    for provider_id in EXECUTABLE_PROVIDER_IDS
+    if provider_id != "custom_agent"
 }
 
 
@@ -474,8 +454,6 @@ def _backend_claim(provider: str, model: str | None, variant: str | None) -> str
         raise PromotionCandidateError("provider options are contradictory")
     if provider == "chatgpt_codex":
         return "chatgpt_codex:codex exec"
-    if provider == "claude_code":
-        return "claude_code:claude -p"
     if provider == "openrouter":
         return f"openrouter:{model}"
     assert model is not None

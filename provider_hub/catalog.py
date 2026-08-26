@@ -17,26 +17,26 @@ or hosted-route statuses also raise — the vocabulary is closed and drift
 between this catalog and docs/AGENTWARS_PROVIDER_POLICY.v2.json is rejected
 by bin/check_provider_hub.py.
 
-These are customer-operated, provider-supported local clients and flows.
-BuildWars does not assert any plan entitlement or permission beyond what each
-provider's current documentation states; customers are responsible for their
-own provider terms. No entry claims that all hosted routing is prohibited or
-that all local orchestration is permitted.
+The catalog records customer-operated clients and flows, including known routes
+that current policy disables. BuildWars does not assert any plan entitlement or
+permission beyond what each provider's current documentation states; customers
+are responsible for their own provider terms. No entry claims that all hosted
+routing is prohibited or that all local orchestration is permitted.
 
-Verified facts this catalog encodes (evidence date 2026-08-25):
+Verified facts this catalog encodes (evidence date 2026-08-26):
 
 * OpenAI: local Codex clients support ``codex login`` with ChatGPT for
-  subscription access. The cloud API is a separate API-key surface. The
-  customer subscription path delegates to the locally authenticated Codex CLI;
-  it never scrapes or copies Codex credential files.
-* Anthropic: Claude Code supports browser login on eligible plans. This catalog
-  delegates to the locally authenticated ``claude`` CLI and never copies its
-  credentials. Anthropic subscriptions and API usage are separate products;
-  current OpenCode documentation explicitly warns against its third-party
-  Claude subscription plugin path, so BuildWars disables that OpenCode route.
-  BuildWars separately disables consumer-subscription routing through Hermes
-  pending explicit provider authorization; that is a fail-closed product
-  policy, not a prohibition attributed to Anthropic.
+  subscription access. OpenAI also publishes ``codex exec``, the Codex SDK,
+  and app-server as product integration surfaces while keeping model access
+  and managed services separate. The customer path delegates to the locally
+  authenticated Codex CLI; it never scrapes or copies credential files.
+* Anthropic: Claude Code supports browser login on eligible plans, but current
+  legal and Agent SDK documentation says third-party products must use API-key
+  authentication unless previously approved. The announced subscription
+  credit for Agent SDK, ``claude -p``, and third-party apps is paused. The
+  ``claude_code`` catalog id therefore remains visible but non-executable until
+  Anthropic approves this product pattern or BuildWars adds a sanctioned API
+  route.
 * OpenCode: provider auth is local (``opencode auth login`` / ``opencode auth
   list``). It is a route-dependent harness: a selected route attests nothing
   about subscription entitlement, billing, or model identity.
@@ -44,9 +44,11 @@ Verified facts this catalog encodes (evidence date 2026-08-25):
   key that stays in the customer runner. Hosted key custody is architecturally
   supported by that flow but is NOT implemented here. Usage bills the user's
   own OpenRouter account and may incur user-owned API charges.
-* Hermes: provider setup/auth is local (``hermes model``, ``hermes auth``);
-  one-shot execution via ``hermes --oneshot``. Like OpenCode it is a
-  route-dependent harness; its labels never prove a provider subscription.
+* Hermes: provider setup is local through ``hermes model``. Nous documents
+  ``hermes setup --portal`` and ``hermes portal info`` for its own subscription
+  gateway. One-shot execution uses ``hermes --oneshot``. Like OpenCode, Hermes
+  is route-dependent; its label never proves the upstream provider, model, or
+  billing route.
 * Custom agent: an explicit customer-supplied local prompt/stdout command,
   declared as a repeatable JSON argv vector, behind BOTH runtime-intent
   capabilities. It is NOT an arena/1 JSONL
@@ -112,9 +114,9 @@ _HOSTED_ROUTE_STATUSES = frozenset(
 
 # Customer-facing semantics, deliberately distinct from implementation
 # transports. The vocabulary is shared by the catalog, provider-link v2
-# envelope, CLI output, policy twin, and eventual UI. ``local_api_key`` and
-# ``unsupported`` are reserved closed values; no current provider id selects
-# either one, so their presence cannot silently enable a route.
+# envelope, CLI output, policy twin, and eventual UI. ``local_api_key`` is a
+# reserved closed value selected by no provider. ``claude_code`` deliberately
+# selects ``unsupported`` and must pair that mode with disabled execution.
 CONNECTION_MODES = (
     "web_oauth_pkce",
     "local_subscription_session",
@@ -127,7 +129,7 @@ _CONNECTION_MODES = frozenset(CONNECTION_MODES)
 
 _EVIDENCE_DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 PROVIDER_POLICY_SCHEMA_VERSION = "agentwars.provider-policy.v2"
-PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-25"
+PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-26"
 
 _ENTRY_KEYS = frozenset(
     {
@@ -176,6 +178,7 @@ _CATALOG = {
         "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
         "official_sources": (
             "https://learn.chatgpt.com/docs/auth",
+            "https://developers.openai.com/blog/codex-as-a-platform",
             "https://help.openai.com/en/articles/8156019-is-api-usage-included-in-chatgpt-subscriptions-even-if-i-have-a-paid-chatgpt-account",
         ),
         "limitations": (
@@ -190,41 +193,41 @@ _CATALOG = {
         ),
     },
     "claude_code": {
-        "display_name": "Claude Code (local claude CLI)",
-        "connection_mode": "local_subscription_session",
+        "display_name": "Claude Code (subscription route unavailable)",
+        "connection_mode": "unsupported",
         "connection_transport": "local_cli_auth_delegation",
         "auth_plan": [
-            "Install Claude Code yourself.",
-            "Run `claude` once and complete browser login on your eligible Claude plan.",
+            "Do not connect a Claude subscription to BuildWars; this provider route is disabled.",
+            "Use Claude Code only in Anthropic's native surfaces, or wait for a separately sanctioned BuildWars API integration.",
         ],
-        "status_plan": "You check login state in your local Claude Code session; BuildWars never copies or reads CLI credentials.",
+        "status_plan": "Disabled pending written Anthropic approval or a separately reviewed customer-owned API route; BuildWars performs no Claude login or execution.",
         "credential_custody": "customer_only",
         "model_required": False,
         "backend_kind": "claude_print",
         "provider_class": "official_local_client_delegation",
         "harness_class": "official_first_party_cli",
-        "local_execution": True,
+        "local_execution": False,
         "hosted_route_status": "not_offered",
         "prohibited_routes": (
-            "anthropic_api_key_env_injection",
             "claude_code_credential_store_copy",
-            "anthropic_subscription_via_opencode_currently_disallowed",
-            "anthropic_subscription_via_hermes_without_provider_authorization",
+            "third_party_claude_subscription_login",
+            "third_party_claude_subscription_request_routing",
+            "anthropic_subscription_via_opencode",
+            "anthropic_subscription_via_hermes",
         ),
         "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
         "official_sources": (
-            "https://docs.anthropic.com/en/docs/claude-code/getting-started",
-            "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console",
+            "https://code.claude.com/docs/en/authentication",
+            "https://code.claude.com/docs/en/legal-and-compliance",
+            "https://code.claude.com/docs/en/agent-sdk/overview",
+            "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
             "https://opencode.ai/docs/providers/",
         ),
         "limitations": (
-            "Runs `claude -p` non-interactively with sessions and customization disabled.",
-            "No fallback model is configured; an overloaded primary fails the call.",
-            "Subscription access is official local client delegation only: Anthropic's own CLI answers; credentials are never copied into BuildWars, OpenCode, or Hermes.",
-            "OpenCode's current documentation explicitly disallows its third-party Claude subscription plugin route. BuildWars disables it.",
-            "BuildWars also disables consumer-subscription routing through Hermes pending explicit provider authorization; this is product policy, not an Anthropic prohibition claim.",
-            "The child environment is a fixed OS/auth-path/locale/TLS allowlist, so no host API-key variable can silently fall back to API billing, but BuildWars cannot attest cached auth method, entitlement, quota, or billing.",
-            "BuildWars cannot attest which account or model answered.",
+            "No BuildWars factory, runner capability, pairing flow, or cross-provider match may activate this provider id.",
+            "Anthropic says third-party products, including Agent SDK products, should use API-key authentication unless previously approved; customer-local credential custody does not override that provider rule.",
+            "The announced monthly subscription credit for Agent SDK, `claude -p`, and third-party apps is paused and grants no present launch permission.",
+            "OpenCode and Hermes Claude-subscription routes remain disabled for the same upstream-provider boundary.",
         ),
     },
     "opencode": {
@@ -251,11 +254,11 @@ _CATALOG = {
         "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
         "official_sources": (
             "https://opencode.ai/docs/providers/",
-            "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console",
+            "https://code.claude.com/docs/en/legal-and-compliance",
         ),
         "limitations": (
             "Requires an explicit provider/model identifier; variant defaults to max when omitted.",
-            "OpenCode's current docs explicitly say its third-party Claude subscription plugin path is prohibited; use the separate claude_code adapter for Claude Code plan access.",
+            "OpenCode's current docs explicitly say its third-party Claude subscription plugin path is prohibited; BuildWars does not offer a substitute Claude subscription adapter.",
             "Route-dependent harness: the selected route may use a subscription, API key, free quota, or other billing path; BuildWars cannot attest which.",
             "An OpenCode label never attests model identity, subscription entitlement, billing, or provider permission.",
         ),
@@ -296,9 +299,10 @@ _CATALOG = {
         "connection_transport": "local_cli_subprocess",
         "auth_plan": [
             "Install Hermes yourself.",
-            "Configure providers with `hermes model` and authenticate with `hermes auth`.",
+            "For a Nous Portal subscription, run `hermes setup --portal` on a fresh install or choose Nous Portal in `hermes model`.",
+            "For another supported provider, use `hermes model` and follow that provider's current terms.",
         ],
-        "status_plan": "You inspect Hermes' own local config; BuildWars never reads it.",
+        "status_plan": "For Nous Portal, you run `hermes portal info`; for other routes, inspect Hermes locally. BuildWars never reads the auth store or attests the billing route.",
         "credential_custody": "customer_only",
         "model_required": True,
         "backend_kind": "hermes_oneshot",
@@ -307,19 +311,20 @@ _CATALOG = {
         "local_execution": True,
         "hosted_route_status": "not_offered",
         "prohibited_routes": (
-            "anthropic_subscription_via_this_harness_without_provider_authorization",
+            "upstream_consumer_subscription_without_provider_authorization",
             "undocumented_route_attestation",
         ),
         "evidence_date": PROVIDER_POLICY_EVIDENCE_DATE,
         "official_sources": (
             "https://hermes-agent.nousresearch.com/docs/integrations/providers",
-            "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console",
+            "https://hermes-agent.nousresearch.com/docs/integrations/nous-portal",
+            "https://code.claude.com/docs/en/legal-and-compliance",
         ),
         "limitations": (
             "One-shot execution via `hermes --oneshot` with explicit provider/model, safe mode, and only the non-mutating `clarify` toolset.",
             "No fallback claim: a failed shot is a failed shot.",
-            "Route-dependent harness: Hermes configuration may represent subscription access or separately billed API access; BuildWars cannot attest which.",
-            "BuildWars disables third-party consumer-subscription routes through Hermes pending explicit provider authorization. This is a fail-closed product policy, not a provider-prohibition claim.",
+            "Nous Portal is a documented Nous subscription route. Other Hermes configuration may represent an upstream subscription, API key, free quota, or separately billed access; BuildWars cannot attest which.",
+            "BuildWars disables upstream consumer-subscription routes through Hermes unless that upstream provider authorizes the product pattern; a Hermes or Nous label cannot override upstream terms.",
             "A Hermes label never proves a provider subscription or model identity.",
         ),
     },
@@ -355,6 +360,13 @@ _CATALOG = {
         ),
     },
 }
+
+
+EXECUTABLE_PROVIDER_IDS = tuple(
+    provider_id
+    for provider_id in PROVIDER_IDS
+    if _CATALOG[provider_id]["local_execution"] is True
+)
 
 
 class ProviderError(ValueError):
@@ -410,6 +422,11 @@ def backend_kind_for(provider_id):
 
 def model_required_for(provider_id):
     return get_provider(provider_id)["model_required"]
+
+
+def local_execution_available_for(provider_id):
+    """Whether current provider policy permits constructing this local route."""
+    return get_provider(provider_id)["local_execution"] is True
 
 
 def _freeze_value(value):
@@ -478,9 +495,9 @@ def _freeze(entry):
         raise RuntimeError(
             f"catalog integrity: bad connection mode {entry['connection_mode']!r}"
         )
-    if entry["connection_mode"] in {"local_api_key", "unsupported"}:
+    if entry["connection_mode"] == "local_api_key":
         raise RuntimeError(
-            "catalog integrity: supported provider cannot select a reserved connection mode"
+            "catalog integrity: no current provider may select reserved local_api_key"
         )
     if entry["credential_custody"] != "customer_only":
         raise RuntimeError("catalog integrity: custody must always be customer_only")
@@ -494,8 +511,15 @@ def _freeze(entry):
         raise RuntimeError(
             f"catalog integrity: bad harness class {entry['harness_class']!r}"
         )
-    if entry["local_execution"] is not True:
-        raise RuntimeError("catalog integrity: every v1 route is customer-local")
+    if entry["connection_mode"] == "unsupported":
+        if entry["local_execution"] is not False:
+            raise RuntimeError(
+                "catalog integrity: unsupported routes must disable local execution"
+            )
+    elif entry["local_execution"] is not True:
+        raise RuntimeError(
+            "catalog integrity: executable routes must be explicitly customer-local"
+        )
     if entry["hosted_route_status"] not in _HOSTED_ROUTE_STATUSES:
         raise RuntimeError(
             f"catalog integrity: bad hosted route status {entry['hosted_route_status']!r}"

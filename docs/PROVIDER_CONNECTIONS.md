@@ -24,22 +24,24 @@ The controlling human policy is `AGENTWARS_PROVIDER_POLICY.md`; its exact
 machine twin is `AGENTWARS_PROVIDER_POLICY.v2.json`. The v1 policy file is
 retained as historical evidence.
 
-## Supported provider ids
+## Provider ids and current availability
 
 | id | connection mode | customer-side connection | local setup | required options | entrant backend |
 |---|---|---|---|---|---|
 | `chatgpt_codex` | `local_subscription_session` | locally authenticated Codex CLI | `codex login`, then `codex login status` | none | `codex exec` |
-| `claude_code` | `local_subscription_session` | locally authenticated Claude Code CLI | start `claude` and complete its browser sign-in on an eligible plan | none | `claude -p` |
+| `claude_code` | `unsupported` | catalog-visible disabled route | none; third-party Claude.ai login and subscription-request routing require Anthropic approval | none | disabled before process start |
 | `opencode` | `local_provider_session` | OpenCode's local provider auth | `opencode auth login`, then `opencode auth list` | `provider/model`; optional variant | `opencode run` |
 | `openrouter` | `web_oauth_pkce` | OpenRouter OAuth PKCE inside the customer runner | approve at OpenRouter; the exchanged key stays local | model id | OpenAI-compatible chat request |
-| `hermes` | `local_provider_session` | Hermes' local provider configuration/auth | `hermes model` and `hermes auth` | `provider/model` | `hermes --oneshot`, safe mode, `clarify` toolset only |
+| `hermes` | `local_provider_session` | Hermes' local provider configuration/auth, including Nous Portal | `hermes setup --portal`, `hermes model`, and `hermes portal info` for the Nous route | `provider/model` | `hermes --oneshot`, safe mode, `clarify` toolset only |
 | `custom_agent` | `local_runtime` | explicit customer-owned JSON argv command | customer-defined | JSON argv | prompt on stdin, answer on stdout |
 
 Connection mode describes customer-facing auth and custody semantics;
 `connection_transport` describes the implementation mechanism. They are not
 interchangeable. The closed vocabulary also reserves `local_api_key` and
-`unsupported`, but no current provider id selects them. A public UI must show
-the catalog mode and cannot relabel local CLI delegation as web OAuth.
+`unsupported`. No provider selects `local_api_key`; `claude_code` selects
+`unsupported` and cannot enter links, capabilities, runner profiles, executable
+choices, or backend construction. A public UI must show that disabled state and
+cannot relabel local CLI delegation as web OAuth.
 
 `buildwars.provider_link.v1` remains accepted with its original exact fields.
 `buildwars.provider_link.v2` adds the catalog-bound mode, fixes execution to a
@@ -73,7 +75,9 @@ once. It does not change an external account or write a file.
    system.
 2. **Install and pair a local runner.** This repository's two model harnesses
    are the v1 runner shape.
-3. **Choose one of the six exact provider ids.**
+3. **Choose one of the five executable provider ids.** The sixth catalog id,
+   `claude_code`, is visible but disabled pending provider approval or a
+   separately sanctioned customer-owned API route.
 4. **Authenticate with the provider on the customer machine.** BuildWars does
    not automate, scrape, copy, or inspect a provider's credential cache.
 5. **Create a BuildWars-only pairing key.** The raw 256-bit secret is distinct
@@ -142,10 +146,14 @@ exchange. OpenRouter use may incur charges on the customer's OpenRouter
 account.
 
 Current references: [OpenAI Codex authentication](https://learn.chatgpt.com/docs/auth),
-[Claude Code setup](https://docs.anthropic.com/en/docs/claude-code/getting-started),
+[OpenAI Codex as a platform](https://developers.openai.com/blog/codex-as-a-platform),
+[Anthropic Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance),
+[Anthropic Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview),
 [OpenCode providers](https://opencode.ai/docs/providers/),
-[OpenCode CLI](https://opencode.ai/docs/cli/), and
-[OpenRouter OAuth PKCE](https://openrouter.ai/docs/guides/overview/auth/oauth).
+[OpenCode CLI](https://opencode.ai/docs/cli/),
+[OpenRouter OAuth PKCE](https://openrouter.ai/docs/guides/overview/auth/oauth),
+[Hermes providers](https://hermes-agent.nousresearch.com/docs/integrations/providers),
+and [Hermes Nous Portal](https://hermes-agent.nousresearch.com/docs/integrations/nous-portal).
 
 ## Trust and replay boundaries
 
@@ -180,13 +188,14 @@ Current references: [OpenAI Codex authentication](https://learn.chatgpt.com/docs
 
 ## What the local candidate proves
 
-It proves that the six-id catalog is immutable and fail-closed; the seven
+It proves that the six-id catalog is immutable and fail-closed, with five
+executable ids and one visibly disabled id; the seven
 versioned envelope shapes reject unknown keys, floats, secret-like fields, and
 binding drift; pairing signatures reject tampering, staleness, future dates,
 wrong kinds/users/runners, and replay when a guard is supplied; the OpenRouter
 PKCE request/callback/exchange shapes match the current documented fields; and
-both AgentWars harnesses can select the provider adapters without changing the
-legacy backend path.
+both AgentWars harnesses can select only executable provider adapters without
+changing the legacy backend path.
 
 It does not prove a live account login, subscription entitlement, provider
 permission for every workload, live model response, production enrollment,
@@ -197,15 +206,16 @@ argv/env/network contracts are checked with local help output and mocks.
 
 ## Known provider caveats
 
-- Current OpenCode documentation explicitly says its third-party Claude
-  subscription plugin path is prohibited. Use the dedicated `claude_code`
-  adapter for eligible Claude Code plan access.
+- Anthropic's current legal and Agent SDK guidance says third-party products
+  must not offer Claude.ai login or route Free, Pro, or Max credentials without
+  approval. The direct `claude_code` route and intermediary Claude subscription
+  routes are therefore disabled in this candidate.
 - OpenCode and Hermes can route many upstream providers. BuildWars cannot
   infer whether a selected route uses a subscription, an API key, free quota,
   or usage billing.
-- BuildWars disables third-party consumer-subscription routing through Hermes
-  pending explicit provider authorization. This is a fail-closed product
-  policy, not a Hermes-specific prohibition attributed to Anthropic.
+- Nous Portal is a documented Hermes-owned subscription route. Other upstream
+  consumer-subscription routing through Hermes remains disabled pending the
+  relevant provider's authorization; a Hermes label is not permission evidence.
 - OpenRouter's official PKCE flow can support a third-party app, but hosted key
   custody, rotation/deletion controls, and durable replay defense are not
   implemented. The v1 adapter therefore keeps the key in the customer runner.

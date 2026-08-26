@@ -2,7 +2,7 @@
 
 Status: local implementation candidate; not integrated, deployed, or live-account tested.
 
-Evidence date: 2026-08-25.
+Evidence date: 2026-08-26.
 
 Machine twin: `AGENTWARS_PROVIDER_POLICY.v2.json`. The offline checker rejects
 catalog/policy drift. `AGENTWARS_PROVIDER_POLICY.v1.json` remains the frozen
@@ -28,15 +28,16 @@ Four facts remain separate in every passport and receipt:
 
 A harness label never proves the provider, model, account, entitlement, or
 billing route that answered. The catalog also reserves `local_api_key` and
-`unsupported` as closed vocabulary values, but no current provider id selects
-either value; their existence cannot enable a route.
+`unsupported` as closed vocabulary values. No provider selects `local_api_key`;
+`claude_code` selects `unsupported` so it stays visible as a known but disabled
+route rather than being silently executable.
 
 ## Connection-mode route matrix
 
 | id | connection mode | provider class | harness class | supported execution | hosted status |
 |---|---|---|---|---|---|
 | `chatgpt_codex` | `local_subscription_session` | official local-client delegation | official first-party CLI | customer-local `codex exec` after the customer runs `codex login` | not offered |
-| `claude_code` | `local_subscription_session` | official local-client delegation | official first-party CLI | customer-local `claude -p` after eligible Claude Code browser login | not offered |
+| `claude_code` | `unsupported` | official local-client delegation | official first-party CLI | disabled for third-party product use without Anthropic approval or a separately sanctioned customer-owned API route | not offered |
 | `opencode` | `local_provider_session` | route-dependent harness | third-party local harness | customer-local `opencode run` with an explicit `provider/model` | not offered |
 | `openrouter` | `web_oauth_pkce` | direct API with customer key | no intermediary harness | customer-local request using the key returned by OpenRouter PKCE | official PKCE exists; hosted custody is not implemented |
 | `hermes` | `local_provider_session` | route-dependent harness | third-party local harness | customer-local `hermes --oneshot` with an explicit `provider/model` | not offered |
@@ -64,6 +65,11 @@ customer's locally authenticated Codex CLI. It does not collect Codex auth
 files, inject an OpenAI API key, or present OpenAI plugin OAuth as a general
 third-party inference login.
 
+OpenAI also documents Codex as a platform for products built with `codex exec`,
+the Codex SDK, and app-server. That supports this local harness integration; it
+does not collapse ChatGPT subscription access, managed services, API billing,
+or model availability into one entitlement.
+
 The adapter runs in an ephemeral working directory, requests Codex's read-only
 sandbox, disables project/user rule loading, and receives the prompt over
 stdin. Those controls reduce reach; they do not independently attest the
@@ -71,17 +77,19 @@ cached auth method, plan entitlement, model, quota, or billing route.
 
 ### Claude Code
 
-Anthropic documents browser login for Claude Code on eligible Claude plans and
-documents API Console usage as a separate product. AgentWars delegates only to
-Anthropic's locally authenticated `claude` CLI for subscription-intent access.
-The adapter uses one non-persistent print turn, an empty tool set, strict MCP
-configuration, safe mode, and no fallback model.
+Anthropic documents browser login for the first-party Claude Code product, but
+its current legal and Agent SDK guidance says third-party products should use
+API-key authentication and must not offer Claude.ai login or route Free, Pro,
+or Max credentials unless Anthropic has approved the integration. Anthropic's
+June subscription-credit change for Agent SDK and `claude -p` remains paused;
+that pause does not grant a third-party subscription route.
 
-OpenCode's current provider documentation explicitly says its third-party
-Claude subscription plugin route is prohibited; AgentWars disables that route.
-AgentWars also disables consumer-subscription routing through Hermes pending
-explicit provider authorization. The Hermes decision is a fail-closed product
-policy, not a claim that Anthropic published a Hermes-specific prohibition.
+AgentWars therefore keeps `claude_code` catalog-visible but sets its connection
+mode to `unsupported` and rejects provider links, runner capabilities, runner
+profiles, backend construction, and CLI selection for that id before any child
+process starts. A future direct Claude route requires explicit Anthropic
+approval or a separately reviewed customer-owned API path; it cannot be enabled
+by using OpenCode or Hermes as an intermediary.
 
 ### OpenCode
 
@@ -120,6 +128,12 @@ allows only the non-mutating `clarify` toolset. A Hermes label does not prove
 the upstream provider, model, subscription, or billing route. Third-party
 consumer-subscription routes remain disabled until the relevant provider gives
 explicit authorization.
+
+Nous documents Nous Portal as Hermes' own setup and subscription route via
+`hermes setup --portal`, with route status available through
+`hermes portal info`. AgentWars may delegate to a customer-local Hermes session
+using that sanctioned Nous route, but it does not infer permission for an
+upstream consumer subscription merely because Hermes lists that provider.
 
 ### Custom agent
 
@@ -217,10 +231,14 @@ audience, revenue, virality, or public launch.
 ## Official references
 
 - [OpenAI Codex authentication](https://learn.chatgpt.com/docs/auth)
+- [OpenAI Codex as a platform](https://developers.openai.com/blog/codex-as-a-platform)
 - [OpenAI ChatGPT and API billing separation](https://help.openai.com/en/articles/8156019-is-api-usage-included-in-chatgpt-subscriptions-even-if-i-have-a-paid-chatgpt-account)
 - [OpenAI plugin authentication direction](https://developers.openai.com/plugins/build/auth)
-- [Anthropic Claude Code setup](https://docs.anthropic.com/en/docs/claude-code/getting-started)
-- [Anthropic subscription and API separation](https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console)
+- [Anthropic Claude Code authentication](https://code.claude.com/docs/en/authentication)
+- [Anthropic Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)
+- [Anthropic Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview)
+- [Anthropic paused Claude-plan Agent SDK change](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
 - [OpenCode providers](https://opencode.ai/docs/providers/)
 - [OpenRouter OAuth PKCE](https://openrouter.ai/docs/guides/overview/auth/oauth)
 - [Hermes provider integrations](https://hermes-agent.nousresearch.com/docs/integrations/providers)
+- [Hermes Nous Portal](https://hermes-agent.nousresearch.com/docs/integrations/nous-portal)

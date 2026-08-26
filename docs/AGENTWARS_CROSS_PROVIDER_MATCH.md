@@ -1,7 +1,7 @@
 # AgentWars customer-local cross-provider match
 
 Status: **local launch candidate; not public, not production-connected, and not
-provider/model/runtime attested** (2026-08-25).
+provider/model/runtime attested** (2026-08-26).
 
 This runner is the first bounded path for two different customer-controlled
 provider adapters to play one deterministic AgentWars fantasy game. The match
@@ -34,7 +34,6 @@ and starts as `not_reviewed_not_published`.
 | Runner id | Current route | Required selection | Custody boundary |
 | --- | --- | --- | --- |
 | `chatgpt_codex` | Official local Codex CLI signed in with ChatGPT | No model override | AgentWars delegates to the local CLI and never reads or copies its credential store. |
-| `claude_code` | Official local Claude Code CLI on an eligible Claude plan | No model override | AgentWars delegates to the local CLI and never reads or copies its credential store. |
 | `opencode` | Customer-authenticated local OpenCode harness | `provider/model`, optional variant (default `max`) | The selected route is a claim; it does not attest subscription entitlement or billing. |
 | `openrouter` | Customer-owned OpenRouter API key in the runner process | OpenRouter model id | The key is provisioned only to that entrant process and never enters a manifest, transcript, summary, or error envelope. |
 | `hermes` | Customer-authenticated local Hermes harness | `provider/model` | The selected route is a claim; consumer-subscription routing is not implied. |
@@ -43,13 +42,20 @@ and starts as `not_reviewed_not_published`.
 remains disabled until a separately reviewed OS isolation boundary covers
 network, filesystem, process, CPU, memory, time, and secret access.
 
+`claude_code` is catalog-visible but not executable. Anthropic's current legal
+and Agent SDK guidance requires third-party products to use a sanctioned API
+route and disallows offering Claude.ai login or routing Free, Pro, or Max
+credentials without approval. The runner rejects that provider id before any
+child process starts.
+
 Provider policy and current first-party evidence live in
 [`AGENTWARS_PROVIDER_POLICY.md`](AGENTWARS_PROVIDER_POLICY.md) and its
 machine-readable v2 twin; `bin/check_provider_hub.py` enforces their parity and
-truth-labeling offline. In particular, the OpenCode route must not be used to
-proxy a Claude consumer subscription; use Anthropic's official Claude Code
-client for that seat. OpenAI cloud API billing is also separate from ChatGPT
-subscription access and is not a fallback for `chatgpt_codex`.
+truth-labeling offline. In particular, neither OpenCode nor Hermes may be used
+to proxy a Claude consumer subscription, and the direct Claude subscription
+adapter is disabled pending Anthropic approval or a separately sanctioned
+customer-owned API route. OpenAI cloud API billing is also separate from
+ChatGPT subscription access and is not a fallback for `chatgpt_codex`.
 
 ## Explicit customer intent
 
@@ -71,18 +77,20 @@ before either entrant starts, closing the remaining check-to-create collision
 windows. An empty match reservation is removed after failure; non-empty local
 failure evidence is retained for debugging and is never published automatically.
 
-## Codex versus Claude example (PowerShell)
+## Codex versus OpenRouter example (PowerShell)
 
-First, authenticate each official client yourself and confirm it works outside
-AgentWars. Then use entirely new output paths:
+First, authenticate Codex yourself and confirm it works outside AgentWars.
+Provision `OPENROUTER_API_KEY` only through your normal customer-local secret
+mechanism, then use an exact model id and entirely new output paths:
 
 ```powershell
 python bin/run_agentwars_cross_provider_match.py `
   --seat0-provider chatgpt_codex `
   --seat0-name "Codex Redraft" `
   --seat0-strategy win-now `
-  --seat1-provider claude_code `
-  --seat1-name "Claude Dynasty" `
+  --seat1-provider openrouter `
+  --seat1-model "<openrouter-model-id>" `
+  --seat1-name "OpenRouter Dynasty" `
   --seat1-strategy long-game `
   --customer-local-v1 `
   --provider-usage-v1 `
@@ -94,9 +102,10 @@ python bin/run_agentwars_cross_provider_match.py `
 ```
 
 Do not place a password, cookie, OAuth code, refresh token, or API key on this
-command line. The Codex and Claude seats use only their official local signed-in
-clients. Raw provider output and stderr remain entrant-local; receipts contain
-only bounded move claims and response digests.
+command line. The Codex seat uses the official local signed-in client, and the
+OpenRouter key remains only in the customer runner process. Raw provider output
+and stderr remain entrant-local; receipts contain only bounded move claims and
+response digests.
 
 For OpenCode, add `--seatN-model provider/model` and optionally
 `--seatN-variant max`. For Hermes, add `--seatN-model provider/model`. For
@@ -204,10 +213,10 @@ Rollback is deletion or reversion of exactly:
 - `bin/check_cross_provider_match.py`
 - `docs/AGENTWARS_CROSS_PROVIDER_MATCH.md`
 
-The validation commands also invoke the pre-existing shared
-`bin/check_provider_hub.py`, `bin/build_verifier.py`, and `verify.py` surfaces.
-This candidate neither adds nor modifies them, so they are not rollback targets
-for this three-file slice.
+The validation commands also invoke shared `bin/check_provider_hub.py`,
+`bin/build_verifier.py`, and `verify.py` surfaces. This integration branch now
+updates provider policy and its checker as a separate claimed slice; rollback
+must follow the accepted commit boundaries rather than deleting shared files.
 
 Match outputs are deliberately outside tracked source and are never deleted by
 the runner. The customer owns those files and decides their retention.

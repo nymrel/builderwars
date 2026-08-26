@@ -29,7 +29,7 @@ from entrants.backends import (  # noqa: E402
     acknowledge_customer_local_v1,
     get_provider_backend,
 )
-from provider_hub.catalog import get_provider  # noqa: E402
+from provider_hub.catalog import EXECUTABLE_PROVIDER_IDS, get_provider  # noqa: E402
 from publishing.projection import verify_with_snapshot  # noqa: E402
 from run_agentwars_league import final_scores, move_source_counts  # noqa: E402
 
@@ -38,12 +38,10 @@ SUMMARY_SCHEMA = "agentwars.cross_provider_match_summary.v1"
 EVIDENCE_CLASS = "customer_local_provider_claims_with_replay"
 FANTASY_GAMES = ("fantasy_redraft", "fantasy_dynasty", "fantasy_qb_surge")
 STRATEGIES = ("win-now", "long-game")
-SUPPORTED_PROVIDERS = (
-    "chatgpt_codex",
-    "claude_code",
-    "opencode",
-    "openrouter",
-    "hermes",
+SUPPORTED_PROVIDERS = tuple(
+    provider_id
+    for provider_id in EXECUTABLE_PROVIDER_IDS
+    if provider_id != "custom_agent"
 )
 FALSE_ATTESTATIONS = (
     "providerAccountAttested",
@@ -651,11 +649,11 @@ def parser() -> argparse.ArgumentParser:
     command.add_argument("--out", required=True)
     command.add_argument("--json-out", required=True)
     command.add_argument("--backend-timeout", type=float, default=180.0)
-    for seat, default_provider, default_name, default_strategy in (
-        (0, "chatgpt_codex", "Codex Redraft", "win-now"),
-        (1, "claude_code", "Claude Dynasty", "long-game"),
+    for seat, default_name, default_strategy in (
+        (0, "Seat Zero", "win-now"),
+        (1, "Seat One", "long-game"),
     ):
-        command.add_argument(f"--seat{seat}-provider", choices=SUPPORTED_PROVIDERS, default=default_provider)
+        command.add_argument(f"--seat{seat}-provider", choices=SUPPORTED_PROVIDERS, required=True)
         command.add_argument(f"--seat{seat}-name", default=default_name)
         command.add_argument(f"--seat{seat}-strategy", choices=STRATEGIES, default=default_strategy)
         command.add_argument(f"--seat{seat}-model")

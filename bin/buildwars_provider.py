@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """buildwars-provider — read-only planning CLI for the customer provider hub.
 
-This tool plans connections and generates BuildWars pairing keys. It never:
+This tool describes known provider routes and generates BuildWars pairing keys.
+Known-but-disabled routes remain visible and explicitly non-executable. It never:
   * runs a login or opens a browser;
   * reads a credential file or inspects a secret value;
   * contacts the network;
   * claims an account is linked merely because a binary exists.
 
-Link state is always established by YOU running the provider's own command on
-your own machine. Exit codes: 0 success, 2 unknown provider (fail closed).
+For executable routes, link state is established by YOU using the provider's
+documented customer-side flow. Disabled routes provide no connection action.
+Exit codes: 0 success, 2 unknown provider (fail closed).
 """
 
 import argparse
@@ -77,11 +79,12 @@ def cmd_catalog_json(_args):
 def cmd_connect_plan(args):
     plan = connect_plan(args.provider)
     entry = get_provider(args.provider)
-    print(f"Connection plan - {plan['provider']} ({plan['display_name']})")
+    print(f"Provider route - {plan['provider']} ({plan['display_name']})")
     print(f"mode: {plan['connection_mode']}")
     print(f"transport: {entry['connection_transport']}")
     print(f"provider class: {entry['provider_class']}")
     print(f"harness class: {entry['harness_class']}")
+    print(f"execution: {'customer-local' if entry['local_execution'] else 'disabled'}")
     print(f"hosted route: {entry['hosted_route_status']}")
     print(f"evidence date: {entry['evidence_date']}")
     print()
@@ -118,15 +121,15 @@ def cmd_pair_keygen(_args):
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="buildwars_provider",
-        description="Read-only BuildWars provider hub planner.",
+        description="Read-only BuildWars provider route planner.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("catalog", help="list every supported provider (read-only)")
+    p = sub.add_parser("catalog", help="list every known provider route and availability (read-only)")
     p.add_argument("--json", action="store_true", dest="as_json")
     p.set_defaults(func=cmd_catalog)
 
-    p = sub.add_parser("connect-plan", help="steps to connect one provider, locally")
+    p = sub.add_parser("connect-plan", help="show the current plan or disabled state for one known provider")
     p.add_argument("provider", choices=PROVIDER_IDS)
     p.set_defaults(func=cmd_connect_plan)
 

@@ -27,7 +27,11 @@ from agent_identity.keys import (
     load_private_key_file,
     save_private_key_encrypted,
 )
-from provider_hub.catalog import PROVIDER_IDS, connection_mode_for
+from provider_hub.catalog import (
+    EXECUTABLE_PROVIDER_IDS,
+    PROVIDER_IDS,
+    connection_mode_for,
+)
 from provider_hub.local_runner import (
     PAIRING_PROTOCOL,
     RunnerClientError,
@@ -485,6 +489,8 @@ def validate_profile(value: object) -> dict[str, object]:
     provider_id = value["providerId"]
     if provider_id not in PROVIDER_IDS:
         raise RunnerStateError("runner profile provider is unsupported")
+    if provider_id not in EXECUTABLE_PROVIDER_IDS:
+        raise RunnerStateError("runner profile provider execution is disabled")
     if value["connectionMode"] != connection_mode_for(provider_id):
         raise RunnerStateError("runner profile connection mode contradicts the provider catalog")
     harness_digest = value["harnessDigest"]
@@ -541,6 +547,8 @@ def _validated_candidate(
 ) -> dict[str, str]:
     if provider_id not in PROVIDER_IDS:
         raise RunnerStateError("provider id is not in the closed AgentWars catalog")
+    if provider_id not in EXECUTABLE_PROVIDER_IDS:
+        raise RunnerStateError("provider execution is disabled by current policy")
     if not isinstance(harness_digest, str) or _HEX_64_RE.fullmatch(harness_digest) is None:
         raise RunnerStateError("harness digest is invalid")
     return {

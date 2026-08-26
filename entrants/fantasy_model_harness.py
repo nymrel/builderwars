@@ -26,7 +26,6 @@ STRATEGIES = ("win-now", "long-game")
 MAX_MODEL_OUTPUT_CHARS = 32768
 PROVIDER_CHOICES = (
     "chatgpt_codex",
-    "claude_code",
     "opencode",
     "openrouter",
     "hermes",
@@ -342,7 +341,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--backend", default=None,
-        help="entrant-side backend spec, e.g. stub:v1 or cli:claude -p",
+        help="entrant-side backend spec, e.g. stub:v1 or cli:ollama run model",
     )
     parser.add_argument(
         "--provider", choices=PROVIDER_CHOICES, default=None,

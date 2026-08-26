@@ -29,6 +29,17 @@ execution job must independently prove:
 Those requirements cannot be inferred from a successful local execution or
 evidence submission.
 
+## Current provider route gate
+
+Competition preparation, immutable plan loading, private evidence validation,
+the cross-provider CLI, provider links, runner capabilities, and runner pairing
+all derive their executable choices from the same current catalog subset:
+`chatgpt_codex`, `opencode`, `openrouter`, and `hermes`. `custom_agent` remains
+excluded from this public runner because arbitrary command isolation is not
+closed. `claude_code` remains catalog-visible but is disabled by current
+Anthropic third-party-product policy; a job or plan containing that id rejects
+before provider, subprocess, output-reservation, or upload work.
+
 ## Exact customer flow
 
 1. The signed-in owner creates a private competition submission job for one
@@ -162,6 +173,10 @@ streams, duplicate result receipts, false-attestation enforcement, private
 publication state, ranking refusal, missing consent, and absence of provider or
 network calls. Its synthetic source labels are test fixtures, not genuine model
 execution evidence.
+
+Current local results are 84 competition-evidence checks, 54 source-match
+preparation checks, and 86 prepared-match checks. Each suite includes a direct
+disabled-`claude_code` refusal and performs zero provider or network calls.
 
 ## Gates still closed
 

@@ -703,23 +703,21 @@ class CodexExecBackend(Backend):
 
 
 class ClaudePrintBackend(Backend):
-    """Claude Code via locally authenticated non-interactive `claude -p`.
+    """Quarantined Claude subscription adapter retained for future review.
 
-    UNMEASURED contract. One turn, text output, MCP servers strictly disabled
-    (--strict-mcp-config with none configured), safe mode, empty tool set, no
-    session persistence, no fallback model configured. The child environment
-    is the fixed path/config/locale/TLS allowlist — no host API-key variable can reach
-    this child to trigger accidental API billing; BuildWars still cannot
-    attest the auth method cached by Claude Code. Prompt on stdin.
+    Current Anthropic policy requires third-party products to use API-key
+    authentication unless previously approved. Construction therefore fails
+    before executable resolution or subprocess work. The old argv remains
+    visible only so a future sanctioned integration can be reviewed as a diff;
+    it is not an executable BuildWars route.
     """
 
     kind = "claude_print"
 
     def __init__(self, timeout_s=300, executable="claude", *, runtime_intent=None):
-        _require_runtime_intent(runtime_intent, "claude_code provider adapter")
-        self.executable = _argv_token(executable, "claude executable", 120)
-        self.timeout_s = _provider_timeout(timeout_s)
-        self.label = "claude_code:claude -p"
+        raise ValueError(
+            "claude_code subscription execution is disabled by current provider policy"
+        )
 
     def argv(self):
         return [
@@ -1120,8 +1118,12 @@ def get_provider_backend(provider_id, *, model=None, variant=None, command=None,
         raise RuntimeError(
             "provider hub package unavailable; run from a BuildWars checkout"
         ) from None
-    get_provider(provider_id)  # fails closed on unknown ids
+    entry = get_provider(provider_id)  # fails closed on unknown ids
     _require_runtime_intent(runtime_intent, f"{provider_id} provider adapter")
+    if entry["local_execution"] is not True:
+        raise ValueError(
+            f"{provider_id} execution is disabled by current provider policy"
+        )
     if provider_id != "custom_agent" and unsafe_custom_command_intent is not None:
         raise ValueError(
             "unsafe custom-command intent is valid only for custom_agent"
@@ -1188,7 +1190,11 @@ def execution_claim_for_provider(provider_id):
         raise RuntimeError(
             "provider hub package unavailable; run from a BuildWars checkout"
         ) from None
-    get_provider(provider_id)  # fails closed on unknown ids
+    entry = get_provider(provider_id)  # fails closed on unknown ids
+    if entry["local_execution"] is not True:
+        raise ValueError(
+            f"{provider_id} execution is disabled by current provider policy"
+        )
     return "model"
 
 
@@ -1205,7 +1211,7 @@ def get_backend(spec, timeout_s=None, *, runtime_intent=None):
     _require_runtime_intent(runtime_intent, "non-stub legacy backends")
     if kind == "cli":
         if not rest:
-            raise ValueError("cli backend needs a command, e.g. cli:claude -p")
+            raise ValueError("cli backend needs a command, e.g. cli:ollama run model")
         return CliBackend(rest, timeout_s) if timeout_s else CliBackend(rest)
     if kind == "api":
         if not rest:

@@ -50,7 +50,7 @@ from competitions.source_match import (  # noqa: E402
     write_source_match_plan,
 )
 from competitions.prepared_match import execute_prepared_match  # noqa: E402
-from provider_hub.catalog import PROVIDER_IDS  # noqa: E402
+from provider_hub.catalog import EXECUTABLE_PROVIDER_IDS  # noqa: E402
 from provider_hub.local_runner import (  # noqa: E402
     MAX_BODY_BYTES,
     PRODUCTION_ORIGIN,
@@ -717,7 +717,7 @@ def build_parser() -> argparse.ArgumentParser:
         "pair",
         help="claim a browser-created one-time secret with a new encrypted Ed25519 key",
     )
-    pair.add_argument("--provider", choices=PROVIDER_IDS, required=True)
+    pair.add_argument("--provider", choices=EXECUTABLE_PROVIDER_IDS, required=True)
     pair.add_argument("--display-label", required=True)
     pair.add_argument("--harness-id", required=True)
     pair.add_argument("--harness-version", required=True)

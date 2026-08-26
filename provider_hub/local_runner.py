@@ -31,7 +31,11 @@ from dataclasses import dataclass
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from provider_hub.catalog import PROVIDER_IDS, connection_mode_for
+from provider_hub.catalog import (
+    EXECUTABLE_PROVIDER_IDS,
+    PROVIDER_IDS,
+    connection_mode_for,
+)
 
 
 PAIRING_PROTOCOL = "agentwars.runner_pairing.v1"
@@ -325,6 +329,8 @@ def claim_payload(
     parse_pairing_secret(pairing_secret)
     if provider_id not in PROVIDER_IDS:
         raise RunnerClientError("provider id is not in the closed AgentWars catalog")
+    if provider_id not in EXECUTABLE_PROVIDER_IDS:
+        raise RunnerClientError("provider execution is disabled by current policy")
     if not isinstance(harness_digest, str) or _FINGERPRINT_RE.fullmatch(harness_digest) is None:
         raise RunnerClientError("harness digest must be 64 lowercase hexadecimal characters")
     if not isinstance(public_key, str) or _PUBLIC_KEY_RE.fullmatch(public_key) is None:

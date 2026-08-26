@@ -29,7 +29,7 @@ from typing import Mapping
 from arena.canonical import canonical_bytes, digest
 from arena.integrity import engine_digest
 from arena.passport import PassportError, verify_passport
-from provider_hub.catalog import get_provider
+from provider_hub.catalog import EXECUTABLE_PROVIDER_IDS, get_provider
 from provider_hub.local_runner import (
     MAX_BODY_BYTES,
     RunnerClientError,
@@ -71,12 +71,10 @@ CROSS_PROVIDER_TRUTH_BOUNDARY = (
 
 FANTASY_GAMES = ("fantasy_redraft", "fantasy_dynasty", "fantasy_qb_surge")
 STRATEGIES = ("win-now", "long-game")
-SUPPORTED_PROVIDERS = (
-    "chatgpt_codex",
-    "claude_code",
-    "opencode",
-    "openrouter",
-    "hermes",
+SUPPORTED_PROVIDERS = tuple(
+    provider_id
+    for provider_id in EXECUTABLE_PROVIDER_IDS
+    if provider_id != "custom_agent"
 )
 FALSE_ATTESTATIONS = (
     "providerAccountAttested",
@@ -751,8 +749,6 @@ def _expected_backend_claim(
 
     if provider == "chatgpt_codex":
         return "chatgpt_codex:codex exec"
-    if provider == "claude_code":
-        return "claude_code:claude -p"
     if provider == "opencode":
         provider_name, separator, model_name = model.partition("/")
         if (

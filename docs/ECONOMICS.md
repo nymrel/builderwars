@@ -1,6 +1,8 @@
-# Economics — why the engine never touches a model
+# Economics — why the arena separates adjudication from model execution
 
-**Decision: bring-your-own-runtime, entrant-side. The arena's cost per match is $0.**
+**Decision: bring-your-own-runtime, entrant-side. The arena engine makes no
+model call; platform infrastructure and customer provider usage are not free by
+definition.**
 
 This was settled before the architecture, because it determines the
 architecture. It is not a cost optimisation applied afterwards — it is the
@@ -10,29 +12,28 @@ reason entrants are subprocesses.
 
 ## What the prior lane already established
 
-A research lane looked at exactly this question on **2026-08-02** and the memo
-is `portfolio-control/reports/2026-08-02-user-ai-subscription-integration-paths.md`.
-Its central finding is binding here, quoted from primary sources rather than
-inferred:
+A research lane looked at this question on **2026-08-02** in
+`portfolio-control/reports/2026-08-02-user-ai-subscription-integration-paths.md`.
+Provider evidence was refreshed on **2026-08-26** because authentication and
+third-party product rules drift:
 
-- **Anthropic**, Claude Code legal & compliance page: Anthropic *"does not permit
-  third-party developers to offer Claude.ai login or to route requests through
-  Free, Pro, or Max plan credentials on behalf of their users."*
-- **OpenAI**, Terms of Use: *"You may not share your account credentials or make
-  your account available to anyone else."* Plus a separate prohibition on
-  programmatically extracting output. The community request for exactly this
-  feature — sign in with ChatGPT so third-party apps run on the user's plan —
-  was **closed as not planned on 2026-02-07**.
+- Anthropic's current legal and Agent SDK guidance says third-party products
+  must not offer Claude.ai login or route Free, Pro, or Max credentials without
+  approval. AgentWars therefore disables its direct Claude subscription route
+  as well as Claude subscription routing through intermediary harnesses.
+- OpenAI currently documents Sign in with ChatGPT for Codex and documents Codex
+  as a product-building platform through `codex exec`, the SDK, and app-server.
+  AgentWars may delegate to a customer-local official Codex client, but that is
+  not generic account sharing, provider OAuth, API credit, or model attestation.
+- OpenRouter documents a PKCE flow that returns a user-controlled API key. Nous
+  documents Nous Portal as a Hermes-owned subscription route. Those routes have
+  their own custody, cost, and permission boundaries.
 
-So the obvious version of "bring your own subscription" — an entrant connects
-their ChatGPT Plus or Claude Pro account to a hosted arena and we make calls for
-them — is **prohibited in writing by both providers**, not merely risky. That
-path is closed and nothing here asks anyone to violate a provider's terms.
-
-The same memo names the shape that *is* sanctioned: software **the user runs
-themselves, in their own environment, authenticating with their own credential**.
-The memo dismissed that shape for a consumer fitness product, correctly — asking
-a beginner to create an API console account is a wall of drop-off.
+There is no universal "bring your subscription" rule. Each executable route
+must have current provider evidence, stay customer-controlled where required,
+and fail closed when authorization is absent. A customer-local runner remains
+the v1 boundary because it minimizes credential custody and gives builders an
+explicit, inspectable execution environment.
 
 **An arena inverts that.** Its users are people who write harnesses. They already
 hold keys and already run CLIs. What was a fatal adoption barrier for
@@ -43,16 +44,17 @@ lane both providers permit.
 
 | | |
 |---|---|
-| **Cost per match** | **$0.** The engine issues no model calls. Scale is free. |
-| **Credential liability** | **None.** We never receive a key, so we cannot store, leak, or be breached of one. There is no custodian to be. |
-| **Revocation** | The entrant's own provider console. Immediate, and nothing to ask us for. |
-| **Vendor exposure** | Zero. A provider repricing, deprecating, or cutting off a model is the entrant's problem to route around, not an outage for the arena. |
-| **Model coverage** | Every model anyone can reach, including ones we have never heard of, with no integration work. |
+| **Arena inference cost** | **$0 per current match.** The adjudication engine issues no model call. Queue, storage, bandwidth, observability, abuse prevention, and support still cost money. |
+| **Customer execution cost** | Route-dependent. Local inference may be free after hardware cost; subscriptions have quotas; API and OpenRouter routes may incur usage charges. |
+| **Credential custody** | Reduced, not eliminated. Provider secrets stay customer-side, while BuildWars still protects pairing secrets, account data, and signed-job state. |
+| **Revocation** | Provider access is revoked at the provider; BuildWars pairing, publication, and account access require separate revocation and deletion controls. |
+| **Vendor exposure** | Limited by adapter boundaries, but provider policy, availability, quotas, pricing, and CLI changes can still disable a route. |
+| **Model coverage** | Extensible only where a customer has a permitted route and the harness can declare it truthfully. New routes still require policy and contract validation. |
 
-That last row matters more than the cost saving. An arena that integrates
-providers has a roadmap of provider integrations and a permanent lag behind new
-releases. An arena that runs subprocesses has neither: a new model is playable
-the day someone can call it.
+That last row matters more than the inference-cost saving. Subprocess adapters
+reduce central integration and credential custody, but a new model is playable
+only after the selected provider route, harness contract, and truth labels pass
+the current policy and verification gates.
 
 ## How the engine enforces it
 
@@ -69,8 +71,9 @@ Not by policy. By having nowhere to put a credential.
 `grep -rniE "api_key|anthropic|openai|urllib|requests|socket|http" arena/` returns
 **zero matches**, and `grep -rn "backends" arena/` returns zero — the engine has no
 import path to the model layer at all. The reference series ran 32 matches (24
-against a stub, 8 against a live local model) for **$0.00**, and 33 transcripts
-re-verify from disk.
+against a stub, 8 against a live local model) with **$0.00 measured provider
+spend**, and 33 transcripts re-verify from disk. This is local reference-series
+evidence, not a claim that production hosting or every customer route costs $0.
 
 ## The three backends an entrant can use
 
@@ -86,6 +89,8 @@ Every non-stub backend created through the supported harness factory now
 requires the explicit `--customer-local-v1` flag. `run_match.py` and
 `run_series.py` require and forward the same flag for non-stub runs. It records
 customer-local intent only; it is not account attestation or OS isolation.
+The catalog-visible `claude_code` backend is disabled before process creation;
+customer-local intent cannot override an unsupported provider route.
 
 `ollama` is worth noting: local inference is free, private, needs no account,
 and raises no terms question whatsoever. For anyone who wants to enter without
@@ -105,12 +110,15 @@ than a technical one — two divisions:
 - **Open division.** Anyone runs the engine locally, on their own access, and
   submits a hash-chained transcript. Anyone can replay-verify it. Free, open to
   everyone, labelled `unattested-model`.
-- **Verified division.** The match runs on hardware the arena controls, with the
-  entrant supplying their own API key scoped to that match, so the arena observes
-  the provider call. Costs the entrant, not us. Authoritative for the top of the
-  ladder.
+- **Verified division.** A future match runs inside arena-controlled isolation
+  through a separately sanctioned customer-owned provider route, so the arena
+  can observe the execution contract. It would incur platform compute/storage
+  costs and possibly customer provider charges. Its evidence class must still
+  distinguish runtime observation from independent model identity.
 
-The open division is the product. The verified division is the ladder above it.
-Neither requires the arena to buy a token, and **v1 ships the open division** —
-the verified division needs the OS-level jail listed as unenforced in
-`arena/sandbox.py:POLICY` before it would mean anything.
+The open division is the current local candidate. The verified division is a
+future ladder above it. Neither requires BuildWars to buy provider tokens in the
+current architecture, but both still have platform costs. The verified division
+also needs the OS-level jail listed as unenforced in `arena/sandbox.py:POLICY`,
+sanctioned provider routes, secret handling, and independent acceptance before
+it would mean anything.

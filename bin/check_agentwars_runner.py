@@ -43,6 +43,7 @@ from provider_hub.local_runner import (  # noqa: E402
     RunnerClientError,
     RunnerHttpError,
     canonical_runner_request,
+    claim_payload,
     claim_runner,
     digest_harness_file,
     public_key_material,
@@ -418,6 +419,33 @@ def check_state_and_roundtrip():
             "harness_version": "1.0.0",
             "harness_digest": harness_digest,
         }
+        expect_error(
+            lambda: claim_payload(
+                pairing_secret=PAIRING_SECRET,
+                provider_id="claude_code",
+                display_label="Disabled Claude Runner",
+                harness_id="agentwars-cli",
+                harness_version="1.0.0",
+                harness_digest=harness_digest,
+                public_key=public_key_material(Ed25519PrivateKey.generate()),
+            ),
+            RunnerClientError,
+            "disabled",
+        )
+        disabled_challenge = "E" * 22
+        expect_error(
+            lambda: store.prepare(
+                challenge_id=disabled_challenge,
+                passphrase=PASSPHRASE,
+                **{**candidate, "provider_id": "claude_code"},
+            ),
+            RunnerStateError,
+            "disabled",
+        )
+        check(
+            not any(disabled_challenge in str(path) for path in state_dir.rglob("*")),
+            "disabled provider creates no key or profile path",
+        )
         profile, key, created = store.prepare(
             challenge_id=CHALLENGE_ID,
             passphrase=PASSPHRASE,
@@ -433,7 +461,7 @@ def check_state_and_roundtrip():
         check(public_key_material(key_again) == public_key_material(key), "retry reuses key")
         for field, changed, profile_field in (
             ("endpoint_origin", "http://127.0.0.1:2", "endpointOrigin"),
-            ("provider_id", "claude_code", "providerId"),
+            ("provider_id", "opencode", "providerId"),
             ("display_label", "Changed Runner", "displayLabel"),
             ("harness_id", "changed-harness", "harnessId"),
             ("harness_version", "2.0.0", "harnessVersion"),
@@ -830,6 +858,33 @@ def check_claim_response_and_cli_argv():
     check(process.returncode == 2, "passphrase argv refused")
     check(passphrase_marker not in combined, "passphrase absent from argv error output")
     check("no-echo prompt" in combined, "passphrase argv refusal points to hidden prompt")
+
+    process = subprocess.run(
+        [
+            sys.executable,
+            os.path.join(ROOT, "bin", "agentwars.py"),
+            "runner",
+            "pair",
+            "--provider",
+            "claude_code",
+            "--display-label",
+            "Disabled Claude Runner",
+            "--harness-id",
+            "agentwars-cli",
+            "--harness-version",
+            "1.0.0",
+            "--harness-file",
+            os.path.join(ROOT, "entrants", "fantasy_model_harness.py"),
+        ],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    check(process.returncode == 2, "pair CLI refuses disabled claude_code")
+    check("claude_code" in process.stderr, "pair CLI explains the disabled selection")
 
     process = subprocess.run(
         [

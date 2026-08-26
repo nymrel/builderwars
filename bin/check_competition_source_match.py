@@ -86,7 +86,10 @@ def make_passports(root, harness_digest):
     for seat, (name, backend) in enumerate(
         (
             ("Codex Redraft", "chatgpt_codex:codex exec"),
-            ("Claude Dynasty", "claude_code:claude -p"),
+            (
+                "OpenCode Dynasty",
+                "opencode-provider:opencode-go/ox-alpha-free@max",
+            ),
         )
     ):
         passport = sign_passport(
@@ -106,10 +109,24 @@ def make_passports(root, harness_digest):
 def job_payload(harness_digest, passports=None):
     passport_rows = passports or (None, None)
     seats = []
-    for seat, (name, provider, backend, strategy) in enumerate(
+    for seat, (name, provider, model, variant, backend, strategy) in enumerate(
         (
-            ("Codex Redraft", "chatgpt_codex", "chatgpt_codex:codex exec", "win-now"),
-            ("Claude Dynasty", "claude_code", "claude_code:claude -p", "long-game"),
+            (
+                "Codex Redraft",
+                "chatgpt_codex",
+                None,
+                None,
+                "chatgpt_codex:codex exec",
+                "win-now",
+            ),
+            (
+                "OpenCode Dynasty",
+                "opencode",
+                "opencode-go/ox-alpha-free",
+                "max",
+                "opencode-provider:opencode-go/ox-alpha-free@max",
+                "long-game",
+            ),
         )
     ):
         passport = passport_rows[seat]
@@ -118,8 +135,8 @@ def job_payload(harness_digest, passports=None):
                 "seat": seat,
                 "entrant": name,
                 "providerClaim": provider,
-                "selectedModelClaim": None,
-                "variantClaim": None,
+                "selectedModelClaim": model,
+                "variantClaim": variant,
                 "backendClaim": backend,
                 "strategy": strategy,
                 "agentId": None if passport is None else passport["agentId"],
@@ -257,7 +274,9 @@ def check_signed_plan(root):
         "fixed match parser accepts exact seat zero",
     )
     check(
-        parsed.seat1_provider == "claude_code",
+        parsed.seat1_provider == "opencode"
+        and parsed.seat1_model == "opencode-go/ox-alpha-free"
+        and parsed.seat1_variant == "max",
         "fixed match parser accepts exact seat one",
     )
     check(
@@ -376,9 +395,21 @@ def check_legacy_and_hostile(root, runner_profile, passports, passport_paths):
     same_provider["seats"][1] = {
         **same_provider["seats"][1],
         "providerClaim": "chatgpt_codex",
+        "selectedModelClaim": None,
+        "variantClaim": None,
         "backendClaim": "chatgpt_codex:codex exec",
     }
     expect_error(lambda: validate_ready(runner_profile, same_provider), "must differ")
+    disabled_provider = job_payload(harness_digest, passports)
+    disabled_provider["seats"][1].update(
+        {
+            "providerClaim": "claude_code",
+            "selectedModelClaim": None,
+            "variantClaim": None,
+            "backendClaim": "claude_code:claude -p",
+        }
+    )
+    expect_error(lambda: validate_ready(runner_profile, disabled_provider), "unsupported")
 
     busy = {
         **response_base(runner_profile, request_sha),

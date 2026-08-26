@@ -32,7 +32,12 @@ Hard rules enforced here:
 import json
 import re
 
-from provider_hub.catalog import PROVIDER_IDS, get_provider, model_required_for
+from provider_hub.catalog import (
+    EXECUTABLE_PROVIDER_IDS,
+    PROVIDER_IDS,
+    get_provider,
+    model_required_for,
+)
 from provider_hub.ids import id_is_valid, key_id_is_valid
 
 SCHEMA_NAMES = (
@@ -343,6 +348,8 @@ def validate_provider_link(payload):
         s, "provider", payload["provider"], lambda v: v in PROVIDER_IDS, str
     )
     entry = get_provider(provider)
+    if entry["local_execution"] is not True:
+        raise SchemaError(f"{s}.provider: execution is currently unsupported")
     custody = _require(
         s,
         "credential_custody",
@@ -417,6 +424,8 @@ def validate_provider_link_v2(payload):
         s, "provider", payload["provider"], lambda v: v in PROVIDER_IDS, str
     )
     entry = get_provider(provider)
+    if entry["local_execution"] is not True:
+        raise SchemaError(f"{s}.provider: execution is currently unsupported")
     connection_mode = _require(
         s,
         "connection_mode",
@@ -539,7 +548,13 @@ def validate_runner_capabilities(payload):
     providers = payload["providers"]
     _require(s, "providers", providers, lambda v: isinstance(v, list) and bool(v), list)
     for item in providers:
-        _require(s, "providers[]", item, lambda x: x in PROVIDER_IDS, str)
+        _require(
+            s,
+            "providers[]",
+            item,
+            lambda x: x in EXECUTABLE_PROVIDER_IDS,
+            str,
+        )
     if not _sorted_unique(providers):
         raise SchemaError(f"{s}.providers: must be sorted and unique")
     games = payload["games"]

@@ -89,12 +89,25 @@ def parse(argv):
     return candidate.parser().parse_args(argv)
 
 
-def base_argv(out_root, summary_path):
+def routing_argv(out_root, summary_path):
     return [
         "--out",
         str(out_root),
         "--json-out",
         str(summary_path),
+        "--seat0-provider",
+        "chatgpt_codex",
+        "--seat1-provider",
+        "opencode",
+        "--seat1-model",
+        "opencode-go/ox-alpha-free",
+        "--seat1-variant",
+        "max",
+    ]
+
+
+def base_argv(out_root, summary_path):
+    return routing_argv(out_root, summary_path) + [
         "--customer-local-v1",
         "--provider-usage-v1",
     ]
@@ -103,7 +116,6 @@ def base_argv(out_root, summary_path):
 def check_provider_manifests(work):
     cases = (
         ("chatgpt_codex", None, None),
-        ("claude_code", None, None),
         ("opencode", "opencode-go/ox-alpha-free", "max"),
         ("openrouter", "openai/gpt-5:free", None),
         ("hermes", "nous/hermes-4", None),
@@ -166,6 +178,12 @@ def check_provider_manifests(work):
     expect_error(
         lambda: candidate.build_seat_runtime(
             candidate.SeatSpec("Unsafe", "custom_agent", "win-now"), backend_timeout=180
+        ),
+        "provider_not_supported_for_public_runner",
+    )
+    expect_error(
+        lambda: candidate.build_seat_runtime(
+            candidate.SeatSpec("Disabled Claude", "claude_code", "win-now"), backend_timeout=180
         ),
         "provider_not_supported_for_public_runner",
     )
@@ -286,30 +304,28 @@ def check_provider_manifests(work):
             check(error.code == 2, "CLI parser refuses custom_agent")
         else:
             raise AssertionError("CLI parser accepted custom_agent")
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        try:
+            parse(base_argv(work / "no-claude", work / "no-claude.json") + ["--seat0-provider", "claude_code"])
+        except SystemExit as error:
+            check(error.code == 2, "CLI parser refuses disabled claude_code")
+        else:
+            raise AssertionError("CLI parser accepted disabled claude_code")
 
 
 def check_preflight_refusals(work):
-    args = parse(["--out", str(work / "missing-intent"), "--json-out", str(work / "missing-intent.json")])
+    args = parse(routing_argv(work / "missing-intent", work / "missing-intent.json"))
     expect_error(lambda: candidate.run(args), "explicit_customer_provider_intent_required")
 
     local_only = parse(
-        [
-            "--out",
-            str(work / "local-only"),
-            "--json-out",
-            str(work / "local-only.json"),
-            "--customer-local-v1",
-        ]
+        routing_argv(work / "local-only", work / "local-only.json")
+        + ["--customer-local-v1"]
     )
     expect_error(lambda: candidate.run(local_only), "explicit_customer_provider_intent_required")
     provider_only = parse(
-        [
-            "--out",
-            str(work / "provider-only"),
-            "--json-out",
-            str(work / "provider-only.json"),
-            "--provider-usage-v1",
-        ]
+        routing_argv(work / "provider-only", work / "provider-only.json")
+        + ["--provider-usage-v1"]
     )
     expect_error(lambda: candidate.run(provider_only), "explicit_customer_provider_intent_required")
     check(not (work / "local-only").exists(), "single local-consent flag creates no output")
@@ -342,13 +358,23 @@ def check_preflight_refusals(work):
     check(summary.read_text(encoding="utf-8") == "preserve", "occupied summary is untouched")
 
     args = parse(
-        base_argv(work / "same-provider", work / "same-provider.json")
-        + ["--seat1-provider", "chatgpt_codex"]
+        [
+            "--out",
+            str(work / "same-provider"),
+            "--json-out",
+            str(work / "same-provider.json"),
+            "--seat0-provider",
+            "chatgpt_codex",
+            "--seat1-provider",
+            "chatgpt_codex",
+            "--customer-local-v1",
+            "--provider-usage-v1",
+        ]
     )
     expect_error(lambda: candidate.run(args), "provider_claims_must_differ")
     check(not (work / "same-provider").exists(), "same-provider refusal occurs before a match starts")
 
-    args = parse(base_argv(work / "duplicate-name", work / "duplicate-name.json") + ["--seat1-name", "codex redraft"])
+    args = parse(base_argv(work / "duplicate-name", work / "duplicate-name.json") + ["--seat1-name", "seat zero"])
     expect_error(lambda: candidate.run(args), "entrant_names_not_unique")
     check(not (work / "duplicate-name").exists(), "duplicate-name refusal occurs before a match starts")
 
@@ -525,7 +551,7 @@ def summary_with_counts(result, report, runtimes, scores, counts):
 def check_offline_match_and_summary(work):
     runtimes = [
         stub_runtime("Offline Codex Claim", "chatgpt_codex", "win-now", "seat0"),
-        stub_runtime("Offline Claude Claim", "claude_code", "long-game", "seat1"),
+        stub_runtime("Offline OpenCode Claim", "opencode", "long-game", "seat1"),
     ]
     with (
         mock.patch.object(socket, "socket", side_effect=AssertionError("network forbidden in offline checker")),
@@ -830,7 +856,7 @@ def check_main_success_contracts(work):
     def runtimes():
         return [
             stub_runtime("CLI Codex Claim", "chatgpt_codex", "win-now", "cli-seat0"),
-            stub_runtime("CLI Claude Claim", "claude_code", "long-game", "cli-seat1"),
+            stub_runtime("CLI OpenCode Claim", "opencode", "long-game", "cli-seat1"),
         ]
 
     def run_case(name, counts, expected_status, expected_truth_status):
@@ -881,7 +907,7 @@ def check_main_failure_envelope(work):
 
     stderr = io.StringIO()
     with contextlib.redirect_stderr(stderr):
-        status = candidate.main(["--out", str(work / "blocked"), "--json-out", str(work / "blocked.json")])
+        status = candidate.main(routing_argv(work / "blocked", work / "blocked.json"))
     payload = json.loads(stderr.getvalue())
     check(status == 1, "main returns bounded blocked status")
     check(

@@ -1,9 +1,10 @@
 """BuildWars customer provider hub — customer side only.
 
-This package lets a BuildWars customer represent, plan, pair, and route their
-own ChatGPT/Codex, Claude Code, OpenCode, OpenRouter, Hermes, or custom-agent
-access into an AgentWars entrant while every provider credential stays in
-customer custody.
+This package lets a BuildWars customer inspect six known provider/harness
+routes, then plan, pair, and route only the currently executable ones into an
+AgentWars entrant while every provider credential stays in customer custody.
+Known-but-disabled routes remain visible so policy cannot silently become an
+execution path.
 
 Nothing here ever touches ``arena/**``. The engine cannot import this package
 and this package never imports the engine; ``bin/check_provider_hub.py``
@@ -21,11 +22,13 @@ Layers:
 
 from provider_hub.catalog import (
     CONNECTION_MODES,
+    EXECUTABLE_PROVIDER_IDS,
     PROVIDER_IDS,
     ProviderError,
     connection_mode_for,
     connect_plan,
     get_provider,
+    local_execution_available_for,
     public_catalog,
 )
 from provider_hub.ids import ID_PREFIXES, id_is_valid, new_id
@@ -62,6 +65,7 @@ __all__ = [
     "ID_PREFIXES",
     "InMemoryReplayGuard",
     "CONNECTION_MODES",
+    "EXECUTABLE_PROVIDER_IDS",
     "PROVIDER_IDS",
     "PairingKey",
     "PkceError",
@@ -84,6 +88,7 @@ __all__ = [
     "new_id",
     "new_callback_path",
     "new_verifier",
+    "local_execution_available_for",
     "parse_callback",
     "parse_exchange_response",
     "public_catalog",

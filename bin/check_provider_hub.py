@@ -40,6 +40,7 @@ from provider_hub import catalog as catalog_mod  # noqa: E402
 from provider_hub import pkce as pkce_mod  # noqa: E402
 from provider_hub.catalog import (  # noqa: E402
     CONNECTION_MODES,
+    EXECUTABLE_PROVIDER_IDS,
     PROVIDER_IDS,
     PROVIDER_POLICY_EVIDENCE_DATE,
     PROVIDER_POLICY_SCHEMA_VERSION,
@@ -48,6 +49,7 @@ from provider_hub.catalog import (  # noqa: E402
     connection_mode_for,
     connect_plan,
     get_provider,
+    local_execution_available_for,
     model_required_for,
     public_catalog,
     transport_for,
@@ -233,6 +235,9 @@ def check_catalog():
         "chatgpt_codex", "claude_code", "opencode", "openrouter", "hermes",
         "custom_agent",
     ), "catalog must be exactly the six contracted providers")
+    require(EXECUTABLE_PROVIDER_IDS == (
+        "chatgpt_codex", "opencode", "openrouter", "hermes", "custom_agent",
+    ), "executable provider subset is exact and excludes blocked Claude")
     listing = public_catalog()
     require([pid for pid, _ in listing] == list(PROVIDER_IDS), "canonical order")
 
@@ -258,13 +263,19 @@ def check_catalog():
         require(entry["credential_custody"] == "customer_only", f"{pid}: custody")
         require(entry["connection_transport"] in allowed_transports, f"{pid}: transport")
         require(entry["connection_mode"] in CONNECTION_MODES, f"{pid}: connection mode")
-        require(entry["connection_mode"] != "unsupported",
-                f"{pid}: supported provider cannot select unsupported")
         require(len(entry["auth_plan"]) >= 2, f"{pid}: plan must have real steps")
         require(len(entry["status_plan"]) > 10, f"{pid}: status guidance required")
         require(isinstance(entry["model_required"], bool), f"{pid}: model_required")
         require(len(entry["limitations"]) >= 1, f"{pid}: limitations declared")
-        require(entry["local_execution"] is True, f"{pid}: local v1 only")
+        if pid == "claude_code":
+            require(entry["connection_mode"] == "unsupported",
+                    "Claude route stays visibly unsupported")
+            require(entry["local_execution"] is False,
+                    "Claude route disables execution")
+        else:
+            require(entry["connection_mode"] != "unsupported",
+                    f"{pid}: executable provider cannot select unsupported")
+            require(entry["local_execution"] is True, f"{pid}: local v1 only")
         require(entry["evidence_date"] == PROVIDER_POLICY_EVIDENCE_DATE,
                 f"{pid}: evidence date")
         require(entry["hosted_route_status"] in {
@@ -280,25 +291,33 @@ def check_catalog():
     require(connection_mode_for("openrouter") == "web_oauth_pkce", "pkce mode")
     require(connection_mode_for("chatgpt_codex") == "local_subscription_session",
             "Codex subscription stays local")
-    require(connection_mode_for("claude_code") == "local_subscription_session",
-            "Claude subscription stays local")
+    require(connection_mode_for("claude_code") == "unsupported",
+            "Claude subscription route is disabled")
+    require(local_execution_available_for("claude_code") is False,
+            "Claude execution gate is closed")
     require(connection_mode_for("opencode") == "local_provider_session",
             "OpenCode is a local provider session")
     require(connection_mode_for("hermes") == "local_provider_session",
             "Hermes is a local provider session")
     require(connection_mode_for("custom_agent") == "local_runtime",
             "custom command is a local runtime")
-    require(not {"local_api_key", "unsupported"} & {
+    require("local_api_key" not in {
         entry["connection_mode"] for _pid, entry in listing
-    }, "reserved modes cannot silently enable a provider")
-    for reserved_mode in ("local_api_key", "unsupported"):
-        raw_entry = copy.deepcopy(catalog_mod._CATALOG["openrouter"])
-        raw_entry["connection_mode"] = reserved_mode
-        expect_error(
-            lambda raw_entry=raw_entry: catalog_mod._freeze(raw_entry),
-            RuntimeError,
-            "reserved connection mode",
-        )
+    }, "reserved local_api_key cannot silently enable a provider")
+    require({pid for pid, entry in listing if entry["connection_mode"] == "unsupported"}
+            == {"claude_code"}, "only the fail-closed Claude route is unsupported")
+    raw_entry = copy.deepcopy(catalog_mod._CATALOG["openrouter"])
+    raw_entry["connection_mode"] = "local_api_key"
+    expect_error(lambda: catalog_mod._freeze(raw_entry), RuntimeError, "local_api_key")
+    raw_entry = copy.deepcopy(catalog_mod._CATALOG["openrouter"])
+    raw_entry["connection_mode"] = "unsupported"
+    expect_error(lambda: catalog_mod._freeze(raw_entry), RuntimeError, "disable local")
+    raw_entry["local_execution"] = False
+    require(catalog_mod._freeze(raw_entry)["connection_mode"] == "unsupported",
+            "unsupported plus disabled execution is a valid fail-closed route")
+    raw_entry = copy.deepcopy(catalog_mod._CATALOG["openrouter"])
+    raw_entry["local_execution"] = False
+    expect_error(lambda: catalog_mod._freeze(raw_entry), RuntimeError, "executable")
     require(model_required_for("hermes") is True, "hermes needs a model")
     require(backend_kind_for("custom_agent") == "custom_cli", "custom kind")
 
@@ -520,7 +539,7 @@ def check_schemas():
     # provider_link specifics
     expect_error(lambda: validate_envelope(link_payload(provider="not_real")), SchemaError)
     expect_error(lambda: validate_envelope(link_payload(provider="claude_code")),
-                 SchemaError, "contradicts")  # transport/model facts disagree
+                 SchemaError, "unsupported")
     expect_error(lambda: validate_envelope(
         link_payload(credential_custody="platform_escrow")), SchemaError, "custody")
     expect_error(lambda: validate_envelope(
@@ -561,11 +580,18 @@ def check_schemas():
             model_required=entry["model_required"],
             model_declared=("provider/model" if entry["model_required"] else None),
         )
-        validated_link = validate_envelope(provider_link)
-        require(validated_link["provider"] == provider_id,
-                f"{provider_id}: v2 provider retained")
-        require(validated_link["connection_mode"] == entry["connection_mode"],
-                f"{provider_id}: v2 catalog mode retained")
+        if entry["local_execution"] is True:
+            validated_link = validate_envelope(provider_link)
+            require(validated_link["provider"] == provider_id,
+                    f"{provider_id}: v2 provider retained")
+            require(validated_link["connection_mode"] == entry["connection_mode"],
+                    f"{provider_id}: v2 catalog mode retained")
+        else:
+            expect_error(
+                lambda provider_link=provider_link: validate_envelope(provider_link),
+                SchemaError,
+                "unsupported",
+            )
     expect_error(lambda: validate_envelope(
         link_v2_payload(connection_mode="local_subscription_session")),
         SchemaError, "connection_mode")
@@ -602,6 +628,8 @@ def check_schemas():
                  SchemaError, "exactly false")
     expect_error(lambda: validate_envelope(capabilities_payload(providers=[])), SchemaError)
     expect_error(lambda: validate_envelope(capabilities_payload(providers=["nope"])), SchemaError)
+    expect_error(lambda: validate_envelope(capabilities_payload(providers=["claude_code"])),
+                 SchemaError)
     expect_error(lambda: validate_envelope(
         capabilities_payload(providers=["openrouter", "chatgpt_codex"])), SchemaError, "sorted")
     expect_error(lambda: validate_envelope(capabilities_payload(protocol="arena/2")),
@@ -1230,31 +1258,17 @@ def check_adapters():
     require("exited 2" in str(err) and "sk-" + "proj" not in str(err),
             "failure surfaces only the exit code")
 
-    # --- claude ---
+    # --- claude subscription route is policy-disabled before resolution ---
     cap = _RunCapture(stdout=b"move\n")
-    with mock.patch.dict(os.environ, {
-            "ANTHROPIC_API_KEY": "must-strip", "ANTHROPIC_AUTH_TOKEN": "strip-too"}), \
-            mock.patch("entrants.backends.shutil.which", return_value="/fake/claude"), \
+    with mock.patch("entrants.backends.shutil.which") as which, \
             mock.patch("entrants.backends.subprocess.run", cap):
-        backends.ClaudePrintBackend(
-            60, runtime_intent=runtime_intent
-        ).complete("pick one")
-    argv, kwargs = cap.calls[0]
-    require(argv[0] == "/fake/claude" and argv[1] == "-p", "non-interactive print mode")
-    for flag in ("--output-format", "--max-turns", "--strict-mcp-config",
-                 "--no-session-persistence", "--safe-mode", "--tools"):
-        require(flag in argv, f"claude safety flag {flag}")
-    require(argv[argv.index("--output-format") + 1] == "text", "text output")
-    require(argv[argv.index("--max-turns") + 1] == "1", "single turn")
-    require(argv[argv.index("--tools") + 1] == "", "built-in tools disabled")
-    require("--fallback-model" not in argv, "no fallback model configured")
-    require("ANTHROPIC_API_KEY" not in kwargs["env"] and
-            "ANTHROPIC_AUTH_TOKEN" not in kwargs["env"], "API env removed")
-    require(
-        backends.ClaudePrintBackend(60, runtime_intent=runtime_intent).label
-        == "claude_code:claude -p",
-        "label",
-    )
+        expect_error(
+            lambda: backends.ClaudePrintBackend(60, runtime_intent=runtime_intent),
+            ValueError,
+            "disabled",
+        )
+    require(which.call_count == 0 and cap.calls == [],
+            "disabled Claude route performs no executable or subprocess work")
 
     # --- legacy opencode remains byte-compatible when --provider is omitted ---
     expect_error(lambda: backends.OpenCodeBackend("has space"), ValueError)
@@ -1463,7 +1477,6 @@ def check_adapters():
     # --- resolution table ---
     for pid, cls in (
         ("chatgpt_codex", backends.CodexExecBackend),
-        ("claude_code", backends.ClaudePrintBackend),
         ("opencode", backends.OpenCodeProviderBackend),
         ("openrouter", backends.OpenRouterChatBackend),
         ("hermes", backends.HermesOneshotBackend),
@@ -1474,6 +1487,10 @@ def check_adapters():
                 f"{pid} resolves to its catalog-declared adapter kind")
     require(backends.execution_claim_for_provider("chatgpt_codex") == "model",
             "provider adapters claim model execution")
+    expect_error(lambda: backends.get_provider_backend(
+        "claude_code", runtime_intent=runtime_intent), ValueError, "disabled")
+    expect_error(lambda: backends.execution_claim_for_provider("claude_code"),
+                 ValueError, "disabled")
     expect_error(lambda: backends.get_provider_backend(
         "totally_unknown", runtime_intent=runtime_intent), ProviderError)
     expect_error(lambda: backends.get_provider_backend(
@@ -1544,13 +1561,25 @@ def _namespace(**kw):
 
 def check_harnesses():
     banner("7 harnesses")
+    import competitions.evidence_job as competition_jobs
     import entrants.fantasy_model_harness as fantasy
     import entrants.ten_fronts_model_harness as fronts
+    import run_agentwars_cross_provider_match as cross_provider
     from entrants.backends import get_backend
 
     # provider choices identical in both harnesses
     require(fantasy.PROVIDER_CHOICES == fronts.PROVIDER_CHOICES, "choice parity")
-    require(set(fantasy.PROVIDER_CHOICES) == set(PROVIDER_IDS), "choices equal catalog")
+    require(set(fantasy.PROVIDER_CHOICES) == set(EXECUTABLE_PROVIDER_IDS),
+            "choices equal executable catalog subset")
+    public_match_providers = tuple(
+        provider_id
+        for provider_id in EXECUTABLE_PROVIDER_IDS
+        if provider_id != "custom_agent"
+    )
+    require(competition_jobs.SUPPORTED_PROVIDERS == public_match_providers,
+            "competition jobs equal executable non-arbitrary subset")
+    require(cross_provider.SUPPORTED_PROVIDERS == public_match_providers,
+            "cross-provider runner equals executable non-arbitrary subset")
 
     # mutual exclusion + requirement rules
     expect_error(lambda: fantasy.build_backend(_namespace()), SystemExit)
@@ -1952,7 +1981,12 @@ _PY_COMPILE_TARGETS = [
     "provider_hub/schemas.py",
     "provider_hub/secrets.py",
     "provider_hub/signing.py",
+    "provider_hub/local_runner.py",
+    "provider_hub/runner_state.py",
     "competitions/evidence_job.py",
+    "competitions/prepared_match.py",
+    "competitions/source_match.py",
+    "publishing/promotion.py",
     "entrants/backends.py",
     "entrants/fantasy_model_harness.py",
     "entrants/naive_harness.py",
@@ -1960,8 +1994,14 @@ _PY_COMPILE_TARGETS = [
     "entrants/ten_fronts_model_harness.py",
     "bin/buildwars_provider.py",
     "bin/check_provider_hub.py",
+    "bin/check_agentwars_runner.py",
     "bin/check_competition_evidence_job.py",
+    "bin/check_competition_prepared_match.py",
+    "bin/check_competition_source_match.py",
+    "bin/check_cross_provider_match.py",
+    "bin/check_publication_candidate.py",
     "bin/agentwars.py",
+    "bin/run_agentwars_cross_provider_match.py",
     "bin/run_agentwars_ox_match.py",
     "bin/run_match.py",
     "bin/run_series.py",
@@ -1969,6 +2009,11 @@ _PY_COMPILE_TARGETS = [
 
 _LADDER = [
     [sys.executable, "bin/check_competition_evidence_job.py"],
+    [sys.executable, "bin/check_competition_source_match.py"],
+    [sys.executable, "bin/check_competition_prepared_match.py"],
+    [sys.executable, "bin/check_cross_provider_match.py"],
+    [sys.executable, "bin/check_agentwars_runner.py"],
+    [sys.executable, "-B", "bin/check_publication_candidate.py"],
     [sys.executable, "bin/check_agentwars_scale.py"],
     [sys.executable, "bin/check_share_bundle.py"],
     [sys.executable, "bin/check_agentwars_product.py"],

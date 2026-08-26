@@ -154,6 +154,7 @@ def check_unsigned_provider_options(root: Path) -> None:
         {
             "providerClaim": "hermes",
             "selectedModelClaim": "nousresearch/hermes-3",
+            "variantClaim": None,
             "backendClaim": "hermes:nousresearch/hermes-3",
         }
     )
@@ -242,6 +243,18 @@ def check_hostile_plans(root: Path, plan_path: Path, plan: dict, passport_paths)
                 "backendClaim": value["seats"][0]["backendClaim"],
                 "selectedModelClaim": value["seats"][0]["selectedModelClaim"],
                 "variantClaim": value["seats"][0]["variantClaim"],
+            }
+        ),
+    )
+    add(
+        "disabled provider route",
+        "provider is unsupported",
+        lambda value: value["seats"][1].update(
+            {
+                "providerClaim": "claude_code",
+                "selectedModelClaim": None,
+                "variantClaim": None,
+                "backendClaim": "claude_code:claude -p",
             }
         ),
     )

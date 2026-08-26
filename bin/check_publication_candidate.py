@@ -134,19 +134,19 @@ def _build_transcript(work: str) -> str:
             "execution_claim": "model",
         },
         {
-            "name": "Claude Dynasty",
+            "name": "OpenCode Dynasty",
             "cmd": [
                 sys.executable,
                 harness,
                 "--name",
-                "Claude Dynasty",
+                "OpenCode Dynasty",
                 "--backend",
-                "claude_code:claude -p",
+                "opencode-provider:opencode-go/ox-alpha-free@max",
                 "--strategy",
                 "long-game",
             ],
             "env": [],
-            "claimed_model": "claude_code:claude -p",
+            "claimed_model": "opencode-provider:opencode-go/ox-alpha-free@max",
             "execution_claim": "model",
         },
     ]
@@ -198,11 +198,11 @@ def _build_export(transcript_path: str) -> dict:
             },
             {
                 "seat": 1,
-                "entrant": "Claude Dynasty",
-                "providerClaim": "claude_code",
-                "selectedModelClaim": None,
-                "variantClaim": None,
-                "backendClaim": "claude_code:claude -p",
+                "entrant": "OpenCode Dynasty",
+                "providerClaim": "opencode",
+                "selectedModelClaim": "opencode-go/ox-alpha-free",
+                "variantClaim": "max",
+                "backendClaim": "opencode-provider:opencode-go/ox-alpha-free@max",
                 "strategy": "long-game",
                 "agentId": None,
                 "versionId": None,
@@ -246,14 +246,14 @@ def _build_export(transcript_path: str) -> dict:
             },
             {
                 "seat": 1,
-                "entrant": "Claude Dynasty",
-                "providerClaim": "claude_code",
-                "selectedModelClaim": None,
-                "variantClaim": None,
-                "connectionModeClaim": "local_subscription_session",
-                "providerClass": "official_local_client_delegation",
-                "harnessClass": "official_first_party_cli",
-                "backendClaim": "claude_code:claude -p",
+                "entrant": "OpenCode Dynasty",
+                "providerClaim": "opencode",
+                "selectedModelClaim": "opencode-go/ox-alpha-free",
+                "variantClaim": "max",
+                "connectionModeClaim": "local_provider_session",
+                "providerClass": "route_dependent_harness",
+                "harnessClass": "third_party_local_harness",
+                "backendClaim": "opencode-provider:opencode-go/ox-alpha-free@max",
                 "strategy": "long-game",
                 "score": outcome["scores"][1],
                 "moveSourceClaims": {key: counts[1][key] for key in ("model", "fallback", "scripted", "other")},
@@ -502,6 +502,23 @@ def main() -> int:
         attested = copy.deepcopy(valid)
         attested["case"]["modelAttested"] = True
         expect_refusal("true attestation is refused", ROOT, work, attested, "overstates")
+
+        disabled_provider = copy.deepcopy(valid)
+        disabled_provider["case"]["job"]["seats"][1].update(
+            {
+                "providerClaim": "claude_code",
+                "selectedModelClaim": None,
+                "variantClaim": None,
+                "backendClaim": "claude_code:claude -p",
+            }
+        )
+        expect_refusal(
+            "disabled provider claim is refused",
+            ROOT,
+            work,
+            disabled_provider,
+            "unsupported",
+        )
 
         projection_swap = copy.deepcopy(valid)
         projection_body = json.loads(projection_swap["case"]["privateEvidence"]["body"])

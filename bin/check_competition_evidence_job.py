@@ -65,7 +65,17 @@ def token(prefix, fill):
     return prefix + base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
 
-def stub_runtime(name, provider, strategy, label, passport_path=None, *, stub_backend):
+def stub_runtime(
+    name,
+    provider,
+    strategy,
+    label,
+    passport_path=None,
+    *,
+    stub_backend,
+    model=None,
+    variant=None,
+):
     harness = os.path.join(ROOT, "entrants", "fantasy_model_harness.py")
     manifest = {
         "name": name,
@@ -92,6 +102,8 @@ def stub_runtime(name, provider, strategy, label, passport_path=None, *, stub_ba
             name,
             provider,
             strategy,
+            model=model,
+            variant=variant,
             passport_path=None if passport_path is None else str(passport_path),
         ),
         backend_label=label,
@@ -142,8 +154,11 @@ def force_model_source_claims(path, ready_labels):
 
 def generate_evidence(root, *, signed_passports):
     harness_digest = file_digest(os.path.join(ROOT, "entrants", "fantasy_model_harness.py"))
-    names = ("Offline Codex", "Offline Claude")
-    labels = ("chatgpt_codex:codex exec", "claude_code:claude -p")
+    names = ("Offline Codex", "Offline OpenCode")
+    labels = (
+        "chatgpt_codex:codex exec",
+        "opencode-provider:opencode-go/ox-alpha-free@max",
+    )
     passport_paths = [None, None]
     passports = [None, None]
     if signed_passports:
@@ -172,11 +187,13 @@ def generate_evidence(root, *, signed_passports):
         ),
         stub_runtime(
             names[1],
-            "claude_code",
+            "opencode",
             "long-game",
             labels[1],
             passport_paths[1],
             stub_backend="stub:seat1",
+            model="opencode-go/ox-alpha-free",
+            variant="max",
         ),
     ]
     match_root = root / ("signed-match" if signed_passports else "legacy-match")
@@ -456,6 +473,21 @@ def check_hostile_contracts(root, state):
         ),
         "provider claims must differ",
     )
+    disabled_provider = copy.deepcopy(poll)
+    disabled_provider["job"]["seats"][1].update(
+        {
+            "providerClaim": "claude_code",
+            "selectedModelClaim": None,
+            "variantClaim": None,
+            "backendClaim": "claude_code:claude -p",
+        }
+    )
+    expect_error(
+        lambda: job.validate_competition_poll_response(
+            disabled_provider, profile=profile, request_body_sha256=request_sha
+        ),
+        "provider claim is unsupported",
+    )
     partial = copy.deepcopy(poll)
     partial["job"]["seats"][1]["agentId"] = None
     partial["job"]["seats"][1]["versionId"] = None
@@ -513,7 +545,7 @@ def check_hostile_contracts(root, state):
         "model claim is required",
     )
     invalid_variant = copy.deepcopy(poll)
-    invalid_variant["job"]["seats"][1]["variantClaim"] = "max"
+    invalid_variant["job"]["seats"][0]["variantClaim"] = "max"
     expect_error(
         lambda: job.validate_competition_poll_response(
             invalid_variant, profile=profile, request_body_sha256=request_sha
