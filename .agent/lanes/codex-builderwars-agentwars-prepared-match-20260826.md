@@ -1,9 +1,10 @@
 # AgentWars fixed prepared-match execution lane
 
-Status: locally validated candidate; commit and independent acceptance receipts
-pending. No provider call, hosted automatic execution, network lease mutation,
-account configuration, deployment, publication, ranking, or customer state was
-performed.
+Status: locally complete; the feature commit and immutable review range are
+recorded below. Independent Ox Alpha Max acceptance and Nymrel integration are
+still pending. No provider call, hosted automatic execution, network lease
+mutation, account configuration, deployment, publication, ranking, or customer
+state was performed.
 
 ## Ownership
 
@@ -78,3 +79,15 @@ performed.
   configuration, production deployment, genuine signed-passport production
   match, private replay, explicit publication, share, runback, and delete proof
   remain separate launch gates.
+
+## Immutable implementation receipt
+
+- Feature commit:
+  `92d9374c6509bafd486e9bab42107e6f09522329`
+- Ox Alpha Max review range:
+  `ceed3d66fefe48efff8baad691d13773b1097d9b..92d9374c6509bafd486e9bab42107e6f09522329`
+- The current engine digest remains
+  `a7686a19e6ae74a57e39ea058fa84d939a285a3ee034a7c0fe410107ad287e0d`.
+- Local acceptance is bounded to the validation listed above; it is not an Ox
+  verdict, production release, model/provider attestation, publication, or
+  ranking receipt.
