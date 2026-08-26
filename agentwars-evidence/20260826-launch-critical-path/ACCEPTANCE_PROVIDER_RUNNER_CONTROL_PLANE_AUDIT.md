@@ -76,3 +76,32 @@ Local verification after `884bfa756f16996bdbf8701b8aa99370ecd90a75`:
 - AgentWars scale contracts: PASS.
 
 This correction is not accepted for hosted integration until a fresh immutable capsule of the corrected bytes receives zero P0/P1 from Ox Alpha MAX. It still proves no provider/model execution, production storage, authenticated account adapter, deployment, signup, or genuine public match.
+
+## Implementation correction round 2
+
+Status: `JOB_LEASE_P1_CORRECTED_PENDING_ROUND3_MAX_REVIEW`
+
+Round-two immutable Ox Alpha MAX verdicts against evidence commit `077a64305225dcf43d04a83ef9397b81bd927f90` and implementation commit `884bfa756f16996bdbf8701b8aa99370ecd90a75`:
+
+- pairing, ownership, and nonce store `4b5e5564-6c82-4ce5-8ff1-2f0c629c3186`: `APPROVE`, zero P0/P1, receipt `ec3fb6545e76530cc75ab61859eb4f1ac1a6b0c464575a0e80175be2de961a3a`;
+- result custody, idempotency, and public projection `cd6844d5-597c-45a1-8053-458056feaf8f`: `APPROVE`, zero P0/P1, receipt `72fd016b93bb93d2f8c3270c6faabf090a864f6877c6e9bdc2040e5f4bead26d`;
+- signed-request and HTTP boundary `23a70855-ff5c-40bd-b9f7-52cb6f67d80a`: `APPROVE`, zero P0/P1, receipt `c5a47cb1255f7f9ec13ef2ac704202b0d926cc0ad917c314dda55758cab8c628`;
+- hostile-test adequacy `8d15f9a3-baf7-4a81-a2f4-833175bc0c92`: `APPROVE`, zero P0/P1, receipt `c2e7848f474ae2c187ba9b8ddc8f1121fafcc9bbfb0c6500b5d53853612e7d91`;
+- trust and release wording `1ff33207-92f1-4583-94b3-023307a5ec4d`: `APPROVE`, zero P0/P1, receipt `53cd9bef9860a0eb8ff86ea8933484338e7bb6c65e67fe415b0e8d32ded1c046`;
+- job and lease state machine `03191483-dee3-4415-ab53-c55138c84448`: `REJECT`, two P1 findings, receipt `b2548af5ccff0c04d3e32c4a0731f9c9574192ac779e3b60b5f85db3dc022ce7`.
+
+The first job/lease P1 was conditional on omitted evidence and is closed by the full source: transactions use `BEGIN IMMEDIATE`, the schema has a partial unique index allowing only one active attempt per job, claim updates now assert exactly one queued job changed, and the hostile suite proves twenty repeated two-poller races produce one fresh grant plus one recovery grant.
+
+The second P1 was real: revoking a runner left its queued and leased work stranded. Implementation commit `c0c10294244ac18a316e8d1f867d98ceb780f173` now terminalizes every unfinished runner-bound job as exhausted and every active attempt as abandoned in the same transaction as revocation, preserves completed evidence, makes duplicate revocation repair legacy unfinished rows, asserts atomic claim/result state transitions, and proves a recorded mismatch cannot be replaced by a later correct result.
+
+Local verification after `c0c10294244ac18a316e8d1f867d98ceb780f173`:
+
+- Python compilation: PASS;
+- hosted unit suite: `15/15 PASS`;
+- AgentWars runner verifier: `154 PASS`;
+- Provider Hub full verifier: all 10 sections and full downstream regression ladder PASS;
+- AgentWars public product contracts: PASS;
+- AgentWars scale contracts: PASS;
+- `git diff --check`: PASS.
+
+The corrected job/lease state machine still requires a round-three immutable MAX review that includes transaction, schema, revocation, job/lease, result-transition, and hostile-test bytes. No production, account, provider, model, or genuine public-match claim advances before that receipt is accepted.
