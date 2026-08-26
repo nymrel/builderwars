@@ -60,6 +60,9 @@ def source_kind(note: Any) -> str:
     claim = re.split(r"[;:]", note, maxsplit=1)[0]
     return {
         "source=model": "model",
+        # A fixed precommitted plan is model-influenced, but not live inference.
+        # The public truth boundary keeps model/execution attestation false.
+        "source=model_plan": "model",
         "source=fallback": "fallback",
         "source=scripted": "scripted",
         "source=scripted_board": "scripted",

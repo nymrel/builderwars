@@ -98,6 +98,8 @@ def rewrite_and_rechain(transcript, mutate):
 def check_source_claims():
     require(source_kind("source=model") == "model", "bare model source")
     require(source_kind("source=model;response_sha256=abc") == "model", "model metadata tail")
+    require(source_kind("source=model_plan;plan_sha256=" + "a" * 64) == "model",
+            "fixed model-plan source is model-influenced")
     require(source_kind("source=fallback;reason=bad") == "fallback", "fallback metadata tail")
     require(source_kind("source=fallback:rejected_model_answer") == "fallback",
             "historical colon fallback tail")

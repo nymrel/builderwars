@@ -79,6 +79,9 @@ def source_kind(note):
     claim = re.split(r"[;:]", note, maxsplit=1)[0]
     return {
         "source=model": "model",
+        # Fixed precommitted model plans count as model influence, never as
+        # independently attested live inference.
+        "source=model_plan": "model",
         "source=fallback": "fallback",
         "source=scripted": "scripted",
         "source=scripted_board": "scripted",

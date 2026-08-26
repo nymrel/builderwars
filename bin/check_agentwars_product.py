@@ -57,6 +57,20 @@ REFERENCE = os.path.join(
     "9600-0",
     "8d161a470a12b0c3.jsonl",
 )
+MODEL_PLAN_REFERENCE = os.path.join(
+    ROOT,
+    "matches",
+    "agentwars-model-plan-proof",
+    "transcripts",
+    "0-1-0",
+    "eaefda878377351e.jsonl",
+)
+MODEL_PLAN_SUMMARY = os.path.join(
+    ROOT,
+    "matches",
+    "agentwars-model-plan-proof",
+    "summary.json",
+)
 MISSING_SNAPSHOT = os.path.join(ROOT, "matches", "e18c36c2f8903c1f.jsonl")
 
 
@@ -286,6 +300,17 @@ def check_allowlist_and_parity():
         not in approved_ids,
         "missing-snapshot e18 corpus bug must remain excluded",
     )
+    plan_candidates = [
+        row for row in publication["entries"]
+        if row["sourcePath"].startswith("matches/agentwars-model-plan-proof/transcripts/")
+    ]
+    require(len(plan_candidates) == 2, "both fixed model-plan seat orders are explicit candidates")
+    require(all(row["decision"] == "held" for row in plan_candidates),
+            "snapshot-divergent model-plan publication remains held outside the approved allowlist")
+    require(all(row["titleEligible"] is False for row in plan_candidates),
+            "model-plan exhibition cannot award a public title")
+    require(all(row["sourceChainHead"] not in approved_ids for row in plan_candidates),
+            "held model-plan receipts remain unpublished")
 
     receipts = {row["receiptId"]: row for row in dataset["receipts"]}
     played = {row["receiptId"]: row for row in dataset["interactionManifest"]["playedArtifacts"]}
@@ -340,6 +365,73 @@ def check_allowlist_and_parity():
         path = os.path.join(work, "bad-counts.json")
         write_json(path, hostile)
         expect_publication_error(lambda: build_product(ROOT, path), "move-source count parity")
+
+
+def check_model_plan_publication_candidate():
+    publication = read_json(PUBLICATION_MANIFEST)
+    candidate_rows = [
+        row for row in publication["entries"]
+        if row["sourcePath"].startswith("matches/agentwars-model-plan-proof/transcripts/")
+    ]
+    require(len(candidate_rows) == 2, "exactly two fixed-plan candidates are explicitly staged")
+    require(all(row["decision"] == "held" for row in candidate_rows),
+            "snapshot-divergent fixed-plan candidates remain held")
+    require(all(row["titleEligible"] is False for row in candidate_rows),
+            "fixed-plan exhibitions cannot affect title custody")
+
+    summary = read_json(MODEL_PLAN_SUMMARY)
+    receipt, _records = project_receipt(MODEL_PLAN_REFERENCE)
+    require(summary["proofSchema"] == "agentwars.fantasy_model_plan_proof.v1",
+            "model-plan proof summary schema")
+    require(summary["status"] == "model_influenced_unattested",
+            "model-plan proof truth status")
+    require(summary["modelAttested"] is False and summary["executionClaimsAttested"] is False,
+            "model-plan proof keeps attestations false")
+    summary_match = next(
+        row for row in summary["matches"]
+        if row["transcriptSha256"] == file_sha256(MODEL_PLAN_REFERENCE)
+    )
+    require(summary_match["chainHead"] == receipt["receiptId"],
+            "model-plan proof summary binds the projected chain head")
+    require(summary_match["replayVerdict"] == "PASS" and summary_match["verified"] is True,
+            "model-plan summary records exact replay success")
+    totals = {
+        key: sum(row[key] for row in receipt["moveSourceClaims"])
+        for key in ("model", "fallback", "scripted", "other")
+    }
+    require(totals == {"model": 12, "fallback": 0, "scripted": 0, "other": 0},
+            "fixed plans project as twelve model-influenced moves")
+    require(receipt["truth"]["status"] == "model_influenced_unattested",
+            "fixed plans never publish as generic or attested execution")
+    require(receipt["truth"]["modelAttested"] is False,
+            "fixed plan does not attest model identity")
+    require(receipt["truth"]["executionClaimsAttested"] is False,
+            "fixed plan does not attest execution provenance")
+    share = build_manifest(MODEL_PLAN_REFERENCE)
+    require(share["truth"]["status"] == receipt["truth"]["status"],
+            "share and public receipt keep the same model-plan truth status")
+    share_totals = {
+        key: sum(row[key] for row in share["moveSourceClaims"].values())
+        for key in ("model", "fallback", "scripted", "other")
+    }
+    require(share_totals == totals, "share and public receipt agree on model-plan sources")
+
+    # Exercise the exact publication path without mutating the canonical manifest or artifact.
+    # These historical receipts use a different full-engine snapshot than the active fantasy
+    # rules registry. Until that versioning contract evolves, temporary approval must fail closed.
+    candidate_publication = copy.deepcopy(publication)
+    candidate_paths = {row["sourcePath"] for row in candidate_rows}
+    for row in candidate_publication["entries"]:
+        if row["sourcePath"] in candidate_paths:
+            row["decision"] = "approved_for_publication"
+    with tempfile.TemporaryDirectory(prefix="agentwars-model-plan-candidate-") as work:
+        candidate_manifest = os.path.join(work, "publication.json")
+        write_json(candidate_manifest, candidate_publication)
+        for _attempt in range(2):
+            expect_publication_error(
+                lambda: build_product(ROOT, candidate_manifest),
+                "rules registry proof receipts disagree on engine or game version",
+            )
 
 
 def check_hostile_paths_no_outside_writes():
@@ -876,6 +968,7 @@ def main():
     check_verifier_exit_contract()
     check_deterministic_atomic_artifact()
     check_allowlist_and_parity()
+    check_model_plan_publication_candidate()
     check_hostile_paths_no_outside_writes()
     check_duplicate_fixture_distinct_receipts()
     check_projection_adversarial_boundaries()
