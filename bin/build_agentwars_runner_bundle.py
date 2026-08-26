@@ -33,10 +33,15 @@ from verify_agentwars_runner_bundle import (  # noqa: E402
     BUNDLE_FILENAME,
     BUNDLE_ROOT,
     BUNDLE_STATUS,
+    DEPENDENCY_POLICY_EVIDENCE_DATE,
     DISABLED_PROVIDER_IDS,
     EXECUTABLE_BUNDLE_PATHS,
     EXECUTABLE_PROVIDER_IDS,
     EXPECTED_BUNDLE_PATHS,
+    EXPECTED_DEPENDENCY_LOCK_SHA256,
+    EXPECTED_DEPENDENCY_POLICY,
+    EXPECTED_REQUIREMENTS_LOCK_SHA256,
+    EXPECTED_REQUIREMENTS_WRAPPER_SHA256,
     EXPECTED_TRUTH,
     FIXED_ZIP_TIME,
     INSTALL_SCHEMA_VERSION,
@@ -45,6 +50,7 @@ from verify_agentwars_runner_bundle import (  # noqa: E402
     SCHEMA_VERSION,
     verify_artifact,
 )
+from check_agentwars_dependency_lock import verify_dependency_bytes  # noqa: E402
 
 
 SOURCE_PATH_BY_BUNDLE_PATH = {
@@ -185,6 +191,23 @@ def _validate_source_map(blobs: dict[str, bytes]) -> None:
         or evidence_date != PROVIDER_POLICY_EVIDENCE_DATE
     ):
         raise RunnerBundleBuildError("runner bundle provider policy drifted")
+    try:
+        dependency_receipt = verify_dependency_bytes(
+            blobs["dependency-lock.json"],
+            blobs["requirements.lock"],
+            blobs["requirements.txt"],
+        )
+    except ValueError as error:
+        raise RunnerBundleBuildError("runner bundle dependency policy drifted") from error
+    if (
+        dependency_receipt["dependencyLockSha256"]
+        != EXPECTED_DEPENDENCY_LOCK_SHA256
+        or dependency_receipt["requirementsLockSha256"]
+        != EXPECTED_REQUIREMENTS_LOCK_SHA256
+        or _sha256(blobs["requirements.txt"])
+        != EXPECTED_REQUIREMENTS_WRAPPER_SHA256
+    ):
+        raise RunnerBundleBuildError("runner bundle dependency digests drifted")
 
 
 def _catalog_policy(raw: bytes) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], str]:
@@ -299,8 +322,9 @@ def _bundle_manifest(
         "bundleStatus": BUNDLE_STATUS,
         "sourceCommit": source_commit,
         "builtFromExactHead": built_from_exact_head,
-        "pythonRequires": ">=3.11",
+        "pythonRequires": ">=3.10,<3.15",
         "credentialCustody": "customer_only",
+        "dependencyPolicy": EXPECTED_DEPENDENCY_POLICY,
         "networkExecution": "customer_invoked_only",
         "providerPolicyEvidenceDate": PROVIDER_POLICY_EVIDENCE_DATE,
         "knownProviderIds": list(KNOWN_PROVIDER_IDS),
@@ -352,6 +376,12 @@ def _install_manifest(
         "bundleBytes": len(archive_raw),
         "bundleManifestFile": "bundle-manifest.json",
         "bundleManifestSha256": _sha256(bundle_manifest_raw),
+        "dependencyHashLocked": True,
+        "dependencyInstallRequiresNetwork": True,
+        "dependencyLockSha256": EXPECTED_DEPENDENCY_LOCK_SHA256,
+        "dependencyWheelsBundled": False,
+        "nymrelDependencySignaturePresent": False,
+        "requirementsLockSha256": EXPECTED_REQUIREMENTS_LOCK_SHA256,
         "verifierFile": "verify.py",
         "verifierSha256": _sha256(verifier_raw),
         "publicationAuthorized": False,

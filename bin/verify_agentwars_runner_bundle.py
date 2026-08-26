@@ -52,6 +52,33 @@ EXECUTABLE_PROVIDER_IDS = (
 )
 DISABLED_PROVIDER_IDS = ("claude_code",)
 PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-26"
+DEPENDENCY_POLICY_EVIDENCE_DATE = "2026-08-26"
+EXPECTED_DEPENDENCY_LOCK_SHA256 = (
+    "47eadaacd1c4e869c0481aac6588d627cb9451b046236a0e4cdc059ab53162d2"
+)
+EXPECTED_REQUIREMENTS_LOCK_SHA256 = (
+    "635fbdb4b20cb3d6a00456cc4882bdb8e23ba0a2da2ca6ed6db170dd212697ce"
+)
+EXPECTED_REQUIREMENTS_WRAPPER_SHA256 = (
+    "b824c364f028ffdb511122a12520d2e8dbaf2e095fec66b68f952978376aa019"
+)
+EXPECTED_DEPENDENCY_POLICY = {
+    "crossPlatformRuntimeAttested": False,
+    "defaultInstallRequiresNetwork": True,
+    "evidenceDate": DEPENDENCY_POLICY_EVIDENCE_DATE,
+    "hashLocked": True,
+    "lockFile": "dependency-lock.json",
+    "lockSha256": EXPECTED_DEPENDENCY_LOCK_SHA256,
+    "nymrelSignaturePresent": False,
+    "onlyBinary": True,
+    "pythonMarkersEnforced": True,
+    "pythonImplementation": "CPython",
+    "pythonRequires": ">=3.10,<3.15",
+    "requirementsFile": "requirements.lock",
+    "requirementsSha256": EXPECTED_REQUIREMENTS_LOCK_SHA256,
+    "sourceBuildsAllowed": False,
+    "wheelsBundled": False,
+}
 
 EXPECTED_BUNDLE_PATHS = (
     "LICENSE",
@@ -80,6 +107,7 @@ EXPECTED_BUNDLE_PATHS = (
     "bin/agentwars",
     "bin/agentwars.cmd",
     "bin/agentwars.py",
+    "bin/check_agentwars_dependency_lock.py",
     "bin/run_agentwars_cross_provider_match.py",
     "bin/run_agentwars_league.py",
     "competitions/__init__.py",
@@ -87,6 +115,7 @@ EXPECTED_BUNDLE_PATHS = (
     "competitions/matrix.py",
     "competitions/prepared_match.py",
     "competitions/source_match.py",
+    "dependency-lock.json",
     "entrants/backends.py",
     "entrants/fantasy_model_harness.py",
     "entrants/parsing.py",
@@ -102,6 +131,7 @@ EXPECTED_BUNDLE_PATHS = (
     "provider_hub/signing.py",
     "publishing/__init__.py",
     "publishing/projection.py",
+    "requirements.lock",
     "requirements.txt",
     "verify.py",
     "verify_bundle.py",
@@ -111,6 +141,7 @@ EXECUTABLE_BUNDLE_PATHS = frozenset(
     {
         "bin/agentwars",
         "bin/agentwars.py",
+        "bin/check_agentwars_dependency_lock.py",
         "bin/run_agentwars_cross_provider_match.py",
         "bin/run_agentwars_league.py",
         "verify.py",
@@ -144,6 +175,7 @@ _BUNDLE_KEYS = frozenset(
         "builtFromExactHead",
         "pythonRequires",
         "credentialCustody",
+        "dependencyPolicy",
         "networkExecution",
         "providerPolicyEvidenceDate",
         "knownProviderIds",
@@ -164,6 +196,12 @@ _INSTALL_KEYS = frozenset(
         "bundleBytes",
         "bundleManifestFile",
         "bundleManifestSha256",
+        "dependencyHashLocked",
+        "dependencyInstallRequiresNetwork",
+        "dependencyLockSha256",
+        "dependencyWheelsBundled",
+        "nymrelDependencySignaturePresent",
+        "requirementsLockSha256",
         "verifierFile",
         "verifierSha256",
         "publicationAuthorized",
@@ -326,8 +364,9 @@ def _validate_bundle_manifest(raw: bytes) -> tuple[dict[str, Any], dict[str, dic
         or not isinstance(manifest["sourceCommit"], str)
         or HEX40_RE.fullmatch(manifest["sourceCommit"]) is None
         or not isinstance(manifest["builtFromExactHead"], bool)
-        or manifest["pythonRequires"] != ">=3.11"
+        or manifest["pythonRequires"] != ">=3.10,<3.15"
         or manifest["credentialCustody"] != "customer_only"
+        or manifest["dependencyPolicy"] != EXPECTED_DEPENDENCY_POLICY
         or manifest["networkExecution"] != "customer_invoked_only"
         or manifest["providerPolicyEvidenceDate"] != PROVIDER_POLICY_EVIDENCE_DATE
         or not isinstance(manifest["knownProviderIds"], list)
@@ -345,7 +384,15 @@ def _validate_bundle_manifest(raw: bytes) -> tuple[dict[str, Any], dict[str, dic
     claimed_digest = core.pop("bundleDigest")
     if _sha256(_canonical_bytes(core)) != claimed_digest:
         raise RunnerBundleVerificationError("bundle manifest digest is invalid")
-    return manifest, _validate_file_manifest(manifest["files"])
+    files = _validate_file_manifest(manifest["files"])
+    pinned_files = {
+        "dependency-lock.json": EXPECTED_DEPENDENCY_LOCK_SHA256,
+        "requirements.lock": EXPECTED_REQUIREMENTS_LOCK_SHA256,
+        "requirements.txt": EXPECTED_REQUIREMENTS_WRAPPER_SHA256,
+    }
+    if any(files[path]["sha256"] != digest for path, digest in pinned_files.items()):
+        raise RunnerBundleVerificationError("bundle dependency lock digest is invalid")
+    return manifest, files
 
 
 def _zip_mode(info: zipfile.ZipInfo) -> int:
@@ -445,6 +492,12 @@ def verify_artifact(artifact_path: str | os.PathLike[str]) -> dict[str, Any]:
         or install["bundleFile"] != BUNDLE_FILENAME
         or install["bundleManifestFile"] != "bundle-manifest.json"
         or install["verifierFile"] != "verify.py"
+        or install["dependencyHashLocked"] is not True
+        or install["dependencyInstallRequiresNetwork"] is not True
+        or install["dependencyWheelsBundled"] is not False
+        or install["nymrelDependencySignaturePresent"] is not False
+        or install["dependencyLockSha256"] != EXPECTED_DEPENDENCY_LOCK_SHA256
+        or install["requirementsLockSha256"] != EXPECTED_REQUIREMENTS_LOCK_SHA256
         or install["publicationAuthorized"] is not False
         or install["deploymentAuthorized"] is not False
         or not isinstance(install["sourceCommit"], str)
@@ -506,6 +559,13 @@ def verify_artifact(artifact_path: str | os.PathLike[str]) -> dict[str, Any]:
         "bundleSha256": install["bundleSha256"],
         "fileCount": len(files),
         "providerPolicyEvidenceDate": PROVIDER_POLICY_EVIDENCE_DATE,
+        "dependencyPolicyEvidenceDate": DEPENDENCY_POLICY_EVIDENCE_DATE,
+        "dependencyLockSha256": EXPECTED_DEPENDENCY_LOCK_SHA256,
+        "requirementsLockSha256": EXPECTED_REQUIREMENTS_LOCK_SHA256,
+        "dependencyHashLocked": True,
+        "dependencyInstallRequiresNetwork": True,
+        "dependencyWheelsBundled": False,
+        "nymrelDependencySignaturePresent": False,
         "disabledProviderIds": list(DISABLED_PROVIDER_IDS),
         "networkCalls": 0,
         "providerCalls": 0,

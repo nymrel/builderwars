@@ -10,7 +10,8 @@ review and distribution receipt names its exact source commit and SHA-256.
 External testers should not need a full BuilderWars checkout or an improvised
 `PATH` edit just to pair a runner. The bundle packages the closed customer-side
 source set used by `agentwars runner` into one deterministic ZIP with two
-canonical manifests and a stdlib-only offline verifier.
+canonical manifests, an exact binary-only dependency lock, and a stdlib-only
+offline verifier.
 
 It does not package a provider credential, provider login, cookie, refresh
 token, API key, local runner state, Agent Passport private key, transcript,
@@ -61,7 +62,7 @@ The ZIP uses stored members, one fixed timestamp, canonical POSIX paths, fixed
 regular-file modes, and a closed file allowlist. It contains the same canonical
 `bundle-manifest.json` as the external artifact. `install-manifest.json` binds
 the ZIP, bundle manifest, verifier, exact source commit, candidate-only status,
-and false publication/deployment authority.
+dependency-lock digests, and false publication/deployment authority.
 
 ## Verify before extraction
 
@@ -81,7 +82,13 @@ The verifier performs no network or provider call and extracts no file. It
 rejects duplicate JSON keys, floats, unknown manifest fields, unexpected
 artifact files, path traversal, duplicate ZIP names, symlinks/non-regular
 members, compression, changed timestamps or modes, oversized expansion, and
-every byte or digest mismatch.
+every byte or digest mismatch. The extracted
+`bin/check_agentwars_dependency_lock.py` separately validates the dependency
+policy with no network, download, or install:
+
+```bash
+python -B bin/check_agentwars_dependency_lock.py --root . --json
+```
 
 A `pass` receipt proves only that the downloaded bytes are internally
 consistent with the manifests and verifier rules. There is no bundle-signing
@@ -93,7 +100,15 @@ subscription entitlement, safe execution, or publication proof.
 ## Run from an isolated virtual environment
 
 After verification, extract into a new directory. Do not run from a shared or
-privileged checkout. The bundle requires Python 3.11 or newer.
+privileged checkout. The locked install matrix is ordinary CPython 3.10 through
+3.14 (not free-threaded builds): Windows x86-64, macOS 11+ arm64, and Linux
+glibc 2.17+ or musl 1.2+ on x86-64/arm64. Unsupported platforms fail closed
+rather than compiling an unreviewed source distribution. In particular,
+current `cryptography` releases no longer publish macOS x86-64 wheels.
+The 2026-08-26 local acceptance ran the installed dependency chain and runner
+contracts on Windows x86-64 CPython 3.11.15 and 3.13.5. Python 3.10 wheel
+selection was hash-reconciled but not executed; Python 3.12/3.14 and every
+non-Windows target remain lock coverage, not runtime attestation.
 
 Windows PowerShell:
 
@@ -111,10 +126,24 @@ python3 -m venv .venv
 ./.venv/bin/python bin/agentwars.py runner --help
 ```
 
-Dependency installation contacts the tester's configured Python package index;
-that is a tester-authorized package-manager action, not an action taken by the
-bundle builder or verifier. The v1 bundle does not claim reproducible binary
-wheels or a signed installer. Those remain later release gates.
+`requirements.txt` is only a compatibility wrapper around
+`requirements.lock`. The lock fixes the index to PyPI, requires binary wheels,
+requires hashes, uses interpreter markers to separate the 3.10 and 3.11+
+ABI3 wheels, and pins `cryptography==50.0.1`, `cffi==2.1.1`, and
+`pycparser==3.0` across 43 reviewed wheel hashes. The evidence snapshot is
+2026-08-26; `cryptography` 50.0.1 was selected after its 2026-08-25 wheel
+refresh to OpenSSL 4.0.2. Source metadata:
+[cryptography](https://pypi.org/pypi/cryptography/50.0.1/json),
+[cffi](https://pypi.org/pypi/cffi/2.1.1/json), and
+[pycparser](https://pypi.org/pypi/pycparser/3.0/json).
+
+The default installation still contacts PyPI. That is a tester-authorized
+package-manager action, not an action taken by the bundle builder, artifact
+verifier, or dependency checker. Wheels are not copied into the ZIP, their
+upstream signatures were not independently verified, and Nymrel has not signed
+the lock or installer. The hashes freeze accepted bytes; they do not attest
+publisher identity, operating-system integrity, pip itself, or cross-platform
+runtime success.
 
 ## Pair and test
 
@@ -145,6 +174,7 @@ than a moving branch.
 
 ```bash
 python -B bin/check_agentwars_runner_bundle.py
+python -B bin/check_agentwars_dependency_lock.py
 ```
 
 The checker builds two working-tree test artifacts, proves byte identity,
@@ -159,7 +189,8 @@ checker-only working-tree capability.
 - independently review and commit the source tooling;
 - build from that exact clean commit and independently verify the generated
   artifact in a second commit or immutable release asset;
-- add dependency lock/hash policy or signed wheels before calling installation
+- optionally bundle and Nymrel-sign reviewed wheels, pin the installer/pip
+  runtime, and prove offline installation before calling the whole environment
   reproducible;
 - publish only through an approved release channel with exact SHA-256 and source
   ancestry;

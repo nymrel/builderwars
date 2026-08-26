@@ -51,8 +51,9 @@ python bin/build_verifier.py --check   # regenerate verify.py, prove it agrees
 ```
 
 The legacy arena is stock Python 3 with no dependencies, network, or accounts.
-Signed Agent Passports are optional and use the maintained `cryptography`
-package declared in `requirements.txt`; the arena still makes no network call.
+Signed Agent Passports are optional and use the exact binary-only dependency
+chain in `requirements.lock`; `requirements.txt` is its compatibility wrapper.
+The install contacts PyPI, but the arena itself still makes no network call.
 
 ## The reference result
 
@@ -126,6 +127,7 @@ python bin/check_agentwars_runner.py
 python bin/check_competition_evidence_job.py
 python bin/check_competition_source_match.py
 python bin/check_competition_prepared_match.py
+python -B bin/check_agentwars_dependency_lock.py
 python -B bin/check_agentwars_runner_bundle.py
 ```
 

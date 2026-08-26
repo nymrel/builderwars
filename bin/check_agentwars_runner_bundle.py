@@ -30,6 +30,8 @@ from verify_agentwars_runner_bundle import (  # noqa: E402
     BUNDLE_ROOT,
     BUNDLE_STATUS,
     EXECUTABLE_PROVIDER_IDS,
+    EXPECTED_DEPENDENCY_LOCK_SHA256,
+    EXPECTED_DEPENDENCY_POLICY,
     EXPECTED_BUNDLE_PATHS,
     RunnerBundleVerificationError,
     _validate_bundle_manifest,
@@ -199,11 +201,22 @@ def main() -> int:
         check(receipt["status"] == "pass" and receipt["artifactStatus"] == BUNDLE_STATUS, "offline verifier accepts the deterministic artifact")
         check(receipt["networkCalls"] == receipt["providerCalls"] == 0 and receipt["credentialsRead"] is False, "verification has zero network/provider/credential activity")
         check(receipt["publicationAuthorized"] is False and receipt["deploymentAuthorized"] is False, "bundle cannot authorize publication or deployment")
+        check(
+            receipt["dependencyHashLocked"] is True
+            and receipt["dependencyLockSha256"] == EXPECTED_DEPENDENCY_LOCK_SHA256
+            and receipt["dependencyWheelsBundled"] is False
+            and receipt["nymrelDependencySignaturePresent"] is False,
+            "artifact receipt preserves exact hash lock and unsigned/unbundled truth",
+        )
 
         manifest = json.loads((first / "bundle-manifest.json").read_text(encoding="utf-8"))
         check(tuple(sorted(manifest["files"])) == EXPECTED_BUNDLE_PATHS, "manifest pins the complete source allowlist")
         check(tuple(manifest["executableProviderIds"]) == EXECUTABLE_PROVIDER_IDS and manifest["disabledProviderIds"] == ["claude_code"], "manifest keeps disabled Claude outside executable routes")
         check(manifest["truth"]["providerCredentialsBundled"] is False and manifest["truth"]["publicArbitraryExecutionEnabled"] is False, "manifest preserves credential and arbitrary-execution boundaries")
+        check(
+            manifest["dependencyPolicy"] == EXPECTED_DEPENDENCY_POLICY,
+            "manifest pins the complete dependency policy",
+        )
         malformed_policy = dict(manifest)
         malformed_policy["knownProviderIds"] = 1
         malformed_policy.pop("bundleDigest", None)
@@ -222,6 +235,24 @@ def main() -> int:
         check(bundle_root.is_dir() and not bundle_root.is_symlink(), "verified archive extracts under one fixed root")
         compile_result = run_isolated(["-m", "compileall", "-q", "."], bundle_root)
         check(compile_result.returncode == 0, "bundled Python compiles in an isolated interpreter")
+
+        dependency_result = run_isolated(
+            ["bin/check_agentwars_dependency_lock.py", "--root", ".", "--json"],
+            bundle_root,
+        )
+        dependency_receipt = json.loads(dependency_result.stdout)
+        check(
+            dependency_result.returncode == 0
+            and dependency_receipt["status"] == "pass"
+            and dependency_receipt["artifactCount"] == 43
+            and dependency_receipt["dependencyLockSha256"]
+            == EXPECTED_DEPENDENCY_LOCK_SHA256
+            and dependency_receipt["downloads"]
+            == dependency_receipt["installs"]
+            == dependency_receipt["networkCalls"]
+            == 0,
+            "bundled stdlib checker validates the exact dependency lock offline",
+        )
 
         help_result = run_isolated(["bin/agentwars.py", "runner", "--help"], bundle_root)
         check(help_result.returncode == 0 and "prepare-match" in help_result.stdout and "submit-match" in help_result.stdout, "bundled runner exposes the complete beta command surface")

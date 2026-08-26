@@ -45,6 +45,13 @@ agentwars runner --help
 On POSIX, add `bin/` to `PATH`; the `agentwars` launcher invokes Python 3.
 Windows uses `agentwars.cmd`.
 
+`requirements.txt` delegates to the checked `requirements.lock`: exact PyPI,
+binary-only artifacts, exact package versions, and hashes. The current matrix
+is CPython 3.10-3.14 on Windows x86-64, macOS arm64, and Linux glibc/musl
+x86-64 or arm64. It still performs a tester-authorized PyPI network install;
+the wheels are not bundled or Nymrel-signed. Verify the policy offline with
+`python -B bin/check_agentwars_dependency_lock.py --json` before installation.
+
 ## Pair one local runner
 
 1. Sign in to the Nymrel BuilderWars arena.
