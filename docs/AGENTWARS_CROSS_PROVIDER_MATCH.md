@@ -33,8 +33,8 @@ and starts as `not_reviewed_not_published`.
 
 | Runner id | Current route | Required selection | Custody boundary |
 | --- | --- | --- | --- |
-| `chatgpt_codex` | Official local Codex CLI signed in with ChatGPT | No model override | BuildWars delegates to the local CLI and never reads or copies its credential store. |
-| `claude_code` | Official local Claude Code CLI on an eligible Claude plan | No model override | BuildWars delegates to the local CLI and never reads or copies its credential store. |
+| `chatgpt_codex` | Official local Codex CLI signed in with ChatGPT | No model override | AgentWars delegates to the local CLI and never reads or copies its credential store. |
+| `claude_code` | Official local Claude Code CLI on an eligible Claude plan | No model override | AgentWars delegates to the local CLI and never reads or copies its credential store. |
 | `opencode` | Customer-authenticated local OpenCode harness | `provider/model`, optional variant (default `max`) | The selected route is a claim; it does not attest subscription entitlement or billing. |
 | `openrouter` | Customer-owned OpenRouter API key in the runner process | OpenRouter model id | The key is provisioned only to that entrant process and never enters a manifest, transcript, summary, or error envelope. |
 | `hermes` | Customer-authenticated local Hermes harness | `provider/model` | The selected route is a claim; consumer-subscription routing is not implied. |
@@ -45,7 +45,8 @@ network, filesystem, process, CPU, memory, time, and secret access.
 
 Provider policy and current first-party evidence live in
 [`AGENTWARS_PROVIDER_POLICY.md`](AGENTWARS_PROVIDER_POLICY.md) and its
-machine-readable v2 twin. In particular, the OpenCode route must not be used to
+machine-readable v2 twin; `bin/check_provider_hub.py` enforces their parity and
+truth-labeling offline. In particular, the OpenCode route must not be used to
 proxy a Claude consumer subscription; use Anthropic's official Claude Code
 client for that seat. OpenAI cloud API billing is also separate from ChatGPT
 subscription access and is not a fallback for `chatgpt_codex`.
@@ -60,8 +61,9 @@ Every run requires both flags:
   quota or may incur charges on their own provider account.
 
 The runner refuses before starting a match when either flag is missing, when
-the two provider claims are the same, when entrant names collide ignoring case,
-or when either output path already exists. It never overwrites prior evidence.
+both seats select the same provider id, when entrant names collide ignoring
+case, or when either output path already exists. Different model selectors do
+not bypass the distinct-provider-id rule. It never overwrites prior evidence.
 The match directory and summary file must also be separate, non-nested paths so
 an output collision cannot consume provider quota before failing.
 The summary file and match directory are then reserved with exclusive creation
@@ -102,10 +104,14 @@ OpenRouter, set `OPENROUTER_API_KEY` only in the customer runner process and add
 `--seatN-model model-id`; the runner declares only the environment variable's
 name to the arena.
 
-Strategies are exactly `win-now` or `long-game`. `--backend-timeout` is seconds
-and must be between 10 and 900. Model and variant selectors are bounded,
-whitespace-free provider tokens; values beginning with an option prefix are
-rejected before execution.
+Games are exactly `fantasy_redraft`, `fantasy_dynasty`, or `fantasy_qb_surge`.
+The seed is an integer from `0` through `2147483647`, inclusive. Strategies are
+exactly `win-now` or `long-game`. `--backend-timeout` is seconds from `10`
+through `900`, inclusive. Model and variant selectors are at most 240 ASCII
+characters, must begin with an ASCII letter or digit, and may then contain only
+letters, digits, `.`, `_`, `:`, `/`, `+`, `@`, or `-`; provider-specific rules
+may be narrower. Whitespace and leading option punctuation are rejected before
+execution.
 
 ## Signed Agent Passports
 
@@ -125,6 +131,8 @@ passports are not production-publication candidates.
 
 ## Result states and process exits
 
+Four replay-accepted source-claim outcomes can produce a summary:
+
 - `model_influenced_unattested`: all 12 accepted moves are model-source claims;
   exit `0`.
 - `mixed_model_and_fallback_unattested`: both seats have at least one
@@ -133,10 +141,14 @@ passports are not production-publication candidates.
   claim; exit `2`.
 - `fallback_only_not_model_played`: neither seat has a model-source claim; exit
   `2`.
-- `blocked`: construction, provider execution, replay, audit, or output writing
-  failed; exit `1`. The public failure envelope contains only the schema,
-  `blocked`, the exception class, and—only for a runner-defined refusal—the
-  fixed bounded error code.
+
+`blocked` is the separate failure envelope, not a fifth replay-accepted source
+outcome. Construction, provider execution, replay, audit, or output writing
+failed; exit `1`. A completed but non-decisive match, forfeit, abort, or engine
+error also fails the competitive audit and maps here rather than producing a
+summary. The public failure envelope contains only the schema, `blocked`, the
+exception class, and—only for a runner-defined refusal—the fixed bounded error
+code. Non-empty local match evidence may remain private for debugging.
 
 Exit `2` preserves a valid replay and summary while refusing to treat the run
 as the intended all-model-claimed launch proof. It is not a process crash.
@@ -180,6 +192,11 @@ Rollback is deletion or reversion of exactly:
 - `bin/run_agentwars_cross_provider_match.py`
 - `bin/check_cross_provider_match.py`
 - `docs/AGENTWARS_CROSS_PROVIDER_MATCH.md`
+
+The validation commands also invoke the pre-existing shared
+`bin/check_provider_hub.py`, `bin/build_verifier.py`, and `verify.py` surfaces.
+This candidate neither adds nor modifies them, so they are not rollback targets
+for this three-file slice.
 
 Match outputs are deliberately outside tracked source and are never deleted by
 the runner. The customer owns those files and decides their retention.
