@@ -54,6 +54,27 @@ from provider_hub.local_runner import (  # noqa: E402
     validate_origin,
     validate_probe_response,
 )
+from provider_hub.match_worker import (  # noqa: E402
+    MATCH_JOB_ENGINE_ID,
+    MATCH_JOB_ENGINE_SHA256,
+    MATCH_JOB_FALSE_ATTESTATIONS,
+    MATCH_JOB_KIND,
+    MATCH_JOB_POLL_BODY,
+    MATCH_JOB_POLL_PATH,
+    MATCH_JOB_PROTOCOL,
+    MATCH_JOB_RESULT_PATH,
+    MATCH_JOB_RULESET_ID,
+    MATCH_JOB_RULES_SHA256,
+    MATCH_JOB_SCHEMA_VERSION,
+    FixtureGrant,
+    compute_closed_fixture,
+    derive_fixture_input,
+    encode_result_request,
+    expected_fixture_output_sha256,
+    fixture_transcript_sha256,
+    validate_poll_response,
+    validate_result_response,
+)
 from provider_hub.runner_state import RunnerStateError, RunnerStateStore  # noqa: E402
 
 
@@ -72,6 +93,15 @@ TRUST_FLAGS = (
     "harnessExecutionAttested",
     "matchExecutionAttested",
 )
+MATCH_JOB_ID = "awj1_BwcHBwcHBwcHBwcHBwcHBw"
+MATCH_ATTEMPT_ID = "awa1_CAgICAgICAgICAgICAgICA"
+MATCH_SEED = "CQkJCQkJCQkJCQkJCQkJCQ"
+MATCH_HARNESS_ID = "agentwars-cli"
+MATCH_HARNESS_DIGEST = "d" * 64
+MATCH_INPUT_BASE64URL = "_dJ1WMgUpC5Bw3WZuqCwLklq7eUyAjN02deiCsLpVhE"
+MATCH_INPUT_SHA256 = "50a0b77920acdf40b2a0a93ba338a36b1452d67233c58ad09a5ac8ae8a69f207"
+MATCH_OUTPUT_SHA256 = "3e11cea4520e84526f1e10a6d70c0e09a32dc02a1b502b2244ca7593ec7e721e"
+MATCH_TRANSCRIPT_SHA256 = "7e583b899c7254e691366d8c932369be7d0b70b7affd209dec60f4e07633047e"
 
 
 def check(condition, label):
@@ -1043,6 +1073,297 @@ def check_claim_response_and_cli_argv():
     check("encrypted local state may already exist" in interrupt_message, "interrupt warning preserves crash truth")
     check("no secret or passphrase was saved" not in interrupt_message, "interrupt warning makes no false no-write claim")
 
+    class FailingParser:
+        @staticmethod
+        def parse_args(_argv):
+            class Args:
+                @staticmethod
+                def func(_args):
+                    raise RuntimeError("simulated internal detail")
+
+            return Args()
+
+    cli.build_parser = lambda: FailingParser()
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        unexpected_status = cli.main([])
+    unexpected_message = stderr.getvalue()
+    check(unexpected_status == 2, "unexpected CLI failure returns the bounded client-error status")
+    check("unexpected internal runner failure" in unexpected_message, "unexpected CLI failure uses a fixed message")
+    check("simulated internal detail" not in unexpected_message, "unexpected CLI failure does not expose exception details")
+
+
+def _match_response_base(profile, request_body_sha256):
+    return {
+        "schemaVersion": MATCH_JOB_SCHEMA_VERSION,
+        "protocolVersion": MATCH_JOB_PROTOCOL,
+        "runnerId": profile["runnerId"],
+        "fingerprint": profile["fingerprint"],
+        "requestBodySha256": request_body_sha256,
+        "evidenceClass": "active_local_signing_key_possession",
+        **{field: False for field in MATCH_JOB_FALSE_ATTESTATIONS},
+    }
+
+
+def _match_grant_payload(profile, request_body_sha256):
+    return {
+        **_match_response_base(profile, request_body_sha256),
+        "status": "granted",
+        "recovery": False,
+        "attempt": {
+            "attemptId": MATCH_ATTEMPT_ID,
+            "leaseEpoch": 1,
+            "attemptNumber": 1,
+            "renewCount": 0,
+            "renewalsRemaining": 5,
+            "leaseExpiresAt": "2026-08-25T12:05:00.000Z",
+        },
+        "job": {
+            "jobId": MATCH_JOB_ID,
+            "kind": MATCH_JOB_KIND,
+            "requiredHarnessId": MATCH_HARNESS_ID,
+            "requiredHarnessDigest": MATCH_HARNESS_DIGEST,
+            "engineId": MATCH_JOB_ENGINE_ID,
+            "engineSha256": MATCH_JOB_ENGINE_SHA256,
+            "rulesetId": MATCH_JOB_RULESET_ID,
+            "rulesSha256": MATCH_JOB_RULES_SHA256,
+            "seed": MATCH_SEED,
+            "inputSha256": MATCH_INPUT_SHA256,
+            "inputBytesBase64url": MATCH_INPUT_BASE64URL,
+            "maxAttempts": 3,
+        },
+    }
+
+
+def _match_result_payload(profile, request_body_sha256, *, conformance="match"):
+    return {
+        **_match_response_base(profile, request_body_sha256),
+        "status": "recorded",
+        "duplicate": False,
+        "result": {
+            "jobId": MATCH_JOB_ID,
+            "attemptId": MATCH_ATTEMPT_ID,
+            "leaseEpoch": 1,
+            "engineSha256": MATCH_JOB_ENGINE_SHA256,
+            "outputSha256": MATCH_OUTPUT_SHA256,
+            "transcriptSha256": MATCH_TRANSCRIPT_SHA256,
+            "conformance": conformance,
+            "completedAt": "2026-08-25T12:00:01.000Z",
+        },
+    }
+
+
+def check_match_job_contract_and_cli():
+    profile = {
+        "localState": "runner_id_recorded_unverified",
+        "runnerId": RUNNER_ID,
+        "endpointOrigin": "https://nymrel.com",
+        "fingerprint": "f" * 64,
+        "harnessId": MATCH_HARNESS_ID,
+        "harnessDigest": MATCH_HARNESS_DIGEST,
+    }
+    derived = derive_fixture_input(
+        runner_id=RUNNER_ID,
+        harness_id=MATCH_HARNESS_ID,
+        harness_digest=MATCH_HARNESS_DIGEST,
+        seed=MATCH_SEED,
+    )
+    check(derived["inputBytesBase64url"] == MATCH_INPUT_BASE64URL, "Python fixture bytes match TypeScript vector")
+    check(derived["inputSha256"] == MATCH_INPUT_SHA256, "Python fixture input digest matches TypeScript vector")
+    check(
+        expected_fixture_output_sha256(MATCH_INPUT_BASE64URL) == MATCH_OUTPUT_SHA256,
+        "Python fixture output digest matches TypeScript vector",
+    )
+    check(
+        fixture_transcript_sha256(
+            job_id=MATCH_JOB_ID,
+            attempt_id=MATCH_ATTEMPT_ID,
+            lease_epoch=1,
+            engine_sha256=MATCH_JOB_ENGINE_SHA256,
+            input_sha256=MATCH_INPUT_SHA256,
+            output_sha256=MATCH_OUTPUT_SHA256,
+        ) == MATCH_TRANSCRIPT_SHA256,
+        "Python transcript digest matches TypeScript vector",
+    )
+
+    poll_sha256 = hashlib.sha256(MATCH_JOB_POLL_BODY).hexdigest()
+    granted_payload = _match_grant_payload(profile, poll_sha256)
+    grant = validate_poll_response(granted_payload, profile=profile, request_body_sha256=poll_sha256)
+    check(isinstance(grant, FixtureGrant), "strict poll validator accepts the frozen fixture grant")
+    computation = compute_closed_fixture(grant)
+    check(computation.output_sha256 == MATCH_OUTPUT_SHA256, "fixture computation returns frozen output digest")
+    check(computation.transcript_sha256 == MATCH_TRANSCRIPT_SHA256, "fixture computation returns frozen transcript")
+
+    result_body = encode_result_request(grant, computation)
+    expected_result_body = (
+        b'{"jobId":"awj1_BwcHBwcHBwcHBwcHBwcHBw",'
+        b'"attemptId":"awa1_CAgICAgICAgICAgICAgICA",'
+        b'"leaseEpoch":1,'
+        b'"engineSha256":"46a8ccd256d71235b0e59c5a14b5e14a8377b54a8ce9ccea6b62b81692b2e7bf",'
+        b'"outputSha256":"3e11cea4520e84526f1e10a6d70c0e09a32dc02a1b502b2244ca7593ec7e721e",'
+        b'"transcriptSha256":"7e583b899c7254e691366d8c932369be7d0b70b7affd209dec60f4e07633047e"}'
+    )
+    check(result_body == expected_result_body, "result request uses the exact canonical byte order")
+    result_sha256 = hashlib.sha256(result_body).hexdigest()
+    receipt = validate_result_response(
+        _match_result_payload(profile, result_sha256),
+        profile=profile,
+        request_body_sha256=result_sha256,
+        grant=grant,
+        computation=computation,
+    )
+    check(receipt.conformance == "match" and not receipt.duplicate, "strict result validator accepts exact receipt")
+
+    hostile = json.loads(json.dumps(granted_payload))
+    hostile["job"]["expectedOutputSha256"] = MATCH_OUTPUT_SHA256
+    expect_error(
+        lambda: validate_poll_response(hostile, profile=profile, request_body_sha256=poll_sha256),
+        RunnerClientError,
+        "exact schema",
+    )
+    for field in MATCH_JOB_FALSE_ATTESTATIONS:
+        hostile = {**granted_payload, field: True}
+        expect_error(
+            lambda hostile=hostile, field=field: validate_poll_response(
+                hostile,
+                profile=profile,
+                request_body_sha256=poll_sha256,
+            ),
+            RunnerClientError,
+            field,
+        )
+    for field, changed in (
+        ("requiredHarnessId", "other-harness"),
+        ("engineSha256", "0" * 64),
+        ("inputSha256", "0" * 64),
+    ):
+        hostile = json.loads(json.dumps(granted_payload))
+        hostile["job"][field] = changed
+        expect_error(
+            lambda hostile=hostile: validate_poll_response(
+                hostile,
+                profile=profile,
+                request_body_sha256=poll_sha256,
+            ),
+            RunnerClientError,
+        )
+
+    for field, changed in (
+        ("runnerId", ("awr1_" + ("A" * 21) + "é")),
+        ("fingerprint", ("f" * 63) + "é"),
+        ("requestBodySha256", ("d" * 63) + "é"),
+    ):
+        hostile = json.loads(json.dumps(granted_payload))
+        hostile[field] = changed
+        expect_error(
+            lambda hostile=hostile: validate_poll_response(
+                hostile,
+                profile=profile,
+                request_body_sha256=poll_sha256,
+            ),
+            RunnerClientError,
+        )
+
+    hostile = json.loads(json.dumps(granted_payload))
+    hostile["job"]["maxAttempts"] = 3.0
+    expect_error(
+        lambda: validate_poll_response(hostile, profile=profile, request_body_sha256=poll_sha256),
+        RunnerClientError,
+        "maximum attempts",
+    )
+
+    exhausted = {
+        **_match_response_base(profile, poll_sha256),
+        "status": "exhausted",
+        "job": {
+            "jobId": MATCH_JOB_ID,
+            "kind": MATCH_JOB_KIND,
+            "attemptsUsed": 3,
+            "maxAttempts": 3.0,
+        },
+    }
+    expect_error(
+        lambda: validate_poll_response(exhausted, profile=profile, request_body_sha256=poll_sha256),
+        RunnerClientError,
+        "maximum attempts",
+    )
+
+    cli_path = os.path.join(ROOT, "bin", "agentwars.py")
+    spec = importlib.util.spec_from_file_location("agentwars_cli_match_work_test", cli_path)
+    check(spec is not None and spec.loader is not None, "CLI module loads for match work test")
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    expect_error(
+        lambda: cli.cmd_runner_work(
+            argparse.Namespace(challenge_id=CHALLENGE_ID, once=False, state_dir=None, timeout=15)
+        ),
+        RunnerClientError,
+        "--once",
+    )
+    with contextlib.redirect_stderr(io.StringIO()):
+        try:
+            cli.build_parser().parse_args(["runner", "work", "--challenge-id", CHALLENGE_ID])
+        except SystemExit as error:
+            check(error.code == 2, "work command requires explicit one-shot consent")
+        else:
+            raise AssertionError("work command accepted without --once")
+
+    cli_key = Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
+
+    class FakeSecret:
+        @staticmethod
+        def reveal():
+            return PASSPHRASE
+
+    class FakeStore:
+        @staticmethod
+        def load_profile(challenge_id):
+            check(challenge_id == CHALLENGE_ID, "work loads the exact challenge")
+            return profile
+
+        @staticmethod
+        def load_key(candidate, passphrase):
+            check(candidate is profile and passphrase == PASSPHRASE, "work loads the exact encrypted key once")
+            return cli_key
+
+    signed_requests = []
+
+    def accepted_work(*, origin, signed, timeout_seconds):
+        check(origin == "https://nymrel.com" and timeout_seconds == 15, "work keeps origin and timeout")
+        signed_requests.append(signed)
+        if signed.path == MATCH_JOB_POLL_PATH:
+            check(signed.body == MATCH_JOB_POLL_BODY, "work signs the exact poll bytes")
+            payload = _match_grant_payload(profile, signed.body_sha256)
+        elif signed.path == MATCH_JOB_RESULT_PATH:
+            check(signed.body == expected_result_body, "work signs the exact result bytes")
+            payload = _match_result_payload(profile, signed.body_sha256)
+        else:
+            raise AssertionError("work used an unexpected signed path")
+        raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return 200, payload, raw
+
+    original_store = cli.RunnerStateStore
+    original_existing_prompt = cli._existing_key_passphrase
+    original_send_signed_request = cli.send_signed_request
+    try:
+        cli.RunnerStateStore = lambda _state_dir: FakeStore()
+        cli._existing_key_passphrase = lambda: FakeSecret()
+        cli.send_signed_request = accepted_work
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            status = cli.cmd_runner_work(
+                argparse.Namespace(challenge_id=CHALLENGE_ID, once=True, state_dir=None, timeout=15)
+            )
+        output = stdout.getvalue()
+        check(status == 0 and len(signed_requests) == 2, "one-shot work completes one grant and stops")
+        check("digest conformance only" in output, "work output labels digest-only evidence")
+        check("attestations remain false" in output, "work output keeps execution attestations false")
+        check(PASSPHRASE.decode("utf-8") not in output, "work output does not print the key passphrase")
+    finally:
+        cli.RunnerStateStore = original_store
+        cli._existing_key_passphrase = original_existing_prompt
+        cli.send_signed_request = original_send_signed_request
+
 
 def main():
     faulthandler.dump_traceback_later(30, exit=True)
@@ -1051,6 +1372,7 @@ def main():
         check_origins_and_bodies()
         check_state_and_roundtrip()
         check_claim_response_and_cli_argv()
+        check_match_job_contract_and_cli()
         print(f"PASS: {CHECKS} AgentWars runner checks")
         print("provider/model/runtime/execution attestations remain false")
         return 0

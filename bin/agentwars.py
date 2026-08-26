@@ -6,6 +6,7 @@ Install ``bin`` on PATH and use:
     agentwars runner pair ...
     agentwars runner activate --challenge-id ... --runner-id ...
     agentwars runner probe --challenge-id ...
+    agentwars runner work --challenge-id ... --once
     agentwars runner request ...
 
 Pairing secrets and key passphrases are accepted only through no-echo prompts.
@@ -18,7 +19,6 @@ from __future__ import annotations
 import argparse
 import getpass
 import hashlib
-import json
 import os
 import re
 import sys
@@ -43,6 +43,16 @@ from provider_hub.local_runner import (  # noqa: E402
     send_signed_request,
     sign_runner_request,
     validate_probe_response,
+)
+from provider_hub.match_worker import (  # noqa: E402
+    MATCH_JOB_POLL_BODY,
+    MATCH_JOB_POLL_PATH,
+    MATCH_JOB_RESULT_PATH,
+    FixtureGrant,
+    compute_closed_fixture,
+    encode_result_request,
+    validate_poll_response,
+    validate_result_response,
 )
 from provider_hub.runner_state import RunnerStateStore  # noqa: E402
 from provider_hub.secrets import SecretValue  # noqa: E402
@@ -219,6 +229,80 @@ def cmd_runner_probe(args) -> int:
     return 0
 
 
+def cmd_runner_work(args) -> int:
+    """Poll and complete at most one closed deterministic fixture job."""
+
+    if args.once is not True:
+        raise RunnerClientError("runner work requires explicit --once consent")
+    store = RunnerStateStore(args.state_dir)
+    profile = store.load_profile(args.challenge_id)
+    if profile["localState"] != "runner_id_recorded_unverified" or profile["runnerId"] is None:
+        raise RunnerClientError("record the browser-issued runner id before polling for work")
+    passphrase = _existing_key_passphrase()
+    key = store.load_key(profile, passphrase.reveal())
+
+    poll = sign_runner_request(
+        key,
+        method="POST",
+        path=MATCH_JOB_POLL_PATH,
+        body=MATCH_JOB_POLL_BODY,
+        runner_id=profile["runnerId"],
+    )
+    poll_status, poll_payload, _poll_raw = send_signed_request(
+        origin=profile["endpointOrigin"],
+        signed=poll,
+        timeout_seconds=args.timeout,
+    )
+    if poll_status != 200:
+        raise RunnerClientError("match-job poll returned a contradictory HTTP status")
+    grant_or_terminal = validate_poll_response(
+        poll_payload,
+        profile=profile,
+        request_body_sha256=poll.body_sha256,
+    )
+    if not isinstance(grant_or_terminal, FixtureGrant):
+        print(f"Server reports the deterministic fixture job as {grant_or_terminal.status}.")
+        if grant_or_terminal.conformance is not None:
+            print(f"digest conformance : {grant_or_terminal.conformance}")
+        print("No provider, model, subprocess, or arbitrary harness was invoked by this command.")
+        print("Provider/model/runtime/harness/match attestations remain false.")
+        return 0 if grant_or_terminal.conformance == "match" else 1
+
+    computation = compute_closed_fixture(grant_or_terminal)
+    result_body = encode_result_request(grant_or_terminal, computation)
+    result = sign_runner_request(
+        key,
+        method="POST",
+        path=MATCH_JOB_RESULT_PATH,
+        body=result_body,
+        runner_id=profile["runnerId"],
+    )
+    result_status, result_payload, _result_raw = send_signed_request(
+        origin=profile["endpointOrigin"],
+        signed=result,
+        timeout_seconds=args.timeout,
+    )
+    if result_status != 200:
+        raise RunnerClientError("match-job result returned a contradictory HTTP status")
+    receipt = validate_result_response(
+        result_payload,
+        profile=profile,
+        request_body_sha256=result.body_sha256,
+        grant=grant_or_terminal,
+        computation=computation,
+    )
+    print("Completed one built-in deterministic AgentWars fixture job.")
+    print(f"job id             : {grant_or_terminal.job.job_id}")
+    print(f"attempt id         : {grant_or_terminal.attempt_id}")
+    print(f"output sha256      : {computation.output_sha256}")
+    print(f"transcript sha256  : {computation.transcript_sha256}")
+    print(f"digest conformance : {receipt.conformance}")
+    print(f"duplicate receipt  : {'yes' if receipt.duplicate else 'no'}")
+    print("This is digest conformance only; no provider, model, subprocess, or arbitrary harness was invoked.")
+    print("Provider/model/runtime/harness/match attestations remain false.")
+    return 0 if receipt.conformance == "match" else 1
+
+
 def _read_request_body(path: str) -> bytes:
     if path == "-":
         raw = sys.stdin.buffer.read(MAX_BODY_BYTES + 1)
@@ -373,6 +457,21 @@ def build_parser() -> argparse.ArgumentParser:
     probe.add_argument("--timeout", type=_bounded_timeout, default=15)
     probe.set_defaults(func=cmd_runner_probe)
 
+    work = runner_commands.add_parser(
+        "work",
+        help="poll and complete one closed deterministic fixture job",
+    )
+    work.add_argument("--challenge-id", required=True)
+    work.add_argument(
+        "--once",
+        action="store_true",
+        required=True,
+        help="explicitly limit this invocation to at most one fixture job",
+    )
+    work.add_argument("--state-dir")
+    work.add_argument("--timeout", type=_bounded_timeout, default=15)
+    work.set_defaults(func=cmd_runner_work)
+
     request = runner_commands.add_parser(
         "request",
         help="send one exact JSON request signed by a recorded runner key",
@@ -419,6 +518,9 @@ def main(argv=None) -> int:
             file=sys.stderr,
         )
         return 130
+    except Exception:
+        print("ERROR: unexpected internal runner failure", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 # AgentWars customer-local runner client
 
-Status: local release candidate. It is not independently accepted, integrated
-into canonical main, connected to a production account, or deployed. The exact
-Nymrel web candidate at `b68428f` now includes the matching signed probe route,
-but remains a separate local candidate. A production-account signed journey
-and a genuine model-played match remain launch gates.
+Status: local release candidate. It is not integrated into canonical main,
+connected to a production account, or deployed. The accepted local Nymrel
+pairing/probe base at `b68428f` now has a separate, feature-flagged match-job
+candidate under review. A production-account signed journey and a genuine
+model-played match remain launch gates.
 
 ## What this client does
 
@@ -101,6 +101,33 @@ An accepted probe is evidence only that the configured server accepted
 possession of the active local Ed25519 key. It does not attest a provider
 account, subscription, billing route, model, person, runtime, harness
 execution, or match execution.
+
+## Complete one closed fixture job
+
+The first job path is intentionally narrower than a model competition. With a
+paired runner id recorded locally, this command signs one exact poll, validates
+the server's complete response contract, computes only the pinned SHA-256
+fixture in the current process, and signs one exact result:
+
+```powershell
+agentwars runner work `
+  --challenge-id CHALLENGE_ID `
+  --once
+```
+
+`--once` is mandatory. The command prompts for the encrypted-key passphrase
+once and stops after one terminal response or one granted fixture. It cannot
+launch a subprocess, call a provider or model, read provider credentials, run
+an arbitrary harness, or accept server-selected code. The job must match the
+locally pinned engine and rules manifests, the paired harness id and digest,
+and a client-rederived 32-byte public input commitment. Unknown fields,
+withheld-output leakage, changed commitments, or any true execution attestation
+fail closed.
+
+The returned `conformance` compares the deterministic output digest with the
+server's withheld commitment. Even `conformance: match` is digest conformance
+only. Provider account, plan, billing, model, person, runtime, harness
+execution, and match execution attestations all remain exactly `false`.
 
 ## Sign one exact request
 
@@ -207,19 +234,24 @@ python bin/check_agent_passport.py
 ```
 
 `check_agentwars_runner.py` uses only a literal loopback server and temporary
-state. It pins a deterministic Python-to-Nymrel Ed25519 vector; attacks origin
-spellings, redirects, response schemas, secret reflection, state drift, wrong
-passphrases, replay, and argv leakage; and verifies that all trust flags remain
-false. It makes no live provider or Nymrel request.
+state. Its current 151 checks pin deterministic Python-to-Nymrel Ed25519 and
+fixture vectors; attack origins, redirects, response schemas, secret
+reflection, state drift, wrong passphrases, replay, commitments, withheld-output
+leakage, and argv leakage; execute the signed poll/result CLI journey; and
+verify that all trust flags remain false. It makes no live provider or Nymrel
+request.
 
 ## Remaining release gates
 
-- independently review and integrate the exact Nymrel `b68428f` web tip and
-  the exact CLI tip;
-- release the candidate signed probe route and confirm that the browser exposes
-  the complete server-issued runner id after account approval;
+- independently accept and integrate the exact Nymrel match-job candidate and
+  this exact CLI candidate;
+- replay all atomic Lua transitions against an isolated production-compatible
+  Redis service, then keep the match-job feature flag closed until production
+  configuration is explicitly approved;
+- release the pairing, probe, and fixture routes and confirm that the browser
+  exposes the complete server-issued runner id after account approval;
 - run a real account create → secret → local claim → fingerprint approval →
-  signed request → revocation → delete journey;
+  signed probe → signed fixture poll/result → revocation → delete journey;
 - run a genuine model-influenced, replay-verified match through that runner;
 - keep arbitrary public harness execution disabled until OS-level isolation is
   independently accepted.

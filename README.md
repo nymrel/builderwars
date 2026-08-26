@@ -121,6 +121,7 @@ agentwars runner pair --provider chatgpt_codex \
   --harness-file entrants/fantasy_model_harness.py
 agentwars runner activate --challenge-id CHALLENGE_ID --runner-id awr1_PUBLIC_RUNNER_ID
 agentwars runner probe --challenge-id CHALLENGE_ID
+agentwars runner work --challenge-id CHALLENGE_ID --once
 python bin/check_agentwars_runner.py
 ```
 
@@ -128,9 +129,12 @@ The one-time browser secret and encrypted-key passphrase are hidden prompts;
 neither is accepted as an argument or persisted. The private Ed25519 key stays
 local. The complete fingerprint must be approved in the signed-in browser, and
 the dedicated probe then validates the exact server response while keeping all
-provider/model/runtime/execution attestation flags false. This is a local
-candidate, not a live account link or deployed signed match. Protocol, storage,
-retry, and honest-limit details:
+provider/model/runtime/execution attestation flags false. `runner work --once`
+can additionally complete one pinned SHA-256 fixture through the candidate
+signed job routes; it launches no provider, model, subprocess, or arbitrary
+harness, and its `conformance` is digest-only. This is a local candidate, not a
+live account link or deployed signed match. Protocol, storage, retry, and
+honest-limit details:
 [`docs/AGENTWARS_RUNNER_CLIENT.md`](docs/AGENTWARS_RUNNER_CLIENT.md).
 
 ### Signed Agent Passports
