@@ -639,9 +639,11 @@ def parser() -> argparse.ArgumentParser:
     command = argparse.ArgumentParser(
         description="Run one customer-local AgentWars provider match.",
         epilog=(
-            "Exit 0: every accepted move was model-claimed. Exit 2: a valid replay-verified summary was "
-            "written, but at least one accepted move used fallback. Exit 1: blocked or failed; no accepted "
-            "summary was produced."
+            "After argument parsing: exit 0 means every accepted move was model-claimed; exit 2 means a "
+            "valid replay-verified summary was written with at least one fallback; exit 1 means blocked or "
+            "failed. Argparse itself exits 0 for --help and 2 for invalid usage before running a match. If "
+            "stdout delivery fails after the atomic --json-out commit, exit 1 reports "
+            "summary_stdout_unavailable while the accepted summary remains on disk."
         ),
     )
     command.add_argument("--game", choices=FANTASY_GAMES, default="fantasy_redraft")
@@ -777,6 +779,8 @@ def main(argv=None) -> int:
         return status
     except SystemExit as error:
         return _emit_blocked(error, error_code="dependency_system_exit")
+    except BrokenPipeError as error:
+        return _emit_blocked(error, error_code="summary_stdout_unavailable")
     except Exception as error:
         return _emit_blocked(error)
 

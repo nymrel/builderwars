@@ -131,6 +131,10 @@ passports are not production-publication candidates.
 
 ## Result states and process exits
 
+The outcome codes below apply after argument parsing starts a match. Before any
+match runs, argparse exits `0` for `--help` and `2` for invalid usage; neither
+case creates a match directory or summary.
+
 Four replay-accepted source-claim outcomes can produce a summary:
 
 - `model_influenced_unattested`: all 12 accepted moves are model-source claims;
@@ -149,6 +153,12 @@ error also fails the competitive audit and maps here rather than producing a
 summary. The public failure envelope contains only the schema, `blocked`, the
 exception class, and—only for a runner-defined refusal—the fixed bounded error
 code. Non-empty local match evidence may remain private for debugging.
+
+The summary file is committed atomically before the CLI copies it to stdout. If
+stdout closes after that commit, the process exits `1` with
+`summary_stdout_unavailable`; the already accepted summary remains at
+`--json-out` and should be inspected there. That delivery failure does not turn
+the replay-verified disk summary into a blocked match.
 
 Exit `2` preserves a valid replay and summary while refusing to treat the run
 as the intended all-model-claimed launch proof. It is not a process crash.

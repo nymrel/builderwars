@@ -215,9 +215,12 @@ def check_provider_manifests(work):
             "provider_variant_invalid",
         )
     help_text = candidate.parser().format_help()
-    check("Exit 0:" in help_text, "CLI help documents all-model success")
-    check("Exit 2:" in help_text, "CLI help documents replay-verified fallback completion")
-    check("Exit 1:" in help_text, "CLI help documents blocked or failed execution")
+    check("exit 0 means" in help_text, "CLI help documents all-model success")
+    check("exit 2 means" in help_text, "CLI help documents replay-verified fallback completion")
+    check("exit 1 means" in help_text, "CLI help documents blocked or failed execution")
+    check("Argparse itself exits 0" in help_text, "CLI help distinguishes pre-match argparse exit zero")
+    check("2 for invalid usage" in help_text, "CLI help distinguishes pre-match argparse exit two")
+    check("summary_stdout_unavailable" in help_text, "CLI help documents post-commit stdout failure")
     check(len(runtimes) == len(candidate.SUPPORTED_PROVIDERS), "every public provider has a construction check")
 
     stderr = io.StringIO()
@@ -715,7 +718,7 @@ def check_main_failure_envelope(work):
             check(error.code == 0, "argparse help keeps its standard successful SystemExit")
         else:
             raise AssertionError("argparse help did not raise SystemExit")
-    check("Exit 2:" in stdout.getvalue(), "argparse help exposes the replay-verified fallback exit")
+    check("exit 2 means" in stdout.getvalue(), "argparse help exposes the replay-verified fallback exit")
 
     stderr = io.StringIO()
     with contextlib.redirect_stderr(stderr):
@@ -783,6 +786,37 @@ def check_main_failure_envelope(work):
         },
         "dependency SystemExit becomes a bounded blocked envelope",
     )
+
+    class BrokenStdout(io.StringIO):
+        def write(self, _text):
+            raise BrokenPipeError("synthetic closed stdout")
+
+    committed_summary = work / "stdout-failure-summary.json"
+
+    def return_committed_summary(_args):
+        committed_summary.write_text('{"status":"model_influenced_unattested"}\n', encoding="utf-8")
+        return {"status": "model_influenced_unattested"}, 0
+
+    stderr = io.StringIO()
+    with (
+        mock.patch.object(candidate, "run", side_effect=return_committed_summary),
+        contextlib.redirect_stdout(BrokenStdout()),
+        contextlib.redirect_stderr(stderr),
+    ):
+        status = candidate.main(base_argv(work / "stdout-failure", committed_summary))
+    payload = json.loads(stderr.getvalue())
+    check(status == 1, "post-commit stdout failure returns the documented delivery failure")
+    check(
+        payload
+        == {
+            "schemaVersion": candidate.SUMMARY_SCHEMA,
+            "status": "blocked",
+            "errorClass": "BrokenPipeError",
+            "errorCode": "summary_stdout_unavailable",
+        },
+        "post-commit stdout failure has a bounded delivery code",
+    )
+    check(committed_summary.exists(), "post-commit stdout failure preserves the accepted disk summary")
 
 
 def main():
