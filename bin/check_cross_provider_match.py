@@ -17,6 +17,7 @@ import os
 import pathlib
 import sys
 import tempfile
+from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BIN = os.path.join(ROOT, "bin")
@@ -73,7 +74,7 @@ def check_provider_manifests(work):
         ("chatgpt_codex", None, None),
         ("claude_code", None, None),
         ("opencode", "opencode-go/ox-alpha-free", "max"),
-        ("openrouter", "openai/gpt-5", None),
+        ("openrouter", "openai/gpt-5:free", None),
         ("hermes", "nous/hermes-4", None),
     )
     runtimes = []
@@ -96,6 +97,9 @@ def check_provider_manifests(work):
             manifest = runtime.manifest
             rendered_manifest = json.dumps(manifest, sort_keys=True)
             check(manifest["name"] == f"Seat {index}", f"{provider} trims edge whitespace")
+            check(runtime.spec.name == f"Seat {index}", f"{provider} stores the normalized entrant name")
+            check(runtime.spec.model == model, f"{provider} stores the bounded model selector")
+            check(runtime.spec.variant == variant, f"{provider} stores the bounded variant selector")
             check(manifest["execution_claim"] == "hybrid", f"{provider} is never declared model-only")
             check(manifest["cmd"][0] == sys.executable, f"{provider} uses current Python")
             check(
@@ -178,6 +182,28 @@ def check_provider_manifests(work):
         ),
         "provider_timeout_invalid",
     )
+    for invalid_model in ("-provider/model", " provider/model", "provider model", "x" * 241, "provider/model\n"):
+        expect_error(
+            lambda invalid_model=invalid_model: candidate.build_seat_runtime(
+                candidate.SeatSpec("Bad Model", "opencode", "win-now", model=invalid_model, variant="max"),
+                backend_timeout=180,
+            ),
+            "provider_model_invalid",
+        )
+    for invalid_variant in ("-max", " max", "high effort", "x" * 241, "max\t"):
+        expect_error(
+            lambda invalid_variant=invalid_variant: candidate.build_seat_runtime(
+                candidate.SeatSpec(
+                    "Bad Variant",
+                    "opencode",
+                    "win-now",
+                    model="opencode-go/ox-alpha-free",
+                    variant=invalid_variant,
+                ),
+                backend_timeout=180,
+            ),
+            "provider_variant_invalid",
+        )
     check(len(runtimes) == len(candidate.SUPPORTED_PROVIDERS), "every public provider has a construction check")
 
     stderr = io.StringIO()
@@ -223,6 +249,100 @@ def check_preflight_refusals(work):
     args = parse(base_argv(work / "duplicate-name", work / "duplicate-name.json") + ["--seat1-name", "codex redraft"])
     expect_error(lambda: candidate.run(args), "entrant_names_not_unique")
     check(not (work / "duplicate-name").exists(), "duplicate-name refusal occurs before a match starts")
+
+
+def check_summary_reservation(work):
+    direct_path = work / "direct-reservation.json"
+    reservation = candidate.reserve_json_output(str(direct_path))
+    check(direct_path.exists(), "summary reservation creates the exact output path")
+    check(direct_path.stat().st_size == 0, "summary reservation is empty before commit")
+    reservation.commit({"status": "held"})
+    check(json.loads(direct_path.read_text(encoding="utf-8")) == {"status": "held"}, "reservation commit is exact")
+    reservation.abort()
+    check(direct_path.exists(), "abort after commit cannot remove accepted evidence")
+    expect_error(lambda: reservation.commit({"status": "overwrite"}), "summary_reservation_not_open")
+    check(json.loads(direct_path.read_text(encoding="utf-8")) == {"status": "held"}, "committed evidence is immutable")
+
+    direct_match = work / "direct-match-reservation"
+    check(
+        candidate.reserve_match_output_directory(str(direct_match)) == str(direct_match.resolve()),
+        "match reservation returns its exact absolute path",
+    )
+    check(direct_match.is_dir(), "match reservation atomically creates the output directory")
+    expect_error(lambda: candidate.reserve_match_output_directory(str(direct_match)), "match_output_exists")
+    marker = direct_match / "keep.txt"
+    marker.write_text("debug-evidence", encoding="utf-8")
+    candidate.remove_empty_match_output_directory(str(direct_match))
+    check(marker.read_text(encoding="utf-8") == "debug-evidence", "non-empty match evidence survives cleanup")
+
+    failure_summary = work / "reserved-failure.json"
+    failure_out = work / "reserved-failure-match"
+    failure_args = parse(base_argv(failure_out, failure_summary))
+
+    def fail_after_reservation(**_kwargs):
+        check(failure_summary.exists(), "summary is reserved before provider execution")
+        check(failure_summary.stat().st_size == 0, "provider execution sees only an empty reservation")
+        check(failure_out.is_dir(), "match directory is reserved before provider execution")
+        raise RuntimeError("synthetic provider failure")
+
+    with mock.patch.object(candidate, "run_match", side_effect=fail_after_reservation):
+        try:
+            candidate.run(failure_args)
+        except RuntimeError as error:
+            check(str(error) == "synthetic provider failure", "synthetic provider failure remains internal")
+        else:
+            raise AssertionError("synthetic provider failure was swallowed")
+    check(not failure_summary.exists(), "failed match removes its unused summary reservation")
+    check(not failure_out.exists(), "mocked failed match creates no match evidence")
+
+    race_summary = work / "reservation-race.json"
+    race_out = work / "reservation-race-match"
+    race_args = parse(base_argv(race_out, race_summary))
+    real_builder = candidate.build_seat_runtime
+    calls = 0
+
+    def inject_summary_race(*args, **kwargs):
+        nonlocal calls
+        runtime = real_builder(*args, **kwargs)
+        calls += 1
+        if calls == 2:
+            race_summary.write_text("preserve-race-winner", encoding="utf-8")
+        return runtime
+
+    with (
+        mock.patch.object(candidate, "build_seat_runtime", side_effect=inject_summary_race),
+        mock.patch.object(candidate, "run_match") as run_match_mock,
+    ):
+        expect_error(lambda: candidate.run(race_args), "summary_output_exists")
+    run_match_mock.assert_not_called()
+    check(race_summary.read_text(encoding="utf-8") == "preserve-race-winner", "reservation race preserves prior writer")
+    check(not race_out.exists(), "reservation race refuses before provider execution")
+
+    match_race_summary = work / "match-reservation-race.json"
+    match_race_out = work / "match-reservation-race"
+    match_race_args = parse(base_argv(match_race_out, match_race_summary))
+    calls = 0
+
+    def inject_match_race(*args, **kwargs):
+        nonlocal calls
+        runtime = real_builder(*args, **kwargs)
+        calls += 1
+        if calls == 2:
+            match_race_out.mkdir()
+            (match_race_out / "keep.txt").write_text("preserve-match-race-winner", encoding="utf-8")
+        return runtime
+
+    with (
+        mock.patch.object(candidate, "build_seat_runtime", side_effect=inject_match_race),
+        mock.patch.object(candidate, "run_match") as run_match_mock,
+    ):
+        expect_error(lambda: candidate.run(match_race_args), "match_output_exists")
+    run_match_mock.assert_not_called()
+    check(not match_race_summary.exists(), "match reservation race releases the unused summary reservation")
+    check(
+        (match_race_out / "keep.txt").read_text(encoding="utf-8") == "preserve-match-race-winner",
+        "match reservation race preserves the prior writer",
+    )
 
 
 def stub_runtime(name, provider, strategy, backend_name):
@@ -445,11 +565,42 @@ def check_main_failure_envelope(work):
             "schemaVersion": candidate.SUMMARY_SCHEMA,
             "status": "blocked",
             "errorClass": "CrossProviderMatchError",
+            "errorCode": "explicit_customer_provider_intent_required",
         },
-        "main exposes only schema, status, and error class",
+        "main exposes only schema, status, class, and fixed runner code",
     )
     check(str(work) not in stderr.getvalue(), "failure envelope contains no local path")
     check(SECRET_SENTINEL not in stderr.getvalue(), "failure envelope contains no customer key")
+
+    stderr = io.StringIO()
+    with (
+        mock.patch.object(candidate, "run", side_effect=RuntimeError(SECRET_SENTINEL)),
+        contextlib.redirect_stderr(stderr),
+    ):
+        status = candidate.main(base_argv(work / "generic", work / "generic.json"))
+    payload = json.loads(stderr.getvalue())
+    check(status == 1, "generic failure returns blocked status")
+    check(
+        payload
+        == {
+            "schemaVersion": candidate.SUMMARY_SCHEMA,
+            "status": "blocked",
+            "errorClass": "RuntimeError",
+        },
+        "generic failure exposes no message or runner code",
+    )
+    check(SECRET_SENTINEL not in stderr.getvalue(), "generic failure cannot echo provider response or secret")
+
+    stderr = io.StringIO()
+    with (
+        mock.patch.object(candidate, "run", side_effect=candidate.CrossProviderMatchError(SECRET_SENTINEL)),
+        contextlib.redirect_stderr(stderr),
+    ):
+        status = candidate.main(base_argv(work / "malicious-code", work / "malicious-code.json"))
+    payload = json.loads(stderr.getvalue())
+    check(status == 1, "invalid runner code returns blocked status")
+    check(payload["errorCode"] == "cross_provider_match_error", "invalid runner code is replaced by a fixed generic code")
+    check(SECRET_SENTINEL not in stderr.getvalue(), "invalid runner code cannot echo secret-shaped input")
 
 
 def main():
@@ -457,6 +608,7 @@ def main():
         work = pathlib.Path(temporary)
         check_provider_manifests(work)
         check_preflight_refusals(work)
+        check_summary_reservation(work)
         check_offline_match_and_summary(work)
         check_main_failure_envelope(work)
     print(f"PASS: {CHECKS} cross-provider match checks")

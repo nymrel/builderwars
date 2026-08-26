@@ -58,10 +58,18 @@ FALSE_ATTESTATIONS = (
 _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 _HEX16_RE = re.compile(r"^[0-9a-f]{16}$")
 _ERROR_CLASS_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,79}$")
+_ERROR_CODE_RE = re.compile(r"^[a-z][a-z0-9_]{0,79}$")
+_PROVIDER_OPTION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/+@-]{0,239}$")
 
 
 class CrossProviderMatchError(RuntimeError):
     """Bounded local failure code that contains no credential or response."""
+
+    def __init__(self, code: str):
+        if not isinstance(code, str) or _ERROR_CODE_RE.fullmatch(code) is None:
+            code = "cross_provider_match_error"
+        self.code = code
+        super().__init__(code)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -104,6 +112,18 @@ def _timeout(value: float) -> float:
 
 def _timeout_text(value: float) -> str:
     return format(value, ".3f").rstrip("0").rstrip(".")
+
+
+def _bounded_provider_option(value: str | None, field: str) -> str | None:
+    if value is None:
+        return None
+    if (
+        not isinstance(value, str)
+        or value != value.strip()
+        or _PROVIDER_OPTION_RE.fullmatch(value) is None
+    ):
+        raise CrossProviderMatchError(f"{field}_invalid")
+    return value
 
 
 def _openrouter_environment() -> dict[str, str]:
@@ -209,13 +229,16 @@ def build_seat_runtime(spec: SeatSpec, *, backend_timeout: float) -> SeatRuntime
     name = _bounded_name(spec.name)
     if spec.strategy not in STRATEGIES:
         raise CrossProviderMatchError("strategy_invalid")
+    model = _bounded_provider_option(spec.model, "provider_model")
+    variant = _bounded_provider_option(spec.variant, "provider_variant")
+    normalized_spec = dataclasses.replace(spec, name=name, model=model, variant=variant)
     backend_timeout = _timeout(backend_timeout)
     entry = get_provider(spec.provider)
     try:
         backend = get_provider_backend(
             spec.provider,
-            model=spec.model,
-            variant=spec.variant,
+            model=model,
+            variant=variant,
             timeout_s=backend_timeout,
             runtime_intent=acknowledge_customer_local_v1(),
         )
@@ -236,10 +259,10 @@ def build_seat_runtime(spec: SeatSpec, *, backend_timeout: float) -> SeatRuntime
         "--backend-timeout",
         _timeout_text(backend_timeout),
     ]
-    if spec.model is not None:
-        command.extend(("--provider-model", spec.model))
-    if spec.variant is not None:
-        command.extend(("--provider-variant", spec.variant))
+    if model is not None:
+        command.extend(("--provider-model", model))
+    if variant is not None:
+        command.extend(("--provider-variant", variant))
 
     declared_environment = ["OPENROUTER_API_KEY"] if spec.provider == "openrouter" else []
     provisioned_environment = _openrouter_environment() if spec.provider == "openrouter" else {}
@@ -258,7 +281,7 @@ def build_seat_runtime(spec: SeatSpec, *, backend_timeout: float) -> SeatRuntime
         manifest["agent_passport"] = os.path.abspath(spec.passport_path)
     validate_manifest(manifest)
     return SeatRuntime(
-        spec=spec,
+        spec=normalized_spec,
         backend_label=backend.label,
         connection_mode=entry["connection_mode"],
         provider_class=entry["provider_class"],
@@ -487,27 +510,86 @@ def build_summary(
     return {**core, "summaryDigest": digest(core)}
 
 
-def write_json_exclusive(path: str, value: dict) -> None:
+class _ReservedJsonOutput:
+    def __init__(self, path: str):
+        if not isinstance(path, str) or not path:
+            raise CrossProviderMatchError("summary_path_invalid")
+        self.path = os.path.abspath(path)
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        flags = (
+            os.O_WRONLY
+            | os.O_CREAT
+            | os.O_EXCL
+            | getattr(os, "O_BINARY", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+        )
+        try:
+            self.fd = os.open(self.path, flags, 0o600)
+        except FileExistsError:
+            raise CrossProviderMatchError("summary_output_exists") from None
+        self.committed = False
+
+    def commit(self, value: dict) -> None:
+        if self.fd is None or self.committed:
+            raise CrossProviderMatchError("summary_reservation_not_open")
+        try:
+            encoded = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
+            fd = self.fd
+            handle = os.fdopen(fd, "wb")
+            self.fd = None
+            with handle:
+                handle.write(encoded)
+                handle.flush()
+                os.fsync(handle.fileno())
+        except Exception:
+            self.abort()
+            raise
+        self.committed = True
+
+    def abort(self) -> None:
+        if self.fd is not None:
+            try:
+                os.close(self.fd)
+            except OSError:
+                pass
+            self.fd = None
+        if not self.committed:
+            try:
+                os.unlink(self.path)
+            except OSError:
+                pass
+
+
+def reserve_json_output(path: str) -> _ReservedJsonOutput:
+    return _ReservedJsonOutput(path)
+
+
+def reserve_match_output_directory(path: str) -> str:
     if not isinstance(path, str) or not path:
-        raise CrossProviderMatchError("summary_path_invalid")
+        raise CrossProviderMatchError("match_path_invalid")
     absolute = os.path.abspath(path)
     os.makedirs(os.path.dirname(absolute), exist_ok=True)
-    encoded = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
     try:
-        fd = os.open(absolute, flags, 0o600)
+        os.mkdir(absolute)
     except FileExistsError:
-        raise CrossProviderMatchError("summary_output_exists") from None
+        raise CrossProviderMatchError("match_output_exists") from None
+    return absolute
+
+
+def remove_empty_match_output_directory(path: str) -> None:
     try:
-        with os.fdopen(fd, "wb") as handle:
-            handle.write(encoded)
-            handle.flush()
-            os.fsync(handle.fileno())
+        os.rmdir(path)
+    except OSError:
+        # Non-empty failure evidence is intentionally retained for debugging.
+        pass
+
+
+def write_json_exclusive(path: str, value: dict) -> None:
+    reservation = reserve_json_output(path)
+    try:
+        reservation.commit(value)
     except Exception:
-        try:
-            os.unlink(absolute)
-        except OSError:
-            pass
+        reservation.abort()
         raise
 
 
@@ -555,8 +637,8 @@ def run(args) -> tuple[dict, int]:
     if type(args.seed) is not int or not 0 <= args.seed <= 2_147_483_647:
         raise CrossProviderMatchError("seed_invalid")
     timeout = _timeout(args.backend_timeout)
-    out_root = os.path.abspath(args.out)
-    summary_path = os.path.abspath(args.json_out)
+    out_root = os.path.realpath(os.path.abspath(args.out))
+    summary_path = os.path.realpath(os.path.abspath(args.json_out))
     try:
         common_output_path = os.path.commonpath((out_root, summary_path))
     except ValueError:
@@ -575,26 +657,37 @@ def run(args) -> tuple[dict, int]:
         raise CrossProviderMatchError("entrant_names_not_unique")
     if runtimes[0].spec.provider == runtimes[1].spec.provider:
         raise CrossProviderMatchError("provider_claims_must_differ")
-    result = run_match(
-        game_name=args.game,
-        seed=args.seed,
-        entrants=[row.manifest for row in runtimes],
-        provisioned_envs=[row.provisioned_environment for row in runtimes],
-        out_dir=out_root,
-        move_timeout_s=timeout + 30,
-    )
-    report = verify_with_snapshot(result["transcript"])
-    audit_transcript(result=result, report=report, runtimes=runtimes)
-    sources = move_source_counts(result["transcript"], [row.manifest for row in runtimes])
-    scores = final_scores(result["transcript"])
-    summary = build_summary(
-        result={**result, "game": args.game, "seed": args.seed},
-        report=report,
-        runtimes=runtimes,
-        source_counts=sources,
-        scores=scores,
-    )
-    write_json_exclusive(summary_path, summary)
+    reservation = reserve_json_output(summary_path)
+    try:
+        reserve_match_output_directory(out_root)
+    except Exception:
+        reservation.abort()
+        raise
+    try:
+        result = run_match(
+            game_name=args.game,
+            seed=args.seed,
+            entrants=[row.manifest for row in runtimes],
+            provisioned_envs=[row.provisioned_environment for row in runtimes],
+            out_dir=out_root,
+            move_timeout_s=timeout + 30,
+        )
+        report = verify_with_snapshot(result["transcript"])
+        audit_transcript(result=result, report=report, runtimes=runtimes)
+        sources = move_source_counts(result["transcript"], [row.manifest for row in runtimes])
+        scores = final_scores(result["transcript"])
+        summary = build_summary(
+            result={**result, "game": args.game, "seed": args.seed},
+            report=report,
+            runtimes=runtimes,
+            source_counts=sources,
+            scores=scores,
+        )
+        reservation.commit(summary)
+    except Exception:
+        reservation.abort()
+        remove_empty_match_output_directory(out_root)
+        raise
     return summary, 0 if summary["allAcceptedMovesModelClaimed"] else 2
 
 
@@ -609,12 +702,18 @@ def main(argv=None) -> int:
     except Exception as error:
         # Provider stderr, responses, credentials, and local paths are never
         # copied into this public failure envelope.
+        error_class = error.__class__.__name__
+        if _ERROR_CLASS_RE.fullmatch(error_class) is None:
+            error_class = "Exception"
+        payload = {
+            "schemaVersion": SUMMARY_SCHEMA,
+            "status": "blocked",
+            "errorClass": error_class,
+        }
+        if isinstance(error, CrossProviderMatchError):
+            payload["errorCode"] = error.code
         print(
-            json.dumps({
-                "schemaVersion": SUMMARY_SCHEMA,
-                "status": "blocked",
-                "errorClass": error.__class__.__name__,
-            }),
+            json.dumps(payload),
             file=sys.stderr,
         )
         return 1

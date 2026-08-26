@@ -64,6 +64,10 @@ the two provider claims are the same, when entrant names collide ignoring case,
 or when either output path already exists. It never overwrites prior evidence.
 The match directory and summary file must also be separate, non-nested paths so
 an output collision cannot consume provider quota before failing.
+The summary file and match directory are then reserved with exclusive creation
+before either entrant starts, closing the remaining check-to-create collision
+windows. An empty match reservation is removed after failure; non-empty local
+failure evidence is retained for debugging and is never published automatically.
 
 ## Codex versus Claude example (PowerShell)
 
@@ -98,6 +102,11 @@ OpenRouter, set `OPENROUTER_API_KEY` only in the customer runner process and add
 `--seatN-model model-id`; the runner declares only the environment variable's
 name to the arena.
 
+Strategies are exactly `win-now` or `long-game`. `--backend-timeout` is seconds
+and must be between 10 and 900. Model and variant selectors are bounded,
+whitespace-free provider tokens; values beginning with an option prefix are
+rejected before execution.
+
 ## Signed Agent Passports
 
 Two public signed passport files may be bound before either entrant starts:
@@ -126,7 +135,8 @@ passports are not production-publication candidates.
   `2`.
 - `blocked`: construction, provider execution, replay, audit, or output writing
   failed; exit `1`. The public failure envelope contains only the schema,
-  `blocked`, and the exception class.
+  `blocked`, the exception class, and—only for a runner-defined refusal—the
+  fixed bounded error code.
 
 Exit `2` preserves a valid replay and summary while refusing to treat the run
 as the intended all-model-claimed launch proof. It is not a process crash.
