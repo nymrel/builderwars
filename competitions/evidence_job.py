@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Mapping
 
 from arena.canonical import canonical_bytes, digest
+from arena.integrity import engine_digest
 from arena.passport import PassportError, verify_passport
 from provider_hub.catalog import get_provider
 from provider_hub.local_runner import (
@@ -57,6 +58,7 @@ CROSS_PROVIDER_EVIDENCE_CLASS = "customer_local_provider_claims_with_replay"
 COMPETITION_REQUIRED_TRUTH_STATUS = "model_influenced_unattested"
 COMPETITION_PUBLICATION_MODE = "private_review_only"
 COMPETITION_TRANSCRIPT_ENCODING = "zlib+base64url"
+COMPETITION_ENGINE_SHA256 = engine_digest()
 CROSS_PROVIDER_TRUTH_BOUNDARY = (
     "The customer-local runner observed the declared provider adapters and the replay verifier "
     "proved the accepted moves, deterministic state, scoring, and result. Provider, account, "
@@ -495,6 +497,8 @@ def _validate_job(value, *, profile) -> CompetitionJob:
         raise RunnerClientError("competition job game is unsupported")
     seed = _integer(job["seed"], "competition seed", 0, 2_147_483_647)
     engine_sha256 = _digest(job["engineSha256"], "engine digest")
+    if not hmac.compare_digest(engine_sha256, COMPETITION_ENGINE_SHA256):
+        raise RunnerClientError("competition engine snapshot is not current")
     if type(job["requireSignedPassports"]) is not bool:
         raise RunnerClientError("competition passport requirement is invalid")
     if job["requiredTruthStatus"] != COMPETITION_REQUIRED_TRUTH_STATUS:
@@ -557,11 +561,15 @@ def _validate_seat(value, *, expected_seat: int) -> CompetitionSeat:
     if type(seat["seat"]) is not int or seat["seat"] != expected_seat:
         raise RunnerClientError("competition seat order is invalid")
     entrant = _bounded_text(seat["entrant"], "entrant name", 80)
-    if seat["providerClaim"] not in SUPPORTED_PROVIDERS:
+    provider = seat["providerClaim"]
+    if provider not in SUPPORTED_PROVIDERS:
         raise RunnerClientError("competition provider claim is unsupported")
     model = _provider_option(seat["selectedModelClaim"], "selected model claim")
     variant = _provider_option(seat["variantClaim"], "variant claim")
     backend = _bounded_text(seat["backendClaim"], "backend claim", 240)
+    expected_backend = _expected_backend_claim(provider, model=model, variant=variant)
+    if backend != expected_backend:
+        raise RunnerClientError("competition backend claim does not match provider options")
     if seat["strategy"] not in STRATEGIES:
         raise RunnerClientError("competition strategy is unsupported")
     agent_id = _optional_digest(seat["agentId"], "agent id")
@@ -571,7 +579,7 @@ def _validate_seat(value, *, expected_seat: int) -> CompetitionSeat:
     return CompetitionSeat(
         seat=expected_seat,
         entrant=entrant,
-        provider_claim=seat["providerClaim"],
+        provider_claim=provider,
         selected_model_claim=model,
         variant_claim=variant,
         backend_claim=backend,
@@ -579,6 +587,49 @@ def _validate_seat(value, *, expected_seat: int) -> CompetitionSeat:
         agent_id=agent_id,
         version_id=version_id,
     )
+
+
+def _expected_backend_claim(provider: str, *, model: str | None, variant: str | None) -> str:
+    entry = get_provider(provider)
+    if entry["model_required"] and model is None:
+        raise RunnerClientError("competition provider model claim is required")
+    if not entry["model_required"] and model is not None:
+        raise RunnerClientError("competition provider does not accept a model claim")
+    if provider != "opencode" and variant is not None:
+        raise RunnerClientError("competition provider does not accept a variant claim")
+
+    if provider == "chatgpt_codex":
+        return "chatgpt_codex:codex exec"
+    if provider == "claude_code":
+        return "claude_code:claude -p"
+    if provider == "opencode":
+        provider_name, separator, model_name = model.partition("/")
+        if (
+            not separator
+            or not provider_name
+            or not model_name
+            or "@" in model
+            or len(provider_name) > 80
+            or len(model_name) > 160
+        ):
+            raise RunnerClientError("competition provider model claim is invalid")
+        return _bounded_text(
+            f"opencode-provider:{model}@{variant or 'max'}", "derived backend claim", 240
+        )
+    if provider == "openrouter":
+        return _bounded_text(f"openrouter:{model}", "derived backend claim", 240)
+    if provider == "hermes":
+        provider_name, separator, model_name = model.partition("/")
+        if (
+            not separator
+            or not provider_name
+            or not model_name
+            or len(provider_name) > 80
+            or len(model_name) > 120
+        ):
+            raise RunnerClientError("competition provider model claim is invalid")
+        return _bounded_text(f"hermes:{model}", "derived backend claim", 240)
+    raise RunnerClientError("competition provider claim is unsupported")
 
 
 def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes):
@@ -606,7 +657,11 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
     core = {key: value for key, value in summary.items() if key != "summaryDigest"}
     if not hmac.compare_digest(_digest(summary["summaryDigest"], "summary digest"), digest(core)):
         raise RunnerClientError("competition summary digest does not cover its exact body")
-    if summary["game"] != job.game or summary["seed"] != job.seed:
+    if (
+        summary["game"] != job.game
+        or type(summary["seed"]) is not int
+        or summary["seed"] != job.seed
+    ):
         raise RunnerClientError("competition summary changed the assigned game or seed")
     transcript_sha256 = hashlib.sha256(transcript_bytes).hexdigest()
     if not hmac.compare_digest(
@@ -693,6 +748,13 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
                 raise RunnerClientError(f"competition summary changed seat {index} {key}")
         if row["score"] != projected_scores[index] or projected.get("name") != assigned.entrant:
             raise RunnerClientError("competition summary score or entrant differs from replay")
+        summary_counts = _exact_dict(
+            row["moveSourceClaims"],
+            {"model", "fallback", "scripted", "other"},
+            "competition summary move-source claims",
+        )
+        if any(type(summary_counts[key]) is not int or summary_counts[key] < 0 for key in summary_counts):
+            raise RunnerClientError("competition summary move-source claim type is invalid")
         projected_counts = next(
             (
                 counts
@@ -701,7 +763,7 @@ def _verify_evidence_bindings(job, *, summary, transcript_path, transcript_bytes
             ),
             None,
         )
-        if not isinstance(projected_counts, dict) or row["moveSourceClaims"] != {
+        if not isinstance(projected_counts, dict) or summary_counts != {
             key: projected_counts.get(key) for key in ("model", "fallback", "scripted", "other")
         }:
             raise RunnerClientError("competition summary move-source claims differ from replay")

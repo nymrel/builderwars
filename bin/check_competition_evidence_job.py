@@ -65,7 +65,7 @@ def token(prefix, fill):
     return prefix + base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
 
-def stub_runtime(name, provider, strategy, label, passport_path=None):
+def stub_runtime(name, provider, strategy, label, passport_path=None, *, stub_backend):
     harness = os.path.join(ROOT, "entrants", "fantasy_model_harness.py")
     manifest = {
         "name": name,
@@ -77,7 +77,7 @@ def stub_runtime(name, provider, strategy, label, passport_path=None):
             "--strategy",
             strategy,
             "--backend",
-            label,
+            stub_backend,
         ],
         "env": [],
         "claimed_model": label,
@@ -103,8 +103,8 @@ def stub_runtime(name, provider, strategy, label, passport_path=None):
     )
 
 
-def force_model_source_claims(path):
-    """Create deterministic model-claim test data without claiming real inference."""
+def force_model_source_claims(path, ready_labels):
+    """Create deterministic claim-only test data without claiming real inference."""
 
     previous = GENESIS
     output = []
@@ -114,6 +114,11 @@ def force_model_source_claims(path):
             "seq": sequence,
             "body": copy.deepcopy(raw["body"]),
         }
+        if record["kind"] == "ready":
+            seat = record["body"].get("player")
+            message = record["body"].get("entrant_message")
+            if type(seat) is int and seat in (0, 1) and isinstance(message, dict):
+                message["backend"] = ready_labels[seat]
         if record["kind"] == "move":
             message = record["body"].get("entrant_message")
             if isinstance(message, dict):
@@ -138,7 +143,7 @@ def force_model_source_claims(path):
 def generate_evidence(root, *, signed_passports):
     harness_digest = file_digest(os.path.join(ROOT, "entrants", "fantasy_model_harness.py"))
     names = ("Offline Codex", "Offline Claude")
-    labels = ("stub:seat0", "stub:seat1")
+    labels = ("chatgpt_codex:codex exec", "claude_code:claude -p")
     passport_paths = [None, None]
     passports = [None, None]
     if signed_passports:
@@ -157,8 +162,22 @@ def generate_evidence(root, *, signed_passports):
             passport_paths[seat] = path
             passports[seat] = passport
     runtimes = [
-        stub_runtime(names[0], "chatgpt_codex", "win-now", labels[0], passport_paths[0]),
-        stub_runtime(names[1], "claude_code", "long-game", labels[1], passport_paths[1]),
+        stub_runtime(
+            names[0],
+            "chatgpt_codex",
+            "win-now",
+            labels[0],
+            passport_paths[0],
+            stub_backend="stub:seat0",
+        ),
+        stub_runtime(
+            names[1],
+            "claude_code",
+            "long-game",
+            labels[1],
+            passport_paths[1],
+            stub_backend="stub:seat1",
+        ),
     ]
     match_root = root / ("signed-match" if signed_passports else "legacy-match")
     with (
@@ -176,7 +195,7 @@ def generate_evidence(root, *, signed_passports):
         # The deterministic stub may deliberately exercise fallback parsing.
         # Rebind only the source-claim notes for protocol testing; these remain
         # self-declared and unattested, and no checker output calls them genuine.
-        result["chain_head"] = force_model_source_claims(result["transcript"])
+        result["chain_head"] = force_model_source_claims(result["transcript"], labels)
         report = verify_with_snapshot(result["transcript"])
     candidate.audit_transcript(
         result=result,
@@ -325,6 +344,10 @@ def check_signed_happy_path(root):
     )
     check(isinstance(grant, job.CompetitionGrant), "signed competition poll returns an exact grant")
     check(grant.job.require_signed_passports is True, "signed competition pins both passports")
+    check(
+        grant.job.engine_sha256 == job.COMPETITION_ENGINE_SHA256,
+        "signed competition pins the current exact engine snapshot",
+    )
     built = job.build_competition_evidence(
         grant,
         summary_path=str(evidence_files["summary_path"]),
@@ -419,7 +442,14 @@ def check_hostile_contracts(root, state):
         "modelAttested false",
     )
     same_provider = copy.deepcopy(poll)
-    same_provider["job"]["seats"][1]["providerClaim"] = same_provider["job"]["seats"][0]["providerClaim"]
+    same_provider["job"]["seats"][1].update(
+        {
+            "providerClaim": same_provider["job"]["seats"][0]["providerClaim"],
+            "selectedModelClaim": same_provider["job"]["seats"][0]["selectedModelClaim"],
+            "variantClaim": same_provider["job"]["seats"][0]["variantClaim"],
+            "backendClaim": same_provider["job"]["seats"][0]["backendClaim"],
+        }
+    )
     expect_error(
         lambda: job.validate_competition_poll_response(
             same_provider, profile=profile, request_body_sha256=request_sha
@@ -453,16 +483,65 @@ def check_hostile_contracts(root, state):
     )
     wrong_engine_poll = copy.deepcopy(poll)
     wrong_engine_poll["job"]["engineSha256"] = "0" * 64
-    wrong_engine_grant = job.validate_competition_poll_response(
-        wrong_engine_poll, profile=profile, request_body_sha256=request_sha
+    expect_error(
+        lambda: job.validate_competition_poll_response(
+            wrong_engine_poll, profile=profile, request_body_sha256=request_sha
+        ),
+        "engine snapshot is not current",
+    )
+    model_on_subscription = copy.deepcopy(poll)
+    model_on_subscription["job"]["seats"][0]["selectedModelClaim"] = "vendor/model"
+    expect_error(
+        lambda: job.validate_competition_poll_response(
+            model_on_subscription, profile=profile, request_body_sha256=request_sha
+        ),
+        "does not accept a model claim",
+    )
+    missing_model = copy.deepcopy(poll)
+    missing_model["job"]["seats"][0].update(
+        {
+            "providerClaim": "opencode",
+            "selectedModelClaim": None,
+            "variantClaim": None,
+            "backendClaim": "opencode-provider:vendor/model@max",
+        }
     )
     expect_error(
-        lambda: job.build_competition_evidence(
-            wrong_engine_grant,
-            summary_path=str(evidence_files["summary_path"]),
-            transcript_path=str(evidence_files["transcript_path"]),
+        lambda: job.validate_competition_poll_response(
+            missing_model, profile=profile, request_body_sha256=request_sha
         ),
-        "verification is not exact",
+        "model claim is required",
+    )
+    invalid_variant = copy.deepcopy(poll)
+    invalid_variant["job"]["seats"][1]["variantClaim"] = "max"
+    expect_error(
+        lambda: job.validate_competition_poll_response(
+            invalid_variant, profile=profile, request_body_sha256=request_sha
+        ),
+        "does not accept a variant claim",
+    )
+    invalid_model_shape = copy.deepcopy(poll)
+    invalid_model_shape["job"]["seats"][0].update(
+        {
+            "providerClaim": "opencode",
+            "selectedModelClaim": "model-without-provider",
+            "variantClaim": "max",
+            "backendClaim": "opencode-provider:model-without-provider@max",
+        }
+    )
+    expect_error(
+        lambda: job.validate_competition_poll_response(
+            invalid_model_shape, profile=profile, request_body_sha256=request_sha
+        ),
+        "model claim is invalid",
+    )
+    changed_backend = copy.deepcopy(poll)
+    changed_backend["job"]["seats"][0]["backendClaim"] = "chatgpt_codex:other"
+    expect_error(
+        lambda: job.validate_competition_poll_response(
+            changed_backend, profile=profile, request_body_sha256=request_sha
+        ),
+        "backend claim does not match provider options",
     )
     wrong_version_poll = copy.deepcopy(poll)
     wrong_version_poll["job"]["seats"][0]["versionId"] = "0" * 64
@@ -516,6 +595,42 @@ def check_hostile_contracts(root, state):
         ),
         "modelAttested false",
     )
+    truth_boundary_path = root / "truth-boundary-summary.json"
+    rewrite_summary(
+        truth_boundary_path,
+        evidence_files["summary"],
+        truthBoundary="A replay attests the provider and model.",
+    )
+    expect_error(
+        lambda: job.build_competition_evidence(
+            grant,
+            summary_path=str(truth_boundary_path),
+            transcript_path=str(evidence_files["transcript_path"]),
+        ),
+        "truth boundary",
+    )
+    bool_seed_path = root / "bool-seed-summary.json"
+    rewrite_summary(bool_seed_path, evidence_files["summary"], seed=True)
+    expect_error(
+        lambda: job.build_competition_evidence(
+            grant,
+            summary_path=str(bool_seed_path),
+            transcript_path=str(evidence_files["transcript_path"]),
+        ),
+        "assigned game or seed",
+    )
+    bool_source_path = root / "bool-source-summary.json"
+    bool_source_seats = copy.deepcopy(evidence_files["summary"]["seats"])
+    bool_source_seats[0]["moveSourceClaims"]["model"] = True
+    rewrite_summary(bool_source_path, evidence_files["summary"], seats=bool_source_seats)
+    expect_error(
+        lambda: job.build_competition_evidence(
+            grant,
+            summary_path=str(bool_source_path),
+            transcript_path=str(evidence_files["transcript_path"]),
+        ),
+        "move-source claim type",
+    )
     duplicate_json = root / "duplicate-summary.json"
     duplicate_json.write_text('{"schemaVersion":1,"schemaVersion":2}\n', encoding="utf-8")
     expect_error(
@@ -545,6 +660,21 @@ def check_hostile_contracts(root, state):
         ),
         "paths must differ",
     )
+    summary_bytes = evidence_files["summary_path"].read_bytes()
+    transcript_bytes = evidence_files["transcript_path"].read_bytes()
+    with mock.patch.object(
+        job,
+        "_read_bounded",
+        side_effect=[summary_bytes, transcript_bytes, transcript_bytes + b"changed"],
+    ):
+        expect_error(
+            lambda: job.build_competition_evidence(
+                grant,
+                summary_path=str(evidence_files["summary_path"]),
+                transcript_path=str(evidence_files["transcript_path"]),
+            ),
+            "changed during replay verification",
+        )
 
     decoded = json.loads(built.result_body)
     corrupted = decoded["transcriptEncoded"][:-1] + (

@@ -29,7 +29,7 @@ Those requirements cannot be inferred from a successful evidence submission.
 ## Exact customer flow
 
 1. The signed-in owner creates a private competition submission job for one
-   paired runner, game, seed, accepted engine snapshot, two provider claims,
+   paired runner, game, seed, the current exact engine snapshot, two provider claims,
    two entrant names, and—when required—two signed Agent Passport versions.
 2. The customer runs the existing cross-provider command locally with the
    explicit customer-local and provider-usage flags. Provider credentials stay
@@ -49,7 +49,8 @@ agentwars runner submit-match `
 ```
 
 4. The runner signs one fixed poll. It rejects unknown fields, commands,
-   environment values, unsupported providers/games, same-provider seats,
+   environment values, unsupported providers/games, impossible provider/model/
+   variant combinations, changed backend labels, same-provider seats,
    changed harness commitments, partial passport binding, publication requests,
    ranking requests, or any true execution attestation.
 5. The runner independently replays the exact embedded verifier snapshot,
@@ -104,8 +105,8 @@ python bin/check_provider_hub.py
 ```
 
 The dedicated checker currently runs deterministic offline stub matches with
-both signed-passport and legacy paths. It covers exact schemas, job and harness
-binding, two-provider constraints, replay and projection parity, source-claim
+both signed-passport and legacy paths. It covers exact schemas, job, current
+engine, harness and provider-option binding, two-provider constraints, replay and projection parity, source-claim
 and score parity, full bundle commitment, compression bombs and concatenated
 streams, duplicate result receipts, false-attestation enforcement, private
 publication state, ranking refusal, missing consent, and absence of provider or
