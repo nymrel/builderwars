@@ -704,13 +704,30 @@ class HostedControlPlaneStore:
             if row is None:
                 raise HostedStoreError("runner_not_found", "runner was not found")
             if row["state"] == "active":
-                connection.execute(
+                cursor = connection.execute(
                     "UPDATE runners SET state = 'revoked', revoked_at_ms = ? WHERE runner_id = ?",
                     (now_ms, runner_id),
                 )
-                row = connection.execute(
-                    "SELECT * FROM runners WHERE runner_id = ?", (runner_id,)
-                ).fetchone()
+                if cursor.rowcount != 1:
+                    raise HostedStoreError("runner_conflict", "runner revocation did not commit")
+            # Runner-bound jobs cannot be reassigned after revocation. Preserve
+            # their history, but terminalize every unfinished lease/job in the
+            # same transaction so no active work can be stranded indefinitely.
+            connection.execute(
+                """UPDATE attempts
+                   SET state = 'abandoned', completed_at_ms = ?
+                   WHERE runner_id = ? AND state = 'active'""",
+                (now_ms, runner_id),
+            )
+            connection.execute(
+                """UPDATE jobs
+                   SET status = 'exhausted', updated_at_ms = ?
+                   WHERE runner_id = ? AND status IN ('queued', 'leased')""",
+                (now_ms, runner_id),
+            )
+            row = connection.execute(
+                "SELECT * FROM runners WHERE runner_id = ?", (runner_id,)
+            ).fetchone()
         return self._runner_from_row(row)
 
     def delete_runner(self, owner_id: str, runner_id: str) -> int:
@@ -967,11 +984,13 @@ class HostedControlPlaneStore:
                         raise
             else:
                 raise HostedStoreError("identifier_collision", "could not allocate a match attempt")
-            connection.execute(
+            cursor = connection.execute(
                 """UPDATE jobs SET attempts_used = ?, status = 'leased', updated_at_ms = ?
                    WHERE job_id = ? AND status = 'queued'""",
                 (next_epoch, now_ms, job["job_id"]),
             )
+            if cursor.rowcount != 1:
+                raise HostedStoreError("lease_conflict", "match job was not claimed atomically")
             joined = connection.execute(
                 """SELECT a.*, j.*, j.created_at_ms AS job_created_at_ms
                    FROM attempts a JOIN jobs j ON j.job_id = a.job_id
@@ -1180,14 +1199,20 @@ class HostedControlPlaneStore:
                         transcript_sha256, conformance, now_ms,
                     ),
                 )
-                connection.execute(
-                    "UPDATE attempts SET state = 'completed', completed_at_ms = ? WHERE attempt_id = ?",
+                cursor = connection.execute(
+                    """UPDATE attempts SET state = 'completed', completed_at_ms = ?
+                       WHERE attempt_id = ? AND state = 'active'""",
                     (now_ms, attempt_id),
                 )
-                connection.execute(
-                    "UPDATE jobs SET status = 'completed', updated_at_ms = ? WHERE job_id = ?",
+                if cursor.rowcount != 1:
+                    raise HostedStoreError("lease_conflict", "match attempt was not completed atomically")
+                cursor = connection.execute(
+                    """UPDATE jobs SET status = 'completed', updated_at_ms = ?
+                       WHERE job_id = ? AND status = 'leased'""",
                     (now_ms, job_id),
                 )
+                if cursor.rowcount != 1:
+                    raise HostedStoreError("lease_conflict", "match job was not completed atomically")
                 result = {
                     "jobId": job_id,
                     "attemptId": attempt_id,

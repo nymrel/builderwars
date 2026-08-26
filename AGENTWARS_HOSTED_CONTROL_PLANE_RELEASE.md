@@ -11,14 +11,15 @@ Status: local reference candidate; not deployed, not wired to account auth, and 
 - Ed25519 request verification over the existing seven-line canonical contract;
 - bounded timestamp freshness checked against an independently injected store clock, durable nonce uniqueness, runner ownership, revocation, and deletion;
 - atomic fixture-job claim, lease renewal, expiry, redelivery, abandonment, exhaustion, runner-bound idempotent result completion, and conflict refusal;
-- a privacy-safe public projection that excludes owner, runner, label, provider, connection mode, harness, seed, secret, nonce, signature, and private job input;
+- a public projection restricted to a documented allow-list that excludes owner, runner, label, provider, connection mode, harness, seed, secret, nonce, signature, and private job input;
+- transactional revocation that abandons active attempts and terminalizes every unfinished runner-bound job without deleting completed evidence;
 - cascade deletion of runner/account private state and associated public projections.
 
 SQLite is the deterministic local reference used to prove transaction semantics. A production database adapter must preserve the same uniqueness, transaction, foreign-key, and deletion guarantees; this file does not claim that SQLite has been selected as the hosted production platform.
 
 ## What remains false
 
-The control plane stores no provider credential or provider session, calls no provider or model, and executes no customer command. It proves local Ed25519 key possession and deterministic fixture conformance only. A self-consistent but incorrect fixture output is intentionally recorded as `conformance: "mismatch"` rather than rejected, so a losing or incorrect run cannot disappear behind a retry. Provider account, plan entitlement, billing route, model, person, runtime, harness execution, and match execution attestations remain exactly false in runner responses and public projections.
+The control plane stores no provider credential or provider session, calls no provider or model, and executes no customer command. It demonstrates local Ed25519 key possession and deterministic fixture conformance only. A self-consistent but incorrect fixture output is intentionally recorded as `conformance: "mismatch"` rather than rejected, so a losing or incorrect fixture run cannot disappear behind a retry. Provider account, plan entitlement, billing route, model, person, runtime, harness execution, and match execution attestations remain exactly false in runner responses and public projections.
 
 This slice does not implement Nymrel account authentication, web/API routing, CSRF/origin enforcement, production database provisioning, production job workers, rate limiting across accounts/IPs, operational monitoring, moderation, provider authorization, deployment, signup, or a real public match.
 
@@ -31,7 +32,7 @@ python bin\check_agentwars_runner.py
 python bin\check_provider_hub.py --skip-regressions
 ```
 
-The 15 hosted tests cover pairing claim/confirm/reject/duplicate/expiry/rate-lock, hash-only secret storage, distinct-key claim races, key reuse, valid and replayed probes, independent store-clock retention defense, stale/future/bad signatures, runner/path/method/protocol binding, revocation, owner scoping, 20-round concurrent atomic poll recovery, lease renewal caps, abandonment, three-epoch expiry/redelivery/exhaustion, recorded result mismatch, foreign/late/abandoned result refusal, conflict/idempotency, privacy-safe projection, cascade deletion, and preservation of another tenant's runner and public replay.
+The 15 hosted tests cover pairing claim/confirm/reject/duplicate/expiry/rate-lock, hash-only secret storage, distinct-key claim races, key reuse, valid and replayed probes, independent store-clock retention defense, stale/future/bad signatures, runner/path/method/protocol binding, transactional revocation of queued and leased work, owner scoping, 20-round concurrent atomic poll recovery, lease renewal caps, abandonment, three-epoch expiry/redelivery/exhaustion, immutable recorded result mismatch, foreign/late/abandoned result refusal, conflict/idempotency, allow-list public projection, cascade deletion, and preservation of another tenant's runner and public replay.
 
 ## Next integration gate
 

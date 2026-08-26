@@ -2,8 +2,9 @@
 
 This package is deliberately separate from the customer-local provider hub.
 It stores no provider credential or provider session and executes no entrant or
-model code.  It proves only account-to-runner key binding, signed transport,
-durable fixture-job state, and privacy-safe deterministic result projection.
+model code.  It demonstrates only account-to-runner key binding, signed
+transport, durable fixture-job state, and an allow-list deterministic result
+projection.
 """
 
 from provider_hub_hosted.handlers import HostedControlPlane

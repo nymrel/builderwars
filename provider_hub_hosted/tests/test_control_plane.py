@@ -4,6 +4,7 @@ import concurrent.futures
 import datetime as dt
 import hashlib
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -656,6 +657,18 @@ class HostedControlPlaneTests(unittest.TestCase):
             self.control.public_replay(grant.job.job_id).payload["conformance"],
             "mismatch",
         )
+        corrected = compute_closed_fixture(grant)
+        corrected_body = encode_result_request(grant, corrected)
+        with self.assertRaises(HostedStoreError) as corrected_after_mismatch:
+            self.control.result(
+                self.signed(paired, path=MATCH_JOB_RESULT_PATH, body=corrected_body),
+                now=self.now,
+            )
+        self.assertEqual(corrected_after_mismatch.exception.code, "result_conflict")
+        self.assertEqual(
+            self.control.public_replay(grant.job.job_id).payload["conformance"],
+            "mismatch",
+        )
         with self.assertRaises(HostedStoreError) as foreign_duplicate:
             self.control.result(
                 self.signed(foreign, path=MATCH_JOB_RESULT_PATH, body=mismatch_body),
@@ -885,7 +898,49 @@ class HostedControlPlaneTests(unittest.TestCase):
             self.control.probe(wrong, now=self.now)
         self.assertEqual(signature_error.exception.code, "invalid_signature")
 
+        self.control.create_fixture_job(self.owner, paired["runner_id"], now=self.now)
+        self.control.create_fixture_job(self.owner, paired["runner_id"], now=self.now)
+        leased = self.control.poll(
+            self.signed(paired, path=MATCH_JOB_POLL_PATH, body=MATCH_JOB_POLL_BODY),
+            now=self.now,
+        )
+        grant = validate_poll_response(
+            dict(leased.payload),
+            profile=paired["profile"],
+            request_body_sha256=hashlib.sha256(MATCH_JOB_POLL_BODY).hexdigest(),
+        )
+        self.assertIsInstance(grant, FixtureGrant)
+
         self.control.revoke_runner(self.owner, paired["runner_id"], now=self.now)
+        # Duplicate revocation is idempotent and also repairs any unfinished
+        # legacy rows that predate transactional terminalization.
+        self.control.revoke_runner(self.owner, paired["runner_id"], now=self.now)
+        inspection = sqlite3.connect(self.database)
+        try:
+            unfinished = inspection.execute(
+                """SELECT COUNT(*) FROM jobs
+                   WHERE runner_id = ? AND status IN ('queued', 'leased')""",
+                (paired["runner_id"],),
+            ).fetchone()[0]
+            active_attempts = inspection.execute(
+                "SELECT COUNT(*) FROM attempts WHERE runner_id = ? AND state = 'active'",
+                (paired["runner_id"],),
+            ).fetchone()[0]
+            exhausted_jobs = inspection.execute(
+                "SELECT COUNT(*) FROM jobs WHERE runner_id = ? AND status = 'exhausted'",
+                (paired["runner_id"],),
+            ).fetchone()[0]
+            abandoned_attempts = inspection.execute(
+                "SELECT COUNT(*) FROM attempts WHERE runner_id = ? AND state = 'abandoned'",
+                (paired["runner_id"],),
+            ).fetchone()[0]
+        finally:
+            inspection.close()
+        self.assertEqual(unfinished, 0)
+        self.assertEqual(active_attempts, 0)
+        self.assertEqual(exhausted_jobs, 2)
+        self.assertEqual(abandoned_attempts, 1)
+
         with self.assertRaises(SignedRequestError) as revoked:
             self.control.probe(
                 self.signed(paired, path=RUNNER_PROBE_PATH, body=RUNNER_PROBE_BODY), now=self.now
