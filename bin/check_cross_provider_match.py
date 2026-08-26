@@ -15,6 +15,7 @@ import io
 import json
 import os
 import pathlib
+import socket
 import sys
 import tempfile
 from unittest import mock
@@ -35,6 +36,36 @@ import run_agentwars_cross_provider_match as candidate  # noqa: E402
 
 CHECKS = 0
 SECRET_SENTINEL = "customer-private-value-that-must-never-render"
+EXPECTED_FALSE_ATTESTATIONS = (
+    "providerAccountAttested",
+    "planEntitlementAttested",
+    "billingRouteAttested",
+    "modelAttested",
+    "personAttested",
+    "runtimeAttested",
+    "harnessExecutionAttested",
+    "matchExecutionAttested",
+)
+EXPECTED_SUMMARY_KEYS = frozenset({
+    "schemaVersion",
+    "status",
+    "evidenceClass",
+    "publicationDecision",
+    "truthBoundary",
+    "game",
+    "seed",
+    "matchId",
+    "chainHead",
+    "transcriptSha256",
+    "winnerSeat",
+    "winnerEntrant",
+    "seats",
+    "providerClaimsDiffer",
+    "allAcceptedMovesModelClaimed",
+    "universalProviderOrModelRankingEligible",
+    "verification",
+    "summaryDigest",
+}) | frozenset(EXPECTED_FALSE_ATTESTATIONS)
 
 
 def check(condition, label):
@@ -151,6 +182,19 @@ def check_provider_manifests(work):
         ),
         "provider_options_invalid",
     )
+    with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}, clear=False):
+        expect_error(
+            lambda: candidate.build_seat_runtime(
+                candidate.SeatSpec(
+                    "OpenRouter Missing Key",
+                    "openrouter",
+                    "win-now",
+                    model="openai/gpt-5:free",
+                ),
+                backend_timeout=180,
+            ),
+            "openrouter_customer_key_unavailable",
+        )
     expect_error(
         lambda: candidate.build_seat_runtime(
             candidate.SeatSpec("OpenCode", "opencode", "win-now"), backend_timeout=180
@@ -183,8 +227,12 @@ def check_provider_manifests(work):
         "provider_timeout_invalid",
     )
     check(candidate._timeout(180.0004) == 180.0, "timeout normalization rounds sub-millisecond input once")
+    check(candidate._timeout(180.0005) == 180.0, "timeout normalization pins the exact half-millisecond edge")
     check(candidate._timeout(180.0006) == 180.001, "timeout normalization preserves the next millisecond")
     check(candidate._timeout_text(candidate._timeout(180.0006)) == "180.001", "child timeout uses normalized value")
+    check(candidate._timeout(candidate._timeout(180.0006)) == 180.001, "timeout normalization is idempotent")
+    for invalid_timeout in (0, -1, float("nan"), float("inf"), float("-inf")):
+        expect_error(lambda invalid_timeout=invalid_timeout: candidate._timeout(invalid_timeout), "provider_timeout_invalid")
     with mock.patch.object(candidate, "get_provider_backend", return_value=mock.Mock(label="x" * 241)):
         expect_error(
             lambda: candidate.build_seat_runtime(
@@ -192,7 +240,14 @@ def check_provider_manifests(work):
             ),
             "backend_label_invalid",
         )
-    for invalid_model in ("-provider/model", " provider/model", "provider model", "x" * 241, "provider/model\n"):
+    for invalid_model in (
+        "-provider/model",
+        " provider/model",
+        "provider model",
+        "x" * 241,
+        "provider/model\n",
+        "provider/model\t",
+    ):
         expect_error(
             lambda invalid_model=invalid_model: candidate.build_seat_runtime(
                 candidate.SeatSpec("Bad Model", "opencode", "win-now", model=invalid_model, variant="max"),
@@ -237,6 +292,29 @@ def check_preflight_refusals(work):
     args = parse(["--out", str(work / "missing-intent"), "--json-out", str(work / "missing-intent.json")])
     expect_error(lambda: candidate.run(args), "explicit_customer_provider_intent_required")
 
+    local_only = parse(
+        [
+            "--out",
+            str(work / "local-only"),
+            "--json-out",
+            str(work / "local-only.json"),
+            "--customer-local-v1",
+        ]
+    )
+    expect_error(lambda: candidate.run(local_only), "explicit_customer_provider_intent_required")
+    provider_only = parse(
+        [
+            "--out",
+            str(work / "provider-only"),
+            "--json-out",
+            str(work / "provider-only.json"),
+            "--provider-usage-v1",
+        ]
+    )
+    expect_error(lambda: candidate.run(provider_only), "explicit_customer_provider_intent_required")
+    check(not (work / "local-only").exists(), "single local-consent flag creates no output")
+    check(not (work / "provider-only").exists(), "single usage-consent flag creates no output")
+
     nested_out = work / "overlap"
     args = parse(base_argv(nested_out, nested_out / "summary.json"))
     expect_error(lambda: candidate.run(args), "output_paths_overlap")
@@ -249,6 +327,13 @@ def check_preflight_refusals(work):
     args = parse(base_argv(occupied, work / "unused-summary.json"))
     expect_error(lambda: candidate.run(args), "match_output_exists")
     check(marker.read_text(encoding="utf-8") == "preserve", "occupied match output is untouched")
+
+    occupied_file = work / "occupied-file"
+    occupied_file.write_text("preserve-file", encoding="utf-8")
+    args = parse(base_argv(occupied_file, work / "unused-file-summary.json"))
+    expect_error(lambda: candidate.run(args), "match_output_exists")
+    check(occupied_file.read_text(encoding="utf-8") == "preserve-file", "occupied match file is untouched")
+    check(not (work / "unused-file-summary.json").exists(), "occupied match file creates no summary")
 
     summary = work / "occupied-summary.json"
     summary.write_text("preserve", encoding="utf-8")
@@ -442,15 +527,19 @@ def check_offline_match_and_summary(work):
         stub_runtime("Offline Codex Claim", "chatgpt_codex", "win-now", "seat0"),
         stub_runtime("Offline Claude Claim", "claude_code", "long-game", "seat1"),
     ]
-    result = run_match(
-        game_name="fantasy_redraft",
-        seed=9400,
-        entrants=[runtime.manifest for runtime in runtimes],
-        provisioned_envs=[{}, {}],
-        out_dir=str(work / "offline-match"),
-        move_timeout_s=30,
-    )
-    report = verify_with_snapshot(result["transcript"])
+    with (
+        mock.patch.object(socket, "socket", side_effect=AssertionError("network forbidden in offline checker")),
+        mock.patch.object(socket, "create_connection", side_effect=AssertionError("network forbidden in offline checker")),
+    ):
+        result = run_match(
+            game_name="fantasy_redraft",
+            seed=9400,
+            entrants=[runtime.manifest for runtime in runtimes],
+            provisioned_envs=[{}, {}],
+            out_dir=str(work / "offline-match"),
+            move_timeout_s=30,
+        )
+        report = verify_with_snapshot(result["transcript"])
     check(report["verdict"] == "PASS", "offline fixture core replay passes")
     check(report["effective_verdict"] == "PASS", "offline fixture exact snapshot replay passes")
     check(report["verifier_snapshot_match"] is True, "offline fixture selects exact embedded verifier")
@@ -502,7 +591,12 @@ def check_offline_match_and_summary(work):
     check(baseline["publicationDecision"] == "not_reviewed_not_published", "summary cannot self-publish")
     check(baseline["providerClaimsDiffer"] is True, "summary records distinct provider claims")
     check(baseline["universalProviderOrModelRankingEligible"] is False, "open match cannot rank providers")
-    check(all(baseline[field] is False for field in candidate.FALSE_ATTESTATIONS), "all trust attestations remain false")
+    check(candidate.FALSE_ATTESTATIONS == EXPECTED_FALSE_ATTESTATIONS, "the exact eight false attestations are pinned")
+    check(set(baseline) == EXPECTED_SUMMARY_KEYS, "summary schema admits no unreviewed overclaim field")
+    check(
+        all(field in baseline and baseline[field] is False for field in EXPECTED_FALSE_ATTESTATIONS),
+        "all eight pinned trust attestations exist and remain false",
+    )
     rendered = json.dumps(baseline, sort_keys=True)
     check(str(work) not in rendered, "summary contains no local evidence path")
     check(SECRET_SENTINEL not in rendered, "summary contains no customer key")
@@ -640,6 +734,8 @@ def check_offline_match_and_summary(work):
     # A move-seat rewrite correctly breaks the engine digest. Keep the already
     # verified baseline report fields while rebinding only the audit identity so
     # this unit check reaches the runner's independent strict-type guard.
+    move_seat_verifier_report = verify_with_snapshot(str(move_seat_path))
+    check(move_seat_verifier_report["effective_verdict"] != "PASS", "verifier rejects a bool move seat")
     move_seat_report = {
         **report,
         "transcript": str(move_seat_path),
@@ -661,6 +757,11 @@ def check_offline_match_and_summary(work):
     next(row for row in move_message_tamper if row["kind"] == "move")["body"]["entrant_message"] = "not-an-object"
     move_message_path = work / "move-message-rechained.jsonl"
     move_message_head = rechain(move_message_tamper, move_message_path)
+    move_message_verifier_report = verify_with_snapshot(str(move_message_path))
+    check(
+        move_message_verifier_report["effective_verdict"] == "PASS",
+        "replay treats entrant messages as opaque, so the runner audit must reject the scalar shape",
+    )
     move_message_report = {
         **report,
         "transcript": str(move_message_path),
@@ -707,6 +808,64 @@ def check_offline_match_and_summary(work):
         not candidate._valid_move_source_note("source=fallback;reason=backend_error:RuntimeError;attempts=1;reason=duplicate"),
         "source-note grammar rejects duplicate fields",
     )
+    check(
+        not candidate._valid_move_source_note("source=model;response_sha256=" + "a" * 65),
+        "source-note grammar rejects overlength digests",
+    )
+    check(
+        not candidate._valid_move_source_note("source=model;response_sha256=0123456789abcdef\nleak=true"),
+        "source-note grammar rejects newline injection",
+    )
+    check(
+        not candidate._valid_move_source_note("source=model;response_sha256=0123456789abcdef\tleak"),
+        "source-note grammar rejects tab injection",
+    )
+    check(
+        not candidate._valid_move_source_note("source=model;response_sha256=0123456789abcdef;unknown=value"),
+        "source-note grammar rejects unknown fields",
+    )
+
+
+def check_main_success_contracts(work):
+    def runtimes():
+        return [
+            stub_runtime("CLI Codex Claim", "chatgpt_codex", "win-now", "cli-seat0"),
+            stub_runtime("CLI Claude Claim", "claude_code", "long-game", "cli-seat1"),
+        ]
+
+    def run_case(name, counts, expected_status, expected_truth_status):
+        rows = runtimes()
+        out_root = work / f"{name}-match"
+        summary_path = work / f"{name}-summary.json"
+        stdout = io.StringIO()
+        with (
+            mock.patch.object(candidate, "build_seat_runtime", side_effect=rows),
+            mock.patch.object(candidate, "move_source_counts", return_value=counts(rows)),
+            mock.patch.object(socket, "socket", side_effect=AssertionError("network forbidden in CLI checker")),
+            mock.patch.object(socket, "create_connection", side_effect=AssertionError("network forbidden in CLI checker")),
+            contextlib.redirect_stdout(stdout),
+        ):
+            status = candidate.main(base_argv(out_root, summary_path))
+        disk_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        check(status == expected_status, f"{name} returns exit {expected_status}")
+        check(json.loads(stdout.getvalue()) == disk_summary, f"{name} stdout exactly matches the committed summary")
+        check(disk_summary["status"] == expected_truth_status, f"{name} exposes the expected truth status")
+        check(disk_summary["publicationDecision"] == "not_reviewed_not_published", f"{name} remains unpublished")
+
+    def all_model(rows):
+        return {
+            row.manifest["name"]: {"model": 6, "fallback": 0, "scripted": 0, "other": 0}
+            for row in rows
+        }
+
+    def mixed(rows):
+        return {
+            rows[0].manifest["name"]: {"model": 5, "fallback": 1, "scripted": 0, "other": 0},
+            rows[1].manifest["name"]: {"model": 6, "fallback": 0, "scripted": 0, "other": 0},
+        }
+
+    run_case("cli-all-model", all_model, 0, "model_influenced_unattested")
+    run_case("cli-with-fallback", mixed, 2, "mixed_model_and_fallback_unattested")
 
 
 def check_main_failure_envelope(work):
@@ -826,6 +985,7 @@ def main():
         check_preflight_refusals(work)
         check_summary_reservation(work)
         check_offline_match_and_summary(work)
+        check_main_success_contracts(work)
         check_main_failure_envelope(work)
     print(f"PASS: {CHECKS} cross-provider match checks")
     return 0

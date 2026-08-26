@@ -165,7 +165,8 @@ as the intended all-model-claimed launch proof. It is not a process crash.
 
 ## Independent validation
 
-No provider calls are made by these checks:
+The checker requires Python 3.10 or newer. No provider calls are made by these
+checks:
 
 ```powershell
 python -m py_compile bin/run_agentwars_cross_provider_match.py bin/check_cross_provider_match.py
