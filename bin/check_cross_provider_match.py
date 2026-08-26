@@ -34,7 +34,7 @@ import run_agentwars_cross_provider_match as candidate  # noqa: E402
 
 
 CHECKS = 0
-SECRET_SENTINEL = "sk-or-v1-checker-secret-that-must-never-render"
+SECRET_SENTINEL = "customer-private-value-that-must-never-render"
 
 
 def check(condition, label):
