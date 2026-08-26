@@ -34,6 +34,7 @@ from provider_hub.local_runner import (
     validate_fingerprint,
     validate_harness_id,
     validate_harness_version,
+    validate_nonce,
     validate_runner_id,
 )
 from provider_hub.match_worker import (
@@ -54,6 +55,8 @@ PAIRING_TTL_SECONDS = 600
 PAIRING_MAX_CLAIM_ATTEMPTS = 8
 LEASE_SECONDS = 60
 NONCE_RETENTION_SECONDS = 900
+MAX_REQUEST_AGE_SECONDS = 300
+MAX_REQUEST_FUTURE_SECONDS = 60
 
 _OWNER_ID_RE = re.compile(r"^awu1_[A-Za-z0-9_-]{22}$")
 _JOB_ID_RE = re.compile(r"^awj1_[A-Za-z0-9_-]{22}$")
@@ -248,10 +251,14 @@ class HostedControlPlaneStore:
         database: str | os.PathLike[str] = ":memory:",
         *,
         random_bytes: Callable[[int], bytes] = os.urandom,
+        clock: Callable[[], dt.datetime] | None = None,
     ):
         if not callable(random_bytes):
             raise TypeError("random_bytes must be callable")
+        if clock is not None and not callable(clock):
+            raise TypeError("clock must be callable")
         self._random_bytes = random_bytes
+        self._clock = clock or (lambda: dt.datetime.now(dt.timezone.utc))
         self._lock = threading.RLock()
         database_name = os.fspath(database)
         if database_name != ":memory:":
@@ -735,7 +742,6 @@ class HostedControlPlaneStore:
         nonce: str,
         request_timestamp_ms: int,
         body_sha256: str,
-        observed_at_ms: int,
         expected_owner_id: str | None = None,
     ) -> None:
         try:
@@ -743,11 +749,21 @@ class HostedControlPlaneStore:
             fingerprint = validate_fingerprint(fingerprint)
         except ValueError as error:
             raise HostedStoreError("invalid_request_identity", "signed request identity is invalid") from error
+        try:
+            nonce = validate_nonce(nonce)
+        except ValueError as error:
+            raise HostedStoreError("invalid_nonce", "signed request nonce is invalid") from error
         body_sha256 = _digest(body_sha256, "request body digest")
         if expected_owner_id is not None:
             expected_owner_id = validate_owner_id(expected_owner_id)
-        if type(request_timestamp_ms) is not int or type(observed_at_ms) is not int:
+        if type(request_timestamp_ms) is not int:
             raise HostedStoreError("invalid_time", "request time is invalid")
+        observed_at_ms = _epoch_ms(self._clock())
+        if (
+            request_timestamp_ms < observed_at_ms - MAX_REQUEST_AGE_SECONDS * 1000
+            or request_timestamp_ms > observed_at_ms + MAX_REQUEST_FUTURE_SECONDS * 1000
+        ):
+            raise HostedStoreError("invalid_time", "request time is outside the store acceptance window")
         with self._transaction() as connection:
             row = connection.execute(
                 "SELECT owner_id, fingerprint, state FROM runners WHERE runner_id = ?",
@@ -889,7 +905,8 @@ class HostedControlPlaneStore:
                 raise HostedStoreError("runner_inactive", "runner is not active")
             self._expire_attempts(connection, runner_id, now_ms)
             active = connection.execute(
-                """SELECT a.*, j.* FROM attempts a JOIN jobs j ON j.job_id = a.job_id
+                """SELECT a.*, j.*, j.created_at_ms AS job_created_at_ms
+                   FROM attempts a JOIN jobs j ON j.job_id = a.job_id
                    WHERE a.runner_id = ? AND a.state = 'active'
                    ORDER BY a.created_at_ms, a.attempt_id LIMIT 1""",
                 (runner_id,),
@@ -956,14 +973,18 @@ class HostedControlPlaneStore:
                 (next_epoch, now_ms, job["job_id"]),
             )
             joined = connection.execute(
-                """SELECT a.*, j.* FROM attempts a JOIN jobs j ON j.job_id = a.job_id
+                """SELECT a.*, j.*, j.created_at_ms AS job_created_at_ms
+                   FROM attempts a JOIN jobs j ON j.job_id = a.job_id
                    WHERE a.attempt_id = ?""",
                 (attempt_id,),
             ).fetchone()
             return self._grant_from_joined_row(joined, recovery=False)
 
     def _grant_from_joined_row(self, row: sqlite3.Row, *, recovery: bool) -> LeaseGrant:
-        job = self._job_from_row(row)
+        job = dataclasses.replace(
+            self._job_from_row(row),
+            created_at=_instant_from_ms(row["job_created_at_ms"]),
+        )
         return LeaseGrant(
             recovery=recovery,
             attempt_id=row["attempt_id"],
@@ -998,7 +1019,8 @@ class HostedControlPlaneStore:
             if runner is None or runner["state"] != "active":
                 raise HostedStoreError("runner_inactive", "runner is not active")
             row = connection.execute(
-                """SELECT a.*, j.* FROM attempts a JOIN jobs j ON j.job_id = a.job_id
+                """SELECT a.*, j.*, j.created_at_ms AS job_created_at_ms
+                   FROM attempts a JOIN jobs j ON j.job_id = a.job_id
                    WHERE a.attempt_id = ? AND a.job_id = ? AND a.runner_id = ? AND a.lease_epoch = ?""",
                 (attempt_id, job_id, runner_id, lease_epoch),
             ).fetchone()
@@ -1017,7 +1039,8 @@ class HostedControlPlaneStore:
                     (renew_count, expires_ms, attempt_id),
                 )
                 updated = connection.execute(
-                    """SELECT a.*, j.* FROM attempts a JOIN jobs j ON j.job_id = a.job_id
+                    """SELECT a.*, j.*, j.created_at_ms AS job_created_at_ms
+                       FROM attempts a JOIN jobs j ON j.job_id = a.job_id
                        WHERE a.attempt_id = ?""",
                     (attempt_id,),
                 ).fetchone()
@@ -1103,9 +1126,14 @@ class HostedControlPlaneStore:
             if runner is None or runner["state"] != "active":
                 raise HostedStoreError("runner_inactive", "runner is not active")
             existing = connection.execute(
-                "SELECT * FROM results WHERE job_id = ?", (job_id,)
+                """SELECT r.*, j.runner_id AS job_runner_id
+                   FROM results r JOIN jobs j ON j.job_id = r.job_id
+                   WHERE r.job_id = ?""",
+                (job_id,),
             ).fetchone()
             if existing is not None:
+                if not hmac.compare_digest(existing["job_runner_id"], runner_id):
+                    raise HostedStoreError("lease_inactive", "match lease is not active")
                 supplied = (
                     attempt_id, lease_epoch, engine_sha256, output_sha256, transcript_sha256
                 )

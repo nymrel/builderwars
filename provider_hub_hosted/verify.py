@@ -25,13 +25,13 @@ from provider_hub.local_runner import (
 from provider_hub_hosted.store import (
     HostedControlPlaneStore,
     HostedStoreError,
+    MAX_REQUEST_AGE_SECONDS,
+    MAX_REQUEST_FUTURE_SECONDS,
     RunnerRecord,
     validate_owner_id,
 )
 
 
-MAX_REQUEST_AGE_SECONDS = 300
-MAX_REQUEST_FUTURE_SECONDS = 60
 _SIGNATURE_RE = re.compile(r"^[A-Za-z0-9_-]{86}$")
 
 
@@ -130,7 +130,10 @@ def verify_signed_request(
             raise SignedRequestError("invalid_owner", "expected owner is invalid") from error
 
     current = _aware_utc(now)
-    signed_at = dt.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    try:
+        signed_at = dt.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except (TypeError, ValueError) as error:
+        raise SignedRequestError("invalid_request", "signed request contract is invalid") from error
     age_seconds = (current - signed_at).total_seconds()
     if age_seconds > MAX_REQUEST_AGE_SECONDS:
         raise SignedRequestError("stale_request", "signed request is stale")
@@ -172,7 +175,6 @@ def verify_signed_request(
             nonce=nonce,
             request_timestamp_ms=int(signed_at.timestamp() * 1000),
             body_sha256=body_sha256,
-            observed_at_ms=int(current.timestamp() * 1000),
             expected_owner_id=expected_owner_id,
         )
     except HostedStoreError as error:

@@ -75,12 +75,17 @@ def _decode_exact_object(body: bytes, expected_keys: set[str], label: str) -> di
             result[key] = value
         return result
 
-    value = json.loads(
-        body.decode("utf-8"),
-        parse_float=reject_float,
-        parse_constant=reject_constant,
-        object_pairs_hook=reject_duplicates,
-    )
+    try:
+        value = json.loads(
+            body.decode("utf-8"),
+            parse_float=reject_float,
+            parse_constant=reject_constant,
+            object_pairs_hook=reject_duplicates,
+        )
+    except HostedStoreError:
+        raise
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise HostedStoreError("invalid_json", f"{label} body is invalid") from error
     if not isinstance(value, dict) or set(value) != expected_keys:
         raise HostedStoreError("invalid_schema", f"{label} body has an invalid exact schema")
     return value
@@ -270,16 +275,18 @@ class HostedControlPlane:
             })
         if state.status == "completed":
             return HandlerResponse(200, {**base, "status": "completed", "result": dict(state.result)})
-        return HandlerResponse(200, {
-            **base,
-            "status": "exhausted",
-            "job": {
-                "jobId": state.job_id,
-                "kind": MATCH_JOB_KIND,
-                "attemptsUsed": state.attempts_used,
-                "maxAttempts": state.max_attempts,
-            },
-        })
+        if state.status == "exhausted":
+            return HandlerResponse(200, {
+                **base,
+                "status": "exhausted",
+                "job": {
+                    "jobId": state.job_id,
+                    "kind": MATCH_JOB_KIND,
+                    "attemptsUsed": state.attempts_used,
+                    "maxAttempts": state.max_attempts,
+                },
+            })
+        raise HostedStoreError("invalid_job_state", "match job returned an unsupported state")
 
     def renew(
         self,
@@ -287,6 +294,8 @@ class HostedControlPlane:
         *,
         now: dt.datetime | None = None,
     ) -> HandlerResponse:
+        if request.method != "POST":
+            raise HostedStoreError("invalid_renew", "match-job renew method is invalid")
         payload = _decode_exact_object(
             request.body, {"jobId", "attemptId", "leaseEpoch"}, "match-job renew"
         )
@@ -310,6 +319,8 @@ class HostedControlPlane:
         *,
         now: dt.datetime | None = None,
     ) -> HandlerResponse:
+        if request.method != "POST":
+            raise HostedStoreError("invalid_abandon", "match-job abandon method is invalid")
         payload = _decode_exact_object(
             request.body, {"jobId", "attemptId", "leaseEpoch"}, "match-job abandon"
         )
@@ -339,6 +350,8 @@ class HostedControlPlane:
         *,
         now: dt.datetime | None = None,
     ) -> HandlerResponse:
+        if request.method != "POST":
+            raise HostedStoreError("invalid_result", "match-job result method is invalid")
         payload = _decode_exact_object(
             request.body,
             {
