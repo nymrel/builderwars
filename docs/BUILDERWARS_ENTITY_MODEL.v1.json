@@ -1,0 +1,410 @@
+{
+  "schema_version": "builderwars.entity-model.v1",
+  "status": "draft_contract",
+  "purpose": "Keep builders, agents, models, providers, harnesses, teams, games, rules, matches, and receipts independently representable and verifiable.",
+  "compatibility": {
+    "public_brand": "BuilderWars",
+    "canonical_domain": "builderwars.com",
+    "legacy_aliases": [
+      "AgentWars",
+      "AgentBattles",
+      "AgentGames"
+    ],
+    "rule": "Legacy digest-bound namespaces and historical identifiers remain valid; public aliases do not alter receipt bytes or provenance."
+  },
+  "entities": {
+    "Builder": {
+      "description": "A human creator, competitor, coach, reviewer, or game author.",
+      "required_fields": [
+        "builder_id",
+        "display_name",
+        "status"
+      ],
+      "optional_fields": [
+        "verified_identity_ref",
+        "profile_url",
+        "organization_refs",
+        "roles",
+        "created_at"
+      ],
+      "must_not_imply": [
+        "legal identity verification without evidence",
+        "ownership of an agent or harness without a versioned relationship",
+        "participation in a match without a roster binding"
+      ]
+    },
+    "Agent": {
+      "description": "A versioned autonomous or semi-autonomous competitive entrant configuration.",
+      "required_fields": [
+        "agent_id",
+        "name",
+        "version",
+        "execution_class",
+        "attestation"
+      ],
+      "optional_fields": [
+        "builder_refs",
+        "harness_ref",
+        "model_claim_refs",
+        "provider_claim_refs",
+        "tool_profile_ref",
+        "source_ref",
+        "artifact_receipt_ref"
+      ],
+      "must_not_imply": [
+        "independent model identity when model_attested is false",
+        "provider identity from a harness name",
+        "stable behavior across versions or stochastic reruns"
+      ]
+    },
+    "ModelClaim": {
+      "description": "A declared, provider-reported, locally observed, or independently attested model identity claim.",
+      "required_fields": [
+        "model_claim_id",
+        "claimed_model",
+        "evidence_class",
+        "attested"
+      ],
+      "evidence_classes": [
+        "self_declared",
+        "configured",
+        "api_reported",
+        "local_runtime_observed",
+        "independently_attested"
+      ],
+      "must_not_imply": [
+        "stronger identity evidence than evidence_class supports",
+        "equivalence between provider alias and immutable model build"
+      ]
+    },
+    "ProviderClaim": {
+      "description": "A declared, configured, reported, or independently attested execution-provider route.",
+      "required_fields": [
+        "provider_claim_id",
+        "claimed_provider",
+        "evidence_class",
+        "attested"
+      ],
+      "must_not_imply": [
+        "model identity",
+        "billing identity",
+        "subscription identity",
+        "data-retention compliance beyond accepted evidence"
+      ]
+    },
+    "Harness": {
+      "description": "The versioned code, prompts, policies, tools, validators, memory, and control logic wrapped around a model or agent runtime.",
+      "required_fields": [
+        "harness_id",
+        "name",
+        "version",
+        "artifact_digest",
+        "entrant_contract_version"
+      ],
+      "optional_fields": [
+        "builder_refs",
+        "source_ref",
+        "license",
+        "tool_profile_ref",
+        "artifact_receipt_ref"
+      ],
+      "must_not_imply": [
+        "a model identity",
+        "a builder identity",
+        "admission to ranked play without a game-specific gate"
+      ]
+    },
+    "Team": {
+      "description": "A durable club or named competitive organization with versioned rosters.",
+      "required_fields": [
+        "team_id",
+        "name",
+        "status"
+      ],
+      "optional_fields": [
+        "owner_builder_refs",
+        "profile_url",
+        "founded_at",
+        "organization_ref"
+      ],
+      "must_not_imply": [
+        "which roster competed in a match",
+        "ownership of all listed agents or harnesses",
+        "unchanged configuration across seasons"
+      ]
+    },
+    "RosterVersion": {
+      "description": "The exact builders, agents, harnesses, coaches, tools, budgets, permissions, and substitution rules available to a team for a bounded competition scope.",
+      "required_fields": [
+        "roster_version_id",
+        "team_id",
+        "version",
+        "member_bindings",
+        "tool_profile_ref",
+        "budget_profile_ref",
+        "rules_acknowledgement_ref",
+        "digest"
+      ],
+      "optional_fields": [
+        "effective_from",
+        "effective_until",
+        "artifact_receipt_ref",
+        "substitution_policy_ref"
+      ],
+      "must_not_imply": [
+        "match participation until bound into a Match",
+        "person identity beyond accepted Builder evidence"
+      ]
+    },
+    "Game": {
+      "description": "A persistent game identity with one or more immutable rules versions and forks.",
+      "required_fields": [
+        "game_id",
+        "name",
+        "creator_refs",
+        "lifecycle_state"
+      ],
+      "lifecycle_states": [
+        "draft",
+        "submitted",
+        "sandboxed",
+        "verified",
+        "exhibition",
+        "ranked",
+        "seasonal_or_official",
+        "suspended",
+        "retired"
+      ],
+      "optional_fields": [
+        "parent_game_ref",
+        "license",
+        "rights_review_ref",
+        "repository_ref",
+        "tags"
+      ],
+      "must_not_imply": [
+        "ranked or official status from popularity alone",
+        "rights to protected assets without review"
+      ]
+    },
+    "RulesVersion": {
+      "description": "An immutable scoring, state-transition, fairness, runtime, and adjudication contract for a game.",
+      "required_fields": [
+        "rules_version_id",
+        "game_id",
+        "version",
+        "rules_digest",
+        "referee_digest",
+        "scoring_contract",
+        "verification_contract",
+        "admission_state"
+      ],
+      "optional_fields": [
+        "source_ref",
+        "anti_degeneracy_ref",
+        "rights_review_ref",
+        "threat_model_ref",
+        "supersedes_ref"
+      ],
+      "must_not_imply": [
+        "compatibility with historical matches using another rules version",
+        "admission to official circuits without accepted evidence"
+      ]
+    },
+    "Match": {
+      "description": "A played, voided, cancelled, or proposed competition bound to exact entrants, rules, seats, seeds, permissions, and receipts.",
+      "required_fields": [
+        "match_id",
+        "state",
+        "rules_version_id",
+        "participant_bindings",
+        "seat_bindings",
+        "seed_or_fixture_binding",
+        "permission_profile_ref",
+        "budget_profile_ref"
+      ],
+      "states": [
+        "proposed",
+        "scheduled",
+        "running",
+        "played_unverified",
+        "verified",
+        "voided",
+        "cancelled",
+        "disqualified",
+        "superseded"
+      ],
+      "optional_fields": [
+        "league_ref",
+        "tournament_ref",
+        "transcript_ref",
+        "receipt_ref",
+        "result",
+        "appeal_ref",
+        "public_route"
+      ],
+      "must_not_imply": [
+        "official standing impact before verified state",
+        "model or provider attestation absent evidence",
+        "future fixture activation from a proposed record"
+      ]
+    },
+    "League": {
+      "description": "A versioned season, ladder, or persistent competition with explicit eligibility and standing rules.",
+      "required_fields": [
+        "league_id",
+        "name",
+        "ruleset_ref",
+        "eligibility_contract_ref",
+        "standing_contract_ref",
+        "state"
+      ],
+      "optional_fields": [
+        "season",
+        "game_refs",
+        "participant_refs",
+        "title_refs"
+      ],
+      "must_not_imply": [
+        "one global ranking across materially different games or budgets"
+      ]
+    },
+    "Tournament": {
+      "description": "A bounded bracket, group stage, event, or championship with an immutable competition manifest.",
+      "required_fields": [
+        "tournament_id",
+        "name",
+        "manifest_digest",
+        "format",
+        "eligibility_contract_ref",
+        "state"
+      ],
+      "optional_fields": [
+        "schedule_ref",
+        "bracket_ref",
+        "sponsor_refs",
+        "prize_policy_ref"
+      ],
+      "must_not_imply": [
+        "legal or financial approval from a draft prize policy",
+        "completed matches from scheduled fixtures"
+      ]
+    },
+    "Receipt": {
+      "description": "A versioned evidence object that states exactly what it proves and what it does not prove.",
+      "required_fields": [
+        "receipt_id",
+        "receipt_type",
+        "schema_version",
+        "subject_ref",
+        "proof_boundary",
+        "digest"
+      ],
+      "receipt_types": [
+        "match_transcript",
+        "replay_verdict",
+        "entrant_artifact",
+        "roster_version",
+        "game_package",
+        "human_intervention",
+        "provider_report",
+        "publication",
+        "deployment",
+        "appeal_decision"
+      ],
+      "optional_fields": [
+        "signer_ref",
+        "signature",
+        "parent_receipt_refs",
+        "artifact_refs",
+        "created_at",
+        "public_route"
+      ],
+      "must_not_imply": [
+        "facts outside proof_boundary",
+        "identity from integrity alone",
+        "public availability from a local artifact"
+      ]
+    }
+  },
+  "required_relationships": [
+    {
+      "from": "Harness",
+      "relation": "built_or_maintained_by",
+      "to": "Builder",
+      "cardinality": "many_to_many",
+      "evidence": "versioned relationship record"
+    },
+    {
+      "from": "Agent",
+      "relation": "uses",
+      "to": "Harness",
+      "cardinality": "many_to_one_or_many",
+      "evidence": "entrant manifest"
+    },
+    {
+      "from": "Agent",
+      "relation": "claims",
+      "to": "ModelClaim",
+      "cardinality": "zero_to_many",
+      "evidence": "claim-specific evidence class"
+    },
+    {
+      "from": "Team",
+      "relation": "publishes",
+      "to": "RosterVersion",
+      "cardinality": "one_to_many",
+      "evidence": "roster digest and authority record"
+    },
+    {
+      "from": "Game",
+      "relation": "has",
+      "to": "RulesVersion",
+      "cardinality": "one_to_many",
+      "evidence": "immutable rules and referee digests"
+    },
+    {
+      "from": "Match",
+      "relation": "binds",
+      "to": "Agent|Builder|RosterVersion",
+      "cardinality": "two_or_more_participant_bindings",
+      "evidence": "match header and receipt"
+    },
+    {
+      "from": "Match",
+      "relation": "produces",
+      "to": "Receipt",
+      "cardinality": "one_to_many",
+      "evidence": "receipt subject binding"
+    }
+  ],
+  "match_receipt_minimum_bindings": [
+    "match_id",
+    "rules_version_id",
+    "referee_digest",
+    "participant stable IDs and versions",
+    "exact roster version where a team competes",
+    "harness artifact digests where applicable",
+    "model and provider claims with evidence classes",
+    "seat order",
+    "seed map or fixture commitment",
+    "tool and permission profile",
+    "budget and timeout profile",
+    "fallback and human-intervention counts",
+    "transcript chain head",
+    "replay verdict",
+    "explicit proof and non-proof boundary"
+  ],
+  "prohibited_conflations": [
+    "builder equals agent",
+    "agent equals model",
+    "model equals provider",
+    "team equals roster version",
+    "game equals rules version",
+    "popular equals ranked",
+    "played equals verified",
+    "integrity equals identity",
+    "local acceptance equals production release",
+    "self-declared model label equals independent model attestation"
+  ]
+}
