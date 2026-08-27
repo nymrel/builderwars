@@ -69,7 +69,7 @@ dependency-lock digests, and false publication/deployment authority.
 Run the verifier from the artifact directory before opening the ZIP:
 
 ```bash
-python verify.py --artifact .
+python -B verify.py --artifact .
 ```
 
 That artifact-level `verify.py` is copied into the extracted runner as
@@ -115,8 +115,8 @@ Windows PowerShell:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --requirement requirements.txt
-.\.venv\Scripts\python.exe bin\agentwars.py provider catalog
-.\.venv\Scripts\python.exe bin\agentwars.py runner --help
+.\.venv\Scripts\python.exe -B bin\agentwars.py provider catalog
+.\.venv\Scripts\python.exe -B bin\agentwars.py runner --help
 ```
 
 macOS or Linux:
@@ -124,8 +124,8 @@ macOS or Linux:
 ```bash
 python3 -m venv .venv
 ./.venv/bin/python -m pip install --requirement requirements.txt
-./.venv/bin/python bin/agentwars.py provider catalog
-./.venv/bin/python bin/agentwars.py runner --help
+./.venv/bin/python -B bin/agentwars.py provider catalog
+./.venv/bin/python -B bin/agentwars.py runner --help
 ```
 
 `requirements.txt` is only a compatibility wrapper around
@@ -156,15 +156,15 @@ read a credential store:
 Windows PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe bin\agentwars.py provider catalog
-.\.venv\Scripts\python.exe bin\agentwars.py provider connect-plan openrouter
+.\.venv\Scripts\python.exe -B bin\agentwars.py provider catalog
+.\.venv\Scripts\python.exe -B bin\agentwars.py provider connect-plan openrouter
 ```
 
 macOS or Linux:
 
 ```bash
-./.venv/bin/python bin/agentwars.py provider catalog
-./.venv/bin/python bin/agentwars.py provider connect-plan openrouter
+./.venv/bin/python -B bin/agentwars.py provider catalog
+./.venv/bin/python -B bin/agentwars.py provider connect-plan openrouter
 ```
 
 The catalog keeps known-but-disabled routes visible. In particular,
@@ -177,13 +177,26 @@ Create a one-time pairing secret in the signed-in Nymrel arena, then run the
 fixed CLI from the extracted bundle. The pairing secret and key passphrase are
 interactive no-echo prompts and are never command-line options:
 
+Windows PowerShell:
+
 ```powershell
-.\.venv\Scripts\python.exe bin\agentwars.py runner pair `
+.\.venv\Scripts\python.exe -B bin\agentwars.py runner pair `
   --provider chatgpt_codex `
   --display-label "Redraft Runner" `
   --harness-id agentwars-cli `
   --harness-version 1.0.0 `
   --harness-file entrants\fantasy_model_harness.py
+```
+
+macOS or Linux:
+
+```bash
+./.venv/bin/python -B bin/agentwars.py runner pair \
+  --provider chatgpt_codex \
+  --display-label "Redraft Runner" \
+  --harness-id agentwars-cli \
+  --harness-version 1.0.0 \
+  --harness-file entrants/fantasy_model_harness.py
 ```
 
 Compare the complete fingerprint in the terminal and browser before approval.
@@ -206,7 +219,7 @@ explicitly request one browser authorization for that match:
 Windows PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe bin\agentwars.py runner run-prepared-match `
+.\.venv\Scripts\python.exe -B bin\agentwars.py runner run-prepared-match `
   --plan C:\customer\match-9400-plan.json `
   --once `
   --customer-local-v1 `
@@ -218,7 +231,7 @@ Windows PowerShell:
 macOS or Linux:
 
 ```bash
-./.venv/bin/python bin/agentwars.py runner run-prepared-match \
+./.venv/bin/python -B bin/agentwars.py runner run-prepared-match \
   --plan /customer/match-9400-plan.json \
   --once \
   --customer-local-v1 \

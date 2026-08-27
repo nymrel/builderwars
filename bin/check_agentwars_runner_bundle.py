@@ -233,6 +233,35 @@ def main() -> int:
             archive.extractall(extract)
         bundle_root = extract / BUNDLE_ROOT
         check(bundle_root.is_dir() and not bundle_root.is_symlink(), "verified archive extracts under one fixed root")
+        readme = (bundle_root / "README.md").read_text(encoding="utf-8")
+        windows_entrypoint = r".\.venv\Scripts\python.exe -B bin\agentwars.py"
+        posix_entrypoint = "./.venv/bin/python -B bin/agentwars.py"
+        customer_commands = (
+            "provider catalog",
+            "provider connect-plan openrouter",
+            "runner --help",
+            "runner pair",
+            "runner run-prepared-match",
+        )
+        check(
+            "python -B verify.py --artifact ." in readme
+            and all(
+                f"{entrypoint} {command}" in readme
+                for entrypoint in (windows_entrypoint, posix_entrypoint)
+                for command in customer_commands
+            ),
+            "bundled README exposes exact no-bytecode verifier, Windows, and POSIX entrypoints",
+        )
+        readme_lines = tuple(line.strip() for line in readme.splitlines())
+        check(
+            not any(
+                line.startswith(r".\.venv\Scripts\python.exe bin\agentwars.py")
+                or line.startswith("./.venv/bin/python bin/agentwars.py")
+                or line == "python verify.py --artifact ."
+                for line in readme_lines
+            ),
+            "bundled README contains no writable-bytecode verifier or runner invocation",
+        )
         compile_result = run_isolated(["-m", "compileall", "-q", "."], bundle_root)
         check(compile_result.returncode == 0, "bundled Python compiles in an isolated interpreter")
 
