@@ -25,7 +25,9 @@ python -m py_compile \
   bin/run_agentwars_openrouter_match.py
 ```
 
-No API key or network access is used by those checks.
+No API key or network access is used by those checks. The registered PR workflow
+runs the entrant checker on CPython 3.13 across Windows x64, Linux x64, Linux
+ARM64, and macOS ARM64 when GitHub Actions instantiates the workflow.
 
 ## One controlled GLM match
 
@@ -47,11 +49,18 @@ The request enforces:
 - an exact provider allowlist;
 - provider fallbacks disabled;
 - required request parameters;
+- temperature fixed at zero;
 - provider data collection denied;
 - Zero Data Retention required.
 
 If no endpoint satisfies those controls, the call must fail rather than silently
 changing provider or privacy posture.
+
+The sanitized receipt carries API-reported requested/resolved model, provider,
+prompt/completion/total tokens, reasoning tokens, cache reads/writes, charged
+cost, and upstream inference cost when present. It does not carry prompt or
+completion text. These fields support accepted-task cost accounting but remain
+provider/API claims rather than independent model attestation.
 
 ## Candidate matrix
 
