@@ -46,6 +46,7 @@ from provider_hub.local_runner import (
     validate_fingerprint,
     validate_runner_id,
 )
+from provider_hub.secrets import SecretValue
 
 
 BIN = str(MATCH_RUNNER_PATH.parent)
@@ -121,6 +122,7 @@ class PreparedMatch:
     job_id: str
     competition_id: str
     launch_plan_digest: str
+    provider_ids: tuple[str, str]
     argv: tuple[str, ...]
     match_directory: Path
     summary_file: Path
@@ -311,6 +313,7 @@ def load_prepared_match(path: str) -> PreparedMatch:
         job_id=job_id,
         competition_id=competition_id,
         launch_plan_digest=launch_digest,
+        provider_ids=tuple(seat.provider_claim for seat in seats),
         argv=tuple(argv),
         match_directory=match_directory,
         summary_file=summary_file,
@@ -318,7 +321,12 @@ def load_prepared_match(path: str) -> PreparedMatch:
 
 
 def execute_prepared_match(
-    path: str, *, customer_local_v1: bool, provider_usage_v1: bool
+    path: str,
+    *,
+    customer_local_v1: bool,
+    provider_usage_v1: bool,
+    expected_launch_plan_digest: str | None = None,
+    openrouter_api_key: SecretValue | None = None,
 ) -> tuple[PreparedMatch, int]:
     """Validate then run only the fixed local match implementation."""
 
@@ -327,7 +335,35 @@ def execute_prepared_match(
             "prepared match requires fresh customer-local and provider-usage consent"
         )
     prepared = load_prepared_match(path)
-    status = _fixed_match_main([*prepared.argv, *FRESH_EXECUTION_FLAGS])
+    if expected_launch_plan_digest is not None:
+        expected_digest = _hex_digest(
+            expected_launch_plan_digest, "expected launch plan digest"
+        )
+        if not hmac.compare_digest(
+            expected_digest, prepared.launch_plan_digest
+        ):
+            raise RunnerClientError(
+                "prepared match changed after provider authorization"
+            )
+
+    if openrouter_api_key is not None:
+        if not isinstance(openrouter_api_key, SecretValue):
+            raise RunnerClientError("one-match OpenRouter key must remain wrapped")
+        if "openrouter" not in prepared.provider_ids:
+            raise RunnerClientError(
+                "one-match OpenRouter key does not match the prepared providers"
+            )
+        if "OPENROUTER_API_KEY" in os.environ:
+            raise RunnerClientError(
+                "refusing to replace an existing OpenRouter environment key"
+            )
+        os.environ["OPENROUTER_API_KEY"] = openrouter_api_key.reveal()
+        try:
+            status = _fixed_match_main([*prepared.argv, *FRESH_EXECUTION_FLAGS])
+        finally:
+            os.environ.pop("OPENROUTER_API_KEY", None)
+    else:
+        status = _fixed_match_main([*prepared.argv, *FRESH_EXECUTION_FLAGS])
     if type(status) is not int or status not in (0, 1, 2):
         raise RunnerClientError(
             "prepared match fixed runner returned an invalid status"

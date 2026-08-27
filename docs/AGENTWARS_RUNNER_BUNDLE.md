@@ -25,7 +25,7 @@ match, or authorize deployment.
 |---|---|---|
 | ChatGPT/Codex | executable customer-local route | delegates to the customer's locally authenticated Codex client after explicit match consent |
 | OpenCode | executable route-dependent harness | customer chooses the local route; the label does not attest provider, plan, model, or billing |
-| OpenRouter | executable customer-key route | key remains in the customer runner environment and may incur customer-owned API charges |
+| OpenRouter | executable customer-key route | customer may supply a local environment key or explicitly authorize one key for one fixed match's local execution through loopback PKCE; the provider-side key can outlive the process and usage may incur customer-owned API charges |
 | Hermes | executable route-dependent harness | customer config remains local; the label does not attest the upstream route |
 | Custom agent | executable customer-local escape hatch | two explicit intents; excluded from public cross-provider competition; no OS isolation is claimed |
 | Claude Code subscription | catalog-visible, disabled | no pairing, profile, backend, competition, or promotion execution until Anthropic approves the product pattern or a separate sanctioned API route is reviewed |
@@ -115,6 +115,7 @@ Windows PowerShell:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --requirement requirements.txt
+.\.venv\Scripts\python.exe bin\agentwars.py provider catalog
 .\.venv\Scripts\python.exe bin\agentwars.py runner --help
 ```
 
@@ -123,6 +124,7 @@ macOS or Linux:
 ```bash
 python3 -m venv .venv
 ./.venv/bin/python -m pip install --requirement requirements.txt
+./.venv/bin/python bin/agentwars.py provider catalog
 ./.venv/bin/python bin/agentwars.py runner --help
 ```
 
@@ -144,6 +146,30 @@ upstream signatures were not independently verified, and Nymrel has not signed
 the lock or installer. The hashes freeze accepted bytes; they do not attest
 publisher identity, operating-system integrity, pip itself, or cross-platform
 runtime success.
+
+## Inspect a provider route without connecting
+
+The bundled provider commands are read-only policy discovery. They do not run
+a login, open a browser, contact a provider or Nymrel, inspect an account, or
+read a credential store:
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe bin\agentwars.py provider catalog
+.\.venv\Scripts\python.exe bin\agentwars.py provider connect-plan openrouter
+```
+
+macOS or Linux:
+
+```bash
+./.venv/bin/python bin/agentwars.py provider catalog
+./.venv/bin/python bin/agentwars.py provider connect-plan openrouter
+```
+
+The catalog keeps known-but-disabled routes visible. In particular,
+`claude_code` remains disabled; provider discovery cannot activate it or turn a
+consumer subscription into an approved third-party execution route.
 
 ## Pair and test
 
@@ -170,6 +196,65 @@ local-forget commands are in `docs/AGENTWARS_RUNNER_CLIENT.md` in the source
 repository. A future published bundle must link its exact versioned copy rather
 than a moving branch.
 
+## Authorize OpenRouter for one prepared match
+
+If an inspected prepared plan includes `openrouter`, the fixed runner requires
+one of two customer-owned local routes. A customer may provide
+`OPENROUTER_API_KEY` through their own local secret/environment mechanism, or
+explicitly request one browser authorization for that match:
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe bin\agentwars.py runner run-prepared-match `
+  --plan C:\customer\match-9400-plan.json `
+  --once `
+  --customer-local-v1 `
+  --provider-usage-v1 `
+  --openrouter-pkce-v1 `
+  --openrouter-provider-key-persists-v1
+```
+
+macOS or Linux:
+
+```bash
+./.venv/bin/python bin/agentwars.py runner run-prepared-match \
+  --plan /customer/match-9400-plan.json \
+  --once \
+  --customer-local-v1 \
+  --provider-usage-v1 \
+  --openrouter-pkce-v1 \
+  --openrouter-provider-key-persists-v1
+```
+
+The CLI fully validates the plan before opening a browser. It binds an HTTP
+listener only to `127.0.0.1` on an OS-assigned port and uses a fresh 128-bit
+callback path plus PKCE S256. The authorization URL contains no API key or
+verifier. OpenRouter returns a single-use code to the exact local callback;
+the customer process exchanges it at the pinned OpenRouter HTTPS endpoint.
+
+The exchanged key remains wrapped in local memory, enters
+`OPENROUTER_API_KEY` only after the exact plan, fixed runner, harness,
+passports, argv, and output paths are revalidated, and is removed in `finally`
+after success or failure. It is never printed, serialized, written to runner
+state, or sent to BuildWars/Nymrel. The callback server closes before the
+command returns. An existing environment key is never overwritten, and the
+PKCE flag fails before browser launch when the plan has no OpenRouter seat.
+
+Removing local environment custody does **not** revoke the key at OpenRouter.
+The extra `--openrouter-provider-key-persists-v1` acknowledgement is mandatory
+before browser launch. After every attempted run, the CLI tells the customer to
+review or revoke the newly created key in their OpenRouter dashboard. Automatic
+deletion is intentionally absent because OpenRouter documents that key deletion
+requires a separate management-key route, which this runner does not request,
+read, or custody.
+
+This is one-match local use, not a durable BuildWars linked-account state or
+provider/model attestation. The provider-side key may remain active until the
+customer revokes it. OpenRouter usage can spend the customer's quota or incur
+customer-owned charges. The current CLI implements the documented local
+callback flow, not OpenRouter's separate headless copy/paste flow.
+
 ## Adversarial validation
 
 ```bash
@@ -179,8 +264,9 @@ python -B bin/check_agentwars_dependency_lock.py
 
 The checker builds two working-tree test artifacts, proves byte identity,
 verifies and safely extracts one into a temporary directory, compiles the
-bundled Python, exercises help and empty local-state paths without network, and
-attacks ZIP, manifest, file-set, overwrite, and acknowledgement boundaries.
+bundled Python, exercises provider discovery, help, and empty local-state paths
+without network, and attacks ZIP, manifest, file-set, overwrite, and
+acknowledgement boundaries.
 The release build must then be rerun from a clean exact commit without the
 checker-only working-tree capability.
 

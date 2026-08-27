@@ -34,9 +34,11 @@ Hard rules enforced here:
 
 import base64
 import hashlib
+import http.server
 import json
 import re
 import secrets as _secrets
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -59,6 +61,9 @@ _CODE_RE = re.compile(r"^[\x21-\x7e]{8,2048}$")
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 _EXCHANGE_TIMEOUT_S = 30
 _MAX_RESPONSE_BYTES = 65536
+_MAX_CALLBACK_TARGET_BYTES = 8192
+_MIN_LOOPBACK_WAIT_S = 10
+_MAX_LOOPBACK_WAIT_S = 600
 
 
 class PkceError(ValueError):
@@ -404,6 +409,162 @@ def exchange(code_secret, verifier_secret, *, transport=default_transport):
     if status != 200:
         raise PkceError(f"exchange returned HTTP {status}")
     return parse_exchange_response(raw)
+
+
+# ---------------------------------------------------------------------------
+# customer-local loopback orchestration
+# ---------------------------------------------------------------------------
+
+
+class _LoopbackCallbackServer(http.server.HTTPServer):
+    """One-thread bounded server whose errors never render callback material."""
+
+    def handle_error(self, _request, _client_address):  # noqa: D102
+        return
+
+
+class _LoopbackCallbackHandler(http.server.BaseHTTPRequestHandler):
+    """Receive one exact provider redirect without logging request material."""
+
+    server_version = "AgentWarsLoopback"
+    sys_version = ""
+
+    def log_message(self, _format, *_args):  # noqa: D102
+        return
+
+    def _reply(self, status, body):
+        raw = body.encode("ascii")
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "text/plain; charset=us-ascii")
+            self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Security-Policy", "default-src 'none'")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(raw)
+        except OSError:
+            return
+
+    def do_GET(self):  # noqa: N802,D102
+        if len(self.path.encode("utf-8", errors="ignore")) > _MAX_CALLBACK_TARGET_BYTES:
+            self._reply(414, "Request rejected.\n")
+            return
+        try:
+            target = urllib.parse.urlsplit(self.path)
+        except ValueError:
+            self._reply(400, "Request rejected.\n")
+            return
+        if target.scheme or target.netloc or target.fragment:
+            self._reply(400, "Request rejected.\n")
+            return
+        if target.path != self.server.callback_path:  # type: ignore[attr-defined]
+            self._reply(404, "Not found.\n")
+            return
+        callback_uri = self.server.callback_url  # type: ignore[attr-defined]
+        if target.query:
+            callback_uri += "?" + target.query
+        try:
+            code = parse_callback(
+                callback_uri,
+                expected_callback=self.server.callback_url,  # type: ignore[attr-defined]
+            )
+        except PkceError:
+            self._reply(400, "Authorization response rejected. Retry from AgentWars.\n")
+            return
+        self.server.callback_code = code  # type: ignore[attr-defined]
+        self._reply(
+            200,
+            "Authorization received. Return to AgentWars and close this tab.\n",
+        )
+
+    def do_HEAD(self):  # noqa: N802,D102
+        self._reply(405, "Method not allowed.\n")
+
+    def do_POST(self):  # noqa: N802,D102
+        self._reply(405, "Method not allowed.\n")
+
+
+def authorize_openrouter_loopback(
+    *,
+    timeout_seconds=180,
+    transport=default_transport,
+    browser_opener=None,
+    announce=None,
+):
+    """Authorize one customer-owned OpenRouter key for bounded local use.
+
+    The listener binds only to IPv4 loopback on an OS-assigned port. The
+    callback path carries a fresh 128-bit correlation segment. Wrong paths and
+    malformed callbacks are rejected without ending the bounded wait, so a
+    browser favicon request cannot consume the flow. The returned key remains
+    wrapped and is never written or printed here. This function controls local
+    custody only; it does not claim or attempt provider-side key revocation.
+    """
+
+    if type(timeout_seconds) is not int or not (
+        _MIN_LOOPBACK_WAIT_S <= timeout_seconds <= _MAX_LOOPBACK_WAIT_S
+    ):
+        raise PkceError("loopback wait must be an integer from 10 to 600 seconds")
+    if browser_opener is None:
+        import webbrowser
+
+        browser_opener = webbrowser.open
+    if not callable(browser_opener):
+        raise PkceError("browser opener must be callable")
+    if announce is not None and not callable(announce):
+        raise PkceError("authorization announcer must be callable")
+
+    verifier = new_verifier()
+    challenge = challenge_from_verifier(verifier)
+    callback_path = new_callback_path()
+    try:
+        server = _LoopbackCallbackServer(
+            ("127.0.0.1", 0), _LoopbackCallbackHandler, bind_and_activate=True
+        )
+    except OSError as error:
+        raise PkceError(
+            f"loopback callback could not bind: {error.__class__.__name__}"
+        ) from None
+
+    try:
+        port = server.server_address[1]
+        callback_url = f"http://127.0.0.1:{port}{callback_path}"
+        authorize_url = build_authorize_url(
+            callback_url=callback_url,
+            code_challenge=challenge,
+        )
+        server.callback_path = callback_path
+        server.callback_url = callback_url
+        server.callback_code = None
+
+        if announce is not None:
+            try:
+                announce(authorize_url)
+            except Exception as error:
+                raise PkceError(
+                    f"authorization announcement failed: {error.__class__.__name__}"
+                ) from None
+        try:
+            browser_opener(authorize_url)
+        except Exception as error:
+            raise PkceError(
+                f"browser open failed: {error.__class__.__name__}"
+            ) from None
+
+        deadline = time.monotonic() + timeout_seconds
+        while server.callback_code is None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise PkceError("OpenRouter authorization timed out")
+            server.timeout = min(1.0, remaining)
+            server.handle_request()
+        callback_code = server.callback_code
+    finally:
+        server.server_close()
+    return exchange(callback_code, verifier, transport=transport)
 
 
 def reject_off_origin(url, what="endpoint"):

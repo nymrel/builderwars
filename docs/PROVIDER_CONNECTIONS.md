@@ -58,6 +58,14 @@ Read-only planning commands perform no login, browser launch, credential-file
 inspection, or network request:
 
 ```bash
+python bin/agentwars.py provider catalog
+python bin/agentwars.py provider connect-plan openrouter
+```
+
+The deterministic customer bundle contains those two `agentwars provider`
+commands. The source checkout also retains the earlier development planner:
+
+```bash
 python bin/buildwars_provider.py catalog
 python bin/buildwars_provider.py catalog --json
 python bin/buildwars_provider.py connect-plan openrouter
@@ -121,29 +129,45 @@ On PowerShell, quote the JSON argv so it reaches Python as one argument.
 The current OpenRouter flow is deliberately implemented as documented, rather
 than as generic OAuth:
 
-1. Generate an RFC 7636 verifier and its S256 challenge in the local runner.
-   `new_callback_path()` can generate a fresh 128-bit correlation segment when
-   the caller controls the callback path; documented fixed HTTPS callback paths
-   remain valid.
-2. Open `https://openrouter.ai/auth` with exactly `callback_url`,
+1. Validate the complete prepared match before any browser or network action.
+   The bundled CLI starts this path only with explicit `--openrouter-pkce-v1`,
+   only when the plan contains OpenRouter, only when no existing
+   `OPENROUTER_API_KEY` would be overwritten, and only with the explicit
+   `--openrouter-provider-key-persists-v1` acknowledgement.
+2. Generate an RFC 7636 verifier and its S256 challenge in the local runner.
+   Bind an HTTP listener only to `127.0.0.1` on an OS-assigned port and use
+   `new_callback_path()` for a fresh 128-bit correlation segment.
+3. Open `https://openrouter.ai/auth` with exactly `callback_url`,
    `code_challenge`, and `code_challenge_method=S256`.
-3. Bind the returned callback to the exact expected scheme, host, effective
+4. Bind the returned callback to the exact expected scheme, host, effective
    port, and path. An unguessable path is recommended when the caller controls
    it. The expected callback URL has no query; the
    actual callback must have exactly one `code` query parameter.
-4. Exchange exactly `code`, `code_verifier`, and
+5. Exchange exactly `code`, `code_verifier`, and
    `code_challenge_method=S256` at the pinned key endpoint. Accept the
    documented response's `key` plus optional string-or-null `user_id`; reject
    every other response field.
-5. Keep the exchanged `OPENROUTER_API_KEY` only in the customer runner.
+6. Reload and revalidate the plan against the pre-authorization
+   `launchPlanDigest`. Only then place the wrapped key in the current process
+   environment for the fixed match invocation, and remove it in `finally` on
+   success or failure.
 
 The official flow does not require this implementation to invent `client_id`,
 `redirect_uri`, `response_type`, `scope`, or provider-echoed `state` fields.
 HTTPS callbacks are accepted; HTTP callbacks are restricted to explicit-port
-loopback hosts. Redirects are refused, response sizes are capped, errors are
-sanitized, and the test transport is injected so the suite performs no live
-exchange. OpenRouter use may incur charges on the customer's OpenRouter
-account.
+loopback hosts. OpenRouter's current documentation explicitly supports
+localhost callbacks on arbitrary ports and separately documents a headless
+copy/paste flow. This CLI implements only the local callback flow. Redirects
+are refused, response sizes are capped, errors are sanitized, the callback
+page never echoes the code, and the tests use an injected exchange transport
+plus a real loopback-only callback so they perform no live provider exchange.
+The key is never printed, serialized, persisted locally, or sent to
+BuildWars/Nymrel. Ending local custody does not revoke the provider-side key;
+the CLI always directs the customer to review or revoke the newly created key
+in the OpenRouter dashboard. Automatic deletion is not claimed or attempted
+because OpenRouter's documented delete endpoint requires a separate management
+key, which this candidate does not request or custody. OpenRouter use may incur
+charges on the customer's OpenRouter account.
 
 Current references: [OpenAI Codex authentication](https://learn.chatgpt.com/docs/auth),
 [OpenAI Codex as a platform](https://developers.openai.com/blog/codex-as-a-platform),

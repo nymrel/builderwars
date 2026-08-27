@@ -270,9 +270,10 @@ _CATALOG = {
         "auth_plan": [
             "Start PKCE from your own BuildWars runner (never from a shared machine).",
             "Approve access in your browser at openrouter.ai.",
-            "Your runner exchanges the one-time code for YOUR key; it stays on your machine.",
+            "Your runner exchanges the one-time code for YOUR key and uses it only on your machine.",
+            "The provider-side key may remain active after local use; review or revoke it in your OpenRouter dashboard.",
         ],
-        "status_plan": "Your key lives only in your runner environment (OPENROUTER_API_KEY); rotate or revoke anytime in your OpenRouter dashboard.",
+        "status_plan": "BuildWars keeps no key. A locally supplied or PKCE-created key is used only in your runner environment (OPENROUTER_API_KEY), but the provider-side key may remain active until you revoke it in your OpenRouter dashboard.",
         "credential_custody": "customer_only",
         "model_required": True,
         "backend_kind": "openrouter_chat",
@@ -290,6 +291,7 @@ _CATALOG = {
         ),
         "limitations": (
             "Key custodied by you; BuildWars stores nothing and receives nothing. Hosted PKCE key custody is architecturally supported by OpenRouter's flow but is NOT implemented in this candidate.",
+            "Discarding the key from the runner does not revoke the provider-side key. OpenRouter's key deletion API requires a separate management-key route, which this candidate does not request or custody; use the OpenRouter dashboard to review or revoke the created key.",
             "Per-token cost is yours under your OpenRouter account.",
         ),
     },

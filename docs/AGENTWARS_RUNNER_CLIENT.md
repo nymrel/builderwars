@@ -52,6 +52,19 @@ x86-64 or arm64. It still performs a tester-authorized PyPI network install;
 the wheels are not bundled or Nymrel-signed. Verify the policy offline with
 `python -B bin/check_agentwars_dependency_lock.py --json` before installation.
 
+Inspect the complete policy catalog or one connection plan before pairing. The
+commands below do not connect, launch a browser, inspect a provider account, or
+read a credential store:
+
+```powershell
+agentwars provider catalog
+agentwars provider connect-plan openrouter
+```
+
+Known-but-disabled routes remain visible. A connection plan is guidance from
+the reviewed catalog, not evidence that a local account, subscription, billing
+route, provider, or model is available.
+
 ## Pair one local runner
 
 1. Sign in to the Nymrel BuilderWars arena.
@@ -177,6 +190,50 @@ agentwars runner run-prepared-match `
   --customer-local-v1 `
   --provider-usage-v1
 ```
+
+When the validated plan contains an OpenRouter seat and no local environment
+key is already present, a customer can explicitly authorize one key for this
+invocation's local execution:
+
+```powershell
+agentwars runner run-prepared-match `
+  --plan C:\customer\match-9400-plan.json `
+  --once `
+  --customer-local-v1 `
+  --provider-usage-v1 `
+  --openrouter-pkce-v1 `
+  --openrouter-provider-key-persists-v1
+```
+
+The plan is fully validated before browser launch. The client binds only to
+`127.0.0.1` on an OS-assigned port, creates a fresh 128-bit callback path and
+PKCE S256 verifier/challenge, and displays the exact OpenRouter approval URL.
+The returned one-time code is accepted only on the exact callback and exchanged
+only at the pinned OpenRouter HTTPS key endpoint. Wrong paths, duplicate or
+extra query parameters, redirects, oversized responses, and endpoint drift
+fail closed.
+
+After authorization, the client reloads the plan and requires the same
+`launchPlanDigest` before the key can enter the process environment. The key is
+available as `OPENROUTER_API_KEY` only while the fixed match runner executes and
+is removed on success or failure. It is never printed, serialized, persisted,
+placed in runner state, or sent to Nymrel. An existing environment key is not
+overwritten. The PKCE flag fails before browser launch for a plan without
+OpenRouter. The current client implements the official local callback path,
+not the separate headless copy/paste flow.
+
+Local removal is not provider-side revocation. The explicit
+`--openrouter-provider-key-persists-v1` acknowledgement is mandatory because
+the newly created key may remain active in the customer's OpenRouter account
+after the command exits. The CLI always tells the customer to review or revoke
+it in the OpenRouter dashboard, including after a match failure. It does not
+request a management key or attempt OpenRouter's management-key-only deletion
+API.
+
+This authorization may spend the customer's OpenRouter quota or incur
+customer-owned charges. It establishes neither a durable BuildWars connection
+nor provider/model execution attestation; the match evidence still has to pass
+replay and independent review.
 
 `run-prepared-match` rejects unknown fields and duplicate/non-integer JSON,
 recomputes the plan and job commitments, re-hashes the current fixed runner,

@@ -31,6 +31,7 @@ from arena import match as arena_match  # noqa: E402
 from arena.sandbox import POLICY, Entrant  # noqa: E402
 from competitions import prepared_match, source_match  # noqa: E402
 from provider_hub.local_runner import RunnerClientError, digest_harness_file  # noqa: E402
+from provider_hub.secrets import SecretValue  # noqa: E402
 import agentwars as runner_cli  # noqa: E402
 import check_competition_source_match as source_checks  # noqa: E402
 
@@ -171,6 +172,10 @@ def check_unsigned_provider_options(root: Path) -> None:
     )
     source_match.write_source_match_plan(str(plan_path), plan)
     prepared = prepared_match.load_prepared_match(str(plan_path))
+    check(
+        prepared.provider_ids == ("openrouter", "hermes"),
+        "prepared match exposes only its validated provider ids",
+    )
     check("--agent-passports" not in prepared.argv, "unsigned plan invents no passport")
     check(
         "--seat0-model=openai/gpt-5" in prepared.argv,
@@ -190,6 +195,233 @@ def check_unsigned_provider_options(root: Path) -> None:
     check(
         fixed.call_count == 1,
         "unsigned provider-options plan invokes fixed runner once",
+    )
+
+    one_match_key_text = "sk-or-v1-EXAMPLE-" + "e" * 40
+    seen_environment = []
+
+    def fixed_with_one_match_key(_argv):
+        seen_environment.append(os.environ.get("OPENROUTER_API_KEY"))
+        return 0
+
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(
+            prepared_match,
+            "_fixed_match_main",
+            side_effect=fixed_with_one_match_key,
+        ),
+    ):
+        retained, status = prepared_match.execute_prepared_match(
+            str(plan_path),
+            customer_local_v1=True,
+            provider_usage_v1=True,
+            expected_launch_plan_digest=prepared.launch_plan_digest,
+            openrouter_api_key=SecretValue(one_match_key_text),
+        )
+        check(
+            "OPENROUTER_API_KEY" not in os.environ,
+            "one-match OpenRouter key is removed after the fixed match",
+        )
+    check(
+        status == 0
+        and retained == prepared
+        and seen_environment == [one_match_key_text],
+        "one-match OpenRouter key reaches only the fixed match window",
+    )
+
+    with (
+        mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": SECRET_SENTINEL}, clear=True),
+        mock.patch.object(prepared_match, "_fixed_match_main") as blocked,
+    ):
+        expect_error(
+            lambda: prepared_match.execute_prepared_match(
+                str(plan_path),
+                customer_local_v1=True,
+                provider_usage_v1=True,
+                expected_launch_plan_digest=prepared.launch_plan_digest,
+                openrouter_api_key=SecretValue(one_match_key_text),
+            ),
+            "refusing to replace",
+        )
+        check(not blocked.called, "one-match key cannot replace an ambient key")
+
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(prepared_match, "_fixed_match_main") as blocked,
+    ):
+        expect_error(
+            lambda: prepared_match.execute_prepared_match(
+                str(plan_path),
+                customer_local_v1=True,
+                provider_usage_v1=True,
+                expected_launch_plan_digest="0" * 64,
+                openrouter_api_key=SecretValue(one_match_key_text),
+            ),
+            "changed after provider authorization",
+        )
+        check(not blocked.called, "post-authorization plan drift blocks before execution")
+        check(
+            "OPENROUTER_API_KEY" not in os.environ,
+            "plan drift blocks before the one-match key enters the environment",
+        )
+
+    with mock.patch.dict(os.environ, {}, clear=True):
+        with mock.patch.object(
+            prepared_match,
+            "_fixed_match_main",
+            side_effect=RuntimeError("fixed runner failed"),
+        ):
+            try:
+                prepared_match.execute_prepared_match(
+                    str(plan_path),
+                    customer_local_v1=True,
+                    provider_usage_v1=True,
+                    expected_launch_plan_digest=prepared.launch_plan_digest,
+                    openrouter_api_key=SecretValue(one_match_key_text),
+                )
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError("fixed runner failure did not propagate")
+        check(
+            "OPENROUTER_API_KEY" not in os.environ,
+            "one-match OpenRouter key is removed after a runner failure",
+        )
+
+    cli_argv = [
+        "runner",
+        "run-prepared-match",
+        "--plan",
+        str(plan_path),
+        "--once",
+        "--customer-local-v1",
+        "--provider-usage-v1",
+        "--openrouter-pkce-v1",
+        "--openrouter-provider-key-persists-v1",
+    ]
+    one_match_key = SecretValue(one_match_key_text)
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(runner_cli, "load_prepared_match", return_value=prepared),
+        mock.patch.object(
+            runner_cli,
+            "authorize_openrouter_loopback",
+            return_value=one_match_key,
+        ) as authorize,
+        mock.patch.object(
+            runner_cli, "execute_prepared_match", return_value=(prepared, 0)
+        ) as execute,
+        contextlib.redirect_stdout(io.StringIO()) as stdout,
+    ):
+        status = runner_cli.main(cli_argv)
+    check(status == 0 and authorize.call_count == 1, "CLI starts one explicit PKCE flow")
+    check(
+        execute.call_args.kwargs["expected_launch_plan_digest"]
+        == prepared.launch_plan_digest
+        and execute.call_args.kwargs["openrouter_api_key"] is one_match_key,
+        "CLI rebinds the exact pre-authorized plan and wrapped key",
+    )
+    check(
+        one_match_key_text not in stdout.getvalue()
+        and "provider-side key may remain active" in stdout.getvalue(),
+        "CLI hides the key and always states its provider-side lifetime",
+    )
+
+    without_pkce = [
+        value
+        for value in cli_argv
+        if value
+        not in (
+            "--openrouter-pkce-v1",
+            "--openrouter-provider-key-persists-v1",
+        )
+    ]
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(runner_cli, "load_prepared_match", return_value=prepared),
+        mock.patch.object(runner_cli, "execute_prepared_match") as blocked,
+        contextlib.redirect_stderr(io.StringIO()) as stderr,
+    ):
+        status = runner_cli.main(without_pkce)
+    check(
+        status == 2 and "set OPENROUTER_API_KEY locally" in stderr.getvalue(),
+        "OpenRouter plan without either customer-owned route fails with guidance",
+    )
+    check(not blocked.called, "missing OpenRouter route blocks fixed execution")
+
+    missing_lifetime_ack = [
+        value
+        for value in cli_argv
+        if value != "--openrouter-provider-key-persists-v1"
+    ]
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(runner_cli, "load_prepared_match", return_value=prepared),
+        mock.patch.object(runner_cli, "authorize_openrouter_loopback") as blocked,
+        contextlib.redirect_stderr(io.StringIO()) as stderr,
+    ):
+        status = runner_cli.main(missing_lifetime_ack)
+    check(
+        status == 2 and "removing local custody does not revoke" in stderr.getvalue(),
+        "PKCE requires explicit provider-side key lifetime acknowledgement",
+    )
+    check(not blocked.called, "missing key-lifetime acknowledgement blocks browser launch")
+
+    with (
+        mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": SECRET_SENTINEL}, clear=True),
+        mock.patch.object(runner_cli, "load_prepared_match", return_value=prepared),
+        mock.patch.object(runner_cli, "authorize_openrouter_loopback") as blocked,
+        contextlib.redirect_stderr(io.StringIO()) as stderr,
+    ):
+        status = runner_cli.main(cli_argv)
+    check(
+        status == 2 and "environment key already exists" in stderr.getvalue(),
+        "explicit PKCE cannot replace an existing customer environment key",
+    )
+    check(not blocked.called, "ambient OpenRouter key blocks before browser launch")
+
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(runner_cli, "load_prepared_match", return_value=prepared),
+        mock.patch.object(
+            runner_cli,
+            "authorize_openrouter_loopback",
+            side_effect=runner_cli.PkceError("exchange returned HTTP 500"),
+        ),
+        mock.patch.object(runner_cli, "execute_prepared_match") as blocked,
+        contextlib.redirect_stderr(io.StringIO()) as stderr,
+        contextlib.redirect_stdout(io.StringIO()) as stdout,
+    ):
+        status = runner_cli.main(cli_argv)
+    check(
+        status == 2
+        and "review or revoke any newly created key" in stderr.getvalue()
+        and one_match_key_text not in stderr.getvalue() + stdout.getvalue(),
+        "PKCE exchange refusal preserves the provider-side key warning",
+    )
+    check(not blocked.called, "failed PKCE exchange blocks fixed execution")
+
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(runner_cli, "load_prepared_match", return_value=prepared),
+        mock.patch.object(
+            runner_cli,
+            "authorize_openrouter_loopback",
+            return_value=one_match_key,
+        ),
+        mock.patch.object(
+            runner_cli,
+            "execute_prepared_match",
+            side_effect=RunnerClientError("post-authorization plan drift"),
+        ),
+        contextlib.redirect_stderr(io.StringIO()),
+        contextlib.redirect_stdout(io.StringIO()) as stdout,
+    ):
+        status = runner_cli.main(cli_argv)
+    check(
+        status == 2 and "provider-side key may remain active" in stdout.getvalue(),
+        "CLI warns about provider-side key lifetime after execution refusal",
     )
 
 
@@ -366,6 +598,39 @@ def check_cli_contract(plan_path: Path, prepared):
             check(error.code == 2, "CLI refuses missing fresh consent flags")
         else:
             raise AssertionError("CLI accepted missing fresh consent")
+
+    with (
+        mock.patch.object(
+            socket, "create_connection", side_effect=AssertionError("network forbidden")
+        ),
+        contextlib.redirect_stdout(io.StringIO()) as catalog_stdout,
+    ):
+        status = runner_cli.main(["provider", "catalog"])
+    catalog_output = catalog_stdout.getvalue()
+    check(status == 0, "bundled CLI exposes read-only provider catalog")
+    check(
+        all(provider in catalog_output for provider in runner_cli.PROVIDER_IDS),
+        "provider catalog lists every known route including disabled routes",
+    )
+    check(
+        "No account or credential was read" in catalog_output,
+        "provider catalog states its no-probe boundary",
+    )
+
+    with (
+        mock.patch.object(
+            socket, "create_connection", side_effect=AssertionError("network forbidden")
+        ),
+        contextlib.redirect_stdout(io.StringIO()) as plan_stdout,
+    ):
+        status = runner_cli.main(["provider", "connect-plan", "openrouter"])
+    plan_output = plan_stdout.getvalue()
+    check(status == 0, "bundled CLI exposes one read-only provider connection plan")
+    check(
+        "OPENROUTER_API_KEY" in plan_output
+        and "No login, browser, network request" in plan_output,
+        "OpenRouter plan is actionable without pretending to connect",
+    )
 
 
 def check_process_tree_cleanup(root: Path):

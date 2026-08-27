@@ -11,10 +11,14 @@ Install ``bin`` on PATH and use:
     agentwars runner run-prepared-match --plan ... --once ...
     agentwars runner submit-match --challenge-id ... --once ...
     agentwars runner request ...
+    agentwars provider catalog
+    agentwars provider connect-plan openrouter
 
 Pairing secrets and key passphrases are accepted only through no-echo prompts.
-Provider credentials remain inside the provider's own customer-local client;
-this CLI never reads or serializes them.
+The CLI never reads provider credential stores. The local copy of an explicitly
+requested OpenRouter PKCE key is held only in this customer process for one
+fixed match; it is never printed, serialized, or sent to BuildWars. The
+provider-side key may persist until the customer revokes it in OpenRouter.
 """
 
 from __future__ import annotations
@@ -49,8 +53,17 @@ from competitions.source_match import (  # noqa: E402
     build_source_match_plan,
     write_source_match_plan,
 )
-from competitions.prepared_match import execute_prepared_match  # noqa: E402
-from provider_hub.catalog import EXECUTABLE_PROVIDER_IDS  # noqa: E402
+from competitions.prepared_match import (  # noqa: E402
+    execute_prepared_match,
+    load_prepared_match,
+)
+from provider_hub.catalog import (  # noqa: E402
+    EXECUTABLE_PROVIDER_IDS,
+    PROVIDER_IDS,
+    connect_plan,
+    get_provider,
+    public_catalog,
+)
 from provider_hub.local_runner import (  # noqa: E402
     MAX_BODY_BYTES,
     PRODUCTION_ORIGIN,
@@ -77,6 +90,10 @@ from provider_hub.match_worker import (  # noqa: E402
 )
 from provider_hub.runner_state import RunnerStateStore  # noqa: E402
 from provider_hub.secrets import SecretValue  # noqa: E402
+from provider_hub.pkce import (  # noqa: E402
+    PkceError,
+    authorize_openrouter_loopback,
+)
 
 
 _PAIRING_SECRET_ARG_RE = re.compile(r"awp1_[A-Za-z0-9_-]{22}_[A-Za-z0-9_-]{32}")
@@ -152,6 +169,20 @@ def _bounded_backend_timeout(value: str) -> float:
             "backend timeout must be a number from 10 to 900 seconds"
         )
     return float(format(timeout, ".3f"))
+
+
+def _bounded_authorization_timeout(value: str) -> int:
+    try:
+        timeout = int(value)
+    except (TypeError, ValueError) as error:
+        raise argparse.ArgumentTypeError(
+            "authorization timeout must be an integer from 10 to 600 seconds"
+        ) from error
+    if not 10 <= timeout <= 600:
+        raise argparse.ArgumentTypeError(
+            "authorization timeout must be an integer from 10 to 600 seconds"
+        )
+    return timeout
 
 
 def _looks_like_secret_option(argument: object) -> bool:
@@ -556,11 +587,76 @@ def cmd_runner_prepare_match(args) -> int:
 
 
 def cmd_runner_run_prepared_match(args) -> int:
-    prepared, status = execute_prepared_match(
-        args.plan,
-        customer_local_v1=args.customer_local_v1,
-        provider_usage_v1=args.provider_usage_v1,
-    )
+    preflight = load_prepared_match(args.plan)
+    uses_openrouter = "openrouter" in preflight.provider_ids
+    pkce_key = None
+    if (
+        args.openrouter_provider_key_persists_v1
+        and not args.openrouter_pkce_v1
+    ):
+        raise RunnerClientError(
+            "--openrouter-provider-key-persists-v1 requires --openrouter-pkce-v1"
+        )
+    try:
+        if args.openrouter_pkce_v1:
+            if not uses_openrouter:
+                raise RunnerClientError(
+                    "OpenRouter authorization was requested for a plan without OpenRouter"
+                )
+            if not args.openrouter_provider_key_persists_v1:
+                raise RunnerClientError(
+                    "OpenRouter PKCE requires --openrouter-provider-key-persists-v1 "
+                    "because removing local custody does not revoke the provider-side key"
+                )
+            if "OPENROUTER_API_KEY" in os.environ:
+                raise RunnerClientError(
+                    "OpenRouter environment key already exists; omit --openrouter-pkce-v1"
+                )
+
+            def announce(authorize_url):
+                print("Approve one customer-owned OpenRouter key for this match.")
+                print("If the browser does not open, paste this URL into your browser:")
+                print(authorize_url)
+                print(
+                    "Waiting on the exact local callback; no credential is sent to BuildWars."
+                )
+
+            try:
+                pkce_key = authorize_openrouter_loopback(
+                    timeout_seconds=args.openrouter_auth_timeout,
+                    announce=announce,
+                )
+            except PkceError as error:
+                raise RunnerClientError(
+                    f"OpenRouter authorization failed: {error}. If browser approval "
+                    "completed, review or revoke any newly created key in your "
+                    "OpenRouter dashboard"
+                ) from None
+            if not isinstance(pkce_key, SecretValue):
+                raise RunnerClientError(
+                    "OpenRouter authorization did not return one wrapped key"
+                )
+            print("OpenRouter authorization received; running the one fixed match now.")
+        elif uses_openrouter and "OPENROUTER_API_KEY" not in os.environ:
+            raise RunnerClientError(
+                "prepared match uses OpenRouter; set OPENROUTER_API_KEY locally or pass "
+                "--openrouter-pkce-v1"
+            )
+
+        prepared, status = execute_prepared_match(
+            args.plan,
+            customer_local_v1=args.customer_local_v1,
+            provider_usage_v1=args.provider_usage_v1,
+            expected_launch_plan_digest=preflight.launch_plan_digest,
+            openrouter_api_key=pkce_key,
+        )
+    finally:
+        if pkce_key is not None:
+            print(
+                "Local OpenRouter environment custody ended. The provider-side key may "
+                "remain active; review or revoke the newly created key in your "
+                "OpenRouter dashboard."
+            )
     if status in (0, 2):
         print("Completed one fixed customer-local prepared match.")
         print(f"job id            : {prepared.job_id}")
@@ -574,6 +670,46 @@ def cmd_runner_run_prepared_match(args) -> int:
             )
         print("Provider/model/runtime/harness/match attestations remain false.")
     return status
+
+
+def cmd_provider_catalog(_args) -> int:
+    """Print current non-secret provider route facts without probing accounts."""
+
+    for provider_id, entry in public_catalog():
+        print(f"{provider_id} - {entry['display_name']}")
+        print(f"  mode      : {entry['connection_mode']}")
+        print(f"  transport : {entry['connection_transport']}")
+        print(f"  execution : {'customer-local' if entry['local_execution'] else 'disabled'}")
+        print(f"  custody   : {entry['credential_custody']}")
+        print(f"  evidence  : {entry['evidence_date']}")
+    print()
+    print("This is policy and route discovery only. No account or credential was read.")
+    return 0
+
+
+def cmd_provider_connect_plan(args) -> int:
+    """Print one current customer-owned setup plan without starting it."""
+
+    plan = connect_plan(args.provider)
+    entry = get_provider(args.provider)
+    print(f"Provider route - {plan['provider']} ({plan['display_name']})")
+    print(f"mode: {plan['connection_mode']}")
+    print(f"transport: {entry['connection_transport']}")
+    print(f"execution: {'customer-local' if entry['local_execution'] else 'disabled'}")
+    print(f"evidence date: {entry['evidence_date']}")
+    print()
+    for step in plan["steps"]:
+        print(step)
+    print()
+    print(plan["custody"])
+    print(f"Status: {plan['status']}")
+    if plan["limitations"]:
+        print("Limitations:")
+        for line in plan["limitations"]:
+            print(f"  - {line}")
+    print()
+    print("No login, browser, network request, account probe, or credential read occurred.")
+    return 0
 
 
 def _read_request_body(path: str) -> bytes:
@@ -708,6 +844,22 @@ def build_parser() -> argparse.ArgumentParser:
         description="Customer-local AgentWars runner pairing and signed requests.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
+    provider = commands.add_parser(
+        "provider", help="inspect customer-owned provider routes without connecting"
+    )
+    provider_commands = provider.add_subparsers(
+        dest="provider_command", required=True
+    )
+    provider_catalog = provider_commands.add_parser(
+        "catalog", help="list every known provider route and current availability"
+    )
+    provider_catalog.set_defaults(func=cmd_provider_catalog)
+    provider_plan = provider_commands.add_parser(
+        "connect-plan", help="show the current local setup or disabled state"
+    )
+    provider_plan.add_argument("provider", choices=PROVIDER_IDS)
+    provider_plan.set_defaults(func=cmd_provider_connect_plan)
+
     runner = commands.add_parser(
         "runner", help="manage one customer-local signing runner"
     )
@@ -826,6 +978,29 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         required=True,
         help="accept that provider calls consume customer-owned quota or may incur charges",
+    )
+    run_prepared.add_argument(
+        "--openrouter-pkce-v1",
+        action="store_true",
+        help=(
+            "when the plan uses OpenRouter and no environment key exists, authorize "
+            "one customer-owned key for one-match local use via a loopback browser callback"
+        ),
+    )
+    run_prepared.add_argument(
+        "--openrouter-provider-key-persists-v1",
+        action="store_true",
+        help=(
+            "acknowledge that ending local key custody does not revoke the "
+            "provider-side OpenRouter key; review or revoke it in the dashboard"
+        ),
+    )
+    run_prepared.add_argument(
+        "--openrouter-auth-timeout",
+        type=_bounded_authorization_timeout,
+        default=180,
+        metavar="SECONDS",
+        help="bounded loopback authorization wait (10-600 seconds; default 180)",
     )
     run_prepared.set_defaults(func=cmd_runner_run_prepared_match)
 

@@ -25,11 +25,14 @@ import json
 import os
 import operator
 import re
+import socket
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
+import urllib.request
 from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1042,6 +1045,92 @@ def check_pkce():
         ).encode()
         require(pkce_mod.parse_exchange_response(response).reveal() == exchanged_key,
                 "documented optional user_id accepted without exposing the key")
+
+    # Complete loopback orchestration stays local and survives irrelevant or
+    # malformed browser requests before accepting the exact callback.
+    loopback_threads = []
+    announced = []
+    loopback_exchange = {}
+
+    def loopback_transport(request):
+        payload = json.loads(request.data)
+        loopback_exchange.update(payload)
+        require(payload["code"] == good_code, "loopback forwards the exact wrapped code")
+        callback = urllib.parse.urlsplit(
+            urllib.parse.parse_qs(
+                urllib.parse.urlsplit(announced[0]).query
+            )["callback_url"][0]
+        )
+        try:
+            lingering = socket.create_connection(
+                (callback.hostname, callback.port), timeout=0.25
+            )
+        except OSError:
+            pass
+        else:
+            lingering.close()
+            raise AssertionError("loopback listener remained open during key exchange")
+        return 200, json.dumps({"key": exchanged_key}).encode()
+
+    def browser_opener(authorize_url):
+        announced.append(authorize_url)
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(authorize_url).query)
+        callback_url = query["callback_url"][0]
+
+        def redirect_sequence():
+            origin = urllib.parse.urlsplit(callback_url)
+            base = f"{origin.scheme}://{origin.netloc}"
+            for target, expected_status in (
+                (base + "/favicon.ico", 404),
+                (callback_url + "?code=short", 400),
+            ):
+                try:
+                    urllib.request.urlopen(target, timeout=5)
+                except urllib.error.HTTPError as error:
+                    require(error.code == expected_status, "hostile loopback request rejected")
+                else:
+                    raise AssertionError("hostile loopback request was accepted")
+            with urllib.request.urlopen(
+                callback_url + "?code=" + urllib.parse.quote(good_code, safe=""),
+                timeout=5,
+            ) as response:
+                require(response.status == 200, "exact loopback callback accepted")
+                require(good_code.encode() not in response.read(), "callback page never echoes code")
+
+        thread = threading.Thread(target=redirect_sequence, daemon=False)
+        loopback_threads.append(thread)
+        thread.start()
+        return True
+
+    loopback_key = pkce_mod.authorize_openrouter_loopback(
+        timeout_seconds=10,
+        transport=loopback_transport,
+        browser_opener=browser_opener,
+        announce=lambda url: require(url.startswith(pkce_mod.AUTHORIZE_ENDPOINT + "?"),
+                                     "announced authorization URL is pinned"),
+    )
+    for thread in loopback_threads:
+        thread.join(timeout=5)
+        require(not thread.is_alive(), "loopback callback client exits")
+    require(loopback_key.reveal() == exchanged_key, "loopback returns one wrapped key")
+    require(len(announced) == 1, "loopback starts exactly one browser approval")
+    require(set(loopback_exchange) == {
+        "code", "code_verifier", "code_challenge_method"
+    }, "loopback exchange invents no provider fields")
+    expect_error(
+        lambda: pkce_mod.authorize_openrouter_loopback(timeout_seconds=9),
+        pkce_mod.PkceError,
+        "10 to 600",
+    )
+    browser_error = expect_error(
+        lambda: pkce_mod.authorize_openrouter_loopback(
+            timeout_seconds=10,
+            browser_opener=lambda _url: (_ for _ in ()).throw(RuntimeError(good_code)),
+        ),
+        pkce_mod.PkceError,
+        "RuntimeError",
+    )
+    require(good_code not in str(browser_error), "browser failure cannot reflect a secret")
 
     def failing_transport(request, timeout_s=30):
         raise urllib.error.HTTPError(request.full_url, 429, "slow down", hdrs=None, fp=io.BytesIO(b""))

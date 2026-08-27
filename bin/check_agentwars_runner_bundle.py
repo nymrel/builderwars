@@ -256,6 +256,30 @@ def main() -> int:
 
         help_result = run_isolated(["bin/agentwars.py", "runner", "--help"], bundle_root)
         check(help_result.returncode == 0 and "prepare-match" in help_result.stdout and "submit-match" in help_result.stdout, "bundled runner exposes the complete beta command surface")
+        run_help = run_isolated(["bin/agentwars.py", "runner", "run-prepared-match", "--help"], bundle_root)
+        check(
+            run_help.returncode == 0
+            and "--openrouter-pkce-v1" in run_help.stdout
+            and "--openrouter-provider-key-persists-v1" in run_help.stdout
+            and "--provider-usage-v1" in run_help.stdout,
+            "bundled prepared runner exposes provider-use, PKCE, and key-lifetime intents",
+        )
+        provider_help = run_isolated(["bin/agentwars.py", "provider", "--help"], bundle_root)
+        check(provider_help.returncode == 0 and "catalog" in provider_help.stdout and "connect-plan" in provider_help.stdout, "bundled runner exposes read-only provider discovery")
+        provider_catalog = run_isolated(["bin/agentwars.py", "provider", "catalog"], bundle_root)
+        check(
+            provider_catalog.returncode == 0
+            and all(provider in provider_catalog.stdout for provider in ("chatgpt_codex", "claude_code", "opencode", "openrouter", "hermes", "custom_agent"))
+            and "No account or credential was read" in provider_catalog.stdout,
+            "bundled provider catalog lists executable and disabled routes without probing",
+        )
+        openrouter_plan = run_isolated(["bin/agentwars.py", "provider", "connect-plan", "openrouter"], bundle_root)
+        check(
+            openrouter_plan.returncode == 0
+            and "OPENROUTER_API_KEY" in openrouter_plan.stdout
+            and "No login, browser, network request" in openrouter_plan.stdout,
+            "bundled OpenRouter plan is actionable and read-only",
+        )
         pair_help = run_isolated(["bin/agentwars.py", "runner", "pair", "--help"], bundle_root)
         check(pair_help.returncode == 0 and "claude_code" not in pair_help.stdout and all(provider in pair_help.stdout for provider in EXECUTABLE_PROVIDER_IDS), "bundled pairing help exposes only executable provider ids")
         public_fixture = ROOT / "matches" / "agentwars-fantasy" / "fantasy_redraft" / "9600-0" / "8d161a470a12b0c3.jsonl"
