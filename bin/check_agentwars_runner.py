@@ -419,32 +419,32 @@ def check_state_and_roundtrip():
             "harness_version": "1.0.0",
             "harness_digest": harness_digest,
         }
-        expect_error(
-            lambda: claim_payload(
-                pairing_secret=PAIRING_SECRET,
-                provider_id="claude_code",
-                display_label="Disabled Claude Runner",
-                harness_id="agentwars-cli",
-                harness_version="1.0.0",
-                harness_digest=harness_digest,
-                public_key=public_key_material(Ed25519PrivateKey.generate()),
-            ),
-            RunnerClientError,
-            "disabled",
-        )
-        disabled_challenge = "E" * 22
-        expect_error(
-            lambda: store.prepare(
-                challenge_id=disabled_challenge,
-                passphrase=PASSPHRASE,
-                **{**candidate, "provider_id": "claude_code"},
-            ),
-            RunnerStateError,
-            "disabled",
+        claude_claim = claim_payload(
+            pairing_secret=PAIRING_SECRET,
+            provider_id="claude_code",
+            display_label="Local Claude Runner",
+            harness_id="agentwars-cli",
+            harness_version="1.0.0",
+            harness_digest=harness_digest,
+            public_key=public_key_material(Ed25519PrivateKey.generate()).public_key,
         )
         check(
-            not any(disabled_challenge in str(path) for path in state_dir.rglob("*")),
-            "disabled provider creates no key or profile path",
+            claude_claim["providerId"] == "claude_code"
+            and claude_claim["connectionMode"] == "local_native_client_session",
+            "claim payload accepts local Claude Code with catalog-bound mode",
+        )
+        claude_challenge = "E" * 22
+        claude_store = RunnerStateStore(pathlib.Path(temporary) / "claude-state")
+        claude_profile, _claude_key, claude_created = claude_store.prepare(
+            challenge_id=claude_challenge,
+            passphrase=PASSPHRASE,
+            **{**candidate, "provider_id": "claude_code"},
+        )
+        check(
+            claude_created
+            and claude_profile["providerId"] == "claude_code"
+            and claude_profile["connectionMode"] == "local_native_client_session",
+            "runner state prepares a separate encrypted local Claude profile",
         )
         profile, key, created = store.prepare(
             challenge_id=CHALLENGE_ID,
@@ -865,16 +865,7 @@ def check_claim_response_and_cli_argv():
             os.path.join(ROOT, "bin", "agentwars.py"),
             "runner",
             "pair",
-            "--provider",
-            "claude_code",
-            "--display-label",
-            "Disabled Claude Runner",
-            "--harness-id",
-            "agentwars-cli",
-            "--harness-version",
-            "1.0.0",
-            "--harness-file",
-            os.path.join(ROOT, "entrants", "fantasy_model_harness.py"),
+            "--help",
         ],
         cwd=ROOT,
         stdout=subprocess.PIPE,
@@ -883,8 +874,9 @@ def check_claim_response_and_cli_argv():
         timeout=10,
         check=False,
     )
-    check(process.returncode == 2, "pair CLI refuses disabled claude_code")
-    check("claude_code" in process.stderr, "pair CLI explains the disabled selection")
+    check(process.returncode == 0, "pair CLI help is readable without account use")
+    check("claude_code" in process.stdout,
+          "pair CLI exposes customer-local Claude Code")
 
     process = subprocess.run(
         [

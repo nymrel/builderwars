@@ -4,9 +4,10 @@ Status: local candidate on `codex/agentwars-launch-integration-20260825`;
 not independently accepted, integrated into canonical main, deployed, or
 tested against a live customer account.
 
-Parent source tip: `72c661f02facb0f9481f87d7c7fdecb807342eb2`.
+Implementation base: `a99393c461c02794f2ed3b2ffe5523aac418590e`;
+the exact candidate commit is recorded only after validation and commit.
 
-Evidence date: 2026-08-26.
+Evidence date: 2026-08-27.
 
 ## Purpose
 
@@ -21,16 +22,15 @@ lower-level `connection_transport`:
 | provider id | connection mode | current boundary |
 |---|---|---|
 | `chatgpt_codex` | `local_subscription_session` | customer-local official Codex client |
-| `claude_code` | `unsupported` | catalog-visible disabled route; rejected before execution |
+| `claude_code` | `local_native_client_session` | customer-local unmodified official Claude Code binary; all built-in auth methods remain available and the customer verifies the selected route locally |
 | `opencode` | `local_provider_session` | customer-local route-dependent harness |
 | `openrouter` | `web_oauth_pkce` | browser approval and exchange inside the customer runner |
 | `hermes` | `local_provider_session` | customer-local route-dependent harness |
 | `custom_agent` | `local_runtime` | customer-local command, public/shared execution disabled |
 
 `local_api_key` and `unsupported` remain reserved closed vocabulary values. No
-provider id selects `local_api_key`; `claude_code` deliberately selects
-`unsupported` so a public surface can explain the unavailable route without
-making it executable.
+current provider id selects either value; a future policy hold can use
+`unsupported` only together with disabled execution.
 
 ## Versioned contract
 
@@ -57,10 +57,13 @@ future schema and review. It cannot be introduced by loosening v2.
   separately documents that general API service is billed independently from
   ChatGPT, and documents `codex exec`, the SDK, and app-server as supported
   product-building surfaces.
-- Anthropic documents Claude Code login for its first-party product, but its
-  current legal and Agent SDK guidance says third-party products may not offer
-  Claude.ai login or route Free, Pro, or Max credentials without approval. The
-  direct `claude_code` subscription route is therefore disabled here.
+- Anthropic's current legal documentation permits products to run an
+  unmodified Claude Code binary under its Commercial Terms when each user
+  authenticates with their own supported credential and is billed directly.
+  It separately forbids third-party login, credential/session intermediation,
+  hosted request routing, and resale. This candidate implements only the
+  customer-local unmodified binary route and keeps public enablement gated on
+  the applicable terms and branding requirements.
 - OpenRouter documents a third-party OAuth flow using PKCE S256 that returns a
   user-controlled key.
 - OpenCode and Hermes remain route-dependent local harnesses; their labels do
@@ -95,15 +98,16 @@ Receipts:
 
 `python bin/check_provider_hub.py` passes all ten sections, including the full
 existing regression ladder. `python bin/check_cross_provider_match.py` passes
-287 checks, `python bin/check_agentwars_runner.py` passes 159 checks, and the
-competition evidence/source/prepared suites pass 84, 54, and 86 checks. New
+303 checks, `python bin/check_agentwars_runner.py` passes 158 checks, and the
+competition evidence/source/prepared suites pass 85, 54, and 118 checks. New
 hostile checks cover every provider's v2 mode, cross-provider mode swaps,
 reserved modes, hosted execution, escrow custody, truthy attestation flags,
-string booleans, unknown keys, v1/v2 downgrade confusion, and direct rejection
-of the disabled Claude route at connection, pairing, planning, execution, and
-evidence boundaries. The offline promotion-candidate checker passes 36 checks
-with one Windows-host symlink capability skip, and the master ladder compiles 31
-policy-relevant files. All are offline; they perform no provider login or call.
+string booleans, unknown keys, v1/v2 downgrade confusion, the exact constrained
+Claude argv/environment, and rejection of public arbitrary command routes. The
+offline promotion-candidate checker passes 36 checks
+with one Windows-host symlink capability skip, and the master ladder compiles
+42 claimed files. All checks are offline; they perform no provider login or
+call.
 
 `python bin/buildwars_provider.py catalog --json` exposes the connection mode
 without logging in, opening a browser, reading credentials, or contacting a

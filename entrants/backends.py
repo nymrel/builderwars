@@ -23,10 +23,13 @@ Three legacy backends (unchanged specs):
 
 Provider-backed adapters (BuildWars provider hub) build one adapter per catalog
 provider on the same rule — the entrants' own machine, the entrants' own
-account — with hardened child environments: common API-key environment
-variables are removed from subscription-intent children to reduce accidental
-API billing, raw child stderr and response bodies never enter raised errors, and
-redirects are refused so authorization cannot be forwarded off-origin.
+account. Most use hardened closed child environments that remove ambient API
+keys. Claude Code is the deliberate exception: Anthropic's current product
+conditions require every built-in authentication method to remain available,
+so its unmodified binary inherits the customer's environment without this code
+enumerating credential values. Raw child stderr and response bodies never
+enter raised errors, and redirects are refused so authorization cannot be
+forwarded off-origin.
 ``get_provider_backend`` maps a catalog id to one of them. None of them ever
 receive a credential from BuildWars; every one reads its auth state from the
 local machine it runs on.
@@ -44,11 +47,12 @@ Runtime intent capability (fail closed):
   grant no sandboxing. Machine policy twin:
   docs/AGENTWARS_PROVIDER_POLICY.v2.json.
 
-Child environments are built from a fixed allowlist of OS/runtime path and
-locale variables — never ``dict(os.environ)``. Host API keys, tokens, cloud
-credentials, proxy credentials, and arbitrary host variables cannot reach a
-provider child. Process-local extra variables are restricted to the exact
-OpenCode containment keys and validated before use.
+Except for the Claude Code contract described above, child environments are
+built from a fixed allowlist of OS/runtime path and locale variables — never
+``dict(os.environ)``. Host API keys, tokens, cloud credentials, proxy
+credentials, and arbitrary host variables cannot reach those provider
+children. Process-local extra variables are restricted to the exact OpenCode
+containment keys and validated before use.
 
 `stub` is probed by the reference matches. `cli`, `api`, `opencode` are
 implemented and UNMEASURED here — no key was used and no spend was incurred
@@ -618,33 +622,42 @@ def _build_child_env(extra_env=None):
 
 
 def _run_provider_child(argv, *, label, timeout_s, input_text=None,
-                        extra_env=None, ephemeral_cwd=True):
-    """Run one provider child in an ephemeral cwd with an allowlisted environment.
+                        extra_env=None, ephemeral_cwd=True,
+                        inherit_parent_env=False):
+    """Run one provider child in an ephemeral cwd with an explicit env policy.
 
-    The child sees only ``CHILD_ENV_ALLOWLIST`` variables plus validated
-    process-local extras, gets stdin only when a prompt is supplied (otherwise
-    /dev/null), and its raw stderr is NEVER copied into a raised error — only
-    the exit code travels.
+    The normal child sees only ``CHILD_ENV_ALLOWLIST`` variables plus validated
+    process-local extras. The exact ``inherit_parent_env=True`` exception omits
+    the ``env`` argument entirely so the OS gives an unmodified native client
+    every customer-configured authentication method without this code
+    enumerating values; it cannot be combined with extra env. Every child gets
+    stdin only when a prompt is supplied (otherwise /dev/null), and raw stderr
+    is NEVER copied into a raised error — only the exit code travels.
     """
+    if type(inherit_parent_env) is not bool:
+        raise TypeError("parent environment inheritance must be boolean")
+    if inherit_parent_env and extra_env is not None:
+        raise ValueError("inherited parent environment cannot accept extra env")
     if input_text is not None:
         input_text = _prompt_text(input_text)
-    env = _build_child_env(extra_env)
+    env = None if inherit_parent_env else _build_child_env(extra_env)
     temporary = (
         tempfile.TemporaryDirectory(prefix="agentwars-provider-")
         if ephemeral_cwd else None
     )
     workdir = temporary.name if temporary is not None else None
     try:
-        proc = subprocess.run(
-            argv,
-            input=input_text.encode("utf-8") if input_text is not None else None,
-            stdin=subprocess.DEVNULL if input_text is None else None,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout_s,
-            cwd=workdir,
-            env=env,
-        )
+        run_options = {
+            "input": input_text.encode("utf-8") if input_text is not None else None,
+            "stdin": subprocess.DEVNULL if input_text is None else None,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "timeout": timeout_s,
+            "cwd": workdir,
+        }
+        if env is not None:
+            run_options["env"] = env
+        proc = subprocess.run(argv, **run_options)
     finally:
         if temporary is not None:
             temporary.cleanup()
@@ -703,21 +716,25 @@ class CodexExecBackend(Backend):
 
 
 class ClaudePrintBackend(Backend):
-    """Quarantined Claude subscription adapter retained for future review.
+    """Claude Code through the customer's unmodified local official binary.
 
-    Current Anthropic policy requires third-party products to use API-key
-    authentication unless previously approved. Construction therefore fails
-    before executable resolution or subprocess work. The old argv remains
-    visible only so a future sanctioned integration can be reviewed as a diff;
-    it is not an executable BuildWars route.
+    UNMEASURED contract. Authentication stays inside Claude Code's native
+    customer-owned flow; this adapter never reads, stores, or intermediates a
+    credential or session token. Anthropic requires built-in authentication
+    methods to remain available, so the process inherits the customer's
+    environment without this code enumerating its values. Print mode is
+    constrained to one turn with no browser, slash commands, session
+    persistence, MCP servers, or tools. BuildWars still cannot attest the auth
+    method, account, entitlement, billing route, model, or execution identity.
     """
 
     kind = "claude_print"
 
     def __init__(self, timeout_s=300, executable="claude", *, runtime_intent=None):
-        raise ValueError(
-            "claude_code subscription execution is disabled by current provider policy"
-        )
+        _require_runtime_intent(runtime_intent, "claude_code provider adapter")
+        self.executable = _argv_token(executable, "claude executable", 120)
+        self.timeout_s = _provider_timeout(timeout_s)
+        self.label = "claude_code:claude -p"
 
     def argv(self):
         return [
@@ -730,8 +747,12 @@ class ClaudePrintBackend(Backend):
             "--strict-mcp-config",
             "--no-session-persistence",
             "--safe-mode",
+            "--no-chrome",
+            "--disable-slash-commands",
             "--tools",
             "",
+            "--disallowedTools",
+            "mcp__*",
         ]
 
     def complete(self, prompt: str) -> str:
@@ -741,6 +762,7 @@ class ClaudePrintBackend(Backend):
             label=self.label,
             timeout_s=self.timeout_s,
             input_text=prompt,
+            inherit_parent_env=True,
         ).strip()
         if not out:
             raise RuntimeError(f"{self.label} returned no output")

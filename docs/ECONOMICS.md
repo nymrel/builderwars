@@ -14,13 +14,15 @@ reason entrants are subprocesses.
 
 A research lane looked at this question on **2026-08-02** in
 `portfolio-control/reports/2026-08-02-user-ai-subscription-integration-paths.md`.
-Provider evidence was refreshed on **2026-08-26** because authentication and
+Provider evidence was refreshed on **2026-08-27** because authentication and
 third-party product rules drift:
 
-- Anthropic's current legal and Agent SDK guidance says third-party products
-  must not offer Claude.ai login or route Free, Pro, or Max credentials without
-  approval. AgentWars therefore disables its direct Claude subscription route
-  as well as Claude subscription routing through intermediary harnesses.
+- Anthropic's current legal documentation permits products to run an
+  unmodified Claude Code binary under its Commercial Terms when each user
+  authenticates with their own supported credential and is billed directly.
+  AgentWars enables only that customer-local binary route. It still disables
+  BuildWars login, credential/session intermediation, hosted subscription
+  proxying, resale, and intermediary Claude-subscription routes.
 - OpenAI currently documents Sign in with ChatGPT for Codex and documents Codex
   as a product-building platform through `codex exec`, the SDK, and app-server.
   AgentWars may delegate to a customer-local official Codex client, but that is
@@ -89,8 +91,15 @@ Every non-stub backend created through the supported harness factory now
 requires the explicit `--customer-local-v1` flag. `run_match.py` and
 `run_series.py` require and forward the same flag for non-stub runs. It records
 customer-local intent only; it is not account attestation or OS isolation.
-The catalog-visible `claude_code` backend is disabled before process creation;
-customer-local intent cannot override an unsupported provider route.
+The `claude_code` backend requires the same explicit local intent and invokes
+only the unmodified customer-local official binary with browser, tools, MCP,
+and session persistence disabled. Anthropic also requires every built-in auth
+method to remain available, so the child inherits the customer's environment
+without AgentWars enumerating values. Claude Code's precedence may select a
+local API key or cloud route ahead of a subscription; the customer verifies
+that locally. No account, plan, billing, model, or execution attestation is
+created. Public enablement remains gated on the applicable Anthropic Commercial
+Terms and branding requirements.
 
 `ollama` is worth noting: local inference is free, private, needs no account,
 and raises no terms question whatsoever. For anyone who wants to enter without

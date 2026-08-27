@@ -1,6 +1,6 @@
 {
   "schema_version": "agentwars.provider-policy.v2",
-  "evidence_date": "2026-08-26",
+  "evidence_date": "2026-08-27",
   "status": "candidate_not_integrated_or_deployed",
   "credential_custody": "customer_only",
   "runtime": {
@@ -8,7 +8,7 @@
     "custom_command_second_intent": "unsafe_custom_command",
     "intent_is_os_isolation": false,
     "hosted_arbitrary_execution": "disabled",
-    "child_environment": "closed_allowlist"
+    "child_environment": "closed_allowlist_except_claude_native_inheritance"
   },
   "provider_link_v2": {
     "schema": "buildwars.provider_link.v2",
@@ -35,7 +35,7 @@
         "codex_credential_store_copy",
         "hosted_subscription_proxy"
       ],
-      "evidence_date": "2026-08-26",
+      "evidence_date": "2026-08-27",
       "official_sources": [
         "https://learn.chatgpt.com/docs/auth",
         "https://developers.openai.com/blog/codex-as-a-platform",
@@ -44,26 +44,28 @@
     },
     {
       "id": "claude_code",
-      "connection_mode": "unsupported",
+      "connection_mode": "local_native_client_session",
       "provider_class": "official_local_client_delegation",
       "harness_class": "official_first_party_cli",
-      "local_execution": false,
+      "local_execution": true,
       "hosted_route_status": "not_offered",
       "credential_custody": "customer_only",
       "prohibited_routes": [
+        "claude_code_binary_modification",
         "claude_code_credential_store_copy",
-        "third_party_claude_subscription_login",
-        "third_party_claude_subscription_request_routing",
+        "buildwars_claude_login_surface",
+        "hosted_claude_subscription_proxy",
+        "claude_credential_or_session_intermediation",
+        "claude_subscription_resale",
+        "claude_auth_method_restriction",
         "anthropic_subscription_via_opencode",
         "anthropic_subscription_via_hermes"
       ],
-      "evidence_date": "2026-08-26",
+      "evidence_date": "2026-08-27",
       "official_sources": [
         "https://code.claude.com/docs/en/authentication",
         "https://code.claude.com/docs/en/legal-and-compliance",
-        "https://code.claude.com/docs/en/agent-sdk/overview",
-        "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
-        "https://opencode.ai/docs/providers/"
+        "https://code.claude.com/docs/en/cli-reference"
       ]
     },
     {
@@ -78,7 +80,7 @@
         "anthropic_subscription_via_this_harness",
         "undocumented_route_attestation"
       ],
-      "evidence_date": "2026-08-26",
+      "evidence_date": "2026-08-27",
       "official_sources": [
         "https://opencode.ai/docs/providers/",
         "https://code.claude.com/docs/en/legal-and-compliance"
@@ -96,7 +98,7 @@
         "hosted_key_custody",
         "platform_key_escrow"
       ],
-      "evidence_date": "2026-08-26",
+      "evidence_date": "2026-08-27",
       "official_sources": [
         "https://openrouter.ai/docs/guides/overview/auth/oauth"
       ]
@@ -113,7 +115,7 @@
         "upstream_consumer_subscription_without_provider_authorization",
         "undocumented_route_attestation"
       ],
-      "evidence_date": "2026-08-26",
+      "evidence_date": "2026-08-27",
       "official_sources": [
         "https://hermes-agent.nousresearch.com/docs/integrations/providers",
         "https://hermes-agent.nousresearch.com/docs/integrations/nous-portal",
@@ -132,7 +134,7 @@
         "arena_1_jsonl_slot",
         "implicit_construction"
       ],
-      "evidence_date": "2026-08-26",
+      "evidence_date": "2026-08-27",
       "official_sources": []
     }
   ],

@@ -400,16 +400,16 @@ def check_legacy_and_hostile(root, runner_profile, passports, passport_paths):
         "backendClaim": "chatgpt_codex:codex exec",
     }
     expect_error(lambda: validate_ready(runner_profile, same_provider), "must differ")
-    disabled_provider = job_payload(harness_digest, passports)
-    disabled_provider["seats"][1].update(
+    arbitrary_provider = job_payload(harness_digest, passports)
+    arbitrary_provider["seats"][1].update(
         {
-            "providerClaim": "claude_code",
+            "providerClaim": "custom_agent",
             "selectedModelClaim": None,
             "variantClaim": None,
-            "backendClaim": "claude_code:claude -p",
+            "backendClaim": "custom_agent:customer command",
         }
     )
-    expect_error(lambda: validate_ready(runner_profile, disabled_provider), "unsupported")
+    expect_error(lambda: validate_ready(runner_profile, arbitrary_provider), "unsupported")
 
     busy = {
         **response_base(runner_profile, request_sha),

@@ -211,7 +211,7 @@ def main() -> int:
 
         manifest = json.loads((first / "bundle-manifest.json").read_text(encoding="utf-8"))
         check(tuple(sorted(manifest["files"])) == EXPECTED_BUNDLE_PATHS, "manifest pins the complete source allowlist")
-        check(tuple(manifest["executableProviderIds"]) == EXECUTABLE_PROVIDER_IDS and manifest["disabledProviderIds"] == ["claude_code"], "manifest keeps disabled Claude outside executable routes")
+        check(tuple(manifest["executableProviderIds"]) == EXECUTABLE_PROVIDER_IDS and manifest["disabledProviderIds"] == [], "manifest exposes local Claude Code with no currently disabled provider ids")
         check(manifest["truth"]["providerCredentialsBundled"] is False and manifest["truth"]["publicArbitraryExecutionEnabled"] is False, "manifest preserves credential and arbitrary-execution boundaries")
         check(
             manifest["dependencyPolicy"] == EXPECTED_DEPENDENCY_POLICY,
@@ -316,7 +316,7 @@ def main() -> int:
             provider_catalog.returncode == 0
             and all(provider in provider_catalog.stdout for provider in ("chatgpt_codex", "claude_code", "opencode", "openrouter", "hermes", "custom_agent"))
             and "No account or credential was read" in provider_catalog.stdout,
-            "bundled provider catalog lists executable and disabled routes without probing",
+            "bundled provider catalog lists every known route without probing",
         )
         openrouter_plan = run_isolated(["bin/agentwars.py", "provider", "connect-plan", "openrouter"], bundle_root)
         check(
@@ -326,7 +326,7 @@ def main() -> int:
             "bundled OpenRouter plan is actionable and read-only",
         )
         pair_help = run_isolated(["bin/agentwars.py", "runner", "pair", "--help"], bundle_root)
-        check(pair_help.returncode == 0 and "claude_code" not in pair_help.stdout and all(provider in pair_help.stdout for provider in EXECUTABLE_PROVIDER_IDS), "bundled pairing help exposes only executable provider ids")
+        check(pair_help.returncode == 0 and all(provider in pair_help.stdout for provider in EXECUTABLE_PROVIDER_IDS), "bundled pairing help exposes every executable provider id including Claude Code")
         passport_help = run_isolated(["bin/create_agent_passport.py", "--help"], bundle_root)
         check(
             passport_help.returncode == 0

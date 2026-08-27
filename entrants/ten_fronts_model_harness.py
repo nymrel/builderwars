@@ -28,6 +28,7 @@ STRATEGIES = ("value-blitz", "even-pressure")
 MAX_MODEL_OUTPUT_CHARS = 4096
 PROVIDER_CHOICES = (
     "chatgpt_codex",
+    "claude_code",
     "opencode",
     "openrouter",
     "hermes",

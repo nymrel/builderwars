@@ -239,8 +239,9 @@ def check_catalog():
         "custom_agent",
     ), "catalog must be exactly the six contracted providers")
     require(EXECUTABLE_PROVIDER_IDS == (
-        "chatgpt_codex", "opencode", "openrouter", "hermes", "custom_agent",
-    ), "executable provider subset is exact and excludes blocked Claude")
+        "chatgpt_codex", "claude_code", "opencode", "openrouter", "hermes",
+        "custom_agent",
+    ), "executable provider subset is exact and includes local Claude Code")
     listing = public_catalog()
     require([pid for pid, _ in listing] == list(PROVIDER_IDS), "canonical order")
 
@@ -258,6 +259,7 @@ def check_catalog():
     }
     require(CONNECTION_MODES == (
         "web_oauth_pkce", "local_subscription_session",
+        "local_native_client_session",
         "local_provider_session", "local_api_key", "local_runtime",
         "unsupported",
     ), "connection-mode vocabulary is exact and ordered")
@@ -270,15 +272,9 @@ def check_catalog():
         require(len(entry["status_plan"]) > 10, f"{pid}: status guidance required")
         require(isinstance(entry["model_required"], bool), f"{pid}: model_required")
         require(len(entry["limitations"]) >= 1, f"{pid}: limitations declared")
-        if pid == "claude_code":
-            require(entry["connection_mode"] == "unsupported",
-                    "Claude route stays visibly unsupported")
-            require(entry["local_execution"] is False,
-                    "Claude route disables execution")
-        else:
-            require(entry["connection_mode"] != "unsupported",
-                    f"{pid}: executable provider cannot select unsupported")
-            require(entry["local_execution"] is True, f"{pid}: local v1 only")
+        require(entry["connection_mode"] != "unsupported",
+                f"{pid}: executable provider cannot select unsupported")
+        require(entry["local_execution"] is True, f"{pid}: local v1 only")
         require(entry["evidence_date"] == PROVIDER_POLICY_EVIDENCE_DATE,
                 f"{pid}: evidence date")
         require(entry["hosted_route_status"] in {
@@ -294,10 +290,10 @@ def check_catalog():
     require(connection_mode_for("openrouter") == "web_oauth_pkce", "pkce mode")
     require(connection_mode_for("chatgpt_codex") == "local_subscription_session",
             "Codex subscription stays local")
-    require(connection_mode_for("claude_code") == "unsupported",
-            "Claude subscription route is disabled")
-    require(local_execution_available_for("claude_code") is False,
-            "Claude execution gate is closed")
+    require(connection_mode_for("claude_code") == "local_native_client_session",
+            "Claude native authentication stays available in the unmodified client")
+    require(local_execution_available_for("claude_code") is True,
+            "Claude local execution is catalog-enabled")
     require(connection_mode_for("opencode") == "local_provider_session",
             "OpenCode is a local provider session")
     require(connection_mode_for("hermes") == "local_provider_session",
@@ -308,7 +304,7 @@ def check_catalog():
         entry["connection_mode"] for _pid, entry in listing
     }, "reserved local_api_key cannot silently enable a provider")
     require({pid for pid, entry in listing if entry["connection_mode"] == "unsupported"}
-            == {"claude_code"}, "only the fail-closed Claude route is unsupported")
+            == set(), "no current provider selects the fail-closed unsupported state")
     raw_entry = copy.deepcopy(catalog_mod._CATALOG["openrouter"])
     raw_entry["connection_mode"] = "local_api_key"
     expect_error(lambda: catalog_mod._freeze(raw_entry), RuntimeError, "local_api_key")
@@ -384,7 +380,7 @@ def check_catalog():
         "custom_command_second_intent": "unsafe_custom_command",
         "intent_is_os_isolation": False,
         "hosted_arbitrary_execution": "disabled",
-        "child_environment": "closed_allowlist",
+        "child_environment": "closed_allowlist_except_claude_native_inheritance",
     }, "runtime policy exact")
     require(policy["provider_link_v2"] == {
         "schema": "buildwars.provider_link.v2",
@@ -541,8 +537,14 @@ def check_schemas():
 
     # provider_link specifics
     expect_error(lambda: validate_envelope(link_payload(provider="not_real")), SchemaError)
-    expect_error(lambda: validate_envelope(link_payload(provider="claude_code")),
-                 SchemaError, "unsupported")
+    claude_v1 = validate_envelope(link_payload(
+        provider="claude_code",
+        connection_transport="local_cli_subprocess",
+        model_required=False,
+        model_declared=None,
+    ))
+    require(claude_v1["provider"] == "claude_code",
+            "v1 link accepts customer-local Claude Code without attestation")
     expect_error(lambda: validate_envelope(
         link_payload(credential_custody="platform_escrow")), SchemaError, "custody")
     expect_error(lambda: validate_envelope(
@@ -631,8 +633,9 @@ def check_schemas():
                  SchemaError, "exactly false")
     expect_error(lambda: validate_envelope(capabilities_payload(providers=[])), SchemaError)
     expect_error(lambda: validate_envelope(capabilities_payload(providers=["nope"])), SchemaError)
-    expect_error(lambda: validate_envelope(capabilities_payload(providers=["claude_code"])),
-                 SchemaError)
+    require(validate_envelope(capabilities_payload(providers=["claude_code"]))[
+        "providers"
+    ] == ["claude_code"], "runner capabilities may declare local Claude Code")
     expect_error(lambda: validate_envelope(
         capabilities_payload(providers=["openrouter", "chatgpt_codex"])), SchemaError, "sorted")
     expect_error(lambda: validate_envelope(capabilities_payload(protocol="arena/2")),
@@ -1242,6 +1245,14 @@ def check_adapters():
             "customer_local_v1",
         )
         require(not which.called, "missing or forged intent fails before resolution")
+    with mock.patch("entrants.backends.shutil.which") as which:
+        expect_error(
+            lambda: backends.ClaudePrintBackend(60),
+            RuntimeError,
+            "customer_local_v1",
+        )
+        require(not which.called,
+                "Claude missing intent fails before executable resolution")
     expect_error(
         lambda: backends.get_provider_backend(
             "custom_agent",
@@ -1347,17 +1358,85 @@ def check_adapters():
     require("exited 2" in str(err) and "sk-" + "proj" not in str(err),
             "failure surfaces only the exit code")
 
-    # --- claude subscription route is policy-disabled before resolution ---
+    # --- unmodified customer-local Claude Code; no login or credential custody ---
     cap = _RunCapture(stdout=b"move\n")
-    with mock.patch("entrants.backends.shutil.which") as which, \
+    hostile_claude_env = {
+        "HOME": r"C:\customer-home",
+        "PATH": r"C:\safe-bin",
+        "CLAUDE_CONFIG_DIR": r"C:\customer-home\.claude",
+        "ANTHROPIC_API_KEY": "must-strip",
+        "ANTHROPIC_AUTH_TOKEN": "must-strip",
+        "CLAUDE_CODE_OAUTH_TOKEN": "must-strip",
+        "AWS_ACCESS_KEY_ID": "must-strip",
+        "AWS_SECRET_ACCESS_KEY": "must-strip",
+        "GOOGLE_APPLICATION_CREDENTIALS": "must-strip",
+    }
+    with mock.patch.dict(os.environ, hostile_claude_env, clear=True), \
+            mock.patch("entrants.backends.shutil.which", return_value="/fake/claude"), \
+            mock.patch("entrants.backends._build_child_env",
+                       side_effect=AssertionError("Claude env must not be enumerated")), \
             mock.patch("entrants.backends.subprocess.run", cap):
-        expect_error(
-            lambda: backends.ClaudePrintBackend(60, runtime_intent=runtime_intent),
-            ValueError,
-            "disabled",
+        out = backends.ClaudePrintBackend(
+            60, runtime_intent=runtime_intent
+        ).complete("choose one")
+    require(out == "move", "Claude stdout passthrough")
+    argv, kwargs = cap.calls[0]
+    require(argv == [
+        "/fake/claude", "-p", "--output-format", "text", "--max-turns", "1",
+        "--strict-mcp-config", "--no-session-persistence", "--safe-mode",
+        "--no-chrome", "--disable-slash-commands", "--tools", "",
+        "--disallowedTools", "mcp__*",
+    ], "Claude argv is exact and tool/browser/session constrained")
+    require(kwargs.get("cwd") and not os.path.exists(kwargs["cwd"]),
+            "Claude receives an ephemeral cwd that is removed")
+    require(kwargs.get("input") == b"choose one",
+            "Claude prompt travels on stdin")
+    require("env" not in kwargs,
+            "Claude inherits every native auth method without value enumeration")
+    expect_error(
+        lambda: backends._run_provider_child(
+            ["never"], label="test", timeout_s=1,
+            inherit_parent_env=True, extra_env={"OPENCODE_PURE": "1"}
+        ),
+        ValueError,
+        "cannot accept extra env",
+    )
+    require(backends.ClaudePrintBackend(
+        60, runtime_intent=runtime_intent
+    ).label == "claude_code:claude -p", "Claude label is exact")
+    fail_cap = _RunCapture(
+        returncode=7, stderr=b"session-token-must-not-leak"
+    )
+    with mock.patch("entrants.backends.shutil.which", return_value="/fake/claude"), \
+            mock.patch("entrants.backends.subprocess.run", fail_cap):
+        err = expect_error(
+            lambda: backends.ClaudePrintBackend(
+                60, runtime_intent=runtime_intent
+            ).complete("p"),
+            RuntimeError,
         )
-    require(which.call_count == 0 and cap.calls == [],
-            "disabled Claude route performs no executable or subprocess work")
+    require("exited 7" in str(err) and "session-token" not in str(err),
+            "Claude failure withholds raw stderr")
+    empty_cap = _RunCapture(stdout=b"  \n")
+    with mock.patch("entrants.backends.shutil.which", return_value="/fake/claude"), \
+            mock.patch("entrants.backends.subprocess.run", empty_cap):
+        expect_error(
+            lambda: backends.ClaudePrintBackend(
+                60, runtime_intent=runtime_intent
+            ).complete("p"),
+            RuntimeError,
+            "no output",
+        )
+    oversized_cap = _RunCapture(stdout=b"x" * (backends.MAX_CHILD_OUTPUT_BYTES + 1))
+    with mock.patch("entrants.backends.shutil.which", return_value="/fake/claude"), \
+            mock.patch("entrants.backends.subprocess.run", oversized_cap):
+        expect_error(
+            lambda: backends.ClaudePrintBackend(
+                60, runtime_intent=runtime_intent
+            ).complete("p"),
+            RuntimeError,
+            "size cap",
+        )
 
     # --- legacy opencode remains byte-compatible when --provider is omitted ---
     expect_error(lambda: backends.OpenCodeBackend("has space"), ValueError)
@@ -1566,6 +1645,7 @@ def check_adapters():
     # --- resolution table ---
     for pid, cls in (
         ("chatgpt_codex", backends.CodexExecBackend),
+        ("claude_code", backends.ClaudePrintBackend),
         ("opencode", backends.OpenCodeProviderBackend),
         ("openrouter", backends.OpenRouterChatBackend),
         ("hermes", backends.HermesOneshotBackend),
@@ -1576,10 +1656,8 @@ def check_adapters():
                 f"{pid} resolves to its catalog-declared adapter kind")
     require(backends.execution_claim_for_provider("chatgpt_codex") == "model",
             "provider adapters claim model execution")
-    expect_error(lambda: backends.get_provider_backend(
-        "claude_code", runtime_intent=runtime_intent), ValueError, "disabled")
-    expect_error(lambda: backends.execution_claim_for_provider("claude_code"),
-                 ValueError, "disabled")
+    require(backends.execution_claim_for_provider("claude_code") == "model",
+            "Claude adapter is a model claim and remains unattested")
     expect_error(lambda: backends.get_provider_backend(
         "totally_unknown", runtime_intent=runtime_intent), ProviderError)
     expect_error(lambda: backends.get_provider_backend(

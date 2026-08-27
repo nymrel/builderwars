@@ -26,6 +26,7 @@ STRATEGIES = ("win-now", "long-game")
 MAX_MODEL_OUTPUT_CHARS = 32768
 PROVIDER_CHOICES = (
     "chatgpt_codex",
+    "claude_code",
     "opencode",
     "openrouter",
     "hermes",

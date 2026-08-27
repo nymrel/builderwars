@@ -749,6 +749,8 @@ def _expected_backend_claim(
 
     if provider == "chatgpt_codex":
         return "chatgpt_codex:codex exec"
+    if provider == "claude_code":
+        return "claude_code:claude -p"
     if provider == "opencode":
         provider_name, separator, model_name = model.partition("/")
         if (

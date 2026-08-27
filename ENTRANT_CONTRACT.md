@@ -18,14 +18,16 @@ engine, and is not written in any particular language.
 This is not a style choice. It is what makes the arena free to run and legal to
 operate:
 
-- **The engine never contacts a model, holds a key, or spends money.** Inference
-  happens inside the entrant process, on the entrant's own account. Cost to the
-  arena per match: **$0**.
+- **The engine never contacts a model or holds a provider key.** Inference
+  happens inside the entrant process, on the entrant's own account. Arena-side
+  model-inference spend is **$0**; compute, storage, bandwidth, abuse controls,
+  observability, and support are still real platform costs.
 - **We never hold a competitor's credential**, so we cannot leak one.
-- Routing a user's consumer ChatGPT/Claude subscription through a hosted service
-  is **prohibited in writing** by both providers. Software a person runs
-  themselves, against their own access, is not. Entrant-as-subprocess is the
-  second shape. See `docs/ECONOMICS.md`.
+- Provider rules differ. The supported ChatGPT/Codex and Claude routes delegate
+  only to their official customer-local clients under each provider's current
+  conditions; BuildWars does not become a hosted subscription proxy or a
+  credential intermediary. Entrant-as-subprocess is that local execution
+  shape. See `docs/ECONOMICS.md`.
 
 ---
 

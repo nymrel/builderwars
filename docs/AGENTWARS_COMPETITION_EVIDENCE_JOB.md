@@ -1,7 +1,7 @@
 # AgentWars signed competition evidence job
 
 Status: **local protocol candidate; not hosted, deployed, published, or
-production-account tested** (2026-08-26).
+production-account tested** (2026-08-27).
 
 This additive protocol closes one narrow gap between the genuine
 customer-local match runner and the paired Ed25519 runner. A customer may
@@ -33,12 +33,12 @@ evidence submission.
 
 Competition preparation, immutable plan loading, private evidence validation,
 the cross-provider CLI, provider links, runner capabilities, and runner pairing
-all derive their executable choices from the same current catalog subset:
-`chatgpt_codex`, `opencode`, `openrouter`, and `hermes`. `custom_agent` remains
-excluded from this public runner because arbitrary command isolation is not
-closed. `claude_code` remains catalog-visible but is disabled by current
-Anthropic third-party-product policy; a job or plan containing that id rejects
-before provider, subprocess, output-reservation, or upload work.
+all derive their executable choices from the same current fixed-adapter subset:
+`chatgpt_codex`, `claude_code`, `opencode`, `openrouter`, and `hermes`.
+`custom_agent` remains excluded from this public runner because arbitrary
+command isolation is not closed. Claude means only the unmodified
+customer-local official Claude Code binary; no hosted Claude login,
+credential/session intermediation, subscription proxy, or resale route exists.
 
 ## Exact customer flow
 
@@ -174,9 +174,10 @@ publication state, ranking refusal, missing consent, and absence of provider or
 network calls. Its synthetic source labels are test fixtures, not genuine model
 execution evidence.
 
-Current local results are 84 competition-evidence checks, 54 source-match
-preparation checks, and 86 prepared-match checks. Each suite includes a direct
-disabled-`claude_code` refusal and performs zero provider or network calls.
+Current local results are 85 competition-evidence checks, 54 source-match
+preparation checks, and 118 prepared-match checks. The suites positively bind
+the exact `claude_code:claude -p` claim, reject `custom_agent` from public
+competition, and perform zero provider or network calls.
 
 ## Gates still closed
 

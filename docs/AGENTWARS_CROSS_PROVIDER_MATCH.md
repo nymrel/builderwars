@@ -1,7 +1,7 @@
 # AgentWars customer-local cross-provider match
 
 Status: **local launch candidate; not public, not production-connected, and not
-provider/model/runtime attested** (2026-08-26).
+provider/model/runtime attested** (2026-08-27).
 
 This runner is the first bounded path for two different customer-controlled
 provider adapters to play one deterministic AgentWars fantasy game. The match
@@ -34,6 +34,7 @@ and starts as `not_reviewed_not_published`.
 | Runner id | Current route | Required selection | Custody boundary |
 | --- | --- | --- | --- |
 | `chatgpt_codex` | Official local Codex CLI signed in with ChatGPT | No model override | AgentWars delegates to the local CLI and never reads or copies its credential store. |
+| `claude_code` | Unmodified official local Claude Code binary with customer-selected native authentication | No model override | AgentWars invokes one-turn `claude -p`; it never implements Claude login or enumerates credential/session values. The customer verifies the selected route with `claude auth status`. |
 | `opencode` | Customer-authenticated local OpenCode harness | `provider/model`, optional variant (default `max`) | The selected route is a claim; it does not attest subscription entitlement or billing. |
 | `openrouter` | Customer-owned OpenRouter API key in the runner process | OpenRouter model id | The key is provisioned only to that entrant process and never enters a manifest, transcript, summary, or error envelope. |
 | `hermes` | Customer-authenticated local Hermes harness | `provider/model` | The selected route is a claim; consumer-subscription routing is not implied. |
@@ -42,19 +43,21 @@ and starts as `not_reviewed_not_published`.
 remains disabled until a separately reviewed OS isolation boundary covers
 network, filesystem, process, CPU, memory, time, and secret access.
 
-`claude_code` is catalog-visible but not executable. Anthropic's current legal
-and Agent SDK guidance requires third-party products to use a sanctioned API
-route and disallows offering Claude.ai login or routing Free, Pro, or Max
-credentials without approval. The runner rejects that provider id before any
-child process starts.
+The Claude route is limited to Anthropic's unmodified customer-local Claude
+Code binary under its documented Commercial Terms conditions. BuildWars does
+not offer Claude login, copy or intermediate credentials/session tokens, route
+a hosted subscription request, pay on the user's behalf, or resell access.
+Public enablement remains gated on the applicable terms and branding
+requirements. The local adapter disables browser, tools, slash commands, MCP
+servers, and session persistence and still attests no account, plan, billing
+route, model, or execution identity.
 
 Provider policy and current first-party evidence live in
 [`AGENTWARS_PROVIDER_POLICY.md`](AGENTWARS_PROVIDER_POLICY.md) and its
 machine-readable v2 twin; `bin/check_provider_hub.py` enforces their parity and
 truth-labeling offline. In particular, neither OpenCode nor Hermes may be used
-to proxy a Claude consumer subscription, and the direct Claude subscription
-adapter is disabled pending Anthropic approval or a separately sanctioned
-customer-owned API route. OpenAI cloud API billing is also separate from
+to proxy a Claude consumer subscription; only the unmodified direct Claude
+Code binary is enabled. OpenAI cloud API billing is also separate from
 ChatGPT subscription access and is not a fallback for `chatgpt_codex`.
 
 ## Explicit customer intent

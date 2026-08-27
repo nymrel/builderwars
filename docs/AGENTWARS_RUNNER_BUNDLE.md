@@ -24,11 +24,11 @@ match, or authorize deployment.
 | Route | Bundle visibility | Execution boundary |
 |---|---|---|
 | ChatGPT/Codex | executable customer-local route | delegates to the customer's locally authenticated Codex client after explicit match consent |
+| Claude Code | executable customer-local route | delegates only to the customer's unmodified official Claude Code binary; AgentWars does not enumerate, log, serialize, or persist credential/session values, every built-in auth method remains available, and public enablement remains terms/branding-gated |
 | OpenCode | executable route-dependent harness | customer chooses the local route; the label does not attest provider, plan, model, or billing |
 | OpenRouter | executable customer-key route | customer may supply a local environment key or explicitly authorize one key for one fixed match's local execution through loopback PKCE; the provider-side key can outlive the process and usage may incur customer-owned API charges |
 | Hermes | executable route-dependent harness | customer config remains local; the label does not attest the upstream route |
 | Custom agent | executable customer-local escape hatch | two explicit intents; excluded from public cross-provider competition; no OS isolation is claimed |
-| Claude Code subscription | catalog-visible, disabled | no pairing, profile, backend, competition, or promotion execution until Anthropic approves the product pattern or a separate sanctioned API route is reviewed |
 
 Public/shared arbitrary command execution and hosted provider execution remain
 disabled. The local custom command escape hatch can reach what the customer's
@@ -167,9 +167,10 @@ macOS or Linux:
 ./.venv/bin/python -B bin/agentwars.py provider connect-plan openrouter
 ```
 
-The catalog keeps known-but-disabled routes visible. In particular,
-`claude_code` remains disabled; provider discovery cannot activate it or turn a
-consumer subscription into an approved third-party execution route.
+The catalog exposes `claude_code` only as customer-local unmodified binary
+delegation. Provider discovery performs no login and cannot convert that route
+into a hosted subscription proxy, credential-intermediation surface, or resale
+flow.
 
 ## Create and verify a signed agent version
 
@@ -355,5 +356,5 @@ checker-only working-tree capability.
 - run Windows, macOS, and Linux clean-machine install/uninstall tests;
 - run the protected production account journey and a genuine replay-verified
   provider-backed match with fresh provider-use consent;
-- keep public/shared arbitrary execution, unsupported subscription routing, and
+- keep public/shared arbitrary execution, intermediary subscription routing, and
   hosted automatic provider execution disabled.

@@ -2,7 +2,7 @@
 
 Status: local implementation candidate; not integrated, deployed, or live-account tested.
 
-Evidence date: 2026-08-26.
+Evidence date: 2026-08-27.
 
 Machine twin: `AGENTWARS_PROVIDER_POLICY.v2.json`. The offline checker rejects
 catalog/policy drift. `AGENTWARS_PROVIDER_POLICY.v1.json` remains the frozen
@@ -28,16 +28,16 @@ Four facts remain separate in every passport and receipt:
 
 A harness label never proves the provider, model, account, entitlement, or
 billing route that answered. The catalog also reserves `local_api_key` and
-`unsupported` as closed vocabulary values. No provider selects `local_api_key`;
-`claude_code` selects `unsupported` so it stays visible as a known but disabled
-route rather than being silently executable.
+`unsupported` as closed vocabulary values. No current provider selects either
+reserved mode; both remain available only for a future explicitly reviewed,
+fail-closed policy state.
 
 ## Connection-mode route matrix
 
 | id | connection mode | provider class | harness class | supported execution | hosted status |
 |---|---|---|---|---|---|
 | `chatgpt_codex` | `local_subscription_session` | official local-client delegation | official first-party CLI | customer-local `codex exec` after the customer runs `codex login` | not offered |
-| `claude_code` | `unsupported` | official local-client delegation | official first-party CLI | disabled for third-party product use without Anthropic approval or a separately sanctioned customer-owned API route | not offered |
+| `claude_code` | `local_native_client_session` | official local-client delegation | official first-party CLI | customer-local unmodified `claude -p` with every native auth method available, subject to Anthropic Commercial Terms and branding requirements | not offered |
 | `opencode` | `local_provider_session` | route-dependent harness | third-party local harness | customer-local `opencode run` with an explicit `provider/model` | not offered |
 | `openrouter` | `web_oauth_pkce` | direct API with customer key | no intermediary harness | customer-local request using the key returned by OpenRouter PKCE | official PKCE exists; hosted custody is not implemented |
 | `hermes` | `local_provider_session` | route-dependent harness | third-party local harness | customer-local `hermes --oneshot` with an explicit `provider/model` | not offered |
@@ -77,19 +77,32 @@ cached auth method, plan entitlement, model, quota, or billing route.
 
 ### Claude Code
 
-Anthropic documents browser login for the first-party Claude Code product, but
-its current legal and Agent SDK guidance says third-party products should use
-API-key authentication and must not offer Claude.ai login or route Free, Pro,
-or Max credentials unless Anthropic has approved the integration. Anthropic's
-June subscription-credit change for Agent SDK and `claude -p` remains paused;
-that pause does not grant a third-party subscription route.
+Anthropic's current legal documentation says a product or service may
+preinstall and run the unmodified Claude Code binary under the Anthropic
+Commercial Terms when each end user authenticates through Claude Code with
+their own API key, Claude subscription, or supported cloud credential and is
+billed directly. It separately forbids a third-party Claude login surface,
+collecting or intermediating credential/session material, routing requests
+through those credentials on a user's behalf, and paying or reselling access
+on the user's behalf.
 
-AgentWars therefore keeps `claude_code` catalog-visible but sets its connection
-mode to `unsupported` and rejects provider links, runner capabilities, runner
-profiles, backend construction, and CLI selection for that id before any child
-process starts. A future direct Claude route requires explicit Anthropic
-approval or a separately reviewed customer-owned API path; it cannot be enabled
-by using OpenCode or Hermes as an intermediary.
+AgentWars therefore exposes only the customer-installed, unmodified local
+`claude` binary. The customer runs `claude auth login` and `claude auth status`
+inside Claude Code's native flow; BuildWars does neither. The adapter uses
+`claude -p` for one turn with text output, an ephemeral working directory, no
+browser, no slash commands, no session persistence, strict MCP configuration,
+and no allowed tools. Anthropic's conditions also say not to restrict built-in
+authentication methods, so this one provider child inherits the customer's
+environment directly without BuildWars enumerating or serializing its values.
+Claude Code's own precedence may therefore select cloud settings, a token, an
+API key, a helper, a profile, or native login ahead of a subscription.
+
+The customer must run `claude auth status` locally before use; BuildWars neither
+reads that output nor attests the selected auth method, account, plan, quota,
+billing route, model, or execution identity. Public enablement remains a
+protected release gate until the applicable Anthropic Commercial Terms and
+branding requirements are accepted. OpenCode and Hermes Claude-subscription
+routes stay disabled because they are not this unmodified Claude Code binary.
 
 ### OpenCode
 
@@ -169,10 +182,11 @@ or an operating-system sandbox.
 
 ## Child-environment boundary
 
-Provider CLI children never receive `dict(os.environ)`. They receive a closed
-allowlist containing only executable lookup, operating-system paths, user auth
-configuration locations, locale/terminal settings, temporary directories, and
-TLS certificate paths. Values are bounded and control-character free.
+Provider CLI children never receive `dict(os.environ)`. Codex, OpenCode,
+Hermes, and custom-command children receive a closed allowlist containing only
+executable lookup, operating-system paths, user auth configuration locations,
+locale/terminal settings, temporary directories, and TLS certificate paths.
+Values are bounded and control-character free.
 
 Host API keys, auth tokens, cloud credentials, proxy credentials, loader hooks,
 Python module paths, and arbitrary host variables are not inherited. The only
@@ -191,6 +205,14 @@ OPENCODE_PURE
 runtime dependencies. This environment policy reduces accidental credential
 leakage and API-billing fallback; it is not OS isolation.
 
+Claude Code is the explicit exception. Its child omits the `env` subprocess
+argument so the operating system preserves every customer-configured native
+authentication method, as Anthropic's product conditions require. AgentWars
+does not enumerate, validate, log, serialize, or persist those environment
+values. This preserves provider authentication choice but also means a local
+API key, cloud setting, token, profile, or helper can outrank a subscription;
+the customer must confirm the selected route with `claude auth status`.
+
 Raw child stderr and provider response bodies are withheld from public adapter
 errors. Output is size-capped. No public catalog output includes absolute auth
 paths, account identifiers, or secret values.
@@ -201,6 +223,9 @@ AgentWars v1 must not:
 
 - collect consumer passwords, browser cookies, or provider refresh tokens;
 - copy provider CLI credential stores;
+- modify the Claude Code binary, implement a BuildWars Claude login surface,
+  intermediate Claude credential/session material, proxy a hosted Claude
+  subscription, or resell/pay for Claude access on a user's behalf;
 - escrow a provider key in BuildWars without a separately reviewed production
   custody system;
 - expose arbitrary customer commands in a public/shared runner without real
@@ -218,8 +243,9 @@ because authentication, flags, quotas, models, and plan rules can change.
 ## What this candidate proves
 
 The local checker proves closed catalog and policy vocabularies, exact policy
-twin parity, call-scoped intent guards, hostile child-environment stripping,
-mocked adapter argv/network contracts, sanitized errors, strict signed
+twin parity, call-scoped intent guards, closed environments for non-Claude
+children, non-enumerated native environment inheritance for Claude, mocked
+adapter argv/network contracts, sanitized errors, strict signed
 envelopes, replay checks, provider-blind arena code, and deterministic legal
 fallback behavior.
 
@@ -236,8 +262,7 @@ audience, revenue, virality, or public launch.
 - [OpenAI plugin authentication direction](https://developers.openai.com/plugins/build/auth)
 - [Anthropic Claude Code authentication](https://code.claude.com/docs/en/authentication)
 - [Anthropic Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)
-- [Anthropic Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview)
-- [Anthropic paused Claude-plan Agent SDK change](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
+- [Anthropic Claude Code CLI reference](https://code.claude.com/docs/en/cli-reference)
 - [OpenCode providers](https://opencode.ai/docs/providers/)
 - [OpenRouter OAuth PKCE](https://openrouter.ai/docs/guides/overview/auth/oauth)
 - [Hermes provider integrations](https://hermes-agent.nousresearch.com/docs/integrations/providers)

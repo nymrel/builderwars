@@ -365,6 +365,23 @@ def check_signed_happy_path(root):
         grant.job.engine_sha256 == job.COMPETITION_ENGINE_SHA256,
         "signed competition pins the current exact engine snapshot",
     )
+    claude_poll = copy.deepcopy(poll)
+    claude_poll["job"]["seats"][1].update(
+        {
+            "providerClaim": "claude_code",
+            "selectedModelClaim": None,
+            "variantClaim": None,
+            "backendClaim": "claude_code:claude -p",
+        }
+    )
+    claude_grant = job.validate_competition_poll_response(
+        claude_poll, profile=profile, request_body_sha256=request_sha
+    )
+    check(
+        claude_grant.job.seats[1].provider_claim == "claude_code"
+        and claude_grant.job.seats[1].backend_claim == "claude_code:claude -p",
+        "signed competition accepts the exact local Claude Code claim",
+    )
     built = job.build_competition_evidence(
         grant,
         summary_path=str(evidence_files["summary_path"]),
@@ -473,18 +490,18 @@ def check_hostile_contracts(root, state):
         ),
         "provider claims must differ",
     )
-    disabled_provider = copy.deepcopy(poll)
-    disabled_provider["job"]["seats"][1].update(
+    arbitrary_provider = copy.deepcopy(poll)
+    arbitrary_provider["job"]["seats"][1].update(
         {
-            "providerClaim": "claude_code",
+            "providerClaim": "custom_agent",
             "selectedModelClaim": None,
             "variantClaim": None,
-            "backendClaim": "claude_code:claude -p",
+            "backendClaim": "custom_agent:customer command",
         }
     )
     expect_error(
         lambda: job.validate_competition_poll_response(
-            disabled_provider, profile=profile, request_body_sha256=request_sha
+            arbitrary_provider, profile=profile, request_body_sha256=request_sha
         ),
         "provider claim is unsupported",
     )

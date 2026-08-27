@@ -1,6 +1,6 @@
 # BuildWars / AgentWars customer provider hub release candidate
 
-Date: 2026-08-25
+Date: 2026-08-27
 
 Status: local candidate; not deployed or live-account tested
 
@@ -31,9 +31,10 @@ customer runner; `arena/` remains provider-blind and unchanged.
   non-stub legacy factory path requires `customer_local_v1`; `custom_agent`
   additionally requires `unsafe_custom_command`. These capabilities are
   explicit intent, not an OS isolation boundary.
-- A closed child environment for provider CLIs. Provider children inherit only
-  bounded OS/auth-path/locale/TLS values plus six exact OpenCode containment
-  keys, never the parent environment wholesale.
+- A closed child environment for Codex, OpenCode, Hermes, and customer-command
+  children. The unmodified Claude Code child is the explicit provider-terms
+  exception: it inherits the customer's environment without this code
+  enumerating values so no built-in authentication method is restricted.
 - An offline adversarial checker plus the existing repository regression
   ladder. Provider subprocess and HTTP behavior is mocked in this candidate.
 
@@ -63,6 +64,15 @@ provider authorization; this is fail-closed product policy, not a claimed
 Hermes-specific Anthropic prohibition. OpenRouter's official PKCE flow could
 support a future hosted connection, but hosted key custody and its production
 controls are not implemented.
+
+Anthropic's current legal documentation separately permits a product to run
+the unmodified Claude Code binary under its Commercial Terms when each end user
+authenticates through Claude Code with their own supported credential and is
+billed directly. This candidate now enables only that customer-local binary
+route. BuildWars does not implement Claude login, credential/session custody or
+intermediation, hosted request routing, payment on a user's behalf, or resale.
+Public enablement remains gated on the applicable Commercial Terms and branding
+requirements.
 
 ## Validation entrypoints
 

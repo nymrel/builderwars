@@ -503,20 +503,20 @@ def main() -> int:
         attested["case"]["modelAttested"] = True
         expect_refusal("true attestation is refused", ROOT, work, attested, "overstates")
 
-        disabled_provider = copy.deepcopy(valid)
-        disabled_provider["case"]["job"]["seats"][1].update(
+        arbitrary_provider = copy.deepcopy(valid)
+        arbitrary_provider["case"]["job"]["seats"][1].update(
             {
-                "providerClaim": "claude_code",
+                "providerClaim": "custom_agent",
                 "selectedModelClaim": None,
                 "variantClaim": None,
-                "backendClaim": "claude_code:claude -p",
+                "backendClaim": "custom_agent:customer command",
             }
         )
         expect_refusal(
-            "disabled provider claim is refused",
+            "arbitrary command provider claim is refused",
             ROOT,
             work,
-            disabled_provider,
+            arbitrary_provider,
             "unsupported",
         )
 

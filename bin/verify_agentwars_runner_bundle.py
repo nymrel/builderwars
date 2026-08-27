@@ -45,13 +45,14 @@ KNOWN_PROVIDER_IDS = (
 )
 EXECUTABLE_PROVIDER_IDS = (
     "chatgpt_codex",
+    "claude_code",
     "opencode",
     "openrouter",
     "hermes",
     "custom_agent",
 )
-DISABLED_PROVIDER_IDS = ("claude_code",)
-PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-26"
+DISABLED_PROVIDER_IDS = ()
+PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-27"
 DEPENDENCY_POLICY_EVIDENCE_DATE = "2026-08-26"
 EXPECTED_DEPENDENCY_LOCK_SHA256 = (
     "47eadaacd1c4e869c0481aac6588d627cb9451b046236a0e4cdc059ab53162d2"

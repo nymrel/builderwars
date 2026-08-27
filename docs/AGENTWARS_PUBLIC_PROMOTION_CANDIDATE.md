@@ -63,10 +63,11 @@ the destination volume and atomically renames the completed directory.
 Before any candidate is written, the bridge requires all of the following:
 
 Both job provider claims must also belong to the current executable,
-non-arbitrary provider subset derived from the provider catalog. A
-catalog-visible disabled route such as `claude_code` is refused before any
-candidate directory is staged; an old self-declared label cannot bypass current
-provider policy merely because replay still verifies.
+non-arbitrary provider subset derived from the provider catalog. The
+customer-local `claude_code` route is eligible only with its exact
+`claude_code:claude -p` claim; arbitrary `custom_agent` execution is refused
+before any candidate directory is staged. An old self-declared label cannot
+bypass current provider policy merely because replay still verifies.
 
 1. The outer response is the exact reviewer-detail schema, includes private
    evidence, and carries an `approved` but still-not-published decision.
@@ -199,7 +200,7 @@ Until every applicable step has its own receipt, the status remains
 The checker creates a fresh current-engine fantasy match using two deterministic
 local test harnesses. It makes no provider or network call. It proves the valid
 path and attacks rejection, true attestation, a fully re-bound projection swap,
-the disabled-provider route, concatenated zlib frames, request substitution,
+the arbitrary-command provider route, concatenated zlib frames, request substitution,
 duplicate JSON keys, missing acknowledgements, overwrite, deterministic output,
 and protected-artifact non-mutation:
 

@@ -23,20 +23,22 @@ permission beyond what each provider's current documentation states; customers
 are responsible for their own provider terms. No entry claims that all hosted
 routing is prohibited or that all local orchestration is permitted.
 
-Verified facts this catalog encodes (evidence date 2026-08-26):
+Verified facts this catalog encodes (evidence date 2026-08-27):
 
 * OpenAI: local Codex clients support ``codex login`` with ChatGPT for
   subscription access. OpenAI also publishes ``codex exec``, the Codex SDK,
   and app-server as product integration surfaces while keeping model access
   and managed services separate. The customer path delegates to the locally
   authenticated Codex CLI; it never scrapes or copies credential files.
-* Anthropic: Claude Code supports browser login on eligible plans, but current
-  legal and Agent SDK documentation says third-party products must use API-key
-  authentication unless previously approved. The announced subscription
-  credit for Agent SDK, ``claude -p``, and third-party apps is paused. The
-  ``claude_code`` catalog id therefore remains visible but non-executable until
-  Anthropic approves this product pattern or BuildWars adds a sanctioned API
-  route.
+* Anthropic: current legal documentation permits a product or service to run
+  the unmodified Claude Code binary under the Anthropic Commercial Terms when
+  each end user authenticates through Claude Code with their own API key,
+  Claude subscription, or supported cloud credential and is billed directly.
+  It separately forbids a third-party Claude login surface, credential/session
+  token custody, request routing through those credentials, and resale or
+  intermediation. BuildWars therefore delegates only to a customer-installed,
+  unmodified local ``claude`` binary; public enablement remains protected by
+  the applicable Commercial Terms and branding-acceptance gate.
 * OpenCode: provider auth is local (``opencode auth login`` / ``opencode auth
   list``). It is a route-dependent harness: a selected route attests nothing
   about subscription entitlement, billing, or model identity.
@@ -115,11 +117,12 @@ _HOSTED_ROUTE_STATUSES = frozenset(
 # Customer-facing semantics, deliberately distinct from implementation
 # transports. The vocabulary is shared by the catalog, provider-link v2
 # envelope, CLI output, policy twin, and eventual UI. ``local_api_key`` is a
-# reserved closed value selected by no provider. ``claude_code`` deliberately
-# selects ``unsupported`` and must pair that mode with disabled execution.
+# reserved closed value selected by no provider. ``unsupported`` remains a
+# fail-closed state selected by no currently executable provider.
 CONNECTION_MODES = (
     "web_oauth_pkce",
     "local_subscription_session",
+    "local_native_client_session",
     "local_provider_session",
     "local_api_key",
     "local_runtime",
@@ -129,7 +132,7 @@ _CONNECTION_MODES = frozenset(CONNECTION_MODES)
 
 _EVIDENCE_DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 PROVIDER_POLICY_SCHEMA_VERSION = "agentwars.provider-policy.v2"
-PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-26"
+PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-27"
 
 _ENTRY_KEYS = frozenset(
     {
@@ -193,25 +196,30 @@ _CATALOG = {
         ),
     },
     "claude_code": {
-        "display_name": "Claude Code (subscription route unavailable)",
-        "connection_mode": "unsupported",
-        "connection_transport": "local_cli_auth_delegation",
+        "display_name": "Claude Code (local official CLI)",
+        "connection_mode": "local_native_client_session",
+        "connection_transport": "local_cli_subprocess",
         "auth_plan": [
-            "Do not connect a Claude subscription to BuildWars; this provider route is disabled.",
-            "Use Claude Code only in Anthropic's native surfaces, or wait for a separately sanctioned BuildWars API integration.",
+            "Install the official, unmodified Claude Code binary yourself.",
+            "Run `claude auth login` through Claude Code's native flow with your own supported credential. If you intend subscription use, first ensure API-key or cloud settings do not take precedence.",
+            "Confirm the selected local method with `claude auth status`; BuildWars never receives that output and AgentWars does not enumerate, log, serialize, or persist credential/session values.",
         ],
-        "status_plan": "Disabled pending written Anthropic approval or a separately reviewed customer-owned API route; BuildWars performs no Claude login or execution.",
+        "status_plan": "You run `claude auth status` locally; BuildWars only invokes the unmodified local `claude -p` client and never implements Claude login, credential custody, billing, or a hosted request proxy.",
         "credential_custody": "customer_only",
         "model_required": False,
         "backend_kind": "claude_print",
         "provider_class": "official_local_client_delegation",
         "harness_class": "official_first_party_cli",
-        "local_execution": False,
+        "local_execution": True,
         "hosted_route_status": "not_offered",
         "prohibited_routes": (
+            "claude_code_binary_modification",
             "claude_code_credential_store_copy",
-            "third_party_claude_subscription_login",
-            "third_party_claude_subscription_request_routing",
+            "buildwars_claude_login_surface",
+            "hosted_claude_subscription_proxy",
+            "claude_credential_or_session_intermediation",
+            "claude_subscription_resale",
+            "claude_auth_method_restriction",
             "anthropic_subscription_via_opencode",
             "anthropic_subscription_via_hermes",
         ),
@@ -219,15 +227,15 @@ _CATALOG = {
         "official_sources": (
             "https://code.claude.com/docs/en/authentication",
             "https://code.claude.com/docs/en/legal-and-compliance",
-            "https://code.claude.com/docs/en/agent-sdk/overview",
-            "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
-            "https://opencode.ai/docs/providers/",
+            "https://code.claude.com/docs/en/cli-reference",
         ),
         "limitations": (
-            "No BuildWars factory, runner capability, pairing flow, or cross-provider match may activate this provider id.",
-            "Anthropic says third-party products, including Agent SDK products, should use API-key authentication unless previously approved; customer-local credential custody does not override that provider rule.",
-            "The announced monthly subscription credit for Agent SDK, `claude -p`, and third-party apps is paused and grants no present launch permission.",
-            "OpenCode and Hermes Claude-subscription routes remain disabled for the same upstream-provider boundary.",
+            "This route is only the official, unmodified customer-local Claude Code binary under Anthropic's documented Commercial Terms conditions; public enablement remains gated on accepting the applicable terms and branding requirements.",
+            "BuildWars never offers Claude login, copies or intermediates credentials/session tokens, routes a hosted subscription request, pays on the user's behalf, or resells Claude access.",
+            "Anthropic requires the unmodified binary's authentication methods to remain available, so this child inherits the customer's local environment without BuildWars enumerating or serializing its values. API keys, cloud settings, tokens, profiles, or helpers may outrank a subscription under Claude Code's own precedence rules.",
+            "BuildWars cannot attest the auth method Claude Code selected, the account, plan entitlement, quota, billing route, or model that answered; the customer must confirm locally with `claude auth status` before a match.",
+            "Execution uses print mode with one turn, no browser, no slash commands, no session persistence, strict MCP configuration, and no allowed tools. This is prompt/text model execution, not an arbitrary-code entrant slot.",
+            "OpenCode and Hermes Claude-subscription routes remain disabled because those harnesses are not the unmodified Claude Code binary covered by this route.",
         ),
     },
     "opencode": {
