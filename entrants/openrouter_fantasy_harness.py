@@ -72,7 +72,7 @@ def decide(observation, strategy, backend):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
-    parser.add_argument("--provider", action="append", required=True)
+    parser.add_argument("--provider", required=True)
     parser.add_argument("--api-key-env", default="OPENROUTER_API_KEY")
     parser.add_argument("--backend-timeout", type=float, default=300.0)
     parser.add_argument("--max-tokens", type=int, default=256)
@@ -81,7 +81,7 @@ def main():
     args = parser.parse_args()
     backend = OpenRouterBackend(
         model=args.model,
-        provider_only=args.provider,
+        provider_only=[args.provider],
         api_key_env=args.api_key_env,
         timeout_s=args.backend_timeout,
         max_tokens=args.max_tokens,
