@@ -14,17 +14,28 @@ import json
 import os
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
-from fantasy_model_harness import (  # noqa: E402
-    STRATEGIES,
-    build_prompt,
-    extract_strict_move,
-    fallback_move,
-    move_is_legal_for_observation,
-    send,
-)
-from openrouter_backend import OpenRouterBackend  # noqa: E402
+if __package__:
+    from .fantasy_model_harness import (
+        STRATEGIES,
+        build_prompt,
+        extract_strict_move,
+        fallback_move,
+        move_is_legal_for_observation,
+        send,
+    )
+    from .openrouter_backend import OpenRouterBackend
+else:
+    HERE = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, HERE)
+    from fantasy_model_harness import (  # noqa: E402
+        STRATEGIES,
+        build_prompt,
+        extract_strict_move,
+        fallback_move,
+        move_is_legal_for_observation,
+        send,
+    )
+    from openrouter_backend import OpenRouterBackend  # noqa: E402
 
 VERSION = "1"
 
