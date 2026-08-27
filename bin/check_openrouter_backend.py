@@ -75,6 +75,7 @@ def main():
     require(backend.complete("pick") == '{"player_id":12}', "text extraction failed")
     provider = captured["body"]["provider"]
     require(captured["body"]["temperature"] == 0, "benchmark temperature drifted")
+    require(provider["order"] == ["Z.AI"], "provider order drifted")
     require(provider["only"] == ["Z.AI"], "provider allowlist drifted")
     require(provider["allow_fallbacks"] is False, "fallbacks must be disabled")
     require(provider["require_parameters"] is True, "parameters must be enforced")
@@ -115,6 +116,16 @@ def main():
         pass
     else:
         raise AssertionError("empty provider allowlist was accepted")
+
+    try:
+        OpenRouterBackend(
+            model="z-ai/glm-5.3-flash",
+            provider_only=["Z.AI", "another-provider"],
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("multiple providers were accepted for one controlled run")
 
     def http_failure(_request, timeout):
         del timeout
