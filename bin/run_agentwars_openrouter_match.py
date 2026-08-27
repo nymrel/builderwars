@@ -38,6 +38,8 @@ def manifest(name, strategy, args):
         strategy,
         "--model",
         args.model,
+        "--provider",
+        args.provider,
         "--api-key-env",
         args.api_key_env,
         "--backend-timeout",
@@ -45,13 +47,11 @@ def manifest(name, strategy, args):
         "--max-tokens",
         str(args.max_tokens),
     ]
-    for provider in args.provider:
-        command.extend(("--provider", provider))
     return {
         "name": name,
         "cmd": command,
         "env": [args.api_key_env],
-        "claimed_model": f"openrouter:{args.model};provider_only={','.join(args.provider)}",
+        "claimed_model": f"openrouter:{args.model};provider_only={args.provider}",
         "execution_claim": "hybrid",
     }
 
@@ -86,9 +86,8 @@ def main():
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument(
         "--provider",
-        action="append",
         required=True,
-        help="Exact OpenRouter provider slug; repeat to provide an ordered allowlist.",
+        help="Exact OpenRouter provider endpoint slug for this controlled run.",
     )
     parser.add_argument("--api-key-env", default="OPENROUTER_API_KEY")
     parser.add_argument("--backend-timeout", type=float, default=300.0)
@@ -99,10 +98,8 @@ def main():
         parser.error("--seed must be a non-negative integer")
     if not isinstance(args.model, str) or "/" not in args.model or any(c.isspace() for c in args.model):
         parser.error("--model must be one OpenRouter provider/model slug")
-    if len(args.provider) != len(set(args.provider)) or any(
-        not value or any(char.isspace() for char in value) for value in args.provider
-    ):
-        parser.error("--provider values must be unique non-empty tokens")
+    if not args.provider or any(char.isspace() for char in args.provider):
+        parser.error("--provider must be one exact non-empty provider endpoint slug")
     if _ENV_NAME.fullmatch(args.api_key_env) is None:
         parser.error("--api-key-env must be a valid environment-variable name")
     if not 10 <= args.backend_timeout <= 900:
@@ -134,16 +131,18 @@ def main():
         "product": "AgentWars fantasy football",
         "status": "model_influenced_unattested" if both_used_model else "fallback_only_not_model_played",
         "truthBoundary": (
-            "The operator requested the declared OpenRouter model through an exact provider allowlist, "
-            "with provider fallbacks disabled, data collection denied, and ZDR required. The hash-chained "
-            "transcript proves accepted moves and result. Provider/model/usage fields remain API-reported "
-            "claims; model_attested=false."
+            "The operator requested the declared OpenRouter model through one exact provider endpoint, "
+            "with provider fallbacks disabled, required parameters enforced, temperature fixed at zero, "
+            "data collection denied, and ZDR required. The hash-chained transcript proves accepted moves "
+            "and result. Provider/model/usage fields remain API-reported claims; model_attested=false."
         ),
         "game": args.game,
         "seed": args.seed,
         "requestedModel": args.model,
-        "providerOnly": args.provider,
+        "providerOnly": [args.provider],
         "allowFallbacks": False,
+        "requireParameters": True,
+        "temperature": 0,
         "dataCollection": "deny",
         "zdr": True,
         "matchId": result["match_id"],
