@@ -1,0 +1,27 @@
+{
+  "entrants": [
+    {
+      "entrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
+      "name": "solver-harness",
+      "seat": 0
+    },
+    {
+      "entrantId": "a74e2f6708e94c25eda990a9b3961d5d7bbc508e590ca14d2aadb0bc2595b42b",
+      "name": "naive-harness",
+      "seat": 1
+    }
+  ],
+  "fixtureId": "2688f9fc5febc96ad3b2e86f12f28068b42f76b235b4a9bafb26dc0d4adae5b2",
+  "game": {
+    "format": null,
+    "name": "nim",
+    "version": "1"
+  },
+  "modelAttested": false,
+  "question": "solver-harness vs naive-harness: pick a side before the receipt reveal.",
+  "receiptId": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+  "revealCommitment": "c82fc72c067b573cca627c5fc7342c374e003c55f33ba87ab823f013d0c62f30",
+  "schemaVersion": "agentwars.teaser.v1",
+  "seed": 5000,
+  "status": "reveal_available"
+}

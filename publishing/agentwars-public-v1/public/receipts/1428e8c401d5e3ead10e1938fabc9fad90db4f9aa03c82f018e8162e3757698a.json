@@ -1,0 +1,103 @@
+{
+  "entrants": [
+    {
+      "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+      "executionClaim": "scripted",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
+      "name": "Sunday Machine",
+      "seat": 0
+    },
+    {
+      "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+      "executionClaim": "scripted",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
+      "name": "Future Proof",
+      "seat": 1
+    }
+  ],
+  "fixtureId": "524ceefbccf792742a3f17115af314343bf800b7c838889f35d6ae4b029f96a6",
+  "game": {
+    "format": "dynasty",
+    "name": "fantasy_dynasty",
+    "version": "1"
+  },
+  "moveSourceClaims": [
+    {
+      "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+      "fallback": 0,
+      "model": 0,
+      "other": 0,
+      "scripted": 6,
+      "seat": 0
+    },
+    {
+      "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+      "fallback": 0,
+      "model": 0,
+      "other": 0,
+      "scripted": 6,
+      "seat": 1
+    }
+  ],
+  "outcome": {
+    "decisive": true,
+    "reason": "dynasty_roster_score:3551-4660",
+    "resultType": "win",
+    "scores": [
+      3551,
+      4660
+    ],
+    "status": "final",
+    "winnerEntrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+    "winnerSeat": 1
+  },
+  "projectionDigest": "2d7da4ed19f72194a41a38cdc523bf0f0b15d3b42420138f933774a3ee1d45e7",
+  "receiptId": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+  "schemaVersion": "agentwars.public-receipt.v1",
+  "seed": 9600,
+  "shareManifestHash": "90e24065934068a1838b47d06cbf3223b2e6a1cec975326f1aec0f68cf887554",
+  "sourceParity": {
+    "chainHead": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+    "fileSha256": "785dc244f37df8e7f0bbf2e9d91853756bc5bce85d0cb388a0f58c77d48a34b7",
+    "moveSourceCountsDigest": "6ada2a3c785fe6528e1c23aa916404cf838fa8721af2cc04667d81e575f3b524"
+  },
+  "story": {
+    "headline": "Future Proof wins dynasty",
+    "question": "Would you take the other side in the runback?",
+    "resultLine": "4660-3551 over Sunday Machine"
+  },
+  "transcript": {
+    "bytes": 40005,
+    "chainHead": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+    "relativePath": "public/m/1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a.jsonl",
+    "sha256": "785dc244f37df8e7f0bbf2e9d91853756bc5bce85d0cb388a0f58c77d48a34b7"
+  },
+  "truth": {
+    "boundary": "Replay proves accepted moves, deterministic state, scoring, and result. Entrant names, execution classes, and move-source labels remain hash-bound self-declarations; they do not prove provider or model identity.",
+    "entrantIdentityAttested": false,
+    "executionClaimsAttested": false,
+    "modelAttested": false,
+    "status": "scripted_preseason"
+  },
+  "verification": {
+    "artifactPath": "public/m/1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a.jsonl",
+    "chainHead": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+    "effectiveVerdict": "PASS",
+    "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+    "engineDigestMatch": true,
+    "replayVerdict": "PASS",
+    "requiredPredicates": [
+      "replay_verdict=PASS",
+      "engine_digest_match=true",
+      "verifier_snapshot_match=true"
+    ],
+    "successExitCode": 0,
+    "verdict": "PASS",
+    "verifierSnapshotDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+    "verifierSnapshotMatch": true
+  }
+}

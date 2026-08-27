@@ -29,6 +29,7 @@ from arena.match import run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.scoring import NotAProjection, referee_projection, score  # noqa: E402
 from arena.transcript import load  # noqa: E402
+from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 RESULTS = []
 
@@ -48,6 +49,7 @@ def entrant(script, backend="stub:v1", mode=None, name=None):
         "cmd": cmd,
         "env": [],
         "claimed_model": backend,
+        "execution_claim": execution_claim_for_backend(backend),
     }
 
 
@@ -103,6 +105,38 @@ def main():
             byte_same = a.read() == b.read()
         check("re-run reproduces the transcript byte for byte", byte_same,
               "a differing byte means something non-deterministic leaked into the record")
+
+        print("\n=== 2b. custom match ids fail before output path construction ===")
+        rejected_paths = []
+        hostile_ids = (
+            "../escape", "C:/absolute", "a/b", "a\\b", "é", "bad\ncontrol", "", "a" * 81,
+            "CON", "nul", "PrN", "aux", "COM1", "com9", "LPT1", "lpt9"
+        )
+        for index, hostile_id in enumerate(hostile_ids):
+            rejected_out = os.path.join(work, f"rejected-id-{index}")
+            try:
+                run_match(
+                    game_name="nim", seed=7,
+                    entrants=[entrant("solver_harness.py"), entrant("naive_harness.py")],
+                    out_dir=rejected_out, match_id=hostile_id,
+                )
+            except ValueError:
+                pass
+            else:
+                rejected_paths.append(repr(hostile_id))
+            if os.path.exists(rejected_out):
+                rejected_paths.append(f"created:{hostile_id!r}")
+        check("hostile custom ids create no output or scratch path", not rejected_paths,
+              "a traversal id could write a transcript outside the requested match directory",
+              f"{len(hostile_ids)} rejected forms; failures={rejected_paths or 'none'}")
+        custom = run_match(
+            game_name="nim", seed=8,
+            entrants=[entrant("solver_harness.py"), entrant("naive_harness.py")],
+            out_dir=os.path.join(work, "safe-custom-id"), match_id="Safe_match-01",
+        )
+        check("a bounded safe custom id is retained", custom["match_id"] == "Safe_match-01"
+              and os.path.basename(custom["transcript"]) == "Safe_match-01.jsonl",
+              "an overbroad guard would make legitimate explicit fixture ids unusable")
 
         print("\n=== 3. a single altered byte breaks the chain ===")
         tampered = os.path.join(work, "tampered.jsonl")

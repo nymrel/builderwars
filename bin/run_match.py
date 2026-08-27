@@ -15,6 +15,7 @@ from entrant_admission import (  # noqa: E402
     require_entry_admission,
     unconfined_warning,
 )
+from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 
 def manifest(script, backend, claimed_model=None):
@@ -26,6 +27,7 @@ def manifest(script, backend, claimed_model=None):
         # An entrant's own statement about what is behind it. Recorded as a
         # claim, never verified — the engine has no way to witness a model.
         "claimed_model": claimed_model or backend,
+        "execution_claim": execution_claim_for_backend(backend),
     }
 
 

@@ -1,0 +1,159 @@
+{
+  "datasetVersion": "1",
+  "entries": [
+    {
+      "decision": "approved_for_publication",
+      "label": "Published Nim reference receipt",
+      "sequence": 0,
+      "sourceChainHead": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 3,
+        "other": 2,
+        "scripted": 0
+      },
+      "sourceFileSha256": "4e6cac4a6fdbda4cab76223de1a5f7950099e83e9e969cd372c83716845836cc",
+      "sourcePath": "matches/ollama/5000-0/3d76188786332a12.jsonl",
+      "titleEligible": false
+    },
+    {
+      "decision": "approved_for_publication",
+      "label": "Scripted Redraft Crown reference, original seats",
+      "sequence": 1,
+      "sourceChainHead": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 0,
+        "other": 0,
+        "scripted": 12
+      },
+      "sourceFileSha256": "1bc518c5ea178049647b39338f32797eca85822d559758ac75b41ecad6a46372",
+      "sourcePath": "matches/agentwars-fantasy/fantasy_redraft/9600-0/8d161a470a12b0c3.jsonl",
+      "titleEligible": true
+    },
+    {
+      "decision": "approved_for_publication",
+      "label": "Scripted Redraft Crown reference, seats reversed",
+      "sequence": 2,
+      "sourceChainHead": "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 0,
+        "other": 0,
+        "scripted": 12
+      },
+      "sourceFileSha256": "c545b9a15476db180fd42fce8392251a0a35325e359c75edd1dabae7eb781ba3",
+      "sourcePath": "matches/agentwars-fantasy/fantasy_redraft/9600-1/d690d2cd2525804b.jsonl",
+      "titleEligible": true
+    },
+    {
+      "decision": "approved_for_publication",
+      "label": "Scripted Dynasty Throne reference, original seats",
+      "sequence": 3,
+      "sourceChainHead": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 0,
+        "other": 0,
+        "scripted": 12
+      },
+      "sourceFileSha256": "785dc244f37df8e7f0bbf2e9d91853756bc5bce85d0cb388a0f58c77d48a34b7",
+      "sourcePath": "matches/agentwars-fantasy/fantasy_dynasty/9600-0/93f3a5f5d5ba31a0.jsonl",
+      "titleEligible": true
+    },
+    {
+      "decision": "approved_for_publication",
+      "label": "Scripted Dynasty Throne reference, seats reversed",
+      "sequence": 4,
+      "sourceChainHead": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 0,
+        "other": 0,
+        "scripted": 12
+      },
+      "sourceFileSha256": "696557537476b4696d7786ec3e950f0d4295a906d80af37022e2a26248ee8a6d",
+      "sourcePath": "matches/agentwars-fantasy/fantasy_dynasty/9600-1/a158a6f7a59c9924.jsonl",
+      "titleEligible": true
+    },
+    {
+      "decision": "approved_for_publication",
+      "label": "Scripted QB Surge New Rules Week reference, original seats",
+      "sequence": 5,
+      "sourceChainHead": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 0,
+        "other": 0,
+        "scripted": 12
+      },
+      "sourceFileSha256": "04c9d0386645d347e80d270613b83db2b597669207f305f341103b16eb30debb",
+      "sourcePath": "matches/agentwars-fantasy/fantasy_qb_surge/9600-0/40dd49fd6bbe5404.jsonl",
+      "titleEligible": false
+    },
+    {
+      "decision": "approved_for_publication",
+      "label": "Scripted QB Surge New Rules Week reference, seats reversed",
+      "sequence": 6,
+      "sourceChainHead": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 0,
+        "other": 0,
+        "scripted": 12
+      },
+      "sourceFileSha256": "c987d082af09a9b9309e78f4a8e3212ba2173b65888f8d5984ba3d6a7fec332f",
+      "sourcePath": "matches/agentwars-fantasy/fantasy_qb_surge/9600-1/df155d2a014a7b8b.jsonl",
+      "titleEligible": false
+    }
+  ],
+  "futureFixtures": [
+    {
+      "activationStatus": "proposed_not_activated",
+      "closeAt": "2026-09-05T16:00:00Z",
+      "entrantIdsBySeat": [
+        "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+        "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb"
+      ],
+      "game": "fantasy_redraft",
+      "gameVersion": "1",
+      "leagueId": "agentwars_fantasy_reference_v1",
+      "rulesVersion": "1",
+      "seed": 9700,
+      "status": "unplayed",
+      "week": 1
+    },
+    {
+      "activationStatus": "proposed_not_activated",
+      "closeAt": "2026-09-12T16:00:00Z",
+      "entrantIdsBySeat": [
+        "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+        "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff"
+      ],
+      "game": "fantasy_dynasty",
+      "gameVersion": "1",
+      "leagueId": "agentwars_fantasy_reference_v1",
+      "rulesVersion": "1",
+      "seed": 9701,
+      "status": "unplayed",
+      "week": 2
+    },
+    {
+      "activationStatus": "proposed_not_activated",
+      "closeAt": "2026-09-19T16:00:00Z",
+      "entrantIdsBySeat": [
+        "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+        "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb"
+      ],
+      "game": "fantasy_qb_surge",
+      "gameVersion": "1",
+      "leagueId": "agentwars_fantasy_reference_v1",
+      "rulesVersion": "1",
+      "seed": 9702,
+      "status": "unplayed",
+      "week": 3
+    }
+  ],
+  "policy": "explicit_reviewed_allowlist_only",
+  "schemaVersion": "agentwars.publication-manifest.v1"
+}

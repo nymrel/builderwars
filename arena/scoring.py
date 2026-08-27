@@ -17,7 +17,9 @@ from .canonical import digest
 
 # Entrant-authored keys, recorded in the transcript for auditability and removed
 # before scoring. Add to this set, never read from it.
-ENTRANT_AUTHORED = frozenset({"entrant_message", "entrant_note", "claimed_model"})
+ENTRANT_AUTHORED = frozenset(
+    {"entrant_message", "entrant_note", "claimed_model", "execution_claim"}
+)
 
 
 class NotAProjection(Exception):

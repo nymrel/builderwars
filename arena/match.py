@@ -18,6 +18,7 @@ Three properties this file is built to hold:
 import json
 import os
 import random
+import re
 import shutil
 import time
 
@@ -29,6 +30,15 @@ from .scoring import referee_projection, score
 from .transcript import TranscriptWriter
 
 PROTOCOL = "arena/1"
+EXECUTION_CLAIMS = frozenset({"scripted", "model", "hybrid"})
+_ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_MATCH_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
+_WINDOWS_DEVICE_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{number}" for number in range(1, 10)}
+    | {f"LPT{number}" for number in range(1, 10)}
+)
+_MANIFEST_KEYS = frozenset({"name", "cmd", "env", "claimed_model", "execution_claim"})
 
 
 class _Sidecar:
@@ -63,6 +73,18 @@ def match_id_for(game_name, seed, entrant_names):
     return digest({"game": game_name, "seed": seed, "entrants": list(entrant_names)})[:16]
 
 
+def validate_match_id(value):
+    """Validate an identifier before it can participate in an output path."""
+    if not isinstance(value, str) or _MATCH_ID.fullmatch(value) is None:
+        raise ValueError(
+            "match_id must be 1-80 ASCII letters, digits, underscores, or hyphens "
+            "and must start with a letter or digit"
+        )
+    if value.upper() in _WINDOWS_DEVICE_NAMES:
+        raise ValueError("match_id must not be a reserved Windows device name")
+    return value
+
+
 def _manifest_digest(manifest):
     # Hash names only. Values of declared env vars are never read here.
     return digest(
@@ -71,8 +93,37 @@ def _manifest_digest(manifest):
             "cmd": list(manifest["cmd"]),
             "env": sorted(manifest.get("env", [])),
             "claimed_model": manifest.get("claimed_model"),
+            "execution_claim": manifest["execution_claim"],
         }
     )
+
+
+def validate_manifest(manifest):
+    """Reject ambiguous entrant declarations before starting either process."""
+    if not isinstance(manifest, dict):
+        raise ValueError("entrant manifest must be an object")
+    unexpected = set(manifest) - _MANIFEST_KEYS
+    if unexpected:
+        raise ValueError(f"entrant manifest has unexpected keys: {sorted(unexpected)}")
+    name = manifest.get("name")
+    if not isinstance(name, str) or not name.strip() or len(name) > 120:
+        raise ValueError("entrant name must be a non-empty string of at most 120 characters")
+    cmd = manifest.get("cmd")
+    if not isinstance(cmd, list) or not cmd or any(not isinstance(part, str) or not part for part in cmd):
+        raise ValueError("entrant cmd must be a non-empty array of non-empty strings")
+    env = manifest.get("env", [])
+    if not isinstance(env, list) or any(not isinstance(key, str) or not _ENV_NAME.fullmatch(key) for key in env):
+        raise ValueError("entrant env must contain environment-variable names only")
+    if len(env) != len(set(env)):
+        raise ValueError("entrant env names must be unique")
+    claimed_model = manifest.get("claimed_model")
+    if claimed_model is not None and (not isinstance(claimed_model, str) or not claimed_model.strip()):
+        raise ValueError("claimed_model must be null or a non-empty string")
+    if manifest.get("execution_claim") not in EXECUTION_CLAIMS:
+        raise ValueError(
+            "execution_claim must be exactly one of: " + ", ".join(sorted(EXECUTION_CLAIMS))
+        )
+    return manifest
 
 
 def run_match(
@@ -89,9 +140,18 @@ def run_match(
         raise ValueError("this runner plays two-seat games; got %d entrants" % len(entrants))
     if not isinstance(seed, int) or isinstance(seed, bool):
         raise ValueError("seed must be an int so it can be canonically encoded")
+    for manifest in entrants:
+        validate_manifest(manifest)
+    if entrants[0]["name"].casefold() == entrants[1]["name"].casefold():
+        raise ValueError("entrant names must be unique within a match")
 
     game = load_game(game_name)
-    mid = match_id or match_id_for(game_name, seed, [e["name"] for e in entrants])
+    selected_match_id = (
+        match_id_for(game_name, seed, [e["name"] for e in entrants])
+        if match_id is None
+        else match_id
+    )
+    mid = validate_match_id(selected_match_id)
     out_dir = os.path.abspath(out_dir)
     os.makedirs(out_dir, exist_ok=True)
     transcript_path = os.path.join(out_dir, f"{mid}.jsonl")
@@ -121,16 +181,21 @@ def run_match(
                         # An entrant's statement about which model it uses. Recorded
                         # as a claim. The engine cannot and does not verify it.
                         "claimed_model": e.get("claimed_model"),
+                        # Also self-declared. Bound into the receipt so a scripted
+                        # entrant cannot be relabelled after the match.
+                        "execution_claim": e["execution_claim"],
                     }
                     for i, e in enumerate(entrants)
                 ],
                 "sandbox_policy": POLICY,
                 "attestation": {
                     "model_attested": False,
+                    "execution_claims_attested": False,
                     "reason": (
                         "The engine never contacts a model, so it cannot witness which model "
-                        "produced a move. Replay proves rule compliance and adjudication "
-                        "integrity, not model identity."
+                        "produced a move. Entrant execution classes are self-declared and bound "
+                        "into the receipt. Replay proves rule compliance and adjudication "
+                        "integrity, not model identity or execution provenance."
                     ),
                 },
                 "limits": {"move_timeout_ms": int(move_timeout_s * 1000)},
