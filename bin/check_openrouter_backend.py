@@ -47,7 +47,18 @@ def main():
                 "model": "z-ai/glm-5.3-flash",
                 "provider": "Z.AI",
                 "choices": [{"message": {"content": "{\"player_id\":12}"}}],
-                "usage": {"prompt_tokens": 41, "completion_tokens": 8, "total_tokens": 49},
+                "usage": {
+                    "prompt_tokens": 41,
+                    "completion_tokens": 8,
+                    "total_tokens": 49,
+                    "completion_tokens_details": {"reasoning_tokens": 2},
+                    "prompt_tokens_details": {
+                        "cached_tokens": 7,
+                        "cache_write_tokens": 3,
+                    },
+                    "cost": 0.0000123,
+                    "cost_details": {"upstream_inference_cost": 0.0000105},
+                },
             }
         )
 
@@ -62,6 +73,7 @@ def main():
     )
     require(backend.complete("pick") == '{"player_id":12}', "text extraction failed")
     provider = captured["body"]["provider"]
+    require(captured["body"]["temperature"] == 0, "benchmark temperature drifted")
     require(provider["only"] == ["Z.AI"], "provider allowlist drifted")
     require(provider["allow_fallbacks"] is False, "fallbacks must be disabled")
     require(provider["require_parameters"] is True, "parameters must be enforced")
@@ -70,6 +82,14 @@ def main():
     require(captured["authorization"] == "Bearer not-a-real-key", "authorization header failed")
     require("or_reported_provider=Z.AI" in backend.receipt_note(), "receipt provider missing")
     require("or_total_tokens=49" in backend.receipt_note(), "receipt usage missing")
+    require("or_reasoning_tokens=2" in backend.receipt_note(), "reasoning usage missing")
+    require("or_cached_tokens=7" in backend.receipt_note(), "cached usage missing")
+    require("or_cache_write_tokens=3" in backend.receipt_note(), "cache-write usage missing")
+    require("or_cost_credits=1.23e-05" in backend.receipt_note(), "charged cost missing")
+    require(
+        "or_upstream_inference_cost=1.05e-05" in backend.receipt_note(),
+        "upstream cost missing",
+    )
     require("pick" not in json.dumps(backend.last_receipt), "receipt leaked prompt")
     require("player_id" not in json.dumps(backend.last_receipt), "receipt leaked completion")
 
@@ -115,7 +135,7 @@ def main():
     else:
         raise AssertionError("HTTP failure did not fail closed")
 
-    print("openrouter backend checks: PASS (routing, privacy, receipts, negative cases)")
+    print("openrouter backend checks: PASS (routing, privacy, receipts, cost, negative cases)")
     return 0
 
 
