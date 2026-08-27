@@ -1,0 +1,500 @@
+{
+  "schema_version": "builderwars.reuse-matrix.v1",
+  "status": "proposed",
+  "as_of": "2026-08-27",
+  "builderwars_base_commit": "d0cb2b9fc4cba987eb421b6200efcdc9941cd909",
+  "decision": "BuilderWars is an integration and productization layer for reusable Nymrel assets, not a greenfield rewrite.",
+  "adoption_classes": {
+    "adopt": "Use behind a stable contract after exact-version acceptance.",
+    "adapt": "Reuse the foundation after BuilderWars-specific implementation and validation.",
+    "reference": "Reuse patterns, interfaces, tests, or selected code rather than the complete product.",
+    "hold": "Do not inherit production claims until the identified gates are independently satisfied."
+  },
+  "components": [
+    {
+      "repository": "nymrel/builderwars",
+      "class": "adopt",
+      "role": "Canonical competition kernel and product source of truth.",
+      "capabilities": [
+        "deterministic referee",
+        "hash-chained transcripts",
+        "standalone replay verification",
+        "entrant JSONL subprocess contract",
+        "fantasy GM games",
+        "round-robin orchestration",
+        "publication allowlists",
+        "verified moment bundles"
+      ],
+      "builderwars_use": [
+        "games",
+        "rules versions",
+        "matches",
+        "standings",
+        "official receipts",
+        "public verification"
+      ],
+      "owner_boundary": "Owns competition truth and public match claims.",
+      "evidence_status": "Existing repository behavior and published receipts; preserve historical verifier compatibility.",
+      "gates": [
+        "hosted cross-platform CI remains blocked while GitHub Actions is disabled for the account",
+        "external community code requires a stronger independently proven isolation profile"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-proof-ledger",
+      "class": "adapt",
+      "role": "Portable generic execution and artifact attestation.",
+      "capabilities": [
+        "canonical JSON receipts",
+        "Merkle commitments",
+        "HMAC and Ed25519 signatures",
+        "cross-runtime verification",
+        "proof badges and certificates"
+      ],
+      "builderwars_use": [
+        "roster-version receipts",
+        "entrant build receipts",
+        "game-package receipts",
+        "release and artifact attestations"
+      ],
+      "owner_boundary": "Does not replace BuilderWars game-specific adjudication and transcript replay.",
+      "evidence_status": "README-described capabilities; pin an exact commit and run cross-runtime acceptance before adoption.",
+      "gates": [
+        "confirm package distribution paths",
+        "define key custody and signer identity policy",
+        "map generic proof IDs to BuilderWars receipts without conflation"
+      ]
+    },
+    {
+      "repository": "nymrel/agent-sandstorm",
+      "class": "hold",
+      "role": "Candidate external-entrant and creator-game execution substrate.",
+      "capabilities": [
+        "copy-on-write workspaces",
+        "rollback",
+        "egress allowlists",
+        "secret scanning",
+        "step and spend ceilings",
+        "runaway-loop detection",
+        "tamper-evident event logs"
+      ],
+      "builderwars_use": [
+        "untrusted entrant execution",
+        "creator-game validation",
+        "bounded coding competitions",
+        "private enterprise competitions"
+      ],
+      "owner_boundary": "Execution controls only; it does not attest model, provider, person, or competitive identity.",
+      "evidence_status": "Promising implementation claims; no BuilderWars production claim may inherit them without exact hostile-host validation.",
+      "gates": [
+        "verify operating-system confinement on supported hosts",
+        "prove egress enforcement and bypass resistance",
+        "prove CPU memory process and filesystem limits",
+        "verify cleanup of descendants and rollback failure semantics",
+        "independent security review"
+      ]
+    },
+    {
+      "repository": "nymrel/agent-action-surety",
+      "class": "adapt",
+      "role": "Action-policy and authority boundary foundation.",
+      "capabilities": [
+        "action allow and deny policy",
+        "execution interception",
+        "audit trail concepts"
+      ],
+      "builderwars_use": [
+        "entrant permissions",
+        "team tool budgets",
+        "human approval gates",
+        "disallowed action receipts"
+      ],
+      "owner_boundary": "Policy enforcement must remain separate from competitive scoring unless the rules explicitly score violations.",
+      "evidence_status": "Requires exact-version contract review and adversarial acceptance.",
+      "gates": [
+        "define BuilderWars permission vocabulary",
+        "bind policy versions into match receipts",
+        "fail closed on unknown permissions"
+      ]
+    },
+    {
+      "repository": "nymrel/PermitMesh",
+      "class": "reference",
+      "role": "Permission and authorization provenance patterns.",
+      "capabilities": [
+        "permission modeling",
+        "authorization lineage"
+      ],
+      "builderwars_use": [
+        "league operator authority",
+        "team manager permissions",
+        "creator submission roles",
+        "result publication authority"
+      ],
+      "owner_boundary": "Administrative authority is not competitive identity or match evidence.",
+      "evidence_status": "Reference pending interface and maturity review.",
+      "gates": [
+        "avoid duplicate permission systems",
+        "choose one canonical BuilderWars authority contract"
+      ]
+    },
+    {
+      "repository": "nymrel/agent-proofchain",
+      "class": "reference",
+      "role": "Agent action and provenance chain patterns.",
+      "capabilities": [
+        "hash-linked evidence",
+        "agent action provenance"
+      ],
+      "builderwars_use": [
+        "entrant execution evidence",
+        "team coordination receipts",
+        "appeal evidence"
+      ],
+      "owner_boundary": "Must not duplicate the canonical BuilderWars transcript chain or Proof Ledger envelope without a documented composition rule.",
+      "evidence_status": "Reference pending overlap analysis.",
+      "gates": [
+        "identify duplicate primitives",
+        "document one receipt-composition model"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-agent",
+      "class": "adapt",
+      "role": "Explainable model and execution-route eligibility layer.",
+      "capabilities": [
+        "fail-closed eligibility filters",
+        "cost quality and latency objectives",
+        "deterministic explanations",
+        "customer-local execution adapter"
+      ],
+      "builderwars_use": [
+        "budget divisions",
+        "match preparation",
+        "model-plus-harness evaluation cohorts",
+        "operator-local entrant routing"
+      ],
+      "owner_boundary": "Explains routing from caller-supplied facts; it does not certify model or provider identity.",
+      "evidence_status": "Usable foundation after exact adapter and evidence-policy review.",
+      "gates": [
+        "bind resolved model and provider evidence separately",
+        "record retries fallbacks errors and repair cost",
+        "keep production studio routing separate from public competition policy"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-swarm-studio",
+      "class": "reference",
+      "role": "Visual multi-agent roster, topology, intervention, and economics patterns.",
+      "capabilities": [
+        "fleet roster UI",
+        "agent topology",
+        "approval cards",
+        "token economics",
+        "workspace inspection"
+      ],
+      "builderwars_use": [
+        "team composition UI",
+        "coach view",
+        "specialist-agent roles",
+        "operator control room",
+        "broadcast visualization"
+      ],
+      "owner_boundary": "A visual roster is not evidence of the exact match roster; receipts remain authoritative.",
+      "evidence_status": "Reference implementation and design source.",
+      "gates": [
+        "replace illustrative provider and model claims with bound BuilderWars data",
+        "integrate through the canonical entity model"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-swarm-protocol",
+      "class": "adapt",
+      "role": "Candidate team and multi-agent coordination contract.",
+      "capabilities": [
+        "multi-agent coordination concepts",
+        "swarm role and message patterns"
+      ],
+      "builderwars_use": [
+        "team protocols",
+        "specialist roles",
+        "substitution and coordination rules"
+      ],
+      "owner_boundary": "Competition rules decide what coordination is permitted; the protocol does not decide scoring.",
+      "evidence_status": "Requires protocol and adversarial review.",
+      "gates": [
+        "version team coordination contracts",
+        "bound communication channels and budgets",
+        "prevent undeclared side channels"
+      ]
+    },
+    {
+      "repository": "nymrel/presence",
+      "class": "adapt",
+      "role": "Human-attention and intervention receipt rail.",
+      "capabilities": [
+        "pause and resume",
+        "human attach and yield modes",
+        "hash-chained intervention receipts",
+        "closed sensitive-field policy"
+      ],
+      "builderwars_use": [
+        "builder-versus-agent turns",
+        "human coaching",
+        "team substitutions",
+        "approval-dependent competition mechanics"
+      ],
+      "owner_boundary": "Transports attention and intervention state, not answers, credentials, or person identity by default.",
+      "evidence_status": "Useful local-first foundation with known identity and WAN gaps.",
+      "gates": [
+        "bind intervention to an authenticated builder or coach",
+        "define which games permit intervention",
+        "record intervention duration and scope without leaking private input"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-plugin",
+      "class": "adapt",
+      "role": "Developer-host distribution and MCP entry point.",
+      "capabilities": [
+        "ChatGPT app binding",
+        "Codex and Claude plugin manifests",
+        "hosted MCP service",
+        "credential-free public tools"
+      ],
+      "builderwars_use": [
+        "discover games",
+        "inspect standings",
+        "verify receipts",
+        "prepare local entrants",
+        "submit BuilderWars-compatible artifacts"
+      ],
+      "owner_boundary": "Discovery and tooling only; the plugin must not adjudicate or silently publish matches.",
+      "evidence_status": "Existing live host bindings; public directory publication remains a separate proof.",
+      "gates": [
+        "define bounded read-only BuilderWars MCP tools first",
+        "separate private local execution from hosted public tools",
+        "complete host-specific publication evidence"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-mcp-hub",
+      "class": "reference",
+      "role": "Tool aggregation and discovery patterns.",
+      "capabilities": [
+        "MCP tool aggregation",
+        "agent-facing discovery"
+      ],
+      "builderwars_use": [
+        "BuilderWars tool catalog",
+        "game SDK discovery",
+        "verification utilities"
+      ],
+      "owner_boundary": "The hub routes tools; it does not become a second competition source of truth.",
+      "evidence_status": "Reference pending consolidation with nymrel-plugin.",
+      "gates": [
+        "avoid duplicate MCP production endpoints",
+        "choose one canonical hosted tool contract"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-ecosystem-portal",
+      "class": "reference",
+      "role": "Developer showcase and ecosystem information architecture.",
+      "capabilities": [
+        "developer portal",
+        "component catalog",
+        "warm-paper design system",
+        "machine-readable discovery"
+      ],
+      "builderwars_use": [
+        "build portal",
+        "SDK and game documentation",
+        "compatible-tool ecosystem"
+      ],
+      "owner_boundary": "BuilderWars owns its product navigation and competition state; the portal may index it.",
+      "evidence_status": "Reference design and content source.",
+      "gates": [
+        "remove stale or unproven package claims before reuse",
+        "align with BuilderWars canonical entities"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-machine-trust",
+      "class": "reference",
+      "role": "Machine-readable entity and discovery generation.",
+      "capabilities": [
+        "structured entity graphs",
+        "robots and llms orientation"
+      ],
+      "builderwars_use": [
+        "builder pages",
+        "agent pages",
+        "team pages",
+        "game and league pages",
+        "machine-readable competition discovery"
+      ],
+      "owner_boundary": "Structured data reflects accepted BuilderWars records; it does not create evidence.",
+      "evidence_status": "Reference pending schema mapping.",
+      "gates": [
+        "define BuilderWars JSON-LD vocabulary",
+        "avoid unsupported model or provider claims"
+      ]
+    },
+    {
+      "repository": "nymrel/nymrel-trust-scorecard",
+      "class": "reference",
+      "role": "Scorecard, badge, remediation, and shareable-audit UI patterns.",
+      "capabilities": [
+        "dimension scorecards",
+        "SVG badges",
+        "shareable URLs",
+        "structured remediation UI"
+      ],
+      "builderwars_use": [
+        "game quality scorecards",
+        "entrant readiness reports",
+        "team and rules audits",
+        "verified badges"
+      ],
+      "owner_boundary": "Game popularity, quality, and competitive standings require separate dimensions.",
+      "evidence_status": "Reference UI and scoring patterns only.",
+      "gates": [
+        "do not reduce multidimensional competition quality to one misleading score",
+        "derive every badge from accepted evidence"
+      ]
+    },
+    {
+      "repository": "nymrel/local-agent-forge",
+      "class": "adapt",
+      "role": "Customer-owned local and open-model execution lane.",
+      "capabilities": [
+        "local model orchestration concepts",
+        "local GPU and MCP integration"
+      ],
+      "builderwars_use": [
+        "zero-cost local exhibitions",
+        "open-model entrants",
+        "customer-local matches"
+      ],
+      "owner_boundary": "Local execution does not independently attest model identity or reproduce stochastic outputs.",
+      "evidence_status": "Requires exact executable-route validation.",
+      "gates": [
+        "bind resolved local model digest and runtime metadata",
+        "record fallback use",
+        "keep secrets and model weights in customer custody"
+      ]
+    },
+    {
+      "repository": "nymrel/token-spend-dashboard",
+      "class": "reference",
+      "role": "Cost accounting and visualization patterns.",
+      "capabilities": [
+        "token and spend summaries",
+        "cost visualization"
+      ],
+      "builderwars_use": [
+        "budget divisions",
+        "cost-per-accepted-result",
+        "team spend limits",
+        "evaluation cohorts"
+      ],
+      "owner_boundary": "Cost is one dimension and must not replace acceptance, reliability, or competitive outcome evidence.",
+      "evidence_status": "Reference pending receipt integration.",
+      "gates": [
+        "use provider-reported and independently reconciled fields",
+        "count retries fallbacks and repairs",
+        "separate private raw receipts from public aggregates"
+      ]
+    },
+    {
+      "repository": "nymrel/open-ucp",
+      "class": "hold",
+      "role": "Future commerce and machine-payment rail.",
+      "capabilities": [
+        "agent commerce contracts",
+        "x402 and UCP concepts"
+      ],
+      "builderwars_use": [
+        "later creator payouts",
+        "private leagues",
+        "sponsorship fulfillment",
+        "paid APIs",
+        "optional agent-to-agent commerce"
+      ],
+      "owner_boundary": "Commerce must remain downstream of competition integrity, legal review, age and jurisdiction controls, and explicit operator approval.",
+      "evidence_status": "Not part of the initial competition release.",
+      "gates": [
+        "prove demand before adding payment complexity",
+        "legal and tax review",
+        "separate prizes and entry fees from prohibited gambling mechanics",
+        "explicit payment and payout authorization"
+      ]
+    }
+  ],
+  "studio_assets": [
+    {
+      "source": "DraftADynasty",
+      "class": "adapt",
+      "builderwars_use": [
+        "fantasy roster construction",
+        "player and team valuation",
+        "standings",
+        "trades",
+        "sports intelligence"
+      ],
+      "boundary": "Live sports data and rights are separate from immutable fictional replay fixtures."
+    },
+    {
+      "source": "Swingers Golf Club tournament stack",
+      "class": "reference",
+      "builderwars_use": [
+        "team registration",
+        "tournament operations",
+        "sponsor and event workflows"
+      ],
+      "boundary": "Reuse generic tournament infrastructure, not customer-specific branding or private data."
+    },
+    {
+      "source": "Nymrel web and release infrastructure",
+      "class": "adapt",
+      "builderwars_use": [
+        "public site",
+        "canonical metadata",
+        "deployment verification",
+        "analytics privacy gates",
+        "release receipts"
+      ],
+      "boundary": "builderwars.com becomes canonical only after exact production and redirect verification."
+    },
+    {
+      "source": "Nymrel mobile distribution experience",
+      "class": "reference",
+      "builderwars_use": [
+        "spectator app",
+        "notifications",
+        "team and match following",
+        "mobile creator tools"
+      ],
+      "boundary": "Mobile follows a proven web loop rather than delaying the first release."
+    }
+  ],
+  "integration_rules": [
+    "BuilderWars owns competition truth, games, rules versions, matches, standings, teams, and public spectator claims.",
+    "Proof Ledger may attest generic builds and artifacts but does not replace game-specific replay.",
+    "Execution-safety components may be claimed only to the exact controls independently proven on the target host.",
+    "Routing components explain selection but do not certify model or provider identity.",
+    "Human-intervention systems transport attention and state, not answers or credentials.",
+    "Discovery surfaces and plugins never silently adjudicate, rank, publish, or spend.",
+    "Every adopted component requires an exact version pin, contract tests, owner, failure semantics, and a documented rollback path.",
+    "New work should increase the reusable Nymrel asset base rather than create BuilderWars-only dead ends."
+  ],
+  "next_required_artifacts": [
+    "canonical BuilderWars entity contract",
+    "component version and acceptance ledger",
+    "first public vertical-slice release contract",
+    "external entrant threat model and host acceptance matrix",
+    "creator-game submission and ranking contract",
+    "domain cutover and rollback receipt"
+  ]
+}
