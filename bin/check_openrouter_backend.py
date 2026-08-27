@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline checks for the OpenRouter entrant backend; no network or key needed."""
+"""Offline checks for the OpenRouter entrant path; no network or key needed."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from entrants.openrouter_backend import OpenRouterBackend  # noqa: E402
+from entrants.openrouter_fantasy_harness import decide as decide_fantasy  # noqa: E402
 
 
 class FakeResponse:
@@ -135,7 +136,63 @@ def main():
     else:
         raise AssertionError("HTTP failure did not fail closed")
 
-    print("openrouter backend checks: PASS (routing, privacy, receipts, cost, negative cases)")
+    observation = {
+        "format": "redraft",
+        "round": 1,
+        "needs": {"QB": 1, "RB": 1},
+        "your_roster": [],
+        "opponent_roster": [],
+        "available_players": [
+            {
+                "id": 12,
+                "name": "Alpha QB",
+                "position": "QB",
+                "redraft_points": 300,
+                "dynasty_points": 250,
+                "age": 25,
+            },
+            {
+                "id": 13,
+                "name": "Beta RB",
+                "position": "RB",
+                "redraft_points": 250,
+                "dynasty_points": 280,
+                "age": 23,
+            },
+        ],
+    }
+
+    class GoodHarnessBackend:
+        def complete(self, prompt):
+            require("legal_players" in prompt, "harness prompt omitted the legal board")
+            return '{"player_id":12}'
+
+        def receipt_note(self):
+            return "or_cost_credits=1e-05;or_total_tokens=40"
+
+    move, note = decide_fantasy(observation, "win-now", GoodHarnessBackend())
+    require(move == {"player_id": 12}, "harness rejected a legal model move")
+    require(note.startswith("source=model;"), "harness did not record model source")
+    require("or_cost_credits=1e-05" in note, "harness omitted the sanitized receipt")
+
+    class BrokenHarnessBackend:
+        def complete(self, _prompt):
+            raise RuntimeError("blocked")
+
+        def receipt_note(self):
+            return ""
+
+    move, note = decide_fantasy(observation, "win-now", BrokenHarnessBackend())
+    require(move == {"player_id": 12}, "deterministic fallback changed")
+    require(
+        note.startswith("source=fallback;reason=backend_error:RuntimeError"),
+        "harness did not record backend fallback",
+    )
+
+    print(
+        "openrouter entrant checks: PASS "
+        "(routing, privacy, receipts, cost, harness, fallback, negative cases)"
+    )
     return 0
 
 
