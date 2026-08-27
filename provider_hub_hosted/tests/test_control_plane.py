@@ -615,6 +615,59 @@ class HostedControlPlaneTests(unittest.TestCase):
         self.assertEqual(conflict_error.exception.code, "result_conflict")
         self.assertEqual(self.store.row_counts()["results"], 1)
 
+    def test_result_requires_the_jobs_current_runner_binding(self):
+        paired = self.pair()
+        replacement = self.pair(label="Replacement runner")
+        self.control.create_fixture_job(self.owner, paired["runner_id"], now=self.now)
+        polled = self.control.poll(
+            self.signed(paired, path=MATCH_JOB_POLL_PATH, body=MATCH_JOB_POLL_BODY),
+            now=self.now,
+        )
+        grant = validate_poll_response(
+            dict(polled.payload),
+            profile=paired["profile"],
+            request_body_sha256=hashlib.sha256(MATCH_JOB_POLL_BODY).hexdigest(),
+        )
+        self.assertIsInstance(grant, FixtureGrant)
+        computation = compute_closed_fixture(grant)
+        result_body = encode_result_request(grant, computation)
+
+        connection = sqlite3.connect(self.database)
+        try:
+            connection.execute(
+                "UPDATE jobs SET runner_id = ? WHERE job_id = ?",
+                (replacement["runner_id"], grant.job.job_id),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        with self.assertRaises(HostedStoreError) as stale_runner:
+            self.control.result(
+                self.signed(paired, path=MATCH_JOB_RESULT_PATH, body=result_body),
+                now=self.now,
+            )
+        self.assertEqual(stale_runner.exception.code, "lease_inactive")
+        self.assertEqual(self.store.row_counts()["results"], 0)
+        self.assertEqual(self.store.row_counts()["replay_projections"], 0)
+
+    def test_corrupt_public_projection_uses_the_store_error_contract(self):
+        paired = self.pair()
+        grant = self.complete_job(paired, self.owner, now=self.now)
+        connection = sqlite3.connect(self.database)
+        try:
+            connection.execute(
+                "UPDATE replay_projections SET payload_json = ? WHERE job_id = ?",
+                ("{not-json", grant.job.job_id),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        with self.assertRaises(HostedStoreError) as corrupt:
+            self.store.get_public_projection(grant.job.job_id)
+        self.assertEqual(corrupt.exception.code, "projection_corrupt")
+
     def test_mismatch_is_recorded_and_foreign_late_or_abandoned_results_are_refused(self):
         paired = self.pair()
         foreign = self.pair(owner=self.other_owner, label="Foreign runner")

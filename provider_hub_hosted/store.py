@@ -1153,21 +1153,38 @@ class HostedControlPlaneStore:
             if existing is not None:
                 if not hmac.compare_digest(existing["job_runner_id"], runner_id):
                     raise HostedStoreError("lease_inactive", "match lease is not active")
-                supplied = (
-                    attempt_id, lease_epoch, engine_sha256, output_sha256, transcript_sha256
+                duplicate_matches = (
+                    lease_epoch == existing["lease_epoch"]
+                    and hmac.compare_digest(attempt_id, existing["attempt_id"])
+                    and hmac.compare_digest(engine_sha256, existing["engine_sha256"])
+                    and hmac.compare_digest(output_sha256, existing["output_sha256"])
+                    and hmac.compare_digest(transcript_sha256, existing["transcript_sha256"])
                 )
-                recorded = (
-                    existing["attempt_id"], existing["lease_epoch"], existing["engine_sha256"],
-                    existing["output_sha256"], existing["transcript_sha256"],
-                )
-                if supplied != recorded:
+                if not duplicate_matches:
                     raise HostedStoreError("result_conflict", "job already has a different result")
                 return ResultRecord(True, self._public_result_from_result_row(existing))
 
             row = connection.execute(
-                """SELECT a.*, j.* FROM attempts a JOIN jobs j ON j.job_id = a.job_id
-                   WHERE a.attempt_id = ? AND a.job_id = ? AND a.runner_id = ? AND a.lease_epoch = ?""",
-                (attempt_id, job_id, runner_id, lease_epoch),
+                """SELECT
+                       a.attempt_id,
+                       a.job_id,
+                       a.lease_epoch,
+                       a.state,
+                       a.lease_expires_at_ms,
+                       j.status,
+                       j.engine_id,
+                       j.engine_sha256,
+                       j.ruleset_id,
+                       j.rules_sha256,
+                       j.input_sha256,
+                       j.input_bytes_base64url
+                   FROM attempts a JOIN jobs j ON j.job_id = a.job_id
+                   WHERE a.attempt_id = ?
+                     AND a.job_id = ?
+                     AND a.runner_id = ?
+                     AND a.lease_epoch = ?
+                     AND j.runner_id = ?""",
+                (attempt_id, job_id, runner_id, lease_epoch, runner_id),
             ).fetchone()
             if row is None or row["state"] != "active" or row["status"] != "leased":
                 raise HostedStoreError("lease_inactive", "match lease is not active")
@@ -1300,7 +1317,10 @@ class HostedControlPlaneStore:
             ).fetchone()
         if row is None:
             return None
-        value = json.loads(row["payload_json"])
+        try:
+            value = json.loads(row["payload_json"])
+        except (TypeError, ValueError):
+            raise HostedStoreError("projection_corrupt", "public projection is invalid") from None
         if not isinstance(value, dict):
             raise HostedStoreError("projection_corrupt", "public projection is invalid")
         return value
