@@ -208,6 +208,10 @@ class ResultRecord:
 def validate_owner_id(value: str) -> str:
     if not isinstance(value, str) or _OWNER_ID_RE.fullmatch(value) is None:
         raise HostedStoreError("invalid_owner", "owner id is invalid")
+    try:
+        _decode_base64url(value.removeprefix("awu1_"), 16, "owner id")
+    except HostedStoreError as error:
+        raise HostedStoreError("invalid_owner", "owner id is invalid") from error
     return value
 
 
@@ -340,7 +344,15 @@ class HostedControlPlaneStore:
                 self._connection.rollback()
                 raise
             else:
-                self._connection.commit()
+                try:
+                    self._connection.commit()
+                except BaseException:
+                    with contextlib.suppress(sqlite3.Error):
+                        self._connection.rollback()
+                    raise
+
+    def _now_ms(self, now: dt.datetime | None) -> int:
+        return _epoch_ms(self._clock() if now is None else now)
 
     def _migrate(self) -> None:
         schema = """
@@ -478,7 +490,7 @@ class HostedControlPlaneStore:
         owner_id = validate_owner_id(owner_id)
         if type(ttl_seconds) is not int or not 60 <= ttl_seconds <= PAIRING_TTL_SECONDS:
             raise HostedStoreError("invalid_ttl", "pairing ttl must be between 60 and 600 seconds")
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
         expires_ms = now_ms + ttl_seconds * 1000
         for _ in range(8):
             challenge_id = self._new_token()
@@ -535,7 +547,7 @@ class HostedControlPlaneStore:
         secret_sha256 = _pairing_secret_digest(validated["pairingSecret"])
         public_key, fingerprint = _public_key_and_fingerprint(validated["publicKey"])
         claim_sha256 = _canonical_claim_digest(validated, secret_sha256)
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
 
         deferred_error: HostedStoreError | None = None
         status: str | None = None
@@ -620,7 +632,7 @@ class HostedControlPlaneStore:
             raise HostedStoreError("invalid_challenge", "challenge id is invalid") from error
         if type(approved) is not bool:
             raise HostedStoreError("invalid_decision", "pairing decision must be boolean")
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
         deferred_error: HostedStoreError | None = None
         with self._transaction() as connection:
             row = connection.execute(
@@ -737,7 +749,7 @@ class HostedControlPlaneStore:
             runner_id = validate_runner_id(runner_id)
         except ValueError as error:
             raise HostedStoreError("invalid_runner", "runner id is invalid") from error
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
         expired = False
         with self._transaction() as connection:
             row = connection.execute(
@@ -877,7 +889,7 @@ class HostedControlPlaneStore:
             harness_digest=runner.harness_digest,
             seed=seed,
         )
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
         for _ in range(8):
             job_id = self._new_token("awj1_")
             try:
@@ -956,7 +968,7 @@ class HostedControlPlaneStore:
             raise HostedStoreError("invalid_runner", "runner id is invalid") from error
         if type(lease_seconds) is not int or not 5 <= lease_seconds <= 300:
             raise HostedStoreError("invalid_lease", "lease duration must be between 5 and 300 seconds")
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
         with self._transaction() as connection:
             runner = connection.execute(
                 "SELECT state FROM runners WHERE runner_id = ?", (runner_id,)
@@ -1075,7 +1087,7 @@ class HostedControlPlaneStore:
             raise HostedStoreError("invalid_epoch", "lease epoch is invalid")
         if type(lease_seconds) is not int or not 5 <= lease_seconds <= 300:
             raise HostedStoreError("invalid_lease", "lease duration is invalid")
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
         with self._transaction() as connection:
             runner = connection.execute("SELECT state FROM runners WHERE runner_id = ?", (runner_id,)).fetchone()
             if runner is None or runner["state"] != "active":
@@ -1125,7 +1137,7 @@ class HostedControlPlaneStore:
         _validate_token(attempt_id, _ATTEMPT_ID_RE, "attempt id")
         if type(lease_epoch) is not int or not 1 <= lease_epoch <= MATCH_JOB_MAX_ATTEMPTS:
             raise HostedStoreError("invalid_epoch", "lease epoch is invalid")
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
         expired = False
         with self._transaction() as connection:
             runner = connection.execute(
@@ -1179,7 +1191,7 @@ class HostedControlPlaneStore:
         engine_sha256 = _digest(engine_sha256, "engine digest")
         output_sha256 = _digest(output_sha256, "output digest")
         transcript_sha256 = _digest(transcript_sha256, "transcript digest")
-        now_ms = _epoch_ms(now)
+        now_ms = self._now_ms(now)
         expired = False
         with self._transaction() as connection:
             runner = connection.execute(

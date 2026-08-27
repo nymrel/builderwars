@@ -70,6 +70,26 @@ class MutableClock:
         return self.current
 
 
+class CommitFailsOnceConnection:
+    def __init__(self, connection: sqlite3.Connection):
+        self.connection = connection
+        self.rollback_calls = 0
+        self.should_fail = True
+
+    def __getattr__(self, name):
+        return getattr(self.connection, name)
+
+    def commit(self):
+        if self.should_fail:
+            self.should_fail = False
+            raise sqlite3.OperationalError("injected commit failure")
+        return self.connection.commit()
+
+    def rollback(self):
+        self.rollback_calls += 1
+        return self.connection.rollback()
+
+
 def owner_id(byte: int) -> str:
     return "awu1_" + base64url_no_pad(bytes([byte]) * 16)
 
@@ -228,6 +248,52 @@ class HostedControlPlaneTests(unittest.TestCase):
             now=now,
         )
         return grant
+
+    def test_injected_clock_is_used_when_now_is_omitted(self):
+        observed = self.now + dt.timedelta(days=2, milliseconds=123)
+        self.clock.current = observed
+
+        created = self.control.create_pairing(self.owner)
+
+        expected_expiry = observed + dt.timedelta(seconds=600)
+        self.assertEqual(created.payload["expiresAt"], canonical_instant(expected_expiry))
+        inspection = sqlite3.connect(self.database)
+        try:
+            stored_created_at_ms = inspection.execute(
+                "SELECT created_at_ms FROM pairing_challenges WHERE challenge_id = ?",
+                (created.payload["challengeId"],),
+            ).fetchone()[0]
+        finally:
+            inspection.close()
+        self.assertEqual(stored_created_at_ms, int(observed.timestamp() * 1000))
+
+    def test_noncanonical_owner_id_is_rejected_without_persistence(self):
+        canonical = owner_id(3)
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        final_index = alphabet.index(canonical[-1])
+        self.assertEqual(final_index % 4, 0)
+        noncanonical = canonical[:-1] + alphabet[final_index + 1]
+
+        with self.assertRaises(HostedStoreError) as refused:
+            self.control.create_pairing(noncanonical, now=self.now)
+
+        self.assertEqual(refused.exception.code, "invalid_owner")
+        self.assertEqual(self.store.row_counts()["owners"], 0)
+        self.assertEqual(self.store.row_counts()["pairing_challenges"], 0)
+
+    def test_commit_failure_rolls_back_and_connection_remains_usable(self):
+        failing = CommitFailsOnceConnection(self.store._connection)
+        self.store._connection = failing
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "injected commit failure"):
+            self.control.create_pairing(self.owner, now=self.now)
+
+        self.assertEqual(failing.rollback_calls, 1)
+        self.assertEqual(self.store.row_counts()["owners"], 0)
+        self.assertEqual(self.store.row_counts()["pairing_challenges"], 0)
+        created = self.control.create_pairing(self.owner, now=self.now)
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(self.store.row_counts()["pairing_challenges"], 1)
 
     def test_full_pair_probe_job_result_projection_and_delete(self):
         paired = self.pair()
