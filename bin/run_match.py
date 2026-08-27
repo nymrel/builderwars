@@ -6,9 +6,15 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
 from arena.match import run_match  # noqa: E402
+from entrant_admission import (  # noqa: E402
+    EntrantAdmissionError,
+    require_entry_admission,
+    unconfined_warning,
+)
 from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 
@@ -34,15 +40,37 @@ def main():
     ap.add_argument("--backend", default="stub:v1", help="backend spec handed to both entrants")
     ap.add_argument("--out", default="matches")
     ap.add_argument("--timeout", type=float, default=15.0)
+    ap.add_argument(
+        "--allow-unconfined-entrants",
+        action="store_true",
+        help=(
+            "explicitly admit entrant files outside the repository's entrants/ directory; "
+            "v1 does not confine their network, filesystem, CPU, or memory access"
+        ),
+    )
     args = ap.parse_args()
 
     if len(args.entrant) != 2:
         ap.error("pass --entrant exactly twice")
 
+    try:
+        admission = require_entry_admission(
+            args.entrant,
+            repository_root=ROOT,
+            allow_unconfined=args.allow_unconfined_entrants,
+        )
+    except EntrantAdmissionError as exc:
+        ap.error(str(exc))
+
+    warning = unconfined_warning(admission)
+    if warning:
+        print(warning, file=sys.stderr)
+
+    entrant_paths = [record["path"] for record in admission]
     result = run_match(
         game_name=args.game,
         seed=args.seed,
-        entrants=[manifest(p, args.backend) for p in args.entrant],
+        entrants=[manifest(path, args.backend) for path in entrant_paths],
         out_dir=args.out,
         move_timeout_s=args.timeout,
     )
