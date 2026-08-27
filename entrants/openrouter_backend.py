@@ -9,6 +9,7 @@ in the receipt.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import urllib.error
@@ -41,6 +42,34 @@ def _usage_int(usage: object, key: str) -> Optional[int]:
     if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
         return value
     return None
+
+
+def _usage_number(usage: object, key: str) -> Optional[float]:
+    if not isinstance(usage, dict):
+        return None
+    value = usage.get(key)
+    if (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value >= 0
+    ):
+        return float(value)
+    return None
+
+
+def _usage_detail_int(usage: object, group: str, key: str) -> Optional[int]:
+    if not isinstance(usage, dict):
+        return None
+    details = usage.get(group)
+    return _usage_int(details, key)
+
+
+def _usage_detail_number(usage: object, group: str, key: str) -> Optional[float]:
+    if not isinstance(usage, dict):
+        return None
+    details = usage.get(group)
+    return _usage_number(details, key)
 
 
 def _extract_text(payload: object) -> str:
@@ -117,6 +146,7 @@ class OpenRouterBackend:
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": self.max_tokens,
+            "temperature": 0,
             "provider": {
                 "only": list(self.provider_only),
                 "allow_fallbacks": False,
@@ -136,8 +166,22 @@ class OpenRouterBackend:
             "prompt_tokens": _usage_int(usage, "prompt_tokens"),
             "completion_tokens": _usage_int(usage, "completion_tokens"),
             "total_tokens": _usage_int(usage, "total_tokens"),
+            "reasoning_tokens": _usage_detail_int(
+                usage, "completion_tokens_details", "reasoning_tokens"
+            ),
+            "cached_tokens": _usage_detail_int(
+                usage, "prompt_tokens_details", "cached_tokens"
+            ),
+            "cache_write_tokens": _usage_detail_int(
+                usage, "prompt_tokens_details", "cache_write_tokens"
+            ),
+            "cost_credits": _usage_number(usage, "cost"),
+            "upstream_inference_cost": _usage_detail_number(
+                usage, "cost_details", "upstream_inference_cost"
+            ),
             "provider_only": list(self.provider_only),
             "allow_fallbacks": False,
+            "temperature": 0,
             "data_collection": "deny",
             "zdr": True,
         }
@@ -147,7 +191,18 @@ class OpenRouterBackend:
         if not isinstance(receipt, dict):
             return ""
         fields = []
-        for key in ("resolved_model", "reported_provider", "prompt_tokens", "completion_tokens", "total_tokens"):
+        for key in (
+            "resolved_model",
+            "reported_provider",
+            "prompt_tokens",
+            "completion_tokens",
+            "total_tokens",
+            "reasoning_tokens",
+            "cached_tokens",
+            "cache_write_tokens",
+            "cost_credits",
+            "upstream_inference_cost",
+        ):
             value = receipt.get(key)
             if value is not None:
                 fields.append(f"or_{key}={value}")
