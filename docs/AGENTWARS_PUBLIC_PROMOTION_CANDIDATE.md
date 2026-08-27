@@ -116,14 +116,74 @@ has no sequence, keeps `titleEligible:false`, and remains
 `eligible_for_review`. A source-control reviewer must assign the next contiguous
 sequence and explicitly choose either `approved_for_publication` or `held`.
 
+## Stage the separately reviewed source decision
+
+Do not run this step merely because candidate preparation succeeded. First
+inspect the private export, all four candidate files, and the candidate digest.
+Use a fresh claimed BuilderWars worktree at the exact reviewed commit. The
+read-only state command returns only the full source SHA, clean/dirty count,
+publication-manifest SHA-256, and protected generated-tree digest:
+
+```bash
+python -B bin/apply_publication_candidate.py --inspect-protected-state-v1
+```
+
+If the reviewer explicitly selects a decision, bind those exact values again:
+
+```bash
+python -B bin/apply_publication_candidate.py \
+  --candidate-dir PATH_TO_EXACT_EXTERNAL_CANDIDATE_DIRECTORY \
+  --expected-candidate-digest FULL_CANDIDATE_SHA256 \
+  --expected-head FULL_REVIEWED_BUILDERWARS_GIT_SHA \
+  --expected-manifest-sha256 FULL_CURRENT_MANIFEST_SHA256 \
+  --expected-generated-tree-digest FULL_CURRENT_GENERATED_TREE_DIGEST \
+  --decision approved_for_publication \
+  --label "REVIEWED_SOURCE_DECISION_LABEL" \
+  --source-control-decision-v1 \
+  --title-ineligible-v1 \
+  --no-generated-artifact-mutation-v1 \
+  --no-deploy-v1
+```
+
+`--decision held` is the only other accepted decision. The tool never accepts
+`eligible_for_review` as the final source decision and always forces
+`titleEligible:false`. It requires the four-file candidate outside the repo,
+direct regular files, canonical JSON, the exact candidate digest, false
+offline-origin and identity attestations, a current-engine replay PASS, exact
+projection/source counts, only self-declared model moves, a clean exact source
+head, and unchanged protected hashes. A byte-identical orphan transcript can
+resume after response loss. One exclusive lock in the repository's common Git
+directory serializes decisions across worktrees; concurrent invocation and any
+other dirty or conflicting state fail closed.
+
+The inspect response includes `sourceDecisionLockPresent`. A live lock contains
+only the schema version and owning process id. If a process is killed mid-step,
+do not auto-delete the marker: first prove that exact process is absent, verify
+the marker is one regular file in the repository's common Git directory, and
+inspect the source and manifest state before removing only that stale marker.
+Then rerun inspect and the digest-bound command; its orphan/idempotency rules
+decide whether staging may resume.
+
+The command stages only:
+
+1. the byte-exact transcript at the candidate's constrained
+   `matches/agentwars-review-candidates/...` path; and
+2. one next-contiguous source manifest row with the explicit reviewed decision.
+
+It does not rebuild `publishing/agentwars-public-v1`, create public bytes,
+commit, deploy, rank, contact a provider, or prove the unsigned export's server
+or reviewer origin. Its successful status is
+`source_decision_staged_not_built`; an exact response-loss rerun returns
+`source_decision_already_staged_not_built`.
+
 ## Separate release actions
 
 A candidate does not change the public corpus. Promotion remains a reviewed
 multi-stage release:
 
 1. Independently inspect the candidate and private export.
-2. In a separately claimed write lane, copy the exact transcript to the
-   suggested safe `matches/` path and add a reviewed manifest entry.
+2. In a separately claimed write lane, run the digest-bound source-decision
+   command above and review its exact transcript plus manifest diff.
 3. Run the complete product checks and commit that source decision.
 4. In a separate clean lane, regenerate the public artifact so
    `buildIntegrity.sourceCommit` names the accepted source commit.
@@ -145,4 +205,13 @@ and protected-artifact non-mutation:
 
 ```bash
 python -B bin/check_publication_candidate.py
+python -B bin/check_publication_source_decision.py
 ```
+
+The source-decision checker uses only temporary Git repositories and never
+applies its fixture candidate to the real publication manifest or generated
+artifact tree. It covers both decisions, response-loss idempotency, exact orphan
+resume, exclusive-lock contention, stale source/manifest/artifact commitments,
+dirty worktrees, ignored source targets, candidate and projection tampering,
+path traversal, identity collisions, conflicting pre-existing bytes, missing
+acknowledgements, and protected-artifact non-mutation.

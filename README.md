@@ -377,6 +377,38 @@ reviewed source commit must explicitly choose `approved_for_publication` or
 `held`. Full contract:
 [`docs/AGENTWARS_PUBLIC_PROMOTION_CANDIDATE.md`](docs/AGENTWARS_PUBLIC_PROMOTION_CANDIDATE.md).
 
+After that separate review, inspect the clean source state and bind every input
+again before staging the source decision:
+
+```bash
+python -B bin/apply_publication_candidate.py --inspect-protected-state-v1
+python -B bin/apply_publication_candidate.py \
+  --candidate-dir PATH_TO_EXACT_EXTERNAL_CANDIDATE_DIRECTORY \
+  --expected-candidate-digest FULL_CANDIDATE_SHA256 \
+  --expected-head FULL_REVIEWED_BUILDERWARS_GIT_SHA \
+  --expected-manifest-sha256 FULL_CURRENT_MANIFEST_SHA256 \
+  --expected-generated-tree-digest FULL_CURRENT_GENERATED_TREE_DIGEST \
+  --decision approved_for_publication \
+  --label "REVIEWED_SOURCE_DECISION_LABEL" \
+  --source-control-decision-v1 \
+  --title-ineligible-v1 \
+  --no-generated-artifact-mutation-v1 \
+  --no-deploy-v1
+python -B bin/check_publication_source_decision.py
+```
+
+That second command independently replays the candidate again and stages only
+the byte-exact transcript plus one contiguous, title-ineligible manifest row.
+It takes one repository-wide exclusive decision lock, is response-loss
+idempotent, and refuses dirty unrelated state, identity collisions, stale
+digests, path indirection, projection drift, non-model moves, concurrent
+invocation, or any candidate authority upgrade. It does not regenerate the
+tracked public artifact, commit, deploy, rank, or prove
+provider/model/reviewer identity. The truthful terminal state is
+`source_decision_staged_not_built`. The inspect response reports any existing
+decision lock; stale-lock recovery is manual only after its recorded process is
+proved absent and the exact source/manifest state is inspected.
+
 ### Turn a receipt into a verified moment
 
 Every match whose exact referee snapshot is embedded and replay-verifies can
