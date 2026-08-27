@@ -2,7 +2,7 @@
 
 - task_id: `codex-builderwars-claude-local-cli-v3-20260827`
 - owner: `codex`
-- status: `local_validation_passed_pending_exact_head_ox_max_review`
+- status: `accepted_exact_head_ox_max_reviews_pending_docs_only_receipt_commit`
 - claim_id: `codex-builderwars-claude-local-cli-v3-20260827`
 - branch: `codex/agentwars-launch-integration-20260825`
 - base_commit: `a99393c461c02794f2ed3b2ffe5523aac418590e`
@@ -14,5 +14,23 @@
 - protected_gate: public enablement still requires recorded acceptance of applicable Anthropic Commercial Terms and branding conditions plus fresh exact-head independent review
 - validation: focused hostile adapter tests, provider-hub and cross-provider gates, competition/source/prepared evidence gates, runner bundle build/verify, master offline verification, no-network scans, diff check, fresh Ox Alpha MAX exact-head review
 - local_results: provider hub full ladder pass; cross-provider 303; runner 158; competition evidence 85; source preparation 54; prepared match 118; publication candidate 36 with one Windows symlink capability skip; runner bundle 42; provider/network calls 0 in these gates; installed Claude Code 2.1.219 version/help-only probe confirms the containment flags it lists, while the current official CLI reference explicitly documents `--max-turns` and notes that `claude --help` is not exhaustive
-- current_stop: this file travels with the candidate commit; the resulting exact head is not yet independently reviewed, integrated, released, deployed, terms/branding-accepted, or live-account tested; fresh exact-head Ox Alpha MAX review remains required
+- current_stop: exact-head Ox Alpha Max source review is accepted; the candidate is integrated locally into the Nymrel branch but remains unmerged, unreleased, undeployed, terms/branding-unaccepted, and not live-account tested
 - truth_boundary: code and offline subprocess mocks can prove the command/custody/fail-closed contract only; they do not prove a Claude account, subscription, entitlement, model, provider response, billing path, commercial-terms acceptance, production match, or launch
+
+## Accepted exact-head Ox Alpha Max reviews
+
+- source_reviewed_commit: `8f3c483ca907f17782624f534990e3e106c3b6b4`
+- acceptance_contract: every accepted run used the brokered `opencode-go/glm-5.3-flash` `max` route with fallback disabled, one explicit mandatory evidence path, zero tool calls, unchanged Git head/index, passed process cleanup, and a released provider seat
+- aggregate_verdict: seven focused reviews returned `PASS` with `P0/P1 FINDINGS: none`
+- customer_local_backend: path `entrants/backends.py`; file SHA-256 `eeb2298d133bd65d38fe50b6f1cc963917b7abbea3cf03f827ddaa4b879da944`; run `5a08bee8-d8df-4641-80aa-8eb68ed0351d`; receipt SHA-256 `29dc576b07da06bb84858d26cfbe0c2ec8b1ba39734b30249be37bdc67d5e7f3`; output SHA-256 `c5f5dc359ffc6a50ca9cc3d5a7bd41072bd26455c73859ac47e2902b63af46f6`
+- provider_catalog: path `provider_hub/catalog.py`; file SHA-256 `c883b30487afc8f23de754f71afda6805f75c3c7141b2e957662cf051fb15346`; run `e71537b7-6e50-4258-b444-1b0c03db9fe9`; receipt SHA-256 `02ae7b5ff8938675fe3a5a172f303379a866006cd9c0eca21f13e7d1bc6cf3b0`; output SHA-256 `7ef6357afd9c67f46b6e8599f75afe2a03c26d80b3e3f2b44794c8536d3ad968`
+- competition_evidence_job: path `competitions/evidence_job.py`; file SHA-256 `b36d67248b1e253649898c3c3e73c33b14e2471c539a71f60a35bd8299431ea6`; run `0f8947a1-042a-49b1-b1db-21452f821ce6`; receipt SHA-256 `24293181c45a5aa9fdf56b8f2815f51c0a02711a6faa87f13668dd0de550e873`; output SHA-256 `240ce5eaf3071247064708eb8e7eb3656715553ddd7791eabeebba4549002d44`
+- prepared_match: path `competitions/prepared_match.py`; file SHA-256 `de93946eb0a7adc949b5f2473eccac6b30a5bc6e9d0004497bc0d4c852e5a087`; run `50d2ed78-d219-4baf-bfcb-044c7449ac4c`; receipt SHA-256 `a460db8fde2cccfc884b29cd46b18546ec59a60930533e1a7eb018629fbea479`; output SHA-256 `95a3de59796ce062f0d6e41b698243664778398d3efed70cb7079a09a3ec8b66`
+- offline_runner_bundle_verifier: path `bin/verify_agentwars_runner_bundle.py`; file SHA-256 `4619a1cdc06c7dcd34789891d21b34177e8f1b0d6140a73a381ac82ca323cdd5`; run `e594dde8-bd49-4abc-b579-ef1b473d6f5a`; receipt SHA-256 `ea2eb8303aedb54bb7a8a762b763557e6dbba24f192c6a71dc80370e1babc216`; output SHA-256 `0372926d3c16861d45b1cab21ae73fbec4ac36b726bbf48d557b70c0b6d31502`
+- customer_local_cross_provider_runtime: path `bin/run_agentwars_cross_provider_match.py`; file SHA-256 `3a8c305d90836c551bf532252877fc56eb8ef7dc3540cd0b76bf988a88c8b8de`; run `ecb49d11-6bab-4519-a067-578b76b2522d`; receipt SHA-256 `73982026d2bdc9a608a158d8c8af48eab1b4a1faf63d61acc1128a034a959b72`; output SHA-256 `d1b3d1517b9bac4ef576bb50403c3122c6f37d42283762341ec20b4866f09172`
+- public_projection_truth: path `publishing/projection.py`; file SHA-256 `791da7390e2f914833405269deb725a61603fc574f00e6ba111e55dd1862b40d`; run `93243106-a2a8-4b6a-b9e7-fe9ca03eb24e`; receipt SHA-256 `a6984aea622ba75a38f558ed324d4a0f8898a2ff607c676e939b8f34d59ee1e9`; output SHA-256 `07e00aa18f363facda50f2accdebf733046a592ed851429a35c50dc7d1538ccd`
+- lower_severity_advisories: legacy non-Claude entrant environment inheritance and post-buffer output limiting; lazy catalog freeze validation and redundant custody copying; theoretical bool/int move-source equality; prepared-match cross-file assumptions; offline-bundle self-binding and downstream overreading risks; Windows path/no-follow portability and local argparse stderr; public-projection unknown/duplicate record tolerance, bounded-error-text opportunity, `scripted_preseason` labeling with `other` moves, case-sensitive Ten Fronts routing, and a non-independent verifier snapshot digest field
+- advisory_disposition: retained as explicit hardening backlog; none changes the accepted P0/P1 result or authorizes launch, publication, provider use, or protected state
+- rejected_review_outputs: not evidence and not included in this acceptance ledger
+- held_runner_candidate: local-only bundle source `8f3c483ca907f17782624f534990e3e106c3b6b4`, zip SHA-256 `e9d13731c4bbc58b41b39aa2a41a0a44dfa5efcb78cf2050b7caeef9b190e866`, state `candidate_not_published`
+- remaining_stop: exact-head source review is accepted, but the candidate remains unmerged, unreleased, undeployed, not live-account tested, and publicly disabled pending applicable Anthropic Commercial Terms and branding acceptance plus the broader AgentWars protected launch gates
