@@ -100,7 +100,7 @@ def _extract_text(payload: object) -> str:
 
 
 class OpenRouterBackend:
-    """Call exactly one OpenRouter model under explicit privacy/routing rules."""
+    """Call exactly one OpenRouter model/provider under explicit controls."""
 
     kind = "openrouter"
 
@@ -119,8 +119,8 @@ class OpenRouterBackend:
         if "/" not in self.model:
             raise ValueError("model must use the OpenRouter provider/model slug form")
         providers = tuple(_require_nonempty_token(value, "provider") for value in provider_only)
-        if not providers or len(providers) != len(set(providers)):
-            raise ValueError("provider_only must contain one or more unique provider slugs")
+        if len(providers) != 1:
+            raise ValueError("provider_only must contain exactly one provider slug")
         if not isinstance(api_key_env, str) or _ENV_NAME.fullmatch(api_key_env) is None:
             raise ValueError("api_key_env must be a valid environment-variable name")
         if not isinstance(timeout_s, (int, float)) or isinstance(timeout_s, bool) or not 10 <= timeout_s <= 900:
@@ -142,13 +142,15 @@ class OpenRouterBackend:
     def request_payload(self, prompt: str) -> dict:
         if not isinstance(prompt, str) or not prompt:
             raise ValueError("prompt must be a non-empty string")
+        providers = list(self.provider_only)
         return {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": self.max_tokens,
             "temperature": 0,
             "provider": {
-                "only": list(self.provider_only),
+                "order": providers,
+                "only": providers,
                 "allow_fallbacks": False,
                 "require_parameters": True,
                 "data_collection": "deny",
@@ -158,6 +160,7 @@ class OpenRouterBackend:
 
     def _receipt_from_payload(self, payload: dict) -> dict:
         usage = payload.get("usage")
+        providers = list(self.provider_only)
         return {
             "request_id": _safe_receipt_text(payload.get("id")),
             "requested_model": self.model,
@@ -179,7 +182,8 @@ class OpenRouterBackend:
             "upstream_inference_cost": _usage_detail_number(
                 usage, "cost_details", "upstream_inference_cost"
             ),
-            "provider_only": list(self.provider_only),
+            "provider_order": providers,
+            "provider_only": providers,
             "allow_fallbacks": False,
             "temperature": 0,
             "data_collection": "deny",
