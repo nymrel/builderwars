@@ -64,6 +64,49 @@ _ATTEMPT_ID_RE = re.compile(r"^awa1_[A-Za-z0-9_-]{22}$")
 _SEED_RE = re.compile(r"^[A-Za-z0-9_-]{22}$")
 _PUBLIC_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{43}$")
 _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
+_PUBLIC_PROJECTION_KEYS = frozenset(
+    {
+        "schemaVersion",
+        "projectionType",
+        "jobId",
+        "attemptId",
+        "leaseEpoch",
+        "kind",
+        "engineId",
+        "engineSha256",
+        "rulesetId",
+        "rulesSha256",
+        "outputSha256",
+        "transcriptSha256",
+        "conformance",
+        "completedAt",
+        "evidenceClass",
+        "providerAccountAttested",
+        "planEntitlementAttested",
+        "billingRouteAttested",
+        "modelAttested",
+        "personAttested",
+        "runtimeAttested",
+        "harnessExecutionAttested",
+        "matchExecutionAttested",
+    }
+)
+_PUBLIC_PROJECTION_FALSE_ATTESTATIONS = (
+    "providerAccountAttested",
+    "planEntitlementAttested",
+    "billingRouteAttested",
+    "modelAttested",
+    "personAttested",
+    "runtimeAttested",
+    "harnessExecutionAttested",
+    "matchExecutionAttested",
+)
+_PUBLIC_PROJECTION_DIGESTS = (
+    "engineSha256",
+    "rulesSha256",
+    "outputSha256",
+    "transcriptSha256",
+)
 
 
 class HostedStoreError(ValueError):
@@ -1145,7 +1188,16 @@ class HostedControlPlaneStore:
             if runner is None or runner["state"] != "active":
                 raise HostedStoreError("runner_inactive", "runner is not active")
             existing = connection.execute(
-                """SELECT r.*, j.runner_id AS job_runner_id
+                """SELECT
+                       r.job_id,
+                       r.attempt_id,
+                       r.lease_epoch,
+                       r.engine_sha256,
+                       r.output_sha256,
+                       r.transcript_sha256,
+                       r.conformance,
+                       r.completed_at_ms,
+                       j.runner_id AS job_runner_id
                    FROM results r JOIN jobs j ON j.job_id = r.job_id
                    WHERE r.job_id = ?""",
                 (job_id,),
@@ -1321,7 +1373,35 @@ class HostedControlPlaneStore:
             value = json.loads(row["payload_json"])
         except (TypeError, ValueError):
             raise HostedStoreError("projection_corrupt", "public projection is invalid") from None
-        if not isinstance(value, dict):
+        if type(value) is not dict or frozenset(value) != _PUBLIC_PROJECTION_KEYS:
+            raise HostedStoreError("projection_corrupt", "public projection is invalid")
+        if not (
+            type(value["schemaVersion"]) is int
+            and value["schemaVersion"] == 1
+            and value["projectionType"] == "agentwars.fixture_replay.v1"
+            and type(value["jobId"]) is str
+            and _JOB_ID_RE.fullmatch(value["jobId"]) is not None
+            and type(value["attemptId"]) is str
+            and _ATTEMPT_ID_RE.fullmatch(value["attemptId"]) is not None
+            and type(value["leaseEpoch"]) is int
+            and 1 <= value["leaseEpoch"] <= MATCH_JOB_MAX_ATTEMPTS
+            and value["kind"] == MATCH_JOB_KIND
+            and value["engineId"] == MATCH_JOB_ENGINE_ID
+            and value["engineSha256"] == MATCH_JOB_ENGINE_SHA256
+            and value["rulesetId"] == MATCH_JOB_RULESET_ID
+            and value["rulesSha256"] == MATCH_JOB_RULES_SHA256
+            and value["conformance"] in ("match", "mismatch")
+            and value["evidenceClass"] == RUNNER_PROBE_EVIDENCE_CLASS
+            and all(
+                type(value[field]) is str and _HEX64_RE.fullmatch(value[field]) is not None
+                for field in _PUBLIC_PROJECTION_DIGESTS
+            )
+            and all(value[field] is False for field in _PUBLIC_PROJECTION_FALSE_ATTESTATIONS)
+        ):
+            raise HostedStoreError("projection_corrupt", "public projection is invalid")
+        try:
+            validate_canonical_instant(value["completedAt"])
+        except (TypeError, ValueError):
             raise HostedStoreError("projection_corrupt", "public projection is invalid")
         return value
 

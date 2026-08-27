@@ -651,22 +651,27 @@ class HostedControlPlaneTests(unittest.TestCase):
         self.assertEqual(self.store.row_counts()["results"], 0)
         self.assertEqual(self.store.row_counts()["replay_projections"], 0)
 
-    def test_corrupt_public_projection_uses_the_store_error_contract(self):
+    def test_corrupt_or_poisoned_public_projection_uses_the_store_error_contract(self):
         paired = self.pair()
         grant = self.complete_job(paired, self.owner, now=self.now)
         connection = sqlite3.connect(self.database)
         try:
-            connection.execute(
-                "UPDATE replay_projections SET payload_json = ? WHERE job_id = ?",
-                ("{not-json", grant.job.job_id),
-            )
-            connection.commit()
+            for payload in (
+                "{not-json",
+                "[]",
+                '{"schemaVersion":1,"ownerId":"must-not-escape"}',
+            ):
+                with self.subTest(payload=payload):
+                    connection.execute(
+                        "UPDATE replay_projections SET payload_json = ? WHERE job_id = ?",
+                        (payload, grant.job.job_id),
+                    )
+                    connection.commit()
+                    with self.assertRaises(HostedStoreError) as corrupt:
+                        self.store.get_public_projection(grant.job.job_id)
+                    self.assertEqual(corrupt.exception.code, "projection_corrupt")
         finally:
             connection.close()
-
-        with self.assertRaises(HostedStoreError) as corrupt:
-            self.store.get_public_projection(grant.job.job_id)
-        self.assertEqual(corrupt.exception.code, "projection_corrupt")
 
     def test_mismatch_is_recorded_and_foreign_late_or_abandoned_results_are_refused(self):
         paired = self.pair()
