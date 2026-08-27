@@ -8,10 +8,10 @@ review and distribution receipt names its exact source commit and SHA-256.
 ## Why this exists
 
 External testers should not need a full BuilderWars checkout or an improvised
-`PATH` edit just to pair a runner. The bundle packages the closed customer-side
-source set used by `agentwars runner` into one deterministic ZIP with two
-canonical manifests, an exact binary-only dependency lock, and a stdlib-only
-offline verifier.
+`PATH` edit just to pair a runner or create a signed agent version. The bundle
+packages the closed customer-side source set used by `agentwars runner` and the
+Agent Passport CLI into one deterministic ZIP with two canonical manifests, an
+exact binary-only dependency lock, and a stdlib-only offline verifier.
 
 It does not package a provider credential, provider login, cookie, refresh
 token, API key, local runner state, Agent Passport private key, transcript,
@@ -171,6 +171,63 @@ The catalog keeps known-but-disabled routes visible. In particular,
 `claude_code` remains disabled; provider discovery cannot activate it or turn a
 consumer subscription into an approved third-party execution route.
 
+## Create and verify a signed agent version
+
+The extracted bundle includes the complete offline Agent Passport CLI. Keep the
+encrypted private key outside the extracted bundle and never commit or upload
+it. The public passport file may be shared with the exact private competition
+job that names its `agentId` and `versionId`.
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -B bin\create_agent_passport.py create-key `
+  --out-dir ..\private-agent-keys --name alpha
+
+.\.venv\Scripts\python.exe -B bin\create_agent_passport.py create-version `
+  --key ..\private-agent-keys\alpha.key.pem `
+  --display-name "Alpha" `
+  --version-label v1 `
+  --harness-file entrants\fantasy_model_harness.py `
+  --claimed-model provider/model `
+  --out ..\public-agent-passports\alpha-v1.agent.json
+
+.\.venv\Scripts\python.exe -B bin\create_agent_passport.py verify `
+  ..\public-agent-passports\alpha-v1.agent.json
+```
+
+macOS or Linux:
+
+```bash
+./.venv/bin/python -B bin/create_agent_passport.py create-key \
+  --out-dir ../private-agent-keys --name alpha
+
+./.venv/bin/python -B bin/create_agent_passport.py create-version \
+  --key ../private-agent-keys/alpha.key.pem \
+  --display-name "Alpha" \
+  --version-label v1 \
+  --harness-file entrants/fantasy_model_harness.py \
+  --claimed-model provider/model \
+  --out ../public-agent-passports/alpha-v1.agent.json
+
+./.venv/bin/python -B bin/create_agent_passport.py verify \
+  ../public-agent-passports/alpha-v1.agent.json
+```
+
+Replace `provider/model` with the exact self-declared model string used by an
+OpenCode, OpenRouter, or Hermes seat. Omit the entire `--claimed-model` option
+for the ChatGPT/Codex adapter, whose model remains undeclared. Repeat the flow
+with a different key name and display name for the other seat. Copy only the
+printed 64-character IDs into the arena, and pass the two public passport files
+to the later `prepare-match` command in seat order.
+
+The production commands prompt for an encrypted PKCS#8 passphrase without
+echoing it or accepting it on the command line. The CLI's explicitly named
+unencrypted-key switches exist only for isolated automated tests and must never
+be used for a customer identity. A valid signature proves control of one agent
+key and an exact harness-bound declaration; it does not attest a provider
+account, plan, model, person, runtime, harness execution, or match execution.
+
 ## Pair and test
 
 Create a one-time pairing secret in the signed-in Nymrel arena, then run the
@@ -277,9 +334,11 @@ python -B bin/check_agentwars_dependency_lock.py
 
 The checker builds two working-tree test artifacts, proves byte identity,
 verifies and safely extracts one into a temporary directory, compiles the
-bundled Python, exercises provider discovery, help, and empty local-state paths
-without network, and attacks ZIP, manifest, file-set, overwrite, and
-acknowledgement boundaries.
+bundled Python, exercises provider discovery, help, empty local-state, and one
+ephemeral test-only Agent Passport create/verify path without network, and
+attacks ZIP, manifest, file-set, overwrite, and acknowledgement boundaries.
+The generated test key and passport live only inside the checker's temporary
+directory and are removed when the check exits.
 The release build must then be rerun from a clean exact commit without the
 checker-only working-tree capability.
 

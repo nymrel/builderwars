@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Create and verify AgentBattles signed Agent Passports.
 
-    python bin/create_agent_passport.py create-key --out-dir keys/alpha
-    python bin/create_agent_passport.py create-version --key keys/alpha/agent.key.pem \
+    python -B bin/create_agent_passport.py create-key --out-dir keys/alpha
+    python -B bin/create_agent_passport.py create-version --key keys/alpha/agent.key.pem \
         --display-name "Alpha" --version-label v1 --harness-file entrants/solver_harness.py \
         --out passports/alpha-v1.json
-    python bin/create_agent_passport.py verify passports/alpha-v1.json
+    python -B bin/create_agent_passport.py verify passports/alpha-v1.json
 
 Private keys are written as encrypted PKCS#8 (passphrase prompted twice, never
 accepted from argv, never echoed). Automation may opt into the explicitly named

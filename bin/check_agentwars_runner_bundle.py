@@ -236,6 +236,10 @@ def main() -> int:
         readme = (bundle_root / "README.md").read_text(encoding="utf-8")
         windows_entrypoint = r".\.venv\Scripts\python.exe -B bin\agentwars.py"
         posix_entrypoint = "./.venv/bin/python -B bin/agentwars.py"
+        windows_passport_entrypoint = (
+            r".\.venv\Scripts\python.exe -B bin\create_agent_passport.py"
+        )
+        posix_passport_entrypoint = "./.venv/bin/python -B bin/create_agent_passport.py"
         customer_commands = (
             "provider catalog",
             "provider connect-plan openrouter",
@@ -252,15 +256,27 @@ def main() -> int:
             ),
             "bundled README exposes exact no-bytecode verifier, Windows, and POSIX entrypoints",
         )
+        check(
+            all(
+                f"{entrypoint} {command}" in readme
+                for entrypoint in (windows_passport_entrypoint, posix_passport_entrypoint)
+                for command in ("create-key", "create-version", "verify")
+            ),
+            "bundled README exposes exact no-bytecode Agent Passport creation and verification entrypoints",
+        )
         readme_lines = tuple(line.strip() for line in readme.splitlines())
         check(
             not any(
                 line.startswith(r".\.venv\Scripts\python.exe bin\agentwars.py")
                 or line.startswith("./.venv/bin/python bin/agentwars.py")
+                or line.startswith(
+                    r".\.venv\Scripts\python.exe bin\create_agent_passport.py"
+                )
+                or line.startswith("./.venv/bin/python bin/create_agent_passport.py")
                 or line == "python verify.py --artifact ."
                 for line in readme_lines
             ),
-            "bundled README contains no writable-bytecode verifier or runner invocation",
+            "bundled README contains no writable-bytecode verifier, runner, or passport invocation",
         )
         compile_result = run_isolated(["-m", "compileall", "-q", "."], bundle_root)
         check(compile_result.returncode == 0, "bundled Python compiles in an isolated interpreter")
@@ -311,6 +327,71 @@ def main() -> int:
         )
         pair_help = run_isolated(["bin/agentwars.py", "runner", "pair", "--help"], bundle_root)
         check(pair_help.returncode == 0 and "claude_code" not in pair_help.stdout and all(provider in pair_help.stdout for provider in EXECUTABLE_PROVIDER_IDS), "bundled pairing help exposes only executable provider ids")
+        passport_help = run_isolated(["bin/create_agent_passport.py", "--help"], bundle_root)
+        check(
+            passport_help.returncode == 0
+            and all(command in passport_help.stdout for command in ("create-key", "create-version", "verify")),
+            "bundled Agent Passport CLI exposes the complete offline identity surface",
+        )
+        passport_work = work / "passport-proof"
+        passport_work.mkdir()
+        key_result = run_isolated(
+            [
+                "bin/create_agent_passport.py",
+                "create-key",
+                "--out-dir",
+                str(passport_work),
+                "--name",
+                "bundle-test",
+                "--insecure-unencrypted-key",
+            ],
+            bundle_root,
+        )
+        key_path = passport_work / "bundle-test.unsafe-test-only.key.pem"
+        check(
+            key_result.returncode == 0
+            and key_path.is_file()
+            and "must never leave this machine or be committed" in key_result.stdout,
+            "bundled Agent Passport CLI creates only an explicitly unsafe ephemeral test key in this check",
+        )
+        passport_path = passport_work / "bundle-test.agent.json"
+        version_result = run_isolated(
+            [
+                "bin/create_agent_passport.py",
+                "create-version",
+                "--key",
+                str(key_path),
+                "--key-is-unencrypted",
+                "--display-name",
+                "Bundle Test",
+                "--version-label",
+                "v1",
+                "--harness-file",
+                "entrants/fantasy_model_harness.py",
+                "--claimed-model",
+                "test/provider-model",
+                "--out",
+                str(passport_path),
+            ],
+            bundle_root,
+        )
+        check(
+            version_result.returncode == 0
+            and passport_path.is_file()
+            and "agentId" in version_result.stdout
+            and "versionId" in version_result.stdout,
+            "bundled Agent Passport CLI signs one ephemeral harness-bound version outside the extracted bundle",
+        )
+        passport_verify = run_isolated(
+            ["bin/create_agent_passport.py", "verify", str(passport_path)],
+            bundle_root,
+        )
+        check(
+            passport_verify.returncode == 0
+            and "signature : PASS" in passport_verify.stdout
+            and "proofScope: model/runtime/person/execution attestation all false" in passport_verify.stdout,
+            "bundled Agent Passport CLI verifies the signed version without elevating identity or execution truth",
+        )
         public_fixture = ROOT / "matches" / "agentwars-fantasy" / "fantasy_redraft" / "9600-0" / "8d161a470a12b0c3.jsonl"
         replay_result = run_isolated([str(bundle_root / "verify.py"), str(public_fixture), "--json"], work)
         replay_receipt = json.loads(replay_result.stdout)
