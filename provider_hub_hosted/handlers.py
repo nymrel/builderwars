@@ -38,15 +38,21 @@ from provider_hub_hosted.store import (
     FixtureJobRecord,
     HostedControlPlaneStore,
     HostedStoreError,
-    JobTerminal,
     LeaseGrant,
+    validate_attempt_id,
+    validate_job_id,
     validate_owner_id,
+    validate_sha256_digest,
 )
 from provider_hub_hosted.verify import (
     IncomingSignedRequest,
+    SignedRequestError,
     VerifiedRunnerRequest,
     verify_signed_request,
 )
+
+
+MAX_JSON_DEPTH = 32
 
 
 @dataclasses.dataclass(frozen=True)
@@ -57,8 +63,8 @@ class HandlerResponse:
 
 def _decode_exact_object(body: bytes, expected_keys: set[str], label: str) -> dict[str, object]:
     try:
-        validate_json_body(body)
-    except ValueError as error:
+        body = validate_json_body(body)
+    except (TypeError, ValueError, RecursionError) as error:
         raise HostedStoreError("invalid_json", f"{label} body is invalid") from error
 
     def reject_float(_value: str):
@@ -84,11 +90,67 @@ def _decode_exact_object(body: bytes, expected_keys: set[str], label: str) -> di
         )
     except HostedStoreError:
         raise
-    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError, RecursionError) as error:
         raise HostedStoreError("invalid_json", f"{label} body is invalid") from error
     if not isinstance(value, dict) or set(value) != expected_keys:
         raise HostedStoreError("invalid_schema", f"{label} body has an invalid exact schema")
+    stack = [(value, 1)]
+    while stack:
+        current, depth = stack.pop()
+        if depth > MAX_JSON_DEPTH:
+            raise HostedStoreError("invalid_json", f"{label} body exceeds the nesting limit")
+        if isinstance(current, dict):
+            stack.extend((item, depth + 1) for item in current.values())
+        elif isinstance(current, list):
+            stack.extend((item, depth + 1) for item in current)
     return value
+
+
+def _require_signed_envelope(request: IncomingSignedRequest) -> IncomingSignedRequest:
+    if not isinstance(request, IncomingSignedRequest):
+        raise SignedRequestError("invalid_request", "signed request envelope is invalid")
+    text_fields = (
+        request.method,
+        request.path,
+        request.protocol_version,
+        request.runner_id,
+        request.timestamp,
+        request.nonce,
+        request.signature,
+    )
+    if any(type(value) is not str for value in text_fields) or type(request.body) is not bytes:
+        raise SignedRequestError("invalid_request", "signed request envelope is invalid")
+    return request
+
+
+def _validate_attempt_payload(
+    payload: Mapping[str, object],
+    label: str,
+    *,
+    result_digests: bool = False,
+) -> dict[str, object]:
+    try:
+        job_id = validate_job_id(payload["jobId"])
+        attempt_id = validate_attempt_id(payload["attemptId"])
+        lease_epoch = payload["leaseEpoch"]
+        if type(lease_epoch) is not int or not 1 <= lease_epoch <= MATCH_JOB_MAX_ATTEMPTS:
+            raise HostedStoreError("invalid_epoch", "lease epoch is invalid")
+        validated: dict[str, object] = {
+            "jobId": job_id,
+            "attemptId": attempt_id,
+            "leaseEpoch": lease_epoch,
+        }
+        if result_digests:
+            validated.update({
+                "engineSha256": validate_sha256_digest(payload["engineSha256"], "engine digest"),
+                "outputSha256": validate_sha256_digest(payload["outputSha256"], "output digest"),
+                "transcriptSha256": validate_sha256_digest(
+                    payload["transcriptSha256"], "transcript digest"
+                ),
+            })
+        return validated
+    except (KeyError, TypeError, HostedStoreError) as error:
+        raise HostedStoreError("invalid_schema", f"{label} body has invalid field values") from error
 
 
 class HostedControlPlane:
@@ -246,6 +308,7 @@ class HostedControlPlane:
         *,
         now: dt.datetime | None = None,
     ) -> HandlerResponse:
+        request = _require_signed_envelope(request)
         if request.method != "POST" or request.body != RUNNER_PROBE_BODY:
             raise HostedStoreError("invalid_probe", "runner probe bytes are invalid")
         verified = self._verify(request, path=RUNNER_PROBE_PATH, now=now)
@@ -260,6 +323,7 @@ class HostedControlPlane:
         *,
         now: dt.datetime | None = None,
     ) -> HandlerResponse:
+        request = _require_signed_envelope(request)
         if request.method != "POST" or request.body != MATCH_JOB_POLL_BODY:
             raise HostedStoreError("invalid_poll", "match-job poll bytes are invalid")
         verified = self._verify(request, path=MATCH_JOB_POLL_PATH, now=now)
@@ -294,11 +358,13 @@ class HostedControlPlane:
         *,
         now: dt.datetime | None = None,
     ) -> HandlerResponse:
+        request = _require_signed_envelope(request)
         if request.method != "POST":
             raise HostedStoreError("invalid_renew", "match-job renew method is invalid")
         payload = _decode_exact_object(
             request.body, {"jobId", "attemptId", "leaseEpoch"}, "match-job renew"
         )
+        payload = _validate_attempt_payload(payload, "match-job renew")
         verified = self._verify(request, path=MATCH_JOB_RENEW_PATH, now=now)
         grant = self.store.renew_attempt(
             verified.runner.runner_id,
@@ -319,11 +385,13 @@ class HostedControlPlane:
         *,
         now: dt.datetime | None = None,
     ) -> HandlerResponse:
+        request = _require_signed_envelope(request)
         if request.method != "POST":
             raise HostedStoreError("invalid_abandon", "match-job abandon method is invalid")
         payload = _decode_exact_object(
             request.body, {"jobId", "attemptId", "leaseEpoch"}, "match-job abandon"
         )
+        payload = _validate_attempt_payload(payload, "match-job abandon")
         verified = self._verify(request, path=MATCH_JOB_ABANDON_PATH, now=now)
         terminal = self.store.abandon_attempt(
             verified.runner.runner_id,
@@ -350,6 +418,7 @@ class HostedControlPlane:
         *,
         now: dt.datetime | None = None,
     ) -> HandlerResponse:
+        request = _require_signed_envelope(request)
         if request.method != "POST":
             raise HostedStoreError("invalid_result", "match-job result method is invalid")
         payload = _decode_exact_object(
@@ -360,6 +429,7 @@ class HostedControlPlane:
             },
             "match-job result",
         )
+        payload = _validate_attempt_payload(payload, "match-job result", result_digests=True)
         verified = self._verify(request, path=MATCH_JOB_RESULT_PATH, now=now)
         recorded = self.store.record_result(
             verified.runner.runner_id,

@@ -28,6 +28,7 @@ from provider_hub.local_runner import (
 from provider_hub.match_worker import (
     MATCH_JOB_ABANDON_PATH,
     MATCH_JOB_ENGINE_SHA256,
+    MATCH_JOB_MAX_ATTEMPTS,
     MATCH_JOB_POLL_BODY,
     MATCH_JOB_POLL_PATH,
     MATCH_JOB_RENEW_PATH,
@@ -41,10 +42,16 @@ from provider_hub.match_worker import (
     validate_result_response,
 )
 from provider_hub_hosted.handlers import HostedControlPlane
-from provider_hub_hosted.store import HostedControlPlaneStore, HostedStoreError
+from provider_hub_hosted.store import (
+    MAX_REQUEST_AGE_SECONDS,
+    MAX_REQUEST_FUTURE_SECONDS,
+    HostedControlPlaneStore,
+    HostedStoreError,
+)
 from provider_hub_hosted.verify import (
     IncomingSignedRequest,
     SignedRequestError,
+    verify_signed_request,
 )
 
 
@@ -516,6 +523,45 @@ class HostedControlPlaneTests(unittest.TestCase):
             )
         self.assertEqual(key_reused.exception.code, "pairing_key_reused")
 
+    def test_pairing_confirmation_is_tenant_scoped_and_wrong_owner_is_non_mutating(self):
+        created = self.control.create_pairing(self.owner, now=self.now)
+        key = Ed25519PrivateKey.generate()
+        self.control.claim_pairing(
+            self.pairing_body(created.payload["pairingSecret"], key, label="Tenant bound"),
+            now=self.now,
+        )
+        before_counts = self.store.row_counts()
+
+        for approved in (True, False):
+            with self.assertRaises(HostedStoreError) as refused:
+                self.control.confirm_pairing(
+                    self.other_owner,
+                    created.payload["challengeId"],
+                    approved=approved,
+                    now=self.now,
+                )
+            self.assertEqual(refused.exception.code, "not_found")
+            self.assertEqual(self.store.row_counts(), before_counts)
+
+        inspection = sqlite3.connect(self.database)
+        try:
+            state = inspection.execute(
+                "SELECT owner_id, state, runner_id, consumed_at_ms FROM pairing_challenges "
+                "WHERE challenge_id = ?",
+                (created.payload["challengeId"],),
+            ).fetchone()
+        finally:
+            inspection.close()
+        self.assertEqual(state, (self.owner, "claimed", None, None))
+
+        confirmed = self.control.confirm_pairing(
+            self.owner,
+            created.payload["challengeId"],
+            approved=True,
+            now=self.now,
+        )
+        self.assertEqual(confirmed.payload["state"], "active")
+
     def test_store_clock_prevents_nonce_retention_reset(self):
         paired = self.pair()
         original = self.signed(
@@ -622,11 +668,32 @@ class HostedControlPlaneTests(unittest.TestCase):
                 self.signed(paired, path=MATCH_JOB_RENEW_PATH, body=renew_body), now=self.now
             )
             self.assertEqual(response.payload["attempt"]["renewCount"], expected)
+        inspection = sqlite3.connect(self.database)
+        try:
+            before_refusal = inspection.execute(
+                "SELECT a.state, a.renew_count, a.lease_expires_at_ms, "
+                "j.status, j.attempts_used FROM attempts a JOIN jobs j ON j.job_id = a.job_id "
+                "WHERE a.attempt_id = ?",
+                (attempt["attemptId"],),
+            ).fetchone()
+        finally:
+            inspection.close()
         with self.assertRaises(HostedStoreError) as exhausted:
             self.control.renew(
                 self.signed(paired, path=MATCH_JOB_RENEW_PATH, body=renew_body), now=self.now
             )
         self.assertEqual(exhausted.exception.code, "renewals_exhausted")
+        inspection = sqlite3.connect(self.database)
+        try:
+            after_refusal = inspection.execute(
+                "SELECT a.state, a.renew_count, a.lease_expires_at_ms, "
+                "j.status, j.attempts_used FROM attempts a JOIN jobs j ON j.job_id = a.job_id "
+                "WHERE a.attempt_id = ?",
+                (attempt["attemptId"],),
+            ).fetchone()
+        finally:
+            inspection.close()
+        self.assertEqual(after_refusal, before_refusal)
 
         abandon_body = renew_body
         abandoned = self.control.abandon(
@@ -637,6 +704,50 @@ class HostedControlPlaneTests(unittest.TestCase):
             self.signed(paired, path=MATCH_JOB_POLL_PATH, body=MATCH_JOB_POLL_BODY), now=self.now
         )
         self.assertEqual(second.payload["attempt"]["leaseEpoch"], 2)
+
+    def test_renewed_lease_accepts_result_after_the_original_deadline(self):
+        paired = self.pair()
+        self.control.create_fixture_job(self.owner, paired["runner_id"], now=self.now)
+        polled = self.control.poll(
+            self.signed(paired, path=MATCH_JOB_POLL_PATH, body=MATCH_JOB_POLL_BODY),
+            now=self.now,
+        )
+        grant = validate_poll_response(
+            dict(polled.payload),
+            profile=paired["profile"],
+            request_body_sha256=hashlib.sha256(MATCH_JOB_POLL_BODY).hexdigest(),
+        )
+        renew_body = json.dumps({
+            "jobId": grant.job.job_id,
+            "attemptId": grant.attempt_id,
+            "leaseEpoch": grant.lease_epoch,
+        }, separators=(",", ":")).encode()
+        renewed = self.control.renew(
+            self.signed(paired, path=MATCH_JOB_RENEW_PATH, body=renew_body),
+            now=self.now,
+        )
+        original_deadline = dt.datetime.fromisoformat(
+            polled.payload["attempt"]["leaseExpiresAt"].replace("Z", "+00:00")
+        )
+        renewed_deadline = dt.datetime.fromisoformat(
+            renewed.payload["attempt"]["leaseExpiresAt"].replace("Z", "+00:00")
+        )
+        after_original = original_deadline + dt.timedelta(milliseconds=1)
+        self.assertLess(after_original, renewed_deadline)
+
+        computation = compute_closed_fixture(grant)
+        result_body = encode_result_request(grant, computation)
+        recorded = self.control.result(
+            self.signed(
+                paired,
+                path=MATCH_JOB_RESULT_PATH,
+                body=result_body,
+                now=after_original,
+            ),
+            now=after_original,
+        )
+        self.assertEqual(recorded.payload["status"], "recorded")
+        self.assertFalse(recorded.payload["duplicate"])
 
     def test_bad_result_does_not_mutate_job_and_conflict_is_idempotent(self):
         paired = self.pair()
@@ -652,12 +763,33 @@ class HostedControlPlaneTests(unittest.TestCase):
         bad = json.loads(encode_result_request(grant, computation))
         bad["transcriptSha256"] = "0" * 64
         bad_body = json.dumps(bad, separators=(",", ":")).encode()
+        inspection = sqlite3.connect(self.database)
+        try:
+            before_bad_result = inspection.execute(
+                "SELECT a.state, a.completed_at_ms, j.status, j.updated_at_ms "
+                "FROM attempts a JOIN jobs j ON j.job_id = a.job_id "
+                "WHERE a.attempt_id = ?",
+                (grant.attempt_id,),
+            ).fetchone()
+        finally:
+            inspection.close()
         with self.assertRaises(HostedStoreError) as mismatch:
             self.control.result(
                 self.signed(paired, path=MATCH_JOB_RESULT_PATH, body=bad_body), now=self.now
             )
         self.assertEqual(mismatch.exception.code, "transcript_mismatch")
         self.assertEqual(self.store.row_counts()["results"], 0)
+        inspection = sqlite3.connect(self.database)
+        try:
+            after_bad_result = inspection.execute(
+                "SELECT a.state, a.completed_at_ms, j.status, j.updated_at_ms "
+                "FROM attempts a JOIN jobs j ON j.job_id = a.job_id "
+                "WHERE a.attempt_id = ?",
+                (grant.attempt_id,),
+            ).fetchone()
+        finally:
+            inspection.close()
+        self.assertEqual(after_bad_result, before_bad_result)
 
         good_body = encode_result_request(grant, computation)
         self.control.result(
@@ -1097,6 +1229,158 @@ class HostedControlPlaneTests(unittest.TestCase):
             self.control.renew(request, now=self.now)
         self.assertEqual(malformed.exception.code, "invalid_json")
         self.assertEqual(self.store.row_counts()["nonces"], 0)
+
+    def test_strict_payload_fields_and_depth_reject_before_nonce_consumption(self):
+        paired = self.pair()
+        self.control.create_fixture_job(self.owner, paired["runner_id"], now=self.now)
+        polled = self.control.poll(
+            self.signed(paired, path=MATCH_JOB_POLL_PATH, body=MATCH_JOB_POLL_BODY),
+            now=self.now,
+        )
+        grant = validate_poll_response(
+            dict(polled.payload),
+            profile=paired["profile"],
+            request_body_sha256=hashlib.sha256(MATCH_JOB_POLL_BODY).hexdigest(),
+        )
+        nonce_count = self.store.row_counts()["nonces"]
+        base = {
+            "jobId": grant.job.job_id,
+            "attemptId": grant.attempt_id,
+            "leaseEpoch": grant.lease_epoch,
+        }
+
+        invalid_payloads = []
+        invalid_payloads.append(({**base, "leaseEpoch": True}, "invalid_schema"))
+        invalid_payloads.append(({**base, "leaseEpoch": MATCH_JOB_MAX_ATTEMPTS + 1}, "invalid_schema"))
+        invalid_payloads.append(({**base, "unexpected": "field"}, "invalid_schema"))
+        nested: object = "x"
+        for _ in range(40):
+            nested = [nested]
+        invalid_payloads.append(({**base, "jobId": nested}, "invalid_json"))
+
+        for payload, expected_code in invalid_payloads:
+            body = json.dumps(payload, separators=(",", ":")).encode()
+            request = self.manual_signed(
+                paired,
+                path=MATCH_JOB_RENEW_PATH,
+                body=body,
+                now=self.now,
+            )
+            with self.assertRaises(HostedStoreError) as refused:
+                self.control.renew(request, now=self.now)
+            self.assertEqual(refused.exception.code, expected_code)
+            self.assertEqual(self.store.row_counts()["nonces"], nonce_count)
+
+        computation = compute_closed_fixture(grant)
+        result_payload = json.loads(encode_result_request(grant, computation))
+        result_payload["engineSha256"] = result_payload["engineSha256"].upper()
+        uppercase_body = json.dumps(result_payload, separators=(",", ":")).encode()
+        with self.assertRaises(HostedStoreError) as uppercase:
+            self.control.result(
+                self.manual_signed(
+                    paired,
+                    path=MATCH_JOB_RESULT_PATH,
+                    body=uppercase_body,
+                    now=self.now,
+                ),
+                now=self.now,
+            )
+        self.assertEqual(uppercase.exception.code, "invalid_schema")
+        self.assertEqual(self.store.row_counts()["nonces"], nonce_count)
+
+    def test_envelope_body_binding_and_exact_timestamp_boundaries(self):
+        paired = self.pair()
+        nonce_count = self.store.row_counts()["nonces"]
+
+        signed_probe = self.signed(
+            paired,
+            path=RUNNER_PROBE_PATH,
+            body=RUNNER_PROBE_BODY,
+            advance_clock=False,
+        )
+        mutable_body = IncomingSignedRequest(
+            **{**dataclass_dict(signed_probe), "body": bytearray(RUNNER_PROBE_BODY)}
+        )
+        with self.assertRaises(SignedRequestError) as invalid_body_type:
+            self.control.probe(mutable_body, now=self.now)
+        self.assertEqual(invalid_body_type.exception.code, "invalid_request")
+        self.assertEqual(self.store.row_counts()["nonces"], nonce_count)
+
+        substituted = IncomingSignedRequest(
+            **{**dataclass_dict(signed_probe), "body": b'{"probe":false}'}
+        )
+        with self.assertRaises(SignedRequestError) as body_substitution:
+            verify_signed_request(
+                self.store,
+                substituted,
+                now=self.now,
+                expected_path=RUNNER_PROBE_PATH,
+            )
+        self.assertEqual(body_substitution.exception.code, "invalid_signature")
+        self.assertEqual(self.store.row_counts()["nonces"], nonce_count)
+
+        for offset in (-MAX_REQUEST_AGE_SECONDS, MAX_REQUEST_FUTURE_SECONDS):
+            boundary = self.now + dt.timedelta(seconds=offset)
+            self.clock.current = self.now
+            accepted = self.control.probe(
+                self.signed(
+                    paired,
+                    path=RUNNER_PROBE_PATH,
+                    body=RUNNER_PROBE_BODY,
+                    now=boundary,
+                    advance_clock=False,
+                ),
+                now=self.now,
+            )
+            self.assertEqual(accepted.payload["status"], "accepted")
+
+        accepted_nonce_count = self.store.row_counts()["nonces"]
+        for offset, code in (
+            (-MAX_REQUEST_AGE_SECONDS - 0.001, "stale_request"),
+            (MAX_REQUEST_FUTURE_SECONDS + 0.001, "future_request"),
+        ):
+            outside = self.now + dt.timedelta(seconds=offset)
+            self.clock.current = self.now
+            with self.assertRaises(SignedRequestError) as refused:
+                self.control.probe(
+                    self.signed(
+                        paired,
+                        path=RUNNER_PROBE_PATH,
+                        body=RUNNER_PROBE_BODY,
+                        now=outside,
+                        advance_clock=False,
+                    ),
+                    now=self.now,
+                )
+            self.assertEqual(refused.exception.code, code)
+            self.assertEqual(self.store.row_counts()["nonces"], accepted_nonce_count)
+
+    def test_store_runner_validation_has_one_error_taxonomy(self):
+        operations = (
+            lambda: self.store.poll_job("not-a-runner", now=self.now),
+            lambda: self.store.renew_attempt(
+                "not-a-runner", "job", "attempt", 1, now=self.now
+            ),
+            lambda: self.store.abandon_attempt(
+                "not-a-runner", "job", "attempt", 1, now=self.now
+            ),
+            lambda: self.store.record_result(
+                "not-a-runner",
+                job_id="job",
+                attempt_id="attempt",
+                lease_epoch=1,
+                engine_sha256="0" * 64,
+                output_sha256="0" * 64,
+                transcript_sha256="0" * 64,
+                now=self.now,
+            ),
+        )
+        before_counts = self.store.row_counts()
+        for operation in operations:
+            with self.assertRaises(HostedStoreError) as invalid:
+                operation()
+            self.assertEqual(invalid.exception.code, "invalid_runner")
+            self.assertEqual(self.store.row_counts(), before_counts)
 
     def test_owner_scope_is_enforced(self):
         paired = self.pair()

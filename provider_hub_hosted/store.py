@@ -32,8 +32,6 @@ from provider_hub.local_runner import (
     validate_canonical_instant,
     validate_challenge_id,
     validate_fingerprint,
-    validate_harness_id,
-    validate_harness_version,
     validate_nonce,
     validate_runner_id,
 )
@@ -251,6 +249,28 @@ def _validate_token(value: str, pattern: re.Pattern[str], label: str) -> str:
     token = value.split("_", 1)[1] if "_" in value else value
     _decode_base64url(token, 16, label)
     return value
+
+
+def _validated_runner_id(value: str) -> str:
+    try:
+        return validate_runner_id(value)
+    except (TypeError, ValueError) as error:
+        raise HostedStoreError("invalid_runner", "runner id is invalid") from error
+
+
+def validate_job_id(value: str) -> str:
+    """Validate one canonical hosted match-job identifier."""
+    return _validate_token(value, _JOB_ID_RE, "job id")
+
+
+def validate_attempt_id(value: str) -> str:
+    """Validate one canonical hosted match-attempt identifier."""
+    return _validate_token(value, _ATTEMPT_ID_RE, "attempt id")
+
+
+def validate_sha256_digest(value: str, label: str = "digest") -> str:
+    """Validate one lowercase SHA-256 commitment."""
+    return _digest(value, label)
 
 
 def _digest(value: str, label: str) -> str:
@@ -703,10 +723,7 @@ class HostedControlPlaneStore:
         raise HostedStoreError("pairing_refused", "pairing confirmation was refused")
 
     def get_runner(self, runner_id: str, *, owner_id: str | None = None) -> RunnerRecord:
-        try:
-            runner_id = validate_runner_id(runner_id)
-        except ValueError as error:
-            raise HostedStoreError("invalid_runner", "runner id is invalid") from error
+        runner_id = _validated_runner_id(runner_id)
         if owner_id is not None:
             owner_id = validate_owner_id(owner_id)
         with self._lock:
@@ -745,12 +762,8 @@ class HostedControlPlaneStore:
         now: dt.datetime | None = None,
     ) -> RunnerRecord:
         owner_id = validate_owner_id(owner_id)
-        try:
-            runner_id = validate_runner_id(runner_id)
-        except ValueError as error:
-            raise HostedStoreError("invalid_runner", "runner id is invalid") from error
+        runner_id = _validated_runner_id(runner_id)
         now_ms = self._now_ms(now)
-        expired = False
         with self._transaction() as connection:
             row = connection.execute(
                 "SELECT * FROM runners WHERE runner_id = ? AND owner_id = ?",
@@ -787,10 +800,7 @@ class HostedControlPlaneStore:
 
     def delete_runner(self, owner_id: str, runner_id: str) -> int:
         owner_id = validate_owner_id(owner_id)
-        try:
-            runner_id = validate_runner_id(runner_id)
-        except ValueError as error:
-            raise HostedStoreError("invalid_runner", "runner id is invalid") from error
+        runner_id = _validated_runner_id(runner_id)
         with self._transaction() as connection:
             cursor = connection.execute(
                 "DELETE FROM runners WHERE runner_id = ? AND owner_id = ?",
@@ -962,10 +972,7 @@ class HostedControlPlaneStore:
         now: dt.datetime | None = None,
         lease_seconds: int = LEASE_SECONDS,
     ) -> LeaseGrant | JobTerminal:
-        try:
-            runner_id = validate_runner_id(runner_id)
-        except ValueError as error:
-            raise HostedStoreError("invalid_runner", "runner id is invalid") from error
+        runner_id = _validated_runner_id(runner_id)
         if type(lease_seconds) is not int or not 5 <= lease_seconds <= 300:
             raise HostedStoreError("invalid_lease", "lease duration must be between 5 and 300 seconds")
         now_ms = self._now_ms(now)
@@ -1080,9 +1087,9 @@ class HostedControlPlaneStore:
         now: dt.datetime | None = None,
         lease_seconds: int = LEASE_SECONDS,
     ) -> LeaseGrant:
-        runner_id = validate_runner_id(runner_id)
-        _validate_token(job_id, _JOB_ID_RE, "job id")
-        _validate_token(attempt_id, _ATTEMPT_ID_RE, "attempt id")
+        runner_id = _validated_runner_id(runner_id)
+        validate_job_id(job_id)
+        validate_attempt_id(attempt_id)
         if type(lease_epoch) is not int or not 1 <= lease_epoch <= MATCH_JOB_MAX_ATTEMPTS:
             raise HostedStoreError("invalid_epoch", "lease epoch is invalid")
         if type(lease_seconds) is not int or not 5 <= lease_seconds <= 300:
@@ -1132,9 +1139,9 @@ class HostedControlPlaneStore:
         *,
         now: dt.datetime | None = None,
     ) -> JobTerminal:
-        runner_id = validate_runner_id(runner_id)
-        _validate_token(job_id, _JOB_ID_RE, "job id")
-        _validate_token(attempt_id, _ATTEMPT_ID_RE, "attempt id")
+        runner_id = _validated_runner_id(runner_id)
+        validate_job_id(job_id)
+        validate_attempt_id(attempt_id)
         if type(lease_epoch) is not int or not 1 <= lease_epoch <= MATCH_JOB_MAX_ATTEMPTS:
             raise HostedStoreError("invalid_epoch", "lease epoch is invalid")
         now_ms = self._now_ms(now)
@@ -1183,9 +1190,9 @@ class HostedControlPlaneStore:
         transcript_sha256: str,
         now: dt.datetime | None = None,
     ) -> ResultRecord:
-        runner_id = validate_runner_id(runner_id)
-        _validate_token(job_id, _JOB_ID_RE, "job id")
-        _validate_token(attempt_id, _ATTEMPT_ID_RE, "attempt id")
+        runner_id = _validated_runner_id(runner_id)
+        validate_job_id(job_id)
+        validate_attempt_id(attempt_id)
         if type(lease_epoch) is not int or not 1 <= lease_epoch <= MATCH_JOB_MAX_ATTEMPTS:
             raise HostedStoreError("invalid_epoch", "lease epoch is invalid")
         engine_sha256 = _digest(engine_sha256, "engine digest")

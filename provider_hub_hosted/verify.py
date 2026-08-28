@@ -104,6 +104,19 @@ def verify_signed_request(
         raise TypeError("store must be HostedControlPlaneStore")
     if not isinstance(request, IncomingSignedRequest):
         raise SignedRequestError("invalid_request", "signed request envelope is invalid")
+    if any(
+        type(value) is not str
+        for value in (
+            request.method,
+            request.path,
+            request.protocol_version,
+            request.runner_id,
+            request.timestamp,
+            request.nonce,
+            request.signature,
+        )
+    ) or type(request.body) is not bytes:
+        raise SignedRequestError("invalid_request", "signed request envelope is invalid")
     if request.protocol_version != REQUEST_PROTOCOL:
         raise SignedRequestError("invalid_protocol", "runner request protocol is unsupported")
     if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
@@ -114,12 +127,12 @@ def verify_signed_request(
         timestamp = validate_canonical_instant(request.timestamp)
         nonce = validate_nonce(request.nonce)
         body = validate_json_body(request.body)
-    except ValueError as error:
+    except (TypeError, ValueError, RecursionError) as error:
         raise SignedRequestError("invalid_request", "signed request contract is invalid") from error
     if expected_path is not None:
         try:
             expected_path = validate_request_path(expected_path)
-        except ValueError as error:
+        except (TypeError, ValueError) as error:
             raise SignedRequestError("invalid_path", "expected request path is invalid") from error
         if not hmac.compare_digest(path, expected_path):
             raise SignedRequestError("wrong_path", "signed request path is not accepted here")

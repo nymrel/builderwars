@@ -203,24 +203,29 @@ Every adopted component must add one immutable ledger entry containing:
 
 Missing evidence is a held gate, not a field to infer from README prose.
 
-## Accepted Max P2 hardening backlog
+## Closed Max P2 hardening backlog
 
-The first nine BuilderWars Max slices have no open P0/P1. Their accepted P2
-findings remain required hardening input before the live Redis/provider journey;
-`accepted` does not mean forgotten:
+All five accepted hosted-control-plane P2 findings are now closed in the local
+feature candidate. The affected slice passes 25/25 hosted tests, Ruff,
+`py_compile`, `git diff --check`, and the complete 10-section provider-hub
+regression ladder. Ox Alpha MAX run
+`51119615-11ef-4962-b223-c368e1884485` reviewed the exact four-file source diff
+against base `6330c5b673589eac69ffcb3fb00c16c6973baa61` and returned P0 `0`,
+P1 `0`, P2 `0`, P3 `5`, `VERDICT: APPROVE`.
 
-| Area | Current source truth | Required hardening proof |
-| --- | --- | --- |
-| Lease error taxonomy | Poll maps malformed runner ids into the hosted error contract; renew/abandon currently call the validator directly | Add the same `invalid_runner` domain mapping to renew/abandon or record and test a deliberate uniform alternative |
-| Pairing tenant negatives | Confirmation is source-bound by `challenge_id AND owner_id` and fails `not_found` for a foreign owner | Add explicit wrong-owner approve/reject tests plus a representative cross-tenant handler matrix with row-count non-mutation |
-| Renewal/refusal fidelity | Renewal caps, abandonment, expiry, result conflict, and stale/foreign attempts pass | Advance beyond the original deadline after renewal and prove result acceptance; snapshot all relevant rows after refused renew/result paths |
-| Strict JSON boundary | The decoder requires exact key equality and store epoch validation uses `type(value) is int` | Add explicit `leaseEpoch: true`, unknown-field, signature body-substitution, exact time-boundary, and nonce-on-reject cases |
-| Request parsing and envelope types | The exact request-boundary Max review passed, but deeply nested JSON can escape as `RecursionError`, handler values rely on store validation, and the verifier body type is annotation-only | Normalize recursion and integration faults into coded non-reflecting errors; enforce a bounded JSON nesting depth, strict boundary types and integer range, lowercase SHA-256 fields, a bytes-like request body, and targeted refusal tests |
+| Area | Closure proof |
+| --- | --- |
+| Lease error taxonomy | Poll, renew, abandon, and result use one `invalid_runner` store taxonomy; the direct-store matrix proves identical codes and no row-count mutation |
+| Pairing tenant negatives | Wrong-owner approve and reject both fail `not_found`; row counts and the exact challenge row remain unchanged before rightful confirmation succeeds |
+| Renewal/refusal fidelity | A renewed attempt accepts its result after the original deadline; refused over-cap renew and transcript-mismatch result preserve the inspected attempt/job rows |
+| Strict JSON boundary | Boolean and out-of-range epochs, unknown fields, deep JSON, uppercase digests, body substitution, exact time edges, and nonce preservation are pinned by signed hostile cases |
+| Request parsing and envelope types | Immutable `bytes` plus exact string envelope fields are enforced before parsing; recursive/type faults normalize into coded non-reflecting errors and handler fields are validated before nonce consumption |
 
-These additions must not weaken an existing contract or cause the already
-reviewed candidate bytes to be described as a different commit. If adopted into
-source, the resulting new commit requires targeted tests and fresh affected-slice
-Max receipts before integration.
+The accepted source hashes, receipt hashes, full P3 dispositions, and rejected
+non-verdict review trace are recorded in
+`provider_hub_hosted/OX_REVIEW_HOSTED_CONTROL_PLANE_20260826.md`. This closure is
+local evidence only; it does not advance any protected integration or launch
+gate.
 
 ## Public-beta completion ledger
 
@@ -232,14 +237,14 @@ surface must remain unavailable.
 
 | Requirement | Current state | Evidence that exists | Evidence still required |
 | --- | --- | --- | --- |
-| 1. Fresh independent BuilderWars and Nymrel review with zero P0/P1 | `candidate` | BuilderWars feature `3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2` is pushed and locally green; nine sequential immutable Max slices pass with zero P0/P1. Nymrel feature `4f3b6270cee69f0465f0bfb458958e9bae0ba91c` is clean and locally committed; its Claude-gate Max micro-review preflight is ready | Completed Max receipt for the final frozen BuilderWars foundation, plus Nymrel Claude-gate and regenerated exact-candidate custody/journey/deployment/support packets; every P0/P1 repaired and re-reviewed |
+| 1. Fresh independent BuilderWars and Nymrel review with zero P0/P1 | `candidate` | BuilderWars has nine prior zero-P0/P1 Max slices plus affected-source closure run `51119615-11ef-4962-b223-c368e1884485` at P0/P1/P2 `0`; exact four-file hashes are recorded locally. Nymrel feature `4f3b6270cee69f0465f0bfb458958e9bae0ba91c` is clean and locally committed; its Claude-gate Max micro-review preflight is ready | Completed Max receipt for the final frozen BuilderWars foundation, plus Nymrel Claude-gate and regenerated exact-candidate custody/journey/deployment/support packets; every P0/P1 repaired and re-reviewed |
 | 2. True-merge ancestry and immutable runner assets on canonical main | `held` | Candidate branches and exact remote-main heads are recorded | Operator-authorized true merges, ancestry proof, immutable runner/verifier asset digests on BuilderWars main, release descriptor bound to the integrated commits, and rollback target |
 | 3. Production-compatible Redis conformance | `held` | Nymrel contains a fail-closed real-Redis verifier and tests; no production-compatible run is claimed | Authorized isolated Redis REST pair; atomicity, expiry, poisoning, idempotency, revocation, cleanup, and account-deletion run against the integrated source; proof that test keys were removed |
 | 4. Clerk and protected runtime configuration | `held` | Candidate code contains account-owner mapping, signed `user.deleted` handling, peppers, reviewer bindings, rate-limit policy, no-store behavior, and feature flags | Protected environment checks for the exact Clerk instance, webhook, Redis pair, peppers, reviewer keys, trusted proxy metadata, rate limits, security headers, and closed/open flag states without secret disclosure |
 | 5. Source-bound production deployment | `held` | `BuilderWars.com` delegates to Cloudflare nameservers | Authorized clean deployment; exact source and asset binding; apex and `www` DNS; HTTPS, redirect, headers, routes, mobile, accessibility, performance, offline/error-state, support, observability, and rollback proof. The apex currently has no A/AAAA and `www` is NXDOMAIN |
 | 6. Fresh consented real-customer journey | `held` | Local deterministic journey fixtures and protected-route candidates exist | One new consenting customer completes signup/signin, runner pairing and recovery, two distinct encrypted passports, genuine provider-backed competition, private review, bounded publication, spectator share, runback, revocation, local/provider cleanup, account deletion, and rollback |
 | 7. Signed 13-stage production evidence pack | `candidate` | Nymrel feature source contains initialization, observation, assembly, protected-evidence, deployment, runner-release, support, and journey verifiers | One canonical pack assembled only from the integrated production source, protected-source comparison, detached Ed25519 review, exact deployment/release bindings, final verification, and separate operator launch decision |
-| 8. Complete local and production validation | `candidate` | BuilderWars hosted tests are 20/20; provider-hub checker passes 10/10 sections; passports pass 45/45; matrix produces 24 replay-verified receipts; verifier passes 45/45 plus 22 custody attacks. Nymrel's Claude-gate focused suites pass 55/55; lint, typecheck, 1,354 unit tests, operations (178 pass plus one explicit Windows direct-file-symlink host skip), discovery, boundaries, distribution, production build, and bundle budget pass. Its umbrella check stops only at stale portfolio proof entries because protected integration with the current main proof refresh is held | Post-integration proof verification, security, dependency, browser, production smoke, observability, support, rollback, cleanup, and process-leak gates for both exact integrated commits |
+| 8. Complete local and production validation | `candidate` | BuilderWars hosted tests are 25/25; provider-hub checker passes 10/10 sections in 122.6 seconds; passports pass 45/45; matrix produces 24 replay-verified receipts; verifier passes 45/45 plus 22 custody attacks. Nymrel's Claude-gate focused suites pass 55/55; lint, typecheck, 1,354 unit tests, operations (178 pass plus one explicit Windows direct-file-symlink host skip), discovery, boundaries, distribution, production build, and bundle budget pass. Its umbrella check stops only at stale portfolio proof entries because protected integration with the current main proof refresh is held | Post-integration proof verification, security, dependency, browser, production smoke, observability, support, rollback, cleanup, and process-leak gates for both exact integrated commits |
 | 9. Truthful public-beta claim | `closed` | The domain contract, component ledger, and publication boundaries explicitly forbid a launch claim | Exact live bytes plus the full journey and evidence pack must pass. Until then the allowed labels are closed, local candidate, held, or preview-only |
 
 No row may advance from `candidate` or `held` based only on a source file,
@@ -250,9 +255,9 @@ independent review.
 
 ## Next exact move
 
-1. Freeze draft PR `#12`, this ledger, and the domain/submission decisions as
-   one coherent foundation, then generate a new external immutable Max packet;
-   repair every P0/P1 before adoption.
+1. Commit the locally accepted hosted P2 closure without merging, then freeze
+   draft PR `#12`, this ledger, and the domain/submission decisions as one
+   coherent foundation for the final external immutable Max packet.
 2. Complete the exact Nymrel Claude-gate Max review, push only its feature
    branch if accepted, and regenerate every candidate-identity-dependent
    Nymrel packet without merging.
