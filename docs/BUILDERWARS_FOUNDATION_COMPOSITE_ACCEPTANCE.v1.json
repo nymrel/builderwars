@@ -1,6 +1,19 @@
 {
   "schemaVersion": "builderwars.foundation-composite-acceptance.v1",
-  "status": "candidate_frozen_for_external_max_acceptance",
+  "status": "accepted_local_foundation_pending_integration",
+  "externalFoundationReview": {
+    "runId": "d1e12912-419a-4d74-8c19-779eda586a26",
+    "receiptSha256": "61b7e6ffc1a2cbc61cf1c7aaf5a86d63cc683eece0cac24f0ee19f996ee1d143",
+    "receiptFileSha256": "d306480be3133536bd88da343a02bf1aee314c465e5a531821f6218f42505423",
+    "assistantOutputSha256": "357cb58386e9324936bef1ca9b5cec3891c18c0c1af830893674891b4d187c46",
+    "taskPacketSha256": "cc5f3127deab58c5f7460400709d9dbe6bbaaf2633ff955c51910058cba45b3a",
+    "reviewedCommit": "45a3e13e11fccd166303bba7ffb81d9eaabf3013",
+    "reviewedFoundationSha256": "5e10bba44683f6b534ab40be5a568163df8d448b7210bd7ba695873a8b8dbbc1",
+    "reviewedLedgerSha256": "afea260a6dc223705158d9868a2613b63498de6dd84346e9fc1deb8bdd85cc76",
+    "reviewedCheckerSha256": "9b6371cecf573a30c5b1638615c1eb963a449c763fd88924e3aed60feed43ec5",
+    "reviewedReviewRecordSha256": "376d3084d632867ab909ec2a40a0cc0deb35d7609b6631b76ff9b36fcd78ee6d",
+    "finalReviewRecordSha256": "5297af7065ab6c14bc5e236d72e91e053611d649b7041dd8eab5663992e62586"
+  },
   "generatedAtUtc": "2026-08-28T16:15:00.000Z",
   "purpose": "Compact custody index for the frozen BuilderWars foundation, accepted contained reviews, exact candidates, residuals, and held launch gates.",
   "supersession": {
@@ -89,8 +102,8 @@
     },
     {
       "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_LEDGER.v1.json",
-      "sha256": "afea260a6dc223705158d9868a2613b63498de6dd84346e9fc1deb8bdd85cc76",
-      "bytes": 40367
+      "sha256": "b5d13a75dbfdfc6257d47f27d78ed2b4d300545a721fe51d06a0b554aa863abe",
+      "bytes": 41213
     },
     {
       "path": "docs/BUILDERWARS_DELIVERY_ROADMAP.md",
@@ -254,8 +267,8 @@
         "stageRunId": "3e6a6bbd-badd-4546-a22e-017453bcd482",
         "reviewedSha256": "8c84fe326e2b64a1fe5702b6e67e0eb6e20d92796de266304ddc5daa671c6011",
         "reviewedBytes": 39752,
-        "currentSha256": "afea260a6dc223705158d9868a2613b63498de6dd84346e9fc1deb8bdd85cc76",
-        "currentBytes": 40367
+        "currentSha256": "b5d13a75dbfdfc6257d47f27d78ed2b4d300545a721fe51d06a0b554aa863abe",
+        "currentBytes": 41213
       }
     ]
   },

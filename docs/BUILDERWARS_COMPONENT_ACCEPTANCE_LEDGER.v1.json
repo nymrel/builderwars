@@ -1,6 +1,6 @@
 {
   "schemaVersion": "builderwars.component-acceptance-ledger.v1",
-  "status": "review_candidate",
+  "status": "accepted_local_foundation_pending_integration",
   "asOf": "2026-08-28",
   "truthBoundary": {
     "purpose": "Record exact observed source pins, custody, beta dependency, and missing acceptance evidence without inheriting repository claims.",
@@ -78,7 +78,7 @@
     "route": "opencode-go/glm-5.3-flash/max",
     "fallbackAllowed": false,
     "executionPolicy": "sequential_only_when_canonical_broker_ceiling_is_nonzero",
-    "currentHold": "reviews 1-9 and current-candidate affected-source closure 51119615-11ef-4962-b223-c368e1884485 completed with zero P0/P1; review 10 is the next external review and must be generated from the final committed frozen-foundation bytes",
+    "currentHold": "reviews 1-10 and current-candidate affected-source closure 51119615-11ef-4962-b223-c368e1884485 completed with zero P0/P1; local foundation acceptance remains non-integrated and the second external adoption audit is mandatory before any integration action",
     "selfReviewBinding": "The foundation-and-decisions review must be generated after this ledger is frozen. Its first receipt may be embedded only through the checker-enforced pending-to-accepted delta; a second contained adoption audit reviews those final bytes and remains external, avoiding recursive false binding.",
     "reviews": [
       {
@@ -227,13 +227,18 @@
         "reviewId": "builderwars-foundation-and-decisions",
         "candidate": "builderwars-foundation@7ed78e1993b60359eb257299705e089acc701d1c+frozen-document-bytes",
         "evidenceMode": "inline_exact_bytes_with_sequential_slice_receipts_and_compact_composite",
-        "preflightRunId": null,
-        "taskSha256": null,
-        "bundleSha256": null,
-        "materialSignature": null,
-        "preflightReceiptSha256": null,
-        "preflightStatus": "regenerate_after_ledger_freeze",
-        "liveVerdict": "pending_external_receipt"
+        "liveVerdict": "PASS_P0_0_P1_0",
+        "runId": "d1e12912-419a-4d74-8c19-779eda586a26",
+        "receiptSha256": "61b7e6ffc1a2cbc61cf1c7aaf5a86d63cc683eece0cac24f0ee19f996ee1d143",
+        "receiptFileSha256": "d306480be3133536bd88da343a02bf1aee314c465e5a531821f6218f42505423",
+        "assistantOutputSha256": "357cb58386e9324936bef1ca9b5cec3891c18c0c1af830893674891b4d187c46",
+        "taskPacketSha256": "cc5f3127deab58c5f7460400709d9dbe6bbaaf2633ff955c51910058cba45b3a",
+        "reviewedCommit": "45a3e13e11fccd166303bba7ffb81d9eaabf3013",
+        "reviewedFoundationSha256": "5e10bba44683f6b534ab40be5a568163df8d448b7210bd7ba695873a8b8dbbc1",
+        "reviewedLedgerSha256": "afea260a6dc223705158d9868a2613b63498de6dd84346e9fc1deb8bdd85cc76",
+        "reviewedCheckerSha256": "9b6371cecf573a30c5b1638615c1eb963a449c763fd88924e3aed60feed43ec5",
+        "reviewedReviewRecordSha256": "376d3084d632867ab909ec2a40a0cc0deb35d7609b6631b76ff9b36fcd78ee6d",
+        "finalReviewRecordSha256": "5297af7065ab6c14bc5e236d72e91e053611d649b7041dd8eab5663992e62586"
       },
       {
         "order": 11,
