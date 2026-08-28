@@ -24,7 +24,7 @@ from build_share_bundle import (  # noqa: E402
     verify_with_snapshot,
 )
 from publishing.product import verify_artifact  # noqa: E402
-from publishing.projection import PublicationError, file_sha256  # noqa: E402
+from publishing.projection import PublicationError, file_sha256, project_receipt  # noqa: E402
 
 
 def model_label(claimed):
@@ -50,7 +50,8 @@ def summarise(path):
     try:
         report = verify_with_snapshot(path)
         require_exact_verification(report)
-    except BundleError as error:
+        _public_receipt, records = project_receipt(path)
+    except (BundleError, PublicationError) as error:
         if report is None:
             report = {"verdict": "FAIL", "errors": []}
         report = dict(report)
@@ -59,7 +60,6 @@ def summarise(path):
         report["errors"] = list(report.get("errors") or []) + [str(error)]
         return None, report
 
-    records = [json.loads(line) for line in open(path, "r", encoding="utf-8")]
     header = records[0]["body"]
     result = next((r["body"] for r in records if r["kind"] == "result"), None)
     if result is None:

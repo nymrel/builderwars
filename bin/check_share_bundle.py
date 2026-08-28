@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Focused adversarial contracts for AgentWars verified-moment bundles."""
 
+import copy
 import json
 import os
 import sys
@@ -14,6 +15,7 @@ sys.path.insert(0, os.path.join(ROOT, "bin"))
 
 from arena.canonical import GENESIS, chain  # noqa: E402
 from arena.match import run_match  # noqa: E402
+from arena.transcript import load  # noqa: E402
 from build_share_bundle import (  # noqa: E402
     BundleError,
     EVENT_SCHEMA,
@@ -22,11 +24,25 @@ from build_share_bundle import (  # noqa: E402
     build_manifest,
     build_outputs,
     entrant_rows,
+    final_state,
     normalize_base_url,
+    require_exact_verification,
+    select_highlight,
     source_kind,
+    story_details,
+    ten_fronts_scores,
     write_bundle,
 )
 from export_site import summarise  # noqa: E402
+
+TEN_FRONTS = os.path.join(
+    ROOT,
+    "matches",
+    "agentwars-ten-fronts",
+    "ten_fronts",
+    "7000-0",
+    "e16ac35d43eb3b47.jsonl",
+)
 
 
 def require(condition, message):
@@ -82,6 +98,8 @@ def rewrite_and_rechain(transcript, mutate):
 def check_source_claims():
     require(source_kind("source=model") == "model", "bare model source")
     require(source_kind("source=model;response_sha256=abc") == "model", "model metadata tail")
+    require(source_kind("source=model_plan;plan_sha256=" + "a" * 64) == "model",
+            "fixed model-plan source is model-influenced")
     require(source_kind("source=fallback;reason=bad") == "fallback", "fallback metadata tail")
     require(source_kind("source=fallback:rejected_model_answer") == "fallback",
             "historical colon fallback tail")
@@ -97,6 +115,12 @@ def check_bundle_contract():
         first = build_outputs(transcript)
         second = build_outputs(transcript)
         require(first == second, "same verified receipt must produce byte-identical bundle outputs")
+        expect_bundle_error(
+            lambda: require_exact_verification(
+                {"verdict": "PASS", "verifier_snapshot_match": True}
+            ),
+            "exact embedded verifier-engine match",
+        )
         require(tuple(first) == OUTPUT_NAMES, "bundle file order and surface must stay bounded")
         manifest = json.loads(first["manifest.json"])
         require(manifest["match"]["verified"] is True, "bundle must record replay verification")
@@ -115,6 +139,12 @@ def check_bundle_contract():
         require(runback["seats"] == ["Future Proof", "Sunday Machine"], "runback swaps seats")
         require("response_sha256" not in "".join(first.values()), "derived pack must omit response hashes")
         require("OPENCODE_" not in "".join(first.values()), "derived pack must omit environment names")
+        require(
+            ".diagnostics.jsonl" not in "".join(first.values())
+            and "agentwars-transcript-snapshot-" not in "".join(first.values())
+            and work not in "".join(first.values()),
+            "public bundle must exclude private diagnostics and local snapshot paths",
+        )
         require(all("claimedModel" not in entrant for entrant in manifest["entrants"]),
                 "share bundle must omit untrusted claimed-model strings")
         require(manifest["verification"]["localCommandTemplate"] ==
@@ -126,6 +156,35 @@ def check_bundle_contract():
                 "share methods must be bounded")
         require(EVENT_VALUE_ALLOWLISTS["vote"] == ["seat0", "seat1", "runback"],
                 "spectator votes must be bounded")
+
+        records = load(transcript)
+        state = final_state(records)
+        result = next(record["body"] for record in records if record["kind"] == "result")
+        baseline_highlight = select_highlight(records, state, result.get("winner"))
+        original_position = next(
+            index
+            for index, record in enumerate(records)
+            if record.get("hash") == baseline_highlight["recordHash"]
+        )
+        rejected_copy = copy.deepcopy(records[original_position])
+        rejected_copy["body"]["legal"] = False
+        rejected_copy["hash"] = "0" * 64
+        records.insert(original_position, rejected_copy)
+        guarded_highlight = select_highlight(records, state, result.get("winner"))
+        require(
+            guarded_highlight["recordHash"] == baseline_highlight["recordHash"],
+            "top-pick highlight must ignore a rejected move for the same player",
+        )
+        expect_bundle_error(
+            lambda: story_details(
+                "fantasy_redraft",
+                manifest["entrants"],
+                {"winner": None, "reason": "forfeit:illegal_move"},
+                state,
+                {"kind": "forfeit_adjudication"},
+            ),
+            "winning seat",
+        )
 
         tagged = build_manifest(transcript, "https://nymrel.com/builderwars")
         require(tagged["activationStatus"] == "candidate_url_unverified", "candidate route truth")
@@ -207,7 +266,7 @@ def check_tamper_refusal_has_no_partial_output():
         require(not os.path.exists(out), "failed verification must leave no output directory")
 
 
-def check_replay_valid_forfeit_bundle():
+def check_runtime_forfeit_refusal():
     with tempfile.TemporaryDirectory(prefix="agentwars-share-forfeit-") as work:
         script = os.path.join(ROOT, "entrants", "fantasy_gm_harness.py")
         entrants = [
@@ -233,13 +292,21 @@ def check_replay_valid_forfeit_bundle():
             out_dir=os.path.join(work, "match"),
         )
         require(result["reason"] == "forfeit:entrant_exited", "forfeit fixture must be decisive")
-        outputs = build_outputs(result["transcript"])
-        manifest = json.loads(outputs["manifest.json"])
-        require(manifest["highlight"]["kind"] == "forfeit_adjudication",
-                "replay-valid forfeit needs a deterministic terminal highlight")
-        require("by forfeit" in manifest["story"]["headline"],
-                "forfeit story must not present an empty-roster score")
-        require("0–0" not in outputs["copy.md"], "forfeit copy must not invent a fantasy scoreline")
+        expect_bundle_error(
+            lambda: build_outputs(result["transcript"]),
+            "runtime-only or malformed forfeits",
+        )
+        export, report = summarise(result["transcript"])
+        require(
+            export is None and report["verdict"] == "FAIL",
+            "site export excludes an unattested runtime-forfeit win",
+        )
+        out = os.path.join(work, "must-not-exist")
+        expect_bundle_error(
+            lambda: write_bundle(result["transcript"], out),
+            "runtime-only or malformed forfeits",
+        )
+        require(not os.path.exists(out), "runtime-forfeit refusal leaves no partial bundle")
 
 
 def check_generic_historical_match():
@@ -280,6 +347,83 @@ def check_url_guard():
         expect_bundle_error(lambda value=value: normalize_base_url(value), "public base URL")
 
 
+def check_ten_fronts_moment_bundle():
+    require(ten_fronts_scores({"scores": [319, 226]}) == [319, 226], "canonical scores accepted")
+    for hostile in (None, {}, {"scores": [319]}, {"scores": [319.0, 1]}, {"scores": [-2, 4]}):
+        expect_bundle_error(lambda hostile=hostile: ten_fronts_scores(hostile), "ten fronts")
+
+    first = build_outputs(TEN_FRONTS)
+    second = build_outputs(TEN_FRONTS)
+    require(first == second, "ten fronts bundle must be deterministic")
+    manifest = json.loads(first["manifest.json"])
+    require(manifest["match"]["game"] == "ten_fronts", "reviewed offline reference game")
+    story = manifest["story"]
+    require(story["headline"] == "Stub Iron Front wins ten fronts", "state-derived headline")
+    require(story["resultLine"] == "319–226 over Stub Even Reserve",
+            "share typography result line with en dash")
+    require(story["scores"] == {"Stub Iron Front": 319, "Stub Even Reserve": 226},
+            "seat-order referee scores in share story")
+    require(story["margin"] == 93, "margin derived from referee state only")
+    require(story["question"] == "Would you run this match back?", "honest runback question")
+    require(manifest["highlight"]["kind"] == "final_accepted_move",
+            "bounded final-accepted-move clip contract remains")
+    require(manifest["highlight"]["clipId"].startswith("clip_"), "bounded moment id")
+    require(manifest["truth"]["status"] == "scripted_preseason", "scripted truth label")
+    require(manifest["truth"]["modelAttested"] is False, "no model attestation")
+    require(manifest["truth"]["executionClaimsAttested"] is False,
+            "execution claims stay unattested")
+    sources = manifest["moveSourceClaims"]
+    require(all(row["fallback"] == 40 and row["model"] == 0
+                for row in sources.values()), "per-seat fallback counts stay 40/40")
+    runback = manifest["rivalry"]["runback"]
+    require(runback["status"] == "unplayed_challenge", "runback is an unplayed challenge")
+    require(runback["seed"] == 7001, "runback seed is deterministic parent+1")
+    require(runback["seats"] == ["Stub Even Reserve", "Stub Iron Front"], "runback swaps seats")
+    require("response_sha256" not in "".join(first.values()),
+            "ten fronts pack must omit response hashes")
+    rendered = json.dumps(manifest, sort_keys=True)
+    for fragment in ("stub:v1", "invalid_model_output"):
+        require(fragment not in rendered, f"share manifest leaked raw value {fragment!r}")
+
+    with tempfile.TemporaryDirectory(prefix="agentwars-share-tenfronts-bytes-") as work:
+        out_a = os.path.join(work, "bundle-a")
+        out_b = os.path.join(work, "bundle-b")
+        write_bundle(TEN_FRONTS, out_a)
+        write_bundle(TEN_FRONTS, out_b)
+        for name in OUTPUT_NAMES:
+            with open(os.path.join(out_a, name), "rb") as handle_a, \
+                    open(os.path.join(out_b, name), "rb") as handle_b:
+                require(handle_a.read() == handle_b.read(),
+                        f"byte-identical {name} across two temp directories")
+
+    with tempfile.TemporaryDirectory(prefix="agentwars-ten-fronts-refusal-") as work:
+        bad = os.path.join(work, "malformed-scores.jsonl")
+
+        def break_scores(records):
+            states = [row for row in records if row.get("kind") == "state"]
+            states[-1]["body"]["state"]["scores"] = [319]
+
+        rewrite_and_rechain_copy(TEN_FRONTS, bad, break_scores)
+        expect_bundle_error(lambda: build_manifest(bad), "refusing unverified")
+
+
+def rewrite_and_rechain_copy(source, destination, mutate):
+    """Copy a transcript to destination, mutate it there, then repair its hash chain."""
+    with open(source, "r", encoding="utf-8") as fh:
+        records = [json.loads(line) for line in fh]
+    mutate(records)
+    previous = GENESIS
+    for record in records:
+        body = {"kind": record["kind"], "seq": record["seq"], "body": record["body"]}
+        record["prev"] = previous
+        record["hash"] = chain(previous, body)
+        previous = record["hash"]
+    with open(destination, "w", encoding="utf-8", newline="\n") as fh:
+        for record in records:
+            fh.write(json.dumps(record, sort_keys=True, separators=(",", ":"),
+                                ensure_ascii=True) + "\n")
+
+
 def main():
     check_source_claims()
     check_bundle_contract()
@@ -287,8 +431,9 @@ def main():
     check_public_identity_guard()
     check_hostile_match_id_is_refused()
     check_tamper_refusal_has_no_partial_output()
-    check_replay_valid_forfeit_bundle()
+    check_runtime_forfeit_refusal()
     check_generic_historical_match()
+    check_ten_fronts_moment_bundle()
     check_url_guard()
     print("AgentWars verified-moment bundle contracts: PASS")
     print("deterministic bundle / provenance parser / hostile escaping / tamper refusal / runback guard")

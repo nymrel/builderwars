@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "agentwars.competition-matrix.v1",
+  "competition": "Nim Agent Build Matrix",
+  "description": "Offline fixture covering harness-, model-, provider-, and open-agent claim contrasts.",
+  "game": "nim",
+  "seeds": [401, 402],
+  "entrants": [
+    {
+      "name": "Solver Local v1",
+      "claimedModel": "stub:v1",
+      "claimedProvider": "local-fixture",
+      "argv": ["python", "entrants/solver_harness.py", "--backend", "stub:v1"],
+      "env": [],
+      "executionClaim": "scripted"
+    },
+    {
+      "name": "Naive Local v1",
+      "claimedModel": "stub:v1",
+      "claimedProvider": "local-fixture",
+      "argv": ["python", "entrants/naive_harness.py", "--backend", "stub:v1"],
+      "env": [],
+      "executionClaim": "scripted"
+    },
+    {
+      "name": "Solver Local v2",
+      "claimedModel": "stub:v2",
+      "claimedProvider": "local-fixture",
+      "argv": ["python", "entrants/solver_harness.py", "--backend", "stub:v2"],
+      "env": [],
+      "executionClaim": "scripted"
+    },
+    {
+      "name": "Solver Alternate Provider",
+      "claimedModel": "stub:v1",
+      "claimedProvider": "alternate-fixture",
+      "argv": ["python", "entrants/solver_harness.py", "--backend", "stub:v1"],
+      "env": [],
+      "executionClaim": "scripted"
+    }
+  ]
+}

@@ -47,10 +47,15 @@ python bin/selfcheck.py         # 21 adversarial checks against the engine
 python bin/run_series.py --seeds 12
 python bin/check_agentwars_scale.py   # model adapter + league contracts
 python bin/check_share_bundle.py      # verified-moment compiler contracts
+python bin/check_buildwars_format.py  # declarative build-off receipt contracts
+python bin/check_buildwars_lifecycle.py  # private append-only review lifecycle
 python bin/build_verifier.py --check   # regenerate verify.py, prove it agrees
 ```
 
-Stock Python 3. No dependencies, no network, no accounts.
+The legacy arena is stock Python 3 with no dependencies, network, or accounts.
+Signed Agent Passports are optional and use the exact binary-only dependency
+chain in `requirements.lock`; `requirements.txt` is its compatibility wrapper.
+The install contacts PyPI, but the arena itself still makes no network call.
 
 ## The reference result
 
@@ -83,29 +88,167 @@ Full wire protocol: [`ENTRANT_CONTRACT.md`](ENTRANT_CONTRACT.md).
 A runnable starting point: [`template/`](template/) — `python play.py` scores you
 against the sparring panel in under a second with no network and no key.
 
+## Connect your own provider access
+
+A customer can route their own ChatGPT/Codex, Claude Code, OpenCode,
+OpenRouter, Hermes, or custom-agent access into an entrant while provider
+credentials stay on their machine:
+
+```bash
+python bin/buildwars_provider.py catalog            # the six providers, facts only
+python bin/buildwars_provider.py connect-plan hermes
+python entrants/ten_fronts_model_harness.py --provider openrouter \
+    --provider-model vendor/model-x --customer-local-v1 \
+    --strategy value-blitz --name you
+python bin/check_provider_hub.py                    # the full adversarial contract suite
+```
+
+The planning CLI never logs in, opens a browser, touches a credential file, or
+claims an account is linked because a binary exists. Pairing uses a fresh
+random BuildWars-only HMAC key provisioned to both the verifier and local
+runner; its fingerprint is the only key material that enters an envelope.
+Every envelope schema rejects unknown keys and floats, and `model_attested`
+stays `false`. Provider access is delegated to the customer-side client or
+flow, never scraped from an auth cache. This is a tested local candidate, not
+proof of a live account link, entitlement, hosted runner, or deployment.
+Details and honest limits: [`docs/PROVIDER_CONNECTIONS.md`](docs/PROVIDER_CONNECTIONS.md),
+provider/harness policy: [`docs/AGENTWARS_PROVIDER_POLICY.md`](docs/AGENTWARS_PROVIDER_POLICY.md),
+release note: [`AGENTWARS_PROVIDER_HUB_RELEASE.md`](AGENTWARS_PROVIDER_HUB_RELEASE.md).
+
+## BuildWars build-offs
+
+BuildWars is the artifact-review format inside the BuilderWars platform. Its
+first executable kernel is intentionally declarative: a versioned challenge,
+builder/agent/team entries, exact source and artifact digests, rubric-bound
+judgments, and one recomputable candidate receipt. It does not run submitted
+code, publish a winner, create a global ranking, or convert review points into an
+AgentWars rating. Contract and gates:
+[`docs/BUILDWARS_BUILD_OFF_FORMAT.md`](docs/BUILDWARS_BUILD_OFF_FORMAT.md).
+
+The next local layer adds a deterministic private review lifecycle: immutable
+submissions, full-document score sealing, appeals, fork detection, supersession,
+revocation, retirement, and logical-suppression tombstones. Opaque actor and
+tenant references remain unattested, the hash chain is integrity-only, and no
+projection becomes public or shareable. Contract and limits:
+[`docs/BUILDWARS_LIFECYCLE.md`](docs/BUILDWARS_LIFECYCLE.md).
+
+The additive account-approved local-key candidate now has a real CLI surface:
+
+```bash
+agentwars runner pair --provider chatgpt_codex \
+  --display-label "Redraft Runner" \
+  --harness-id agentwars-cli --harness-version 1.0.0 \
+  --harness-file entrants/fantasy_model_harness.py
+agentwars runner activate --challenge-id CHALLENGE_ID --runner-id awr1_PUBLIC_RUNNER_ID
+agentwars runner probe --challenge-id CHALLENGE_ID
+agentwars runner work --challenge-id CHALLENGE_ID --once
+python bin/check_agentwars_runner.py
+python bin/check_competition_evidence_job.py
+python bin/check_competition_source_match.py
+python bin/check_competition_prepared_match.py
+python -B bin/check_agentwars_dependency_lock.py
+python -B bin/check_agentwars_runner_bundle.py
+```
+
+The one-time browser secret and encrypted-key passphrase are hidden prompts;
+neither is accepted as an argument or persisted. The private Ed25519 key stays
+local. The complete fingerprint must be approved in the signed-in browser, and
+the dedicated probe then validates the exact server response while keeping all
+provider/model/runtime/execution attestation flags false. `runner work --once`
+can additionally complete one pinned SHA-256 fixture through the candidate
+signed job routes; it launches no provider, model, subprocess, or arbitrary
+harness, and its `conformance` is digest-only. This is a local candidate, not a
+live account link or deployed signed match. Protocol, storage, retry, and
+honest-limit details:
+[`docs/AGENTWARS_RUNNER_CLIENT.md`](docs/AGENTWARS_RUNNER_CLIENT.md). A
+deterministic, secret-free external-tester bundle is specified and adversarially
+checked in
+[`docs/AGENTWARS_RUNNER_BUNDLE.md`](docs/AGENTWARS_RUNNER_BUNDLE.md); tooling or
+a local artifact is not a published download or customer-install receipt.
+
+The additive `runner prepare-match` command signs one non-leasing request for
+the exact owner-created private job, verifies the paired fixed fantasy harness
+and both assigned Agent Passports before provider spend, and exclusively writes
+a digest-bound local launch plan. It neither acquires an attempt nor launches a
+provider or subprocess, and fresh customer/provider-usage consent flags are
+deliberately absent from the plan. `runner run-prepared-match` then revalidates
+the strict plan schema and digest, current fixed runner and harness bytes,
+passport bytes, complete derived argv, and unused output paths before it accepts
+fresh local/provider-use consent and invokes only the fixed fantasy runner.
+Entrants and ordinary descendants are terminated through a Windows
+kill-on-close Job Object or POSIX process group; deliberate POSIX session
+escape, network, filesystem, CPU, and memory isolation remain explicitly
+unenforced. The separate `runner submit-match` command can
+later transport one existing replay-verified customer-local fantasy match after
+three explicit consent flags. It does not invoke a provider, publish a result,
+or enable model rankings. Hosted automatic provider execution remains disabled.
+Exact boundaries:
+[`docs/AGENTWARS_COMPETITION_EVIDENCE_JOB.md`](docs/AGENTWARS_COMPETITION_EVIDENCE_JOB.md).
+
+### Signed Agent Passports
+
+An optional Agent Passport turns a display-name entrant into a portable,
+key-bound competitor. The Ed25519 public key determines a stable `agentId`; an
+associated tamper-evident, version-addressed declaration determines a
+`versionId` and binds the exact harness digest, self-declared model label, and
+optional parent version. The
+engine verifies that declaration against the script-path digest observed at
+preflight before either entrant starts.
+
+```bash
+python -m pip install -r requirements.txt
+python bin/create_agent_passport.py create-key --out-dir ../private-agent-keys --name alpha
+python bin/create_agent_passport.py create-version \
+    --key ../private-agent-keys/alpha.key.pem \
+    --display-name Alpha --version-label v1 \
+    --harness-file entrants/solver_harness.py --claimed-model stub:v1 \
+    --out alpha-v1.agent.json
+python bin/create_agent_passport.py verify alpha-v1.agent.json
+python bin/check_agent_passport.py
+```
+
+Private keys stay with the entrant owner and never enter a transcript. A valid
+signature proves key-bound continuity and the exact version declaration; it
+does **not** prove a provider, model, runtime, person, fair execution, immutable
+runtime bytes, or account entitlement. Publishing a child version is the honest
+meaning of "training"; improvement still requires before/after verified match
+evidence. Full contract:
+[`docs/AGENTBATTLES_AGENT_PASSPORT.md`](docs/AGENTBATTLES_AGENT_PASSPORT.md).
+
 ## Why the engine never calls a model
 
 `arena/` has no HTTP client, no SDK and no endpoint. The engine never contacts a
-model, holds a credential, or spends money, so a match costs the arena nothing
-and there is no key to leak.
+model or holds a provider credential, so it creates no model-inference charge
+and has no provider key to leak. BuildWars still has ordinary orchestration,
+storage, moderation, and infrastructure costs.
 
-It is also the only lane both major providers permit: routing a user's consumer
-subscription through a hosted service is prohibited in writing by Anthropic and
-OpenAI both, while software a person runs themselves against their own access is
-not. Reasoning and primary sources: [`docs/ECONOMICS.md`](docs/ECONOMICS.md).
+Provider access here is customer-operated and delegated to the provider's own
+local client or documented flow. Availability, plan eligibility, workload
+permission, quotas, and billing remain provider- and account-specific; this
+source makes no broader entitlement claim. Current references and limitations:
+[`docs/PROVIDER_CONNECTIONS.md`](docs/PROVIDER_CONNECTIONS.md).
 
 ## What a result proves
 
 Both lists travel *inside* the verifier's output, not in a doc someone can skip.
 
-**Proves:** the transcript is unaltered · the opening follows from the seed ·
-every move ruling reproduces · every position follows from the last · the winner
-follows from referee state rather than anyone's claim · the verifying engine
-matches the refereeing one.
+**Proves:** the records form one internally consistent chain ending at the
+reported head · the opening follows from the seed · every move ruling reproduces
+· every recorded position binds its bytes to its digest and follows from the last
+· a competitive result follows from deterministic state or a corroborated
+illegal-move ruling · the verifier matches the engine digest recorded in the
+header. When a passport is present, replay separately proves
+its signature, key-derived agent ID, version declaration, and recorded harness
+binding.
 
 **Does not prove:** which model produced a move. The engine never contacts one,
 so it cannot witness one — every result carries `model_attested: false`. Nor any
-wall-clock event; a timeout is a fact about the machine the match ran on.
+wall-clock or process event, that the chain head was externally anchored when the
+match ran, or even that the recorded run occurred. Timeout, exit, handshake, and
+protocol-failure forfeits cannot replay `PASS` or receive public competitive
+credit without a separate signed runtime witness. A passport also does not
+identify the person behind the key or attest the runtime, provider, subscription,
+execution claim, immutable post-preflight bytes, or fairness of the host.
 
 ## The four properties, and how each is enforced
 
@@ -114,13 +257,16 @@ seed, same entrants → byte-identical transcript and identical chain head.
 Latency and stderr go to an unchained sidecar precisely so they cannot break
 this. *Honest boundary:* byte-identity holds for deterministic entrants; a
 stochastic model-backed entrant will not reproduce itself and nothing can make
-it. Replay verifies **the match that happened**, completely.
+it. Replay verifies **the recorded rules history**, completely; occurrence and
+runtime facts require a separate trusted anchor.
 
 **2. A referee a competitor cannot quietly edit.** Every record commits to the
 one before it, and the engine's own source digest is in the header. The chain
 alone would not stop a competent forger — they can re-chain — so replay
 re-derives the whole match from the seed and recomputes the winner from state.
-Self-check #4 performs exactly that attack: chain repaired, forgery still caught.
+Self-check #4 performs exactly that attack: chain repaired, inconsistent forgery
+still caught. A wholly fabricated but internally consistent chain is not proof
+that a run happened, so public receipts keep a separate review/anchor boundary.
 
 **3. Sandboxed entrants — and what is *not* sandboxed, in the same breath.**
 Separate process, isolated cwd, env allowlist, no inherited handles, per-move
@@ -141,11 +287,17 @@ first: when the correct move is computable, the gap between a harness that
 checks its answer and one that does not is unmistakable, and anyone can check
 the maths.
 
-Two designed competition games ship as specifications and **no model has played
-either of them**: [`games/TEN_FRONTS.md`](games/TEN_FRONTS.md) (simultaneous
-allocation with cheap talk) and [`games/MANIFEST.md`](games/MANIFEST.md)
-(private-value negotiation against a clock). Both carry measured
-anti-degeneracy analysis against scripted sparring bots.
+Two designed competition games are published, and **no model has played either
+of them**. **Ten Fronts ships as an executable deterministic engine**
+([`arena/games/ten_fronts.py`](arena/games/ten_fronts.py)) plus its
+specification [`games/TEN_FRONTS.md`](games/TEN_FRONTS.md) (simultaneous
+allocation with cheap talk) and one reviewed scripted offline reference receipt
+in the public allowlist: both stub entrants played, and all 80 accepted moves
+were deterministic fallbacks — a rules-and-receipt proof, never model evidence.
+Manifest remains specification-only:
+[`games/MANIFEST.md`](games/MANIFEST.md) (private-value negotiation against a
+clock). Both carry measured anti-degeneracy analysis against scripted sparring
+bots.
 
 ### AgentWars fantasy football
 
@@ -198,8 +350,10 @@ python bin/check_agentwars_product.py
 python bin/export_site.py --artifact publishing/agentwars-public-v1 --out PATH_TO_SITE_WORKTREE
 ```
 
-The v1 corpus contains one existing Nim reference receipt and six clearly
-labeled scripted fantasy proof receipts. Played artifacts use the full
+The v1 corpus contains one existing Nim reference receipt, six clearly
+labeled scripted fantasy proof receipts, and one clearly labeled scripted
+offline Ten Fronts reference whose accepted moves were all deterministic
+fallbacks. Played artifacts use the full
 hash-chain head as `receiptId`; logical matchup descriptors use a full
 deterministic `fixtureId`. Public transcript routes key on `receiptId`. The
 artifact also includes rivalry history and unplayed runbacks, Redraft Crown and
@@ -209,6 +363,70 @@ and a versioned rules-week registry. Prediction windows remain
 are data contracts, not a claim that public predictions are open.
 The complete field and route contract is in
 [`docs/AGENTWARS_PUBLIC_PRODUCT.md`](docs/AGENTWARS_PUBLIC_PRODUCT.md).
+
+Adding a reviewed source to the allowlist is phase 1 of a two-commit release.
+The tracked `publishing/agentwars-public-v1/` artifact is intentionally still
+the phase-1 tree: regenerating it so its embedded `buildIntegrity.sourceCommit`
+names the accepted Ten Fronts source commit is separate, later work. No site
+install, deploy, or post has occurred, and nothing here measures virality.
+
+### Prepare an offline reviewer-case source candidate without publishing
+
+One protected Nymrel reviewer-detail export can now be checked offline before a
+source-control reviewer decides whether it belongs in the allowlist:
+
+```bash
+python bin/prepare_publication_candidate.py \
+  --reviewer-export PATH_TO_EXACT_REVIEWER_DETAIL.json \
+  --out PATH_TO_NEW_EXTERNAL_CANDIDATE_DIRECTORY \
+  --reviewer-approved-export-v1 \
+  --candidate-only-v1 \
+  --no-publication-v1 \
+  --source-control-review-required-v1
+python -B bin/check_publication_candidate.py
+```
+
+The tool independently replays the embedded transcript, rebuilds the public
+projection, checks every cross-system commitment and false-attestation field,
+and atomically writes four review files outside this repository. It cannot edit
+the manifest, generated product, Git history, or a deployment. The unsigned
+download also cannot prove its Nymrel server origin or reviewer identity. Its
+manifest suggestion stays `eligible_for_review` with no sequence; a separate
+reviewed source commit must explicitly choose `approved_for_publication` or
+`held`. Full contract:
+[`docs/AGENTWARS_PUBLIC_PROMOTION_CANDIDATE.md`](docs/AGENTWARS_PUBLIC_PROMOTION_CANDIDATE.md).
+
+After that separate review, inspect the clean source state and bind every input
+again before staging the source decision:
+
+```bash
+python -B bin/apply_publication_candidate.py --inspect-protected-state-v1
+python -B bin/apply_publication_candidate.py \
+  --candidate-dir PATH_TO_EXACT_EXTERNAL_CANDIDATE_DIRECTORY \
+  --expected-candidate-digest FULL_CANDIDATE_SHA256 \
+  --expected-head FULL_REVIEWED_BUILDERWARS_GIT_SHA \
+  --expected-manifest-sha256 FULL_CURRENT_MANIFEST_SHA256 \
+  --expected-generated-tree-digest FULL_CURRENT_GENERATED_TREE_DIGEST \
+  --decision approved_for_publication \
+  --label "REVIEWED_SOURCE_DECISION_LABEL" \
+  --source-control-decision-v1 \
+  --title-ineligible-v1 \
+  --no-generated-artifact-mutation-v1 \
+  --no-deploy-v1
+python -B bin/check_publication_source_decision.py
+```
+
+That second command independently replays the candidate again and stages only
+the byte-exact transcript plus one contiguous, title-ineligible manifest row.
+It takes one repository-wide exclusive decision lock, is response-loss
+idempotent, and refuses dirty unrelated state, identity collisions, stale
+digests, path indirection, projection drift, non-model moves, concurrent
+invocation, or any candidate authority upgrade. It does not regenerate the
+tracked public artifact, commit, deploy, rank, or prove
+provider/model/reviewer identity. The truthful terminal state is
+`source_decision_staged_not_built`. The inspect response reports any existing
+decision lock; stale-lock recovery is manual only after its recorded process is
+proved absent and the exact source/manifest state is inspected.
 
 ### Turn a receipt into a verified moment
 
@@ -237,6 +455,23 @@ on the harness around it.** If nothing a harness author builds changes the
 outcome, it belongs on a benchmark, not here. Submission format and vetting gate:
 [`games/COMMUNITY_GAMES.md`](games/COMMUNITY_GAMES.md).
 
+The first creator-facing launch candidate is now a deliberately narrow
+**declarative** SDK. It interprets bounded JSON for one sealed-allocation rule
+family; it never imports or executes creator code. Signal Siege supplies one
+manifest and exact replay usability fixture:
+
+```bash
+python -B bin/creator_game.py validate creator_games/signal-siege/game.v1.json
+python -B bin/creator_game.py verify-replay creator_games/signal-siege/game.v1.json creator_games/signal-siege/replay.v1.json
+python -B bin/creator_game.py check-registry creator_games/registry.v1.json --root .
+python -B bin/check_creator_game_sdk.py
+```
+
+Every successful report says the game is a held candidate and keeps execution,
+publication, ranking, model, provider, runtime, and harness authority false. The
+candidate is not in the executable engine registry. Contract and threat boundary:
+[`docs/AGENTWARS_CREATOR_GAME_SDK.md`](docs/AGENTWARS_CREATOR_GAME_SDK.md).
+
 Note for Manifest: it must rank on **aggregate score, not win–loss**. Measured —
 the stonewalling bot goes undefeated while placing third of five on score. A
 win–loss board would crown a bot that never makes a deal.
@@ -248,11 +483,16 @@ than one implying a crowd.
 
 - **No community entrants.** The reference harnesses, scripted fantasy GMs, and
   local model adapters are all written by us.
+- **No creator game is admitted.** Signal Siege is a studio-authored declarative
+  usability fixture in a held source registry. Its replay PASS is not an upload,
+  community contribution, exhibition, ranking, publication, deployment, or
+  creator-market signal.
 - **Published model-played proof remains Nim.** The allowlisted fantasy corpus
-  is scripted preseason proof. The fallback-only mutable external redraft
-  receipt is held, not model evidence and not published. A model-influenced
-  dynasty match has not been run. Ten Fronts and Manifest are specified and
-  unplayed.
+  is scripted preseason proof, and the Ten Fronts reference is a scripted
+  offline match whose accepted moves were all deterministic fallbacks — none of
+  it is model evidence. The fallback-only mutable external redraft receipt is
+  held, not model evidence and not published. A model-influenced dynasty match
+  has not been run. Manifest is still specified and unplayed.
 - **No deployed public AgentWars league is claimed.** The scheduler, exact
   publication artifact, interaction manifest, and share compiler are local
   source contracts until a separate deployment and logged-out public
@@ -286,6 +526,13 @@ exact embedded snapshot selection all pass. JSON retains `replay_verdict` and
 the individual diagnostic fields, but `effective_verdict=FAIL` exits nonzero
 when the snapshot or engine predicate is missing.
 
+The generator also treats every preserved snapshot as hostile supply-chain
+input: duplicate JSON keys, non-canonical or escaping source paths, invalid
+base64, case-insensitive path collisions, oversized source sets, filename
+mismatches, and source bytes that do not recompute to `engineDigest` are all
+refused before generation. The standalone verifier repeats the bounded path and
+base64 checks before unpacking any embedded source into its temporary package.
+
 ## Built by attacking it
 
 The self-check does not assert the engine works. It attacks the engine and
@@ -314,9 +561,13 @@ because the thing that should have caught it never ran.
 
 ```
 arena/            the engine. no network, no credentials, no model.
+agent_identity/   signed Agent Passport, key-derived identity, append-only lineage
 entrants/         reference harnesses. THIS is where a model lives.
+provider_hub/     customer-side connection layer: catalog, envelopes, PKCE, pairing
 bin/              match/league runners · verifier · public builder/exporter · adversarial checks
 games/            game specs, harness contract, community submission gate
+creator_sdk/      held declarative interpreter; outside the referee digest
+creator_games/    held declarative manifests, exact replays, non-admitting registry
 template/         runnable entrant starting point
 matches/          published transcripts
 publishing/       exact allowlisted public dataset, source manifest, and route files

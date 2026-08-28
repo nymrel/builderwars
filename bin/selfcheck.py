@@ -230,6 +230,8 @@ def main():
         r = verify(swapped)
         check("mismatched engine digest is surfaced", r["engine_digest_match"] is False,
               "a competitor could otherwise referee with edited rules and no one would see it")
+        check("mismatched engine digest makes the replay verdict FAIL", r["verdict"] == "FAIL",
+              "a foreign referee must never receive a PASS-with-warning verdict")
         check("and it is named in what the result does NOT prove",
               any("engine digests differ" in s for s in r["does_not_prove"]),
               "the caveat has to travel with the result, not sit in a doc")

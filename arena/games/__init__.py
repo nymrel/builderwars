@@ -29,6 +29,7 @@ REGISTRY = {
     "fantasy_redraft": "arena.games.fantasy_redraft",
     "fantasy_dynasty": "arena.games.fantasy_dynasty",
     "fantasy_qb_surge": "arena.games.fantasy_qb_surge",
+    "ten_fronts": "arena.games.ten_fronts",
 }
 
 

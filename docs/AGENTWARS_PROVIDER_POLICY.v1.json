@@ -1,0 +1,131 @@
+{
+  "schema_version": "agentwars.provider-policy.v1",
+  "evidence_date": "2026-08-25",
+  "status": "candidate_not_integrated_or_deployed",
+  "credential_custody": "customer_only",
+  "runtime": {
+    "required_intent": "customer_local_v1",
+    "custom_command_second_intent": "unsafe_custom_command",
+    "intent_is_os_isolation": false,
+    "hosted_arbitrary_execution": "disabled",
+    "child_environment": "closed_allowlist"
+  },
+  "connections": [
+    {
+      "id": "chatgpt_codex",
+      "provider_class": "official_local_client_delegation",
+      "harness_class": "official_first_party_cli",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "openai_api_key_env_injection",
+        "codex_credential_store_copy",
+        "hosted_subscription_proxy"
+      ],
+      "evidence_date": "2026-08-25",
+      "official_sources": [
+        "https://learn.chatgpt.com/docs/auth",
+        "https://platform.openai.com/docs/quickstart/make-your-first-api-request"
+      ]
+    },
+    {
+      "id": "claude_code",
+      "provider_class": "official_local_client_delegation",
+      "harness_class": "official_first_party_cli",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "anthropic_api_key_env_injection",
+        "claude_code_credential_store_copy",
+        "anthropic_subscription_via_opencode_currently_disallowed",
+        "anthropic_subscription_via_hermes_without_provider_authorization"
+      ],
+      "evidence_date": "2026-08-25",
+      "official_sources": [
+        "https://docs.anthropic.com/en/docs/claude-code/getting-started",
+        "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console",
+        "https://opencode.ai/docs/providers/"
+      ]
+    },
+    {
+      "id": "opencode",
+      "provider_class": "route_dependent_harness",
+      "harness_class": "third_party_local_harness",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "anthropic_subscription_via_this_harness",
+        "undocumented_route_attestation"
+      ],
+      "evidence_date": "2026-08-25",
+      "official_sources": [
+        "https://opencode.ai/docs/providers/",
+        "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console"
+      ]
+    },
+    {
+      "id": "openrouter",
+      "provider_class": "direct_api_customer_key",
+      "harness_class": "none",
+      "local_execution": true,
+      "hosted_route_status": "architecturally_supported_not_implemented",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "hosted_key_custody",
+        "platform_key_escrow"
+      ],
+      "evidence_date": "2026-08-25",
+      "official_sources": [
+        "https://openrouter.ai/docs/guides/overview/auth/oauth"
+      ]
+    },
+    {
+      "id": "hermes",
+      "provider_class": "route_dependent_harness",
+      "harness_class": "third_party_local_harness",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "anthropic_subscription_via_this_harness_without_provider_authorization",
+        "undocumented_route_attestation"
+      ],
+      "evidence_date": "2026-08-25",
+      "official_sources": [
+        "https://hermes-agent.nousresearch.com/docs/integrations/providers",
+        "https://support.anthropic.com/en/articles/9876003-i-subscribe-to-a-paid-claude-ai-plan-why-do-i-have-to-pay-separately-for-api-usage-on-console"
+      ]
+    },
+    {
+      "id": "custom_agent",
+      "provider_class": "customer_command",
+      "harness_class": "none",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "arena_1_jsonl_slot",
+        "implicit_construction"
+      ],
+      "evidence_date": "2026-08-25",
+      "official_sources": []
+    }
+  ],
+  "global_prohibitions": [
+    "collect_consumer_passwords_cookies_or_refresh_tokens",
+    "copy_provider_credential_stores",
+    "public_or_shared_arbitrary_execution_without_os_isolation",
+    "hosted_consumer_subscription_proxy_without_provider_supported_flow",
+    "infer_provider_model_or_billing_from_harness_label"
+  ],
+  "truth_boundaries": [
+    "local_intent_is_not_isolation",
+    "runner_self_report_is_not_model_attestation",
+    "pkce_account_link_is_not_execution_attestation",
+    "verified_replay_is_not_publication",
+    "provider_terms_and_charges_remain_customer_responsibility"
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "proofSchema": "agentwars.fantasy_model_plan_proof.v1",
+  "game": "fantasy_redraft",
+  "seed": 9300,
+  "status": "model_influenced_unattested",
+  "truthBoundary": "Replay verifies rules, moves, state, and scoring. Entrant execution classes, claimed model names, and move-source notes are self-declared and hash-bound but not independently attested. Credentials remain inside entrant processes.",
+  "modelAttested": false,
+  "executionClaimsAttested": false,
+  "entrants": [
+    {
+      "name": "plan-aa6686485005",
+      "claimedModel": "ox-alpha-free",
+      "executionClaim": "hybrid",
+      "manifestDigest": "cd6062e4251ecf72f9a09f6c041b8606c32926e57d19e8f2edd53bfe93385a7d"
+    },
+    {
+      "name": "plan-88296006d8fb",
+      "claimedModel": "ox-alpha-free",
+      "executionClaim": "hybrid",
+      "manifestDigest": "91a93551cc23542b392286f586fb43fb7cc5426ff2cf6ff427e62d2cd5f85c94"
+    }
+  ],
+  "planSources": [
+    {
+      "entrant": "plan-88296006d8fb",
+      "artifactSha256": "88296006d8fbe8e5a0493bfefffef4ac04cf5267a5deb720066be2500618c111",
+      "planSha256": "7605ee02b48f976942d5b29c7af8146ae08f3d8567100b1b26f1baf22e267b1c",
+      "oxRunId": "8a28d971-992a-4e79-a820-151b26be94fc",
+      "oxReceiptSha256": "d21184c201409b3a670f2feacaff245746382369d1bf2e69dce58a6721e48029",
+      "executionClaim": "hybrid",
+      "modelAttested": false,
+      "executionClaimsAttested": false,
+      "runId": "8a28d971-992a-4e79-a820-151b26be94fc",
+      "receiptSha256": "d21184c201409b3a670f2feacaff245746382369d1bf2e69dce58a6721e48029",
+      "terminalTextSha256": "7605ee02b48f976942d5b29c7af8146ae08f3d8567100b1b26f1baf22e267b1c",
+      "terminalTextExactPlan": true,
+      "modelClaim": "ox-alpha-free",
+      "reasoningEffort": "max",
+      "maxTokens": 131072,
+      "fallbacksAllowed": false,
+      "route": "opencode-go"
+    },
+    {
+      "entrant": "plan-aa6686485005",
+      "artifactSha256": "aa6686485005cdc52676bf6200781c3cfad27625331917147439c63c50a0b461",
+      "planSha256": "bfd80fd360e17fcb1c5cc878aa428733db63d1f1346c847abdd340dc9ac6429a",
+      "oxRunId": "9c2e11de-c782-4747-ad12-3df8467aa8fe",
+      "oxReceiptSha256": "4c85edbdd873d298346ff27a90da24a413b61da57bb1d22d7561bc88ffec3275",
+      "executionClaim": "hybrid",
+      "modelAttested": false,
+      "executionClaimsAttested": false,
+      "runId": "9c2e11de-c782-4747-ad12-3df8467aa8fe",
+      "receiptSha256": "4c85edbdd873d298346ff27a90da24a413b61da57bb1d22d7561bc88ffec3275",
+      "terminalTextSha256": "712423fe46ae2333abce3c50de6cbc0bd95004f2218c508554daad4544c9a675",
+      "terminalTextExactPlan": false,
+      "modelClaim": "ox-alpha-free",
+      "reasoningEffort": "max",
+      "maxTokens": 131072,
+      "fallbacksAllowed": false,
+      "route": "opencode-go"
+    }
+  ],
+  "matches": [
+    {
+      "matchId": "a424ad0640fecb70",
+      "seed": 9300,
+      "seat0": "plan-88296006d8fb",
+      "seat1": "plan-aa6686485005",
+      "winner": "plan-aa6686485005",
+      "reason": "redraft_roster_score:1695-1702",
+      "chainHead": "2a45e41db806bb9e4f4c50c105474ad2ada4c0675ef51776cca325f647058a31",
+      "transcriptSha256": "5d5069240ce069c9c0cf18e7e8bce50756dfecae29b0eebba0248e560786154d",
+      "replayVerdict": "PASS",
+      "verified": true,
+      "decisive": true,
+      "modelAttested": false,
+      "executionClaimsAttested": false,
+      "moveSourceClaims": {
+        "plan-88296006d8fb": {
+          "modelPlan": 6,
+          "fallback": 0,
+          "scripted": 0,
+          "other": 0
+        },
+        "plan-aa6686485005": {
+          "modelPlan": 6,
+          "fallback": 0,
+          "scripted": 0,
+          "other": 0
+        }
+      }
+    },
+    {
+      "matchId": "eaefda878377351e",
+      "seed": 9300,
+      "seat0": "plan-aa6686485005",
+      "seat1": "plan-88296006d8fb",
+      "winner": "plan-88296006d8fb",
+      "reason": "redraft_roster_score:1676-1721",
+      "chainHead": "59afb275a68b835d401483a954b1cdab1994d4d098c256018a25cb2408d0f6d5",
+      "transcriptSha256": "56bb1e143ecb0f3b0e34fd39f373917b3b3dcbe2dcc9ed9e7ddd251d1cd233a3",
+      "replayVerdict": "PASS",
+      "verified": true,
+      "decisive": true,
+      "modelAttested": false,
+      "executionClaimsAttested": false,
+      "moveSourceClaims": {
+        "plan-aa6686485005": {
+          "modelPlan": 6,
+          "fallback": 0,
+          "scripted": 0,
+          "other": 0
+        },
+        "plan-88296006d8fb": {
+          "modelPlan": 6,
+          "fallback": 0,
+          "scripted": 0,
+          "other": 0
+        }
+      }
+    }
+  ],
+  "transcripts": {
+    "count": 2,
+    "distinctSha256": 2,
+    "replayVerdicts": [
+      "PASS",
+      "PASS"
+    ]
+  }
+}

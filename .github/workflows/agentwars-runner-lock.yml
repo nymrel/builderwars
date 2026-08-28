@@ -16,8 +16,7 @@ on:
     branches:
       - main
     paths:
-      # The launch PR adds the runner sources. Registering this workflow alone
-      # on main must not claim that those not-yet-merged sources are runnable.
+      - ".github/workflows/agentwars-runner-lock.yml"
       - "requirements.lock"
       - "requirements.txt"
       - "dependency-lock.json"

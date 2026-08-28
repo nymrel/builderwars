@@ -113,6 +113,8 @@ def truth_status(entrants):
         return "scripted_preseason"
     if claims == {"model"}:
         return "model_claimed_unattested"
+    if claims == {"hybrid"}:
+        return "model_influenced_unattested"
     return "mixed_unattested"
 
 

@@ -1,0 +1,3 @@
+# Compatibility entrypoint for the exact AgentWars runner dependency lock.
+# The included lock forces PyPI, binary wheels, exact versions, and hashes.
+-r requirements.lock

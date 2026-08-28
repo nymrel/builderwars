@@ -105,6 +105,51 @@
       "sourceFileSha256": "c987d082af09a9b9309e78f4a8e3212ba2173b65888f8d5984ba3d6a7fec332f",
       "sourcePath": "matches/agentwars-fantasy/fantasy_qb_surge/9600-1/df155d2a014a7b8b.jsonl",
       "titleEligible": false
+    },
+    {
+      "decision": "approved_for_publication",
+      "label": "Reviewed scripted offline Ten Fronts reference; accepted moves were all deterministic fallbacks, not model-played",
+      "sequence": 7,
+      "sourceChainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+      "sourceCounts": {
+        "fallback": 80,
+        "model": 0,
+        "other": 0,
+        "scripted": 0
+      },
+      "sourceFileSha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4",
+      "sourcePath": "matches/agentwars-ten-fronts/ten_fronts/7000-0/e16ac35d43eb3b47.jsonl",
+      "titleEligible": false
+    },
+    {
+      "decision": "held",
+      "label": "Held fixed Ox model-plan redraft exhibition; verifier snapshot differs from active rules registry",
+      "sequence": 8,
+      "sourceChainHead": "59afb275a68b835d401483a954b1cdab1994d4d098c256018a25cb2408d0f6d5",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 12,
+        "other": 0,
+        "scripted": 0
+      },
+      "sourceFileSha256": "56bb1e143ecb0f3b0e34fd39f373917b3b3dcbe2dcc9ed9e7ddd251d1cd233a3",
+      "sourcePath": "matches/agentwars-model-plan-proof/transcripts/0-1-0/eaefda878377351e.jsonl",
+      "titleEligible": false
+    },
+    {
+      "decision": "held",
+      "label": "Held reversed-seat Ox model-plan exhibition; verifier snapshot differs from active rules registry",
+      "sequence": 9,
+      "sourceChainHead": "2a45e41db806bb9e4f4c50c105474ad2ada4c0675ef51776cca325f647058a31",
+      "sourceCounts": {
+        "fallback": 0,
+        "model": 12,
+        "other": 0,
+        "scripted": 0
+      },
+      "sourceFileSha256": "5d5069240ce069c9c0cf18e7e8bce50756dfecae29b0eebba0248e560786154d",
+      "sourcePath": "matches/agentwars-model-plan-proof/transcripts/0-1-1/a424ad0640fecb70.jsonl",
+      "titleEligible": false
     }
   ],
   "futureFixtures": [

@@ -2,11 +2,11 @@
   "buildIntegrity": {
     "datasetBuilderSha256": "6ec741b67db0b26b3010c741e1ea271ca691a78d729e318591a037fa95316a91",
     "productExporterSha256": "0463f18c72070680b6c391d20d0f7f2310ac761e71509326ee2111633a1df1d1",
-    "projectionSha256": "7d305344ee11da8c685017bac64f26bfd786a06939c5740bb797266a70cbbc50",
-    "publicationManifestFileSha256": "31c76ce10a98d591ea6d8c1d673ec6c8d2889b897a1799cbbf2d5f570f581775",
+    "projectionSha256": "cfe4c96e0693b5bccfaa5278f806f8c822a908cdb8f72d2dbb98f163559220ba",
+    "publicationManifestFileSha256": "51b58200209b40cae0cfc769f68a4ccf464f431fa4be73a5f20189b8cf21712c",
     "siteExporterSha256": "7cf6f90a1edfe2ab29da7d133b760a974ca1975f652ee125ef16e3a0c4e7b434",
-    "sourceCommit": "90da27716c366c871191438a646977bd113aa3b3",
-    "verifierSha256": "e734ee951b6ca3e6e5b434d342d0d6aae04efe0f198dc243d23cfee84672aa05"
+    "sourceCommit": "6150c60e1a082022f33c95406a27a2994bed9554",
+    "verifierSha256": "5681a97d28be07611202fb46a37af9b8d31fdaa0ec5648049ff1913434cb4da8"
   },
   "clips": [
     {
@@ -113,9 +113,24 @@
       "seqEnd": 26,
       "seqStart": 26,
       "sourceClaim": "scripted"
+    },
+    {
+      "boundedRecordCount": 1,
+      "clipId": "clip_bd9eecac6bff933d",
+      "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+      "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+      "kind": "final_accepted_move",
+      "label": "Final accepted move",
+      "rawMoveOmitted": true,
+      "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+      "schemaVersion": "agentwars.clip-candidate.v1",
+      "seat": 1,
+      "seqEnd": 162,
+      "seqStart": 162,
+      "sourceClaim": "fallback"
     }
   ],
-  "datasetDigest": "8cdeb96ef89c41cc292431daef6b307d504c8e7c80f5f71c645ad7d1e0394c7b",
+  "datasetDigest": "fa9891bca9d2dfd4027f3e98cee24a7eec0772cc4e6566cb5a77947b60260d0e",
   "datasetVersion": "1",
   "digestContract": {
     "algorithm": "sha256",
@@ -273,7 +288,7 @@
   ],
   "interactionManifest": {
     "campaignId": "agentwars_launch_v1",
-    "fingerprint": "01654d3f75e547bef1088c93cdcb5a2d3bb38bcb30050699029202545ba6db5d",
+    "fingerprint": "28b0174fa660867bccfc9933f48a629882a746918fe628e6e543d577029b1982",
     "futureFixtures": [
       {
         "activationStatus": "proposed_not_activated",
@@ -386,7 +401,7 @@
           "publicTranscriptBytes": 7835,
           "publicTranscriptPath": "public/m/46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703.jsonl",
           "publicTranscriptSha256": "4e6cac4a6fdbda4cab76223de1a5f7950099e83e9e969cd372c83716845836cc",
-          "publicationManifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+          "publicationManifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
           "shareManifestHash": "3028f3a713159eaaa9c8c3cadc4c267505a9060b2bed64854d64d8db04a9edf1",
           "sourceChainHead": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
           "sourceCountsDigest": "2ce5be9bebb64b46236975b002e6ea879474f0c3ab5771d9088daa74148b22e2",
@@ -416,7 +431,7 @@
           "publicTranscriptBytes": 39997,
           "publicTranscriptPath": "public/m/a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca.jsonl",
           "publicTranscriptSha256": "1bc518c5ea178049647b39338f32797eca85822d559758ac75b41ecad6a46372",
-          "publicationManifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+          "publicationManifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
           "shareManifestHash": "10532be31ee16a319081d877104f4186bc28b1f36179e1d3c3a26f928daeef9d",
           "sourceChainHead": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
           "sourceCountsDigest": "6ada2a3c785fe6528e1c23aa916404cf838fa8721af2cc04667d81e575f3b524",
@@ -446,7 +461,7 @@
           "publicTranscriptBytes": 39997,
           "publicTranscriptPath": "public/m/9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34.jsonl",
           "publicTranscriptSha256": "c545b9a15476db180fd42fce8392251a0a35325e359c75edd1dabae7eb781ba3",
-          "publicationManifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+          "publicationManifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
           "shareManifestHash": "4782624bde42a7b87a2e0e3fdd3928a327d2ea220dbd45fe60c3a848575db437",
           "sourceChainHead": "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
           "sourceCountsDigest": "2951b693b9cbef4c9f8ea0b090b5db64ca66ca31e8c57af713c9394f917b7c4e",
@@ -476,7 +491,7 @@
           "publicTranscriptBytes": 40005,
           "publicTranscriptPath": "public/m/1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a.jsonl",
           "publicTranscriptSha256": "785dc244f37df8e7f0bbf2e9d91853756bc5bce85d0cb388a0f58c77d48a34b7",
-          "publicationManifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+          "publicationManifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
           "shareManifestHash": "90e24065934068a1838b47d06cbf3223b2e6a1cec975326f1aec0f68cf887554",
           "sourceChainHead": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
           "sourceCountsDigest": "6ada2a3c785fe6528e1c23aa916404cf838fa8721af2cc04667d81e575f3b524",
@@ -506,7 +521,7 @@
           "publicTranscriptBytes": 40005,
           "publicTranscriptPath": "public/m/2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb.jsonl",
           "publicTranscriptSha256": "696557537476b4696d7786ec3e950f0d4295a906d80af37022e2a26248ee8a6d",
-          "publicationManifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+          "publicationManifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
           "shareManifestHash": "ccbc9a99ac7fc6262dc783fe1eeebfdd6c480a6610caf21e721d51cf23e12785",
           "sourceChainHead": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
           "sourceCountsDigest": "2951b693b9cbef4c9f8ea0b090b5db64ca66ca31e8c57af713c9394f917b7c4e",
@@ -536,7 +551,7 @@
           "publicTranscriptBytes": 40009,
           "publicTranscriptPath": "public/m/0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4.jsonl",
           "publicTranscriptSha256": "04c9d0386645d347e80d270613b83db2b597669207f305f341103b16eb30debb",
-          "publicationManifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+          "publicationManifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
           "shareManifestHash": "aa4b7f6b6894210ddca4d81838b6f6e21e06f14986ac0ced8d5d8122bda126a4",
           "sourceChainHead": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
           "sourceCountsDigest": "6ada2a3c785fe6528e1c23aa916404cf838fa8721af2cc04667d81e575f3b524",
@@ -566,7 +581,7 @@
           "publicTranscriptBytes": 40009,
           "publicTranscriptPath": "public/m/f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897.jsonl",
           "publicTranscriptSha256": "c987d082af09a9b9309e78f4a8e3212ba2173b65888f8d5984ba3d6a7fec332f",
-          "publicationManifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+          "publicationManifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
           "shareManifestHash": "2ce0dc43429e1add86169b8417f2d6dc5f3e114e3a9a62927fef7d6a44e28fde",
           "sourceChainHead": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
           "sourceCountsDigest": "2951b693b9cbef4c9f8ea0b090b5db64ca66ca31e8c57af713c9394f917b7c4e",
@@ -582,15 +597,45 @@
         "receiptId": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
         "rulesVersion": "1",
         "sourceLabel": "agentwars_share"
+      },
+      {
+        "campaignId": "agentwars_launch_v1",
+        "clipId": "clip_bd9eecac6bff933d",
+        "creativeId": "moment_82d78b2d67358f5e",
+        "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+        "fixtureStatus": "played",
+        "kind": "played",
+        "publicationEvidence": {
+          "decision": "approved_for_publication",
+          "engineDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
+          "publicTranscriptBytes": 252020,
+          "publicTranscriptPath": "public/m/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.jsonl",
+          "publicTranscriptSha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4",
+          "publicationManifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
+          "shareManifestHash": "c30d71d2bb8fade1d3840a87a47a3e42a41181c2e889f358a69d461e48ddba94",
+          "sourceChainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+          "sourceCountsDigest": "7b7f0ec2bf6dd56a493e13da81d40823a83b9c431888385cf34c04ec485cf683",
+          "sourceFileSha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4",
+          "verification": {
+            "effectiveVerdict": "PASS",
+            "engineDigestMatch": true,
+            "replayVerdict": "PASS",
+            "verifierSnapshotMatch": true
+          },
+          "verifierSnapshotDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6"
+        },
+        "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+        "rulesVersion": "1",
+        "sourceLabel": "agentwars_share"
       }
     ],
     "schemaVersion": "agentwars.interaction-manifest.v1",
     "sourceLabel": "agentwars_share"
   },
-  "interactionManifestFingerprint": "01654d3f75e547bef1088c93cdcb5a2d3bb38bcb30050699029202545ba6db5d",
+  "interactionManifestFingerprint": "28b0174fa660867bccfc9933f48a629882a746918fe628e6e543d577029b1982",
   "product": "AgentWars",
   "publication": {
-    "approvedReceiptCount": 7,
+    "approvedReceiptCount": 8,
     "approvedReceiptIds": [
       "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
       "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
@@ -598,11 +643,12 @@
       "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
       "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
       "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+      "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
       "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897"
     ],
-    "approvedReceiptSetDigest": "fec909ee6f29f174991f73b2196098608a797e181b6d5b07c6ea29f33d7cb720",
+    "approvedReceiptSetDigest": "eb6dbd0a32416f9030704f93ab3cd3a86d2aa355fb9993ca18c345b4d5a5ae88",
     "eligibleForReview": [],
-    "manifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+    "manifestDigest": "97ed785cf4f46e2d668687f7b3d384aeafa71b2aac7eede87bdb1daf7bcce338",
     "policy": "explicit_reviewed_allowlist_only",
     "verifiedDoesNotImplyPublished": true
   },
@@ -1324,6 +1370,109 @@
         "verifierSnapshotDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
         "verifierSnapshotMatch": true
       }
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "manifestDigest": "b6cbb479b951b46ef7ffa630fc84551237a2ca19a272e688f59713de77432305",
+          "name": "Stub Iron Front",
+          "seat": 0
+        },
+        {
+          "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "manifestDigest": "6f327227bca637bc89c3c253b95e97bd5384a65e7152b73cc197f97f914ecc6b",
+          "name": "Stub Even Reserve",
+          "seat": 1
+        }
+      ],
+      "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+      "game": {
+        "format": null,
+        "name": "ten_fronts",
+        "version": "1"
+      },
+      "moveSourceClaims": [
+        {
+          "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+          "fallback": 40,
+          "model": 0,
+          "other": 0,
+          "scripted": 0,
+          "seat": 0
+        },
+        {
+          "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+          "fallback": 40,
+          "model": 0,
+          "other": 0,
+          "scripted": 0,
+          "seat": 1
+        }
+      ],
+      "outcome": {
+        "decisive": true,
+        "reason": "ten_fronts_score:319-226",
+        "resultType": "win",
+        "scores": [
+          319,
+          226
+        ],
+        "status": "final",
+        "winnerEntrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+        "winnerSeat": 0
+      },
+      "projectionDigest": "dd8ea5e7ae9490ee9e3e77f384e09aa0bbc126fc788290f2547137715d3c925e",
+      "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+      "schemaVersion": "agentwars.public-receipt.v1",
+      "seed": 7000,
+      "shareManifestHash": "c30d71d2bb8fade1d3840a87a47a3e42a41181c2e889f358a69d461e48ddba94",
+      "sourceParity": {
+        "chainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+        "fileSha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4",
+        "moveSourceCountsDigest": "7b7f0ec2bf6dd56a493e13da81d40823a83b9c431888385cf34c04ec485cf683"
+      },
+      "story": {
+        "headline": "Stub Iron Front wins ten fronts",
+        "question": "Would you take the other side in the runback?",
+        "resultLine": "319-226 over Stub Even Reserve"
+      },
+      "transcript": {
+        "bytes": 252020,
+        "chainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+        "relativePath": "public/m/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.jsonl",
+        "sha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4"
+      },
+      "truth": {
+        "boundary": "Replay proves accepted moves, deterministic state, scoring, and result. Entrant names, execution classes, and move-source labels remain hash-bound self-declarations; they do not prove provider or model identity.",
+        "entrantIdentityAttested": false,
+        "executionClaimsAttested": false,
+        "modelAttested": false,
+        "status": "scripted_preseason"
+      },
+      "verification": {
+        "artifactPath": "public/m/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.jsonl",
+        "chainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+        "effectiveVerdict": "PASS",
+        "engineDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
+        "engineDigestMatch": true,
+        "replayVerdict": "PASS",
+        "requiredPredicates": [
+          "replay_verdict=PASS",
+          "engine_digest_match=true",
+          "verifier_snapshot_match=true"
+        ],
+        "successExitCode": 0,
+        "verdict": "PASS",
+        "verifierSnapshotDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
+        "verifierSnapshotMatch": true
+      }
     }
   ],
   "rivalries": [
@@ -1511,6 +1660,41 @@
       "meetingCount": 1,
       "rivalryId": "8de5737e7b0bc5032780ccf4aa458a5e1c57c94d3441f90379f3d3e9e679729a",
       "schemaVersion": "agentwars.rivalry-history.v1"
+    },
+    {
+      "competition": "ten_fronts",
+      "entrantIds": [
+        "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+        "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061"
+      ],
+      "history": [
+        {
+          "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+          "game": "ten_fronts",
+          "meetingNumber": 1,
+          "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+          "runback": {
+            "challengeId": "challenge_87e0b7a85a442579",
+            "entrantIdsBySeat": [
+              "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+              "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8"
+            ],
+            "fixtureId": "b7bc96fed3345533c523785a223c9848469d132130b7e6637a9fb59a2cbab452",
+            "game": {
+              "format": null,
+              "name": "ten_fronts",
+              "version": "1"
+            },
+            "parentReceiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+            "seed": 7001,
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8"
+        }
+      ],
+      "meetingCount": 1,
+      "rivalryId": "be86328de0ad9fa625311e3e22779c5f555a686e9b3a6612ddb5e4fbbedb45fe",
+      "schemaVersion": "agentwars.rivalry-history.v1"
     }
   ],
   "rulesWeeks": [
@@ -1570,7 +1754,7 @@
     }
   ],
   "schemaVersion": "agentwars.public-product.v1",
-  "sourceDigest": "19fb2832647962b7d166e5cf515384a26f4647cfa67b743c04f78befb0dbe64a",
+  "sourceDigest": "57aff91153182a50854c3ac3711cde8464c4f6b656cb794e23c54fc4e75b5353",
   "teasers": [
     {
       "entrants": [
@@ -1759,6 +1943,33 @@
       "revealCommitment": "308644b3b176f91aa87c69a55f3f9cbd0aeac98debcf49e615089d702cc104d0",
       "schemaVersion": "agentwars.teaser.v1",
       "seed": 9600,
+      "status": "reveal_available"
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+          "name": "Stub Iron Front",
+          "seat": 0
+        },
+        {
+          "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+          "name": "Stub Even Reserve",
+          "seat": 1
+        }
+      ],
+      "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+      "game": {
+        "format": null,
+        "name": "ten_fronts",
+        "version": "1"
+      },
+      "modelAttested": false,
+      "question": "Stub Iron Front vs Stub Even Reserve: pick a side before the receipt reveal.",
+      "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+      "revealCommitment": "531828e64ee2281da55bd811f41fbc62f5bb9b8ca12e2e8a0948206bb5233305",
+      "schemaVersion": "agentwars.teaser.v1",
+      "seed": 7000,
       "status": "reveal_available"
     }
   ],

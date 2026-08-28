@@ -31,6 +31,7 @@ SOURCE_LABEL = "agentwars_share_bundle"
 CAMPAIGN_ID = "agentwars_verified_moments_v1"
 OUTPUT_NAMES = ("manifest.json", "card.svg", "match.html", "copy.md")
 MATCH_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
+MAX_TRANSCRIPT_BYTES = 64 * 1024 * 1024
 
 EVENT_SCHEMA = {
     "share_intent_recorded": {
@@ -78,6 +79,9 @@ def source_kind(note):
     claim = re.split(r"[;:]", note, maxsplit=1)[0]
     return {
         "source=model": "model",
+        # Fixed precommitted model plans count as model influence, never as
+        # independently attested live inference.
+        "source=model_plan": "model",
         "source=fallback": "fallback",
         "source=scripted": "scripted",
         "source=scripted_board": "scripted",
@@ -162,11 +166,11 @@ def verify_with_snapshot(transcript_path):
 
 
 def require_exact_verification(report):
+    if report.get("verifier_snapshot_match") is not True or report.get("engine_digest_match") is not True:
+        raise BundleError("refusing receipt without an exact embedded verifier-engine match")
     if report.get("verdict") != "PASS":
         errors = report.get("errors") or []
         raise BundleError(f"refusing unverified transcript: {errors[:1]}")
-    if report.get("verifier_snapshot_match") is not True or report.get("engine_digest_match") is not True:
-        raise BundleError("refusing receipt without an exact embedded verifier-engine match")
     return report
 
 
@@ -263,6 +267,30 @@ def fantasy_scores(state):
     return metric, scores, by_id, rosters
 
 
+def ten_fronts_scores(state):
+    """Extract Ten Fronts scores from referee state only, failing closed.
+
+    The result record's prose is never a score source. A Ten Fronts final
+    state must carry exactly two non-negative canonical integers; anything
+    else refuses the bundle instead of dropping the score.
+    """
+    if not isinstance(state, dict):
+        raise BundleError("ten fronts receipt has no final referee state")
+    scores = state.get("scores")
+    if (
+        not isinstance(scores, list)
+        or len(scores) != 2
+        or any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in scores
+        )
+    ):
+        raise BundleError(
+            "ten fronts final state must carry exactly two non-negative integer scores"
+        )
+    return scores
+
+
 def select_highlight(records, state, winner):
     terminal = next(
         (record for record in records if record.get("kind") in ("forfeit", "engine_error")),
@@ -300,6 +328,7 @@ def select_highlight(records, state, winner):
                 record
                 for record in records
                 if record.get("kind") == "move"
+                and record.get("body", {}).get("legal") is True
                 and record.get("body", {}).get("player") == winner
                 and record.get("body", {}).get("move", {}).get("player_id") == player_id
             ),
@@ -348,6 +377,8 @@ def story_details(game, entrants, result, state, highlight):
     winner_name = entrants[winner]["name"] if winner in (0, 1) else None
     loser_name = entrants[1 - winner]["name"] if winner in (0, 1) else None
     if highlight["kind"] == "forfeit_adjudication":
+        if winner not in (0, 1):
+            raise BundleError("verified forfeit adjudication must identify one winning seat")
         return {
             "headline": f"{winner_name} wins {game.replace('fantasy_', '')} by forfeit",
             "resultLine": display_text(result.get("reason", "verified forfeit"), 160),
@@ -367,6 +398,28 @@ def story_details(game, entrants, result, state, highlight):
             "margin": None,
             "question": "Should this matchup be replayed?",
         }
+    if game == "ten_fronts":
+        scores = ten_fronts_scores(state)
+        if winner in (0, 1):
+            return {
+                "headline": f"{winner_name} wins {game.replace('fantasy_', '').replace('_', ' ')}",
+                "resultLine": f"{scores[winner]}–{scores[1 - winner]} over {loser_name}",
+                "winner": winner_name,
+                "loser": loser_name,
+                "scores": {entrants[0]["name"]: scores[0], entrants[1]["name"]: scores[1]},
+                "margin": abs(scores[0] - scores[1]),
+                "question": "Would you run this match back?",
+            }
+        return {
+            "headline": f"{entrants[0]['name']} and {entrants[1]['name']} draw",
+            "resultLine": f"{scores[0]}–{scores[1]}",
+            "winner": None,
+            "loser": None,
+            "scores": {entrants[0]["name"]: scores[0], entrants[1]["name"]: scores[1]},
+            "margin": abs(scores[0] - scores[1]),
+            "question": "Which side would you take in the runback?",
+        }
+
     fantasy = fantasy_scores(state)
     if fantasy is not None:
         _metric, scores, _by_id, _rosters = fantasy
@@ -422,7 +475,37 @@ def candidate_url(base_url, match_id, creative_id):
     return f"{base_url}/m/{quote(match_id, safe='')}?{query}"
 
 
+def _stable_transcript_bytes(transcript_path):
+    path = os.path.abspath(transcript_path)
+    try:
+        with open(path, "rb") as handle:
+            before = os.fstat(handle.fileno())
+            payload = handle.read(MAX_TRANSCRIPT_BYTES + 1)
+            after = os.fstat(handle.fileno())
+    except OSError as error:
+        raise BundleError(f"could not snapshot transcript: {error.__class__.__name__}") from error
+    identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    identity_after = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if identity_before != identity_after or len(payload) != before.st_size:
+        raise BundleError("transcript changed while it was being snapshotted")
+    if len(payload) > MAX_TRANSCRIPT_BYTES:
+        raise BundleError("transcript exceeds the bounded share-build size")
+    return payload
+
+
 def build_manifest(transcript_path, public_base_url=None):
+    """Derive every output from one immutable byte snapshot of the receipt."""
+    payload = _stable_transcript_bytes(transcript_path)
+    with tempfile.TemporaryDirectory(prefix="agentwars-transcript-snapshot-") as snapshot_root:
+        snapshot_path = os.path.join(snapshot_root, "receipt.jsonl")
+        with open(snapshot_path, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        return _build_manifest_from_snapshot(snapshot_path, public_base_url)
+
+
+def _build_manifest_from_snapshot(transcript_path, public_base_url=None):
     try:
         public_receipt, _public_records = project_receipt(transcript_path)
     except PublicationError as error:
@@ -512,9 +595,10 @@ def build_manifest(transcript_path, public_base_url=None):
             "executionClaimsAttested": False,
             "entrantIdentityAttested": False,
             "boundary": (
-                "Replay proves the accepted moves, state, scoring, and result. Entrant execution "
+                "Replay reproduces accepted moves, state, scoring, and the published result; "
+                "runtime-only forfeits are excluded. Entrant execution "
                 "classes, display names, and move-source notes are hash-bound self-declarations, "
-                "not independent entrant, provider, or model attestation."
+                "not proof that the run occurred or independent entrant, provider, or model attestation."
             ),
         },
         "verification": {

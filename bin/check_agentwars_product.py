@@ -10,15 +10,19 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unittest.mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "bin"))
 
+from arena import match as match_module  # noqa: E402
+from arena import passport as passport_module  # noqa: E402
 from arena.canonical import GENESIS, chain, digest  # noqa: E402
 from arena.match import run_match  # noqa: E402
 from build_share_bundle import build_manifest  # noqa: E402
 from export_site import install_artifact  # noqa: E402
+from publishing import projection as projection_module  # noqa: E402
 from publishing.product import (  # noqa: E402
     RULES_WEEKS,
     _build_integrity,
@@ -33,9 +37,18 @@ from publishing.projection import (  # noqa: E402
     file_sha256,
     project_receipt,
     source_counts_digest,
+    ten_fronts_scores,
 )
 
 PUBLICATION_MANIFEST = os.path.join(ROOT, "docs", "AGENTWARS_PUBLICATION_MANIFEST.v1.json")
+TEN_FRONTS = os.path.join(
+    ROOT,
+    "matches",
+    "agentwars-ten-fronts",
+    "ten_fronts",
+    "7000-0",
+    "e16ac35d43eb3b47.jsonl",
+)
 REFERENCE = os.path.join(
     ROOT,
     "matches",
@@ -43,6 +56,20 @@ REFERENCE = os.path.join(
     "fantasy_redraft",
     "9600-0",
     "8d161a470a12b0c3.jsonl",
+)
+MODEL_PLAN_REFERENCE = os.path.join(
+    ROOT,
+    "matches",
+    "agentwars-model-plan-proof",
+    "transcripts",
+    "0-1-0",
+    "eaefda878377351e.jsonl",
+)
+MODEL_PLAN_SUMMARY = os.path.join(
+    ROOT,
+    "matches",
+    "agentwars-model-plan-proof",
+    "summary.json",
 )
 MISSING_SNAPSHOT = os.path.join(ROOT, "matches", "e18c36c2f8903c1f.jsonl")
 
@@ -103,6 +130,26 @@ def _scripted_manifest(name, strategy):
         "cmd": [sys.executable, script, "--name", name, "--strategy", strategy],
         "env": [],
         "claimed_model": "scripted-baseline:v1",
+        "execution_claim": "scripted",
+    }
+
+
+def _ten_fronts_manifest(name, strategy):
+    script = os.path.join(ROOT, "entrants", "ten_fronts_model_harness.py")
+    return {
+        "name": name,
+        "cmd": [
+            sys.executable,
+            script,
+            "--name",
+            name,
+            "--strategy",
+            strategy,
+            "--backend",
+            "stub:v1",
+        ],
+        "env": [],
+        "claimed_model": "stub:v1",
         "execution_claim": "scripted",
     }
 
@@ -186,7 +233,8 @@ def check_verifier_exit_contract():
 
     missing, missing_report = run_verifier(MISSING_SNAPSHOT)
     require(missing.returncode == 1, "missing snapshot must fail closed")
-    require(missing_report["replay_verdict"] == "PASS", "raw replay diagnostics remain visible")
+    require(missing_report["replay_verdict"] == "FAIL", "foreign-engine raw replay fails closed")
+    require(missing_report["engine_digest_match"] is False, "foreign-engine diagnostic field")
     require(missing_report["effective_verdict"] == "FAIL", "missing snapshot effective verdict")
     require(missing_report["verifier_snapshot_match"] is False, "missing snapshot diagnostic field")
 
@@ -230,7 +278,7 @@ def check_allowlist_and_parity():
     dataset, source_manifest, _outputs = build_product(ROOT, PUBLICATION_MANIFEST)
     publication = read_json(PUBLICATION_MANIFEST)
     approved = [row for row in publication["entries"] if row["decision"] == "approved_for_publication"]
-    require(len(dataset["receipts"]) == len(approved) == 7, "only explicitly approved receipts publish")
+    require(len(dataset["receipts"]) == len(approved) == 8, "only explicitly approved receipts publish")
     approved_ids = {row["sourceChainHead"] for row in approved}
     require(set(dataset["publication"]["approvedReceiptIds"]) == approved_ids, "allowlist is sole selector")
     require(dataset["publication"]["verifiedDoesNotImplyPublished"] is True, "verification/publication split")
@@ -252,6 +300,17 @@ def check_allowlist_and_parity():
         not in approved_ids,
         "missing-snapshot e18 corpus bug must remain excluded",
     )
+    plan_candidates = [
+        row for row in publication["entries"]
+        if row["sourcePath"].startswith("matches/agentwars-model-plan-proof/transcripts/")
+    ]
+    require(len(plan_candidates) == 2, "both fixed model-plan seat orders are explicit candidates")
+    require(all(row["decision"] == "held" for row in plan_candidates),
+            "snapshot-divergent model-plan publication remains held outside the approved allowlist")
+    require(all(row["titleEligible"] is False for row in plan_candidates),
+            "model-plan exhibition cannot award a public title")
+    require(all(row["sourceChainHead"] not in approved_ids for row in plan_candidates),
+            "held model-plan receipts remain unpublished")
 
     receipts = {row["receiptId"]: row for row in dataset["receipts"]}
     played = {row["receiptId"]: row for row in dataset["interactionManifest"]["playedArtifacts"]}
@@ -306,6 +365,73 @@ def check_allowlist_and_parity():
         path = os.path.join(work, "bad-counts.json")
         write_json(path, hostile)
         expect_publication_error(lambda: build_product(ROOT, path), "move-source count parity")
+
+
+def check_model_plan_publication_candidate():
+    publication = read_json(PUBLICATION_MANIFEST)
+    candidate_rows = [
+        row for row in publication["entries"]
+        if row["sourcePath"].startswith("matches/agentwars-model-plan-proof/transcripts/")
+    ]
+    require(len(candidate_rows) == 2, "exactly two fixed-plan candidates are explicitly staged")
+    require(all(row["decision"] == "held" for row in candidate_rows),
+            "snapshot-divergent fixed-plan candidates remain held")
+    require(all(row["titleEligible"] is False for row in candidate_rows),
+            "fixed-plan exhibitions cannot affect title custody")
+
+    summary = read_json(MODEL_PLAN_SUMMARY)
+    receipt, _records = project_receipt(MODEL_PLAN_REFERENCE)
+    require(summary["proofSchema"] == "agentwars.fantasy_model_plan_proof.v1",
+            "model-plan proof summary schema")
+    require(summary["status"] == "model_influenced_unattested",
+            "model-plan proof truth status")
+    require(summary["modelAttested"] is False and summary["executionClaimsAttested"] is False,
+            "model-plan proof keeps attestations false")
+    summary_match = next(
+        row for row in summary["matches"]
+        if row["transcriptSha256"] == file_sha256(MODEL_PLAN_REFERENCE)
+    )
+    require(summary_match["chainHead"] == receipt["receiptId"],
+            "model-plan proof summary binds the projected chain head")
+    require(summary_match["replayVerdict"] == "PASS" and summary_match["verified"] is True,
+            "model-plan summary records exact replay success")
+    totals = {
+        key: sum(row[key] for row in receipt["moveSourceClaims"])
+        for key in ("model", "fallback", "scripted", "other")
+    }
+    require(totals == {"model": 12, "fallback": 0, "scripted": 0, "other": 0},
+            "fixed plans project as twelve model-influenced moves")
+    require(receipt["truth"]["status"] == "model_influenced_unattested",
+            "fixed plans never publish as generic or attested execution")
+    require(receipt["truth"]["modelAttested"] is False,
+            "fixed plan does not attest model identity")
+    require(receipt["truth"]["executionClaimsAttested"] is False,
+            "fixed plan does not attest execution provenance")
+    share = build_manifest(MODEL_PLAN_REFERENCE)
+    require(share["truth"]["status"] == receipt["truth"]["status"],
+            "share and public receipt keep the same model-plan truth status")
+    share_totals = {
+        key: sum(row[key] for row in share["moveSourceClaims"].values())
+        for key in ("model", "fallback", "scripted", "other")
+    }
+    require(share_totals == totals, "share and public receipt agree on model-plan sources")
+
+    # Exercise the exact publication path without mutating the canonical manifest or artifact.
+    # These historical receipts use a different full-engine snapshot than the active fantasy
+    # rules registry. Until that versioning contract evolves, temporary approval must fail closed.
+    candidate_publication = copy.deepcopy(publication)
+    candidate_paths = {row["sourcePath"] for row in candidate_rows}
+    for row in candidate_publication["entries"]:
+        if row["sourcePath"] in candidate_paths:
+            row["decision"] = "approved_for_publication"
+    with tempfile.TemporaryDirectory(prefix="agentwars-model-plan-candidate-") as work:
+        candidate_manifest = os.path.join(work, "publication.json")
+        write_json(candidate_manifest, candidate_publication)
+        for _attempt in range(2):
+            expect_publication_error(
+                lambda: build_product(ROOT, candidate_manifest),
+                "rules registry proof receipts disagree on engine or game version",
+            )
 
 
 def check_hostile_paths_no_outside_writes():
@@ -526,16 +652,331 @@ def check_public_safety_and_product_mechanics():
     require(sum(row["ties"] for row in title["leaderboard"]) == 0, "void receipt is not a tie")
 
 
+def _rechained_copy(source, destination, mutate):
+    """Copy a transcript, apply one hostile mutation, then repair its hash chain."""
+    with open(source, "r", encoding="utf-8") as handle:
+        records = [json.loads(line) for line in handle]
+    mutate(records)
+    previous = GENESIS
+    for record in records:
+        body = {"kind": record["kind"], "seq": record["seq"], "body": record["body"]}
+        record["prev"] = previous
+        record["hash"] = chain(previous, body)
+        previous = record["hash"]
+    with open(destination, "w", encoding="utf-8", newline="\n") as handle:
+        for record in records:
+            handle.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
+
+
+def check_projection_adversarial_boundaries():
+    with tempfile.TemporaryDirectory(prefix="agentwars-projection-boundary-") as work:
+        forged = os.path.join(work, "forged-winner.jsonl")
+
+        def flip_result(records):
+            result = next(row for row in records if row.get("kind") == "result")
+            winner = result["body"]["winner"]
+            result["body"]["winner"] = 1 - winner
+            result["body"]["points"] = (
+                {"0": 1, "1": 0}
+                if result["body"]["winner"] == 0
+                else {"0": 0, "1": 1}
+            )
+
+        _rechained_copy(REFERENCE, forged, flip_result)
+        expect_publication_error(
+            lambda: project_receipt(forged),
+            "unverified transcript",
+        )
+
+        bool_winner = os.path.join(work, "bool-winner.jsonl")
+
+        def inject_bool_winner(records):
+            result = next(row for row in records if row.get("kind") == "result")
+            result["body"]["winner"] = True
+
+        _rechained_copy(REFERENCE, bool_winner, inject_bool_winner)
+
+        def synthetic_exact_report(path):
+            with open(path, "r", encoding="utf-8") as handle:
+                records = [json.loads(line) for line in handle if line.strip()]
+            return {
+                "effective_verdict": "PASS",
+                "verdict": "PASS",
+                "engine_digest_match": True,
+                "verifier_snapshot_match": True,
+                "engine_digest_recorded": "a" * 64,
+                "chain_head": records[-1]["hash"],
+            }
+
+        with unittest.mock.patch.object(
+            projection_module, "verify_with_snapshot", side_effect=synthetic_exact_report
+        ):
+            expect_publication_error(
+                lambda: project_receipt(bool_winner),
+                "winner must be seat 0",
+            )
+
+        with open(REFERENCE, "r", encoding="utf-8") as handle:
+            header = json.loads(handle.readline())["body"]
+        bool_seat_header = copy.deepcopy(header)
+        bool_seat_header["entrants"][1]["seat"] = True
+        expect_publication_error(
+            lambda: projection_module.public_entrants(bool_seat_header),
+            "entrant seats",
+        )
+        scalar_entrant_header = copy.deepcopy(header)
+        scalar_entrant_header["entrants"][1] = None
+        expect_publication_error(
+            lambda: projection_module.public_entrants(scalar_entrant_header),
+            "entrants must be objects",
+        )
+
+        bool_score_state = {
+            "format": "redraft",
+            "players": [
+                {
+                    "id": 1,
+                    "position": "RB",
+                    "redraft_points": True,
+                    "dynasty_points": 1,
+                }
+            ],
+            "rosters": [[1], []],
+        }
+        expect_publication_error(
+            lambda: projection_module.fantasy_scores(bool_score_state),
+            "exact integers",
+        )
+
+        clip = projection_module.public_clip(
+            {
+                "receiptId": "a" * 64,
+                "fixtureId": "b" * 64,
+                "entrants": [
+                    {"entrantId": "c" * 64},
+                    {"entrantId": "d" * 64},
+                ],
+            },
+            [
+                {
+                    "kind": "move",
+                    "seq": 1,
+                    "hash": "e" * 64,
+                    "body": {"legal": True, "player": True},
+                }
+            ],
+        )
+        require(
+            clip["seat"] is None and clip["entrantId"] is None,
+            "bool player cannot impersonate seat 1 in a public clip",
+        )
+
+        private_marker = os.path.join(work, "private-agent-key.pem")
+        with unittest.mock.patch.object(
+            passport_module,
+            "verify_passport",
+            side_effect=RuntimeError(private_marker),
+        ):
+            try:
+                projection_module._verified_passport_row({"agent_passport": {}})
+            except PublicationError as error:
+                require(private_marker not in str(error), "passport exception text stays private")
+                require("RuntimeError" in str(error), "passport refusal retains only the error class")
+            else:
+                raise AssertionError("synthetic passport failure crossed the public boundary")
+
+        void_out = os.path.join(work, "void")
+        with unittest.mock.patch.object(
+            match_module, "score", side_effect=RuntimeError("synthetic scoring fault")
+        ):
+            void_result = run_match(
+                game_name="ten_fronts",
+                seed=7000,
+                entrants=[
+                    _ten_fronts_manifest("Void Pressure", "value-blitz"),
+                    _ten_fronts_manifest("Void Reserve", "even-pressure"),
+                ],
+                out_dir=void_out,
+                move_timeout_s=5.0,
+            )
+        void_receipt, void_records = project_receipt(void_result["transcript"])
+        final_state = [
+            row["body"]["state"] for row in void_records if row.get("kind") == "state"
+        ][-1]
+        require(any(final_state["scores"]), "void fixture must retain nonzero interim game scores")
+        require(
+            void_receipt["outcome"]
+            == {
+                "status": "void",
+                "resultType": "void",
+                "decisive": False,
+                "winnerSeat": None,
+                "winnerEntrantId": None,
+                "reason": "engine_error",
+                "scores": None,
+            },
+            "verified referee void publishes no score, winner, or decisive claim",
+        )
+
+
+def check_ten_fronts_score_extractor():
+    require(ten_fronts_scores({"scores": [319, 226]}) == [319, 226], "canonical scores accepted")
+    for hostile in (
+        None,
+        {},
+        {"scores": [319]},
+        {"scores": [319, 226, 1]},
+        {"scores": ["319", "226"]},
+        {"scores": [319.0, 226]},
+        {"scores": [True, 226]},
+        {"scores": [-1, 226]},
+    ):
+        expect_publication_error(lambda hostile=hostile: ten_fronts_scores(hostile),
+                                 "ten fronts")
+
+
+def check_ten_fronts_public_source():
+    publication = read_json(PUBLICATION_MANIFEST)
+    approved = [row for row in publication["entries"]
+                if row["decision"] == "approved_for_publication"]
+    require(len(approved) == 8, "eight explicitly approved receipts after Ten Fronts")
+    entry = next(row for row in publication["entries"] if row["sequence"] == 7)
+    require(entry["titleEligible"] is False, "Ten Fronts reference stays title-ineligible")
+    require(
+        entry["sourcePath"] ==
+        "matches/agentwars-ten-fronts/ten_fronts/7000-0/e16ac35d43eb3b47.jsonl",
+        "exact reviewed Ten Fronts source path",
+    )
+    require(file_sha256(TEN_FRONTS) == entry["sourceFileSha256"], "reviewed source hash exact")
+    require("fallback" in entry["label"] and "not model-played" in entry["label"],
+            "label must state deterministic-fallback provenance")
+
+    dataset, source_manifest, outputs = build_product(ROOT, PUBLICATION_MANIFEST)
+    receipt = next(row for row in dataset["receipts"]
+                   if row["receiptId"] == entry["sourceChainHead"])
+    require(receipt["game"]["name"] == "ten_fronts", "projected game name")
+    require(receipt["outcome"]["scores"] == [319, 226], "seat-order referee scores reproduce")
+    require(receipt["outcome"]["winnerSeat"] == 0, "referee winner seat retained")
+    require(receipt["story"]["headline"] == "Stub Iron Front wins ten fronts",
+            "public headline is state-derived")
+    require(receipt["story"]["resultLine"] == "319-226 over Stub Even Reserve",
+            "public result line is state-derived")
+    require(receipt["story"]["question"] == "Would you take the other side in the runback?",
+            "honest runback question")
+    counts = {row["seat"]: row for row in receipt["moveSourceClaims"]}
+    require(all(counts[seat]["fallback"] == 40 for seat in (0, 1)), "per-seat fallbacks 40/40")
+    require(all(
+        counts[seat][key] == 0
+        for seat in (0, 1)
+        for key in ("model", "scripted", "other")
+    ), "no model, scripted, or other move-source claims")
+    truth = receipt["truth"]
+    require(truth["status"] == "scripted_preseason", "scripted preseason truth status")
+    require(truth["modelAttested"] is False, "model attestation stays false")
+    require(truth["executionClaimsAttested"] is False, "execution claims stay unattested")
+    require(truth["entrantIdentityAttested"] is False, "entrant identity stays self-declared")
+    rendered_receipt = json.dumps(receipt, sort_keys=True)
+    for fragment in ("stub:v1", "stub:v2", "response_sha256", "invalid_model_output"):
+        require(fragment not in rendered_receipt, f"public receipt leaked raw value {fragment!r}")
+
+    teaser = next(row for row in dataset["teasers"] if row["receiptId"] == receipt["receiptId"])
+    teaser_keys = {key.casefold() for key, _value in _walk(teaser)}
+    require(not any(word in key
+                    for key in teaser_keys
+                    for word in ("result", "winner", "score", "margin")),
+            "Ten Fronts teaser omits reveal fields")
+    clip = next(row for row in dataset["clips"] if row["receiptId"] == receipt["receiptId"])
+    require(clip["kind"] == "final_accepted_move", "bounded final-move clip contract")
+    require(clip["boundedRecordCount"] == 1 and clip["rawMoveOmitted"] is True,
+            "clip stays one bounded record without the raw move")
+    played = {row["receiptId"]: row for row in dataset["interactionManifest"]["playedArtifacts"]}
+    evidence = played[receipt["receiptId"]]
+    require(evidence["fixtureStatus"] == "played", "played interaction tuple present")
+    require(evidence["publicationEvidence"]["sourceFileSha256"] == entry["sourceFileSha256"],
+            "interaction file parity for Ten Fronts")
+    require(evidence["publicationEvidence"]["sourceCountsDigest"] ==
+            source_counts_digest(receipt["moveSourceClaims"]), "interaction count parity")
+    parity_row = next(row for row in source_manifest["entries"]
+                      if row["receiptId"] == receipt["receiptId"])
+    require(parity_row["sourceChainHead"] == entry["sourceChainHead"], "chain-head parity")
+    require(parity_row["sourceFileSha256"] == entry["sourceFileSha256"], "file-hash parity")
+    require(parity_row["sourceCounts"]["fallback"] == 80, "aggregate fallback count parity")
+
+    rivalry = next(row for row in dataset["rivalries"] if row["competition"] == "ten_fronts")
+    require(rivalry["meetingCount"] == 1, "one Ten Fronts meeting forms its own rivalry")
+    require(rivalry["history"][0]["runback"]["status"] == "unplayed_challenge",
+            "Ten Fronts runback stays an unplayed descriptor")
+    require(rivalry["history"][0]["runback"]["seed"] == 7001, "runback seed is parent+1")
+    fantasy_rivalry = next(row for row in dataset["rivalries"]
+                           if row["competition"] == "agentwars-fantasy")
+    require(fantasy_rivalry["meetingCount"] == 6, "six-meeting fantasy rivalry unchanged")
+    require(len(dataset["futureFixtures"]) == 3, "three closed future fixtures unchanged")
+    require(all(row["prediction"]["status"] == "closed_proposed_not_activated"
+                for row in dataset["futureFixtures"]), "predictions remain closed")
+    for title_name in ("redraftCrown", "dynastyThrone"):
+        title = dataset["titles"][title_name]
+        require(title["holderEntrantId"] is not None, f"{title_name} custody unchanged")
+        require(receipt["receiptId"] not in title["basisReceiptIds"],
+                f"{title_name} basis excludes the Ten Fronts reference")
+
+    with tempfile.TemporaryDirectory(prefix="agentwars-ten-fronts-refusal-") as work:
+        bad = os.path.join(work, "malformed-scores.jsonl")
+
+        def break_scores(records):
+            states = [row for row in records if row.get("kind") == "state"]
+            states[-1]["body"]["state"]["scores"] = [319]
+            states[-1]["body"]["state_digest"] = digest(states[-1]["body"]["state"])
+
+        _rechained_copy(TEN_FRONTS, bad, break_scores)
+        try:
+            project_receipt(bad)
+        except PublicationError:
+            pass
+        else:
+            raise AssertionError("malformed Ten Fronts scores must refuse publication")
+
+        original_verifier = projection_module.verify_with_snapshot
+
+        def bypass_replay(path):
+            with open(path, "r", encoding="utf-8") as handle:
+                records = [json.loads(line) for line in handle]
+            return {
+                "effective_verdict": "PASS",
+                "verdict": "PASS",
+                "engine_digest_match": True,
+                "verifier_snapshot_match": True,
+                "engine_digest_recorded": "a" * 64,
+                "chain_head": records[-1]["hash"],
+            }
+
+        malformed_digest_report = bypass_replay(bad)
+        malformed_digest_report["engine_digest_recorded"] = "not-a-digest"
+        require(
+            projection_module._exact_pass(malformed_digest_report, 0) is False,
+            "publication gate rejects malformed verifier engine digests",
+        )
+
+        projection_module.verify_with_snapshot = bypass_replay
+        try:
+            expect_publication_error(lambda: project_receipt(bad), "exactly two non-negative")
+        finally:
+            projection_module.verify_with_snapshot = original_verifier
+
+
 def main():
     check_match_ids_fail_before_paths()
     check_verifier_exit_contract()
     check_deterministic_atomic_artifact()
     check_allowlist_and_parity()
+    check_model_plan_publication_candidate()
     check_hostile_paths_no_outside_writes()
     check_duplicate_fixture_distinct_receipts()
+    check_projection_adversarial_boundaries()
+    check_ten_fronts_score_extractor()
+    check_ten_fronts_public_source()
     check_public_safety_and_product_mechanics()
     print("AgentWars public product contracts: PASS")
-    print("7 approved receipts / 3 closed future fixtures / fail-closed replay + publication gates")
+    print("8 approved receipts / 3 closed future fixtures / fail-closed replay + publication gates")
     return 0
 
 

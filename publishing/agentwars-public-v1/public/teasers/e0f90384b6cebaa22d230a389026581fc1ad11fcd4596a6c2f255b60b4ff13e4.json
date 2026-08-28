@@ -1,0 +1,27 @@
+{
+  "entrants": [
+    {
+      "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+      "name": "Stub Iron Front",
+      "seat": 0
+    },
+    {
+      "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+      "name": "Stub Even Reserve",
+      "seat": 1
+    }
+  ],
+  "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+  "game": {
+    "format": null,
+    "name": "ten_fronts",
+    "version": "1"
+  },
+  "modelAttested": false,
+  "question": "Stub Iron Front vs Stub Even Reserve: pick a side before the receipt reveal.",
+  "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+  "revealCommitment": "531828e64ee2281da55bd811f41fbc62f5bb9b8ca12e2e8a0948206bb5233305",
+  "schemaVersion": "agentwars.teaser.v1",
+  "seed": 7000,
+  "status": "reveal_available"
+}
