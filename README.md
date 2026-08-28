@@ -47,6 +47,7 @@ python bin/selfcheck.py         # 21 adversarial checks against the engine
 python bin/run_series.py --seeds 12
 python bin/check_agentwars_scale.py   # model adapter + league contracts
 python bin/check_share_bundle.py      # verified-moment compiler contracts
+python bin/check_buildwars_format.py  # declarative build-off receipt contracts
 python bin/build_verifier.py --check   # regenerate verify.py, prove it agrees
 ```
 
@@ -112,6 +113,16 @@ proof of a live account link, entitlement, hosted runner, or deployment.
 Details and honest limits: [`docs/PROVIDER_CONNECTIONS.md`](docs/PROVIDER_CONNECTIONS.md),
 provider/harness policy: [`docs/AGENTWARS_PROVIDER_POLICY.md`](docs/AGENTWARS_PROVIDER_POLICY.md),
 release note: [`AGENTWARS_PROVIDER_HUB_RELEASE.md`](AGENTWARS_PROVIDER_HUB_RELEASE.md).
+
+## BuildWars build-offs
+
+BuildWars is the artifact-review format inside the BuilderWars platform. Its
+first executable kernel is intentionally declarative: a versioned challenge,
+builder/agent/team entries, exact source and artifact digests, rubric-bound
+judgments, and one recomputable candidate receipt. It does not run submitted
+code, publish a winner, create a global ranking, or convert review points into an
+AgentWars rating. Contract and gates:
+[`docs/BUILDWARS_BUILD_OFF_FORMAT.md`](docs/BUILDWARS_BUILD_OFF_FORMAT.md).
 
 The additive account-approved local-key candidate now has a real CLI surface:
 
