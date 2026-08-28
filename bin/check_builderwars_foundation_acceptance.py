@@ -55,6 +55,8 @@ EXPECTED_CLOSURE = {
     "assistantOutputSha256": "ac587924a22c1193d976a6086595d028995bdd0f6b3eace0536ade061d8c98d0",
     "verdict": "APPROVE_P0_0_P1_0_P2_0_P3_5",
 }
+EXPECTED_CLOSURE_RECEIPT_FILE_SHA256 = "e0f7d987010ee109d97e7110f856aa1675cc61001ef1a43c6282d686674967ab"
+EXPECTED_CLOSURE_TASK_PACKET_SHA256 = "7c9b585119f168c49e83aca3299d3622ecbdf3da57ea621ee95f0517687a3197"
 EXPECTED_CLOSURE_FILES = {
     "provider_hub_hosted/store.py": "a08cd077035dd098e49b874f9a5e204109627d71c1742a683ee813513102f31f",
     "provider_hub_hosted/handlers.py": "63b698af1e045bfd07a0ebf5d3b46401799d0952f575299140d7336ad0424df1",
@@ -81,6 +83,30 @@ EXPECTED_HISTORICAL_STAGE_BINDINGS = {
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 UUID_TEXT = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+REVIEW_IDENTITY_KEYS = {"order", "reviewId", "candidate", "evidenceMode"}
+PENDING_REVIEW_KEYS = REVIEW_IDENTITY_KEYS | {
+    "preflightRunId",
+    "taskSha256",
+    "bundleSha256",
+    "materialSignature",
+    "preflightReceiptSha256",
+    "preflightStatus",
+    "liveVerdict",
+}
+EXTERNAL_REVIEW_BINDING_KEYS = {
+    "runId",
+    "receiptSha256",
+    "receiptFileSha256",
+    "assistantOutputSha256",
+    "taskPacketSha256",
+    "reviewedCommit",
+    "reviewedFoundationSha256",
+    "reviewedLedgerSha256",
+    "reviewedCheckerSha256",
+    "reviewedReviewRecordSha256",
+    "finalReviewRecordSha256",
+}
+ACCEPTED_REVIEW_KEYS = REVIEW_IDENTITY_KEYS | {"liveVerdict"} | EXTERNAL_REVIEW_BINDING_KEYS
 CHECKS = 0
 
 
@@ -90,6 +116,13 @@ def check(condition: bool, label: str) -> None:
         raise AssertionError(label)
     CHECKS += 1
     print(f"PASS {label}")
+
+
+def exactly_one(items: list[dict[str, Any]], predicate: Any, label: str) -> dict[str, Any]:
+    matches = [item for item in items if predicate(item)]
+    if len(matches) != 1:
+        raise AssertionError(f"{label}: expected exactly one record, found {len(matches)}")
+    return matches[0]
 
 
 def strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -236,6 +269,22 @@ def validate_review_history(foundation: dict[str, Any]) -> None:
     check(file_bindings == EXPECTED_CLOSURE_FILES, "current closure exact source set")
     for relative, expected in EXPECTED_CLOSURE_FILES.items():
         check(sha256(ROOT / relative) == expected, f"current closure source SHA-256 matches: {relative}")
+    closure_run_id = closure["runId"]
+    check(UUID_TEXT.fullmatch(closure_run_id) is not None, "current closure run id format")
+    receipt_path = confined_receipt_path(f"ox-alpha-agent-runs/{closure_run_id}.json")
+    check(receipt_path.is_file(), "current closure receipt exists")
+    check(sha256(receipt_path) == EXPECTED_CLOSURE_RECEIPT_FILE_SHA256, "current closure receipt file digest")
+    receipt = load_json(receipt_path)
+    check(receipt["run_id"] == closure_run_id, "current closure receipt run id")
+    check(receipt["status"] == "completed", "current closure receipt completed")
+    check(receipt["receipt_sha256"] == closure["receiptSha256"], "current closure controller receipt digest")
+    check(receipt["task_packet_sha256"] == EXPECTED_CLOSURE_TASK_PACKET_SHA256, "current closure task packet digest")
+    check(
+        receipt["result"]["assistant_output"]["all_text_sha256"] == closure["assistantOutputSha256"],
+        "current closure assistant output digest",
+    )
+    check(receipt["result"]["runtime_identity_attestation"]["ok"] is True, "current closure runtime identity attested")
+    check(receipt["result"]["usage"]["tool_use_count"] == 0, "current closure review used no tools")
 
 
 def validate_git_custody(foundation: dict[str, Any], ledger: dict[str, Any]) -> None:
@@ -252,7 +301,11 @@ def validate_git_custody(foundation: dict[str, Any], ledger: dict[str, Any]) -> 
     check(foundation["custody"]["candidates"]["nymrel"]["head"] == EXPECTED_NYMREL_CANDIDATE, "Nymrel candidate pin remains isolated")
     check(ledger["releaseCandidates"]["builderwars"]["head"] == EXPECTED_CANDIDATE, "ledger candidate pin")
     check(ledger["releaseCandidates"]["builderwars"]["remoteMain"] == EXPECTED_REMOTE_MAIN, "ledger remote-main pin")
-    kernel = next(item for item in ledger["components"] if item["componentId"] == "builderwars-kernel")
+    kernel = exactly_one(
+        ledger["components"],
+        lambda item: item.get("componentId") == "builderwars-kernel",
+        "builderwars kernel component",
+    )
     check(kernel["candidatePin"] == EXPECTED_CANDIDATE, "kernel component candidate pin")
 
 
@@ -308,24 +361,37 @@ def normalized_ledger_transition(value: dict[str, Any]) -> dict[str, Any]:
     normalized["status"] = "<pending-or-accepted>"
     queue = normalized["independentReviewQueue"]
     queue["currentHold"] = "<pending-or-accepted-review-state>"
-    for index, item in enumerate(queue["reviews"]):
-        if item["order"] == 10:
-            queue["reviews"][index] = {
-                "order": item["order"],
-                "reviewId": item["reviewId"],
-                "candidate": item["candidate"],
-                "evidenceMode": item["evidenceMode"],
-                "transitionFields": "<pending-or-accepted>",
-            }
-            break
+    review = exactly_one(
+        queue["reviews"],
+        lambda item: item.get("order") == 10,
+        "foundation review queue slot 10",
+    )
+    index = queue["reviews"].index(review)
+    queue["reviews"][index] = {
+        "order": review["order"],
+        "reviewId": review["reviewId"],
+        "candidate": review["candidate"],
+        "evidenceMode": review["evidenceMode"],
+        "transitionFields": "<pending-or-accepted>",
+    }
     return normalized
+
+
+def validate_review_schema(review: dict[str, Any], *, accepted: bool, label: str) -> None:
+    expected = ACCEPTED_REVIEW_KEYS if accepted else PENDING_REVIEW_KEYS
+    check(set(review) == expected, f"{label} exact field set")
 
 
 def validate_external_review(
     foundation: dict[str, Any], ledger: dict[str, Any], *, allow_pending: bool
 ) -> None:
     queue = ledger["independentReviewQueue"]
-    review = next(item for item in queue["reviews"] if item["order"] == 10)
+    review = exactly_one(
+        queue["reviews"],
+        lambda item: item.get("order") == 10,
+        "foundation review queue slot 10",
+    )
+    validate_review_schema(review, accepted=not allow_pending, label="current foundation review")
     check(review["reviewId"] == "builderwars-foundation-and-decisions", "foundation review occupies queue slot 10")
     expected_review_candidate = f"builderwars-foundation@{EXPECTED_CANDIDATE}+frozen-document-bytes"
     check(review["candidate"] == expected_review_candidate, "foundation review candidate binding")
@@ -336,22 +402,11 @@ def validate_external_review(
         return
 
     external = foundation["externalFoundationReview"]
+    check(set(external) == EXTERNAL_REVIEW_BINDING_KEYS, "external foundation review exact field set")
     check(foundation["status"] == "accepted_local_foundation_pending_integration", "foundation is locally accepted only")
     check(ledger["status"] == "accepted_local_foundation_pending_integration", "ledger is locally accepted only")
     check(review["liveVerdict"] == "PASS_P0_0_P1_0", "foundation review passed with zero P0/P1")
-    binding_keys = (
-        "runId",
-        "receiptSha256",
-        "receiptFileSha256",
-        "assistantOutputSha256",
-        "taskPacketSha256",
-        "reviewedCommit",
-        "reviewedFoundationSha256",
-        "reviewedLedgerSha256",
-        "reviewedCheckerSha256",
-        "reviewedReviewRecordSha256",
-        "finalReviewRecordSha256",
-    )
+    binding_keys = tuple(sorted(EXTERNAL_REVIEW_BINDING_KEYS))
     for key in binding_keys:
         check(review[key] == external[key], f"external review {key} cross-binding")
     for key in binding_keys:
@@ -373,6 +428,12 @@ def validate_external_review(
 
     frozen_foundation = json.loads(frozen_foundation_bytes.decode("utf-8"), object_pairs_hook=strict_object)
     frozen_ledger = json.loads(frozen_ledger_bytes.decode("utf-8"), object_pairs_hook=strict_object)
+    frozen_review = exactly_one(
+        frozen_ledger["independentReviewQueue"]["reviews"],
+        lambda item: item.get("order") == 10,
+        "reviewed foundation queue slot 10",
+    )
+    validate_review_schema(frozen_review, accepted=False, label="reviewed pending foundation review")
     check(frozen_foundation["status"] == "candidate_frozen_for_external_max_acceptance", "reviewed foundation was pending")
     check("externalFoundationReview" not in frozen_foundation, "reviewed foundation did not self-accept")
     check(normalized_foundation_transition(foundation) == normalized_foundation_transition(frozen_foundation), "foundation transition changes only permitted receipt fields")
