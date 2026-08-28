@@ -55,11 +55,11 @@
     "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
     "winnerSeat": 0
   },
-  "projectionDigest": "ae499758b2725518bb8e151fbd27b77db98344bbaa3f75852b294df496532357",
+  "projectionDigest": "beaa1252be1d7ebf23de48d7c3f7f347685ff58671fc599f65d11a7fb07aaa64",
   "receiptId": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
   "schemaVersion": "agentwars.public-receipt.v1",
   "seed": 9600,
-  "shareManifestHash": "10532be31ee16a319081d877104f4186bc28b1f36179e1d3c3a26f928daeef9d",
+  "shareManifestHash": "b77c3634041db395bed217bd65ac65bae9264040e122887e3135a7d3baf270c2",
   "sourceParity": {
     "chainHead": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
     "fileSha256": "1bc518c5ea178049647b39338f32797eca85822d559758ac75b41ecad6a46372",
@@ -77,7 +77,7 @@
     "sha256": "1bc518c5ea178049647b39338f32797eca85822d559758ac75b41ecad6a46372"
   },
   "truth": {
-    "boundary": "Replay proves accepted moves, deterministic state, scoring, and result. Entrant names, execution classes, and move-source labels remain hash-bound self-declarations; they do not prove provider or model identity.",
+    "boundary": "Replay reproduces accepted moves, deterministic state, scoring, and the published result. Runtime-only forfeits are excluded from public competitive credit. Entrant names, execution classes, and move-source labels remain hash-bound self-declarations; this does not prove the run occurred or attest provider or model identity.",
     "entrantIdentityAttested": false,
     "executionClaimsAttested": false,
     "modelAttested": false,

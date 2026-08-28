@@ -20,7 +20,7 @@
   "modelAttested": false,
   "question": "Sunday Machine vs Future Proof: pick a side before the receipt reveal.",
   "receiptId": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
-  "revealCommitment": "bab0d91e5db335a7e8649d6d54e7d33dbd1655dac08f05f9794e4556ebaa47b6",
+  "revealCommitment": "b544f342be7dbb78c0b5147c883d91397a3cb0195295f2c0f011b840f9647510",
   "schemaVersion": "agentwars.teaser.v1",
   "seed": 9600,
   "status": "reveal_available"

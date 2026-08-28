@@ -2,18 +2,18 @@
   "buildIntegrity": {
     "datasetBuilderSha256": "6ec741b67db0b26b3010c741e1ea271ca691a78d729e318591a037fa95316a91",
     "productExporterSha256": "0463f18c72070680b6c391d20d0f7f2310ac761e71509326ee2111633a1df1d1",
-    "projectionSha256": "cfe4c96e0693b5bccfaa5278f806f8c822a908cdb8f72d2dbb98f163559220ba",
-    "publicationManifestFileSha256": "51b58200209b40cae0cfc769f68a4ccf464f431fa4be73a5f20189b8cf21712c",
-    "siteExporterSha256": "7cf6f90a1edfe2ab29da7d133b760a974ca1975f652ee125ef16e3a0c4e7b434",
-    "sourceCommit": "6150c60e1a082022f33c95406a27a2994bed9554",
-    "verifierSha256": "5681a97d28be07611202fb46a37af9b8d31fdaa0ec5648049ff1913434cb4da8"
+    "projectionSha256": "791da7390e2f914833405269deb725a61603fc574f00e6ba111e55dd1862b40d",
+    "publicationManifestFileSha256": "d9ce44dbb0c9e8d37865165b91b816ce5c9f456a69116d302a0a6a810970637b",
+    "siteExporterSha256": "688fc650d99a21d67c19157c891f839fd0fb1bb68370ec49a0c1cce5947b64d9",
+    "sourceCommit": "0e2b9615582715cec1c62a7f54d33fb91a5cd862",
+    "verifierSha256": "127cfb9c9a95b6db3087ecb10c3f0bc866d300416242e70529a415a0ff3be7fc"
   },
-  "datasetDigest": "fa9891bca9d2dfd4027f3e98cee24a7eec0772cc4e6566cb5a77947b60260d0e",
+  "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
   "files": [
     {
-      "bytes": 89992,
+      "bytes": 91480,
       "path": "dataset.json",
-      "sha256": "562101504a730d423447004b07a123b3b5a6e73b6dc7bf7d4d39b7bcd201836f"
+      "sha256": "0782d68544112b884058fa5cb508574d8587488c2fb51abf962314c33c58c186"
     },
     {
       "bytes": 535,
@@ -56,9 +56,9 @@
       "sha256": "34dee80a997c392c89834cc13ff5e5a10378ae891f35993985a2df110c784585"
     },
     {
-      "bytes": 89992,
+      "bytes": 91480,
       "path": "public/dataset.json",
-      "sha256": "562101504a730d423447004b07a123b3b5a6e73b6dc7bf7d4d39b7bcd201836f"
+      "sha256": "0782d68544112b884058fa5cb508574d8587488c2fb51abf962314c33c58c186"
     },
     {
       "bytes": 40009,
@@ -101,100 +101,100 @@
       "sha256": "c987d082af09a9b9309e78f4a8e3212ba2173b65888f8d5984ba3d6a7fec332f"
     },
     {
-      "bytes": 3949,
+      "bytes": 4063,
       "path": "public/receipts/0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4.json",
-      "sha256": "dabbb54e3097b02638798f9215a68779d74abf6b72caeb33c446da34e3d07056"
+      "sha256": "e3bf1cba99bdf4a3bc6f7fc86b6dffcd8d42d8f134bc1824fdf43c5c5622d1c6"
     },
     {
-      "bytes": 3945,
+      "bytes": 4059,
       "path": "public/receipts/1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a.json",
-      "sha256": "91ba7d9777c351011afc1e08bc0e36965ca636f6ca7d2eafbecd93421e23c335"
+      "sha256": "5ec2cf9f6bc1c8efbb788d15c1324896c2389e2124d19f77ed8e580e297b33f3"
     },
     {
-      "bytes": 3945,
+      "bytes": 4059,
       "path": "public/receipts/2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb.json",
-      "sha256": "6b301b1e219af443342e51b994d21ba88e69a1529eac957936f091f73d0f1211"
+      "sha256": "86095e8b3d9f8b80a1ca012eb9fb4b17bfe97d6d295275a660f12ea951d35cf5"
     },
     {
-      "bytes": 3909,
+      "bytes": 4023,
       "path": "public/receipts/46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703.json",
-      "sha256": "bb6fd4386c1cf43fcf87d49b0ab2339857929260be18477ccd7ba30dd772aeec"
+      "sha256": "aec67f0582a32886e5705baacc93a474f1323ff24f3e3afd8d32c6dc608b1637"
     },
     {
-      "bytes": 3945,
+      "bytes": 4059,
       "path": "public/receipts/9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34.json",
-      "sha256": "365d0f1905a467a1209b2e15ac71b68515ee6eab82a9f957deb78e2cbd14ebb0"
+      "sha256": "a8d3b35bc1f53e452c2a884e0cc51372ce01ef8b5fb24a8b5c536d7a121ea173"
     },
     {
-      "bytes": 3945,
+      "bytes": 4059,
       "path": "public/receipts/a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca.json",
-      "sha256": "6a23922306608bf128cada32f0a16a74c75f6a84da041132a8b2e0f587466d04"
+      "sha256": "b398eb1e277cb976f64119bc80a60d58da369f72f997ecd18c4c5c721b695957"
     },
     {
-      "bytes": 3943,
+      "bytes": 4057,
       "path": "public/receipts/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.json",
-      "sha256": "30ab1a1d5aaf3098ff4b11f666a31d11204e272972c8a7934a04bd6118d873bd"
+      "sha256": "d592665fbe95c0e1ddddd18c3da1df032b05ddbf98faa889bca65dfc49fbf709"
     },
     {
-      "bytes": 3949,
+      "bytes": 4063,
       "path": "public/receipts/f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897.json",
-      "sha256": "cedd9a48a408f31bf4aabdce6204926632d0d6638b85558e42e976c90f2f5a0a"
+      "sha256": "342424ba83c22a2b7aa6b9a7ac16f2346d3116c0d989dc2a74eac9327e20a7c5"
     },
     {
       "bytes": 871,
       "path": "public/teasers/0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4.json",
-      "sha256": "9b705f9773608d560809813a1e30fc41d17a796ddb52282410bbfaf013dbc1ca"
+      "sha256": "d0c4c4ae138a5b8b9f62ada617eba89741a2dd20c881e008937298d61f1c2041"
     },
     {
       "bytes": 869,
       "path": "public/teasers/1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a.json",
-      "sha256": "e7ce0cdd288a59a7ca1de7f0bf289aa3a3a3ce66305615ee93756f8bf3f24165"
+      "sha256": "b5d11c4ab849eb3aa17dce45a4941689c3d83859ccc21a4fbac6a93516cb83ae"
     },
     {
       "bytes": 869,
       "path": "public/teasers/2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb.json",
-      "sha256": "dd4f711607a9c786be8d816b625ddc825ba18bede7d576701bf5a5c83dc97802"
+      "sha256": "ff4bc46094925a8f2092d9226778af867117af54b73fe880896c22cf3a08d08b"
     },
     {
       "bytes": 854,
       "path": "public/teasers/46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703.json",
-      "sha256": "c90695f0c0be647a8ce78380c0f773d36014426621b259ed72d3436a6186a0ea"
+      "sha256": "b2cfc17ee09f5d5a18fa5becddb2974dd0ee7a92f7a80531a57324f66a4083a5"
     },
     {
       "bytes": 869,
       "path": "public/teasers/9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34.json",
-      "sha256": "565e11d05a1a753c198524a58694778344a7c562cba80fae8e6e33e5f8a22897"
+      "sha256": "e5339dad0410034c2b6268365869daedfb2bea67a33cb7504ae6722d0c09376b"
     },
     {
       "bytes": 869,
       "path": "public/teasers/a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca.json",
-      "sha256": "5ffc54124f9e5e9e17ee56c88dc5cc7aff9e18ed42a757a5f2cb35c4d6a57bdf"
+      "sha256": "02c1e02d1967c145a9667f950d5768cb7e35105146ebe22b7c908dee09770708"
     },
     {
       "bytes": 871,
       "path": "public/teasers/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.json",
-      "sha256": "23eb4e9dd565c5003d823831692ae6c54beba951bb5fc296f9d6ca3d2f6dde59"
+      "sha256": "cb191b4f294445434fae342c3fb98bbb06f0696b92274682289be8e2ffd3e6a8"
     },
     {
       "bytes": 871,
       "path": "public/teasers/f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897.json",
-      "sha256": "e23c3d830cb4f1f15c141f14be12b72737379d397d4752a63b0b7d13955d4ac4"
+      "sha256": "039d89d670af60c0027813fdf55965175fc6a5f2291be2ab1c84d4462ac9f188"
     },
     {
-      "bytes": 393234,
+      "bytes": 1715407,
       "path": "public/verify.py",
-      "sha256": "5681a97d28be07611202fb46a37af9b8d31fdaa0ec5648049ff1913434cb4da8"
+      "sha256": "127cfb9c9a95b6db3087ecb10c3f0bc866d300416242e70529a415a0ff3be7fc"
     },
     {
       "bytes": 13741,
       "path": "source-manifest.json",
-      "sha256": "27d9215733bc84fae3d1b8be6abd7382074b0c7ab7f80a12de59bd6a09acfda7"
+      "sha256": "a109c967986df9774bc37bdee4b7e5e69fe0ea157007474c9e7fe0e50b353b05"
     }
   ],
-  "installDigest": "437d5b78c7daa27309254f5237365b3e17303605f29fc59bf1e6a9a39b8b0969",
-  "interactionManifestFingerprint": "28b0174fa660867bccfc9933f48a629882a746918fe628e6e543d577029b1982",
+  "installDigest": "d1ef420e4dc6ad969d104f6c0002a523d11150d68875ead5f54a506a6e716d86",
+  "interactionManifestFingerprint": "313b04366fd7fc7d18b939a2e6ace42e9a8bd0727d7dc1fc86593780fba9bfcd",
   "schemaVersion": "agentwars.public-install-manifest.v1",
   "siteDatasetPath": "src/data/builderwars.generated.json",
   "sitePublicPath": "public/builderwars",
-  "sourceManifestDigest": "aebca70f2b6e0c5c549ebefe2614c3aac7cc2250fd9174385b2741aa5d3af4d4"
+  "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8"
 }

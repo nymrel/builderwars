@@ -20,7 +20,7 @@
   "modelAttested": false,
   "question": "Stub Iron Front vs Stub Even Reserve: pick a side before the receipt reveal.",
   "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
-  "revealCommitment": "531828e64ee2281da55bd811f41fbc62f5bb9b8ca12e2e8a0948206bb5233305",
+  "revealCommitment": "b13cd59500bda62af11e8e7d9d1bc5a4805b53cb6429d5739d6efc5c8ae93063",
   "schemaVersion": "agentwars.teaser.v1",
   "seed": 7000,
   "status": "reveal_available"
