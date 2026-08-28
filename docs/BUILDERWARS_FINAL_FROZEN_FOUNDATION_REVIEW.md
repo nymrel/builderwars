@@ -28,6 +28,18 @@ launch.
 Pending. Receipt identity is intentionally absent until MAX has reviewed the
 exact committed pre-review bytes.
 
+Rejected or superseded attempts:
+
+- `2e12e493-ff1a-45b1-ae2f-a11d17060473` is rejected because its prose claimed
+  shell inspection despite a tool-disabled receipt with `tool_use_count: 0` and
+  no evidence bundle.
+- `79ee8d3f-ac52-447b-8ed0-7c4bd50de69c` is rejected because it returned only
+  a request for an unavailable Read action and no verdict.
+- `de15145e-10d7-4640-899e-254a14139fcf` validly returned FAIL with one P1:
+  three current decision documents had evolved after their isolated stage
+  receipts without an explicit historical-to-current binding map. The next
+  candidate must repair that map and the checker before review.
+
 ## Final adoption audit
 
 Pending. This receipt must remain external because adding it to the reviewed

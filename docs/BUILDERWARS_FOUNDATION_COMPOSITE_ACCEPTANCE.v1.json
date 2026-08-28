@@ -1,17 +1,17 @@
 {
   "schemaVersion": "builderwars.foundation-composite-acceptance.v1",
   "status": "candidate_frozen_for_external_max_acceptance",
-  "generatedAtUtc": "2026-08-28T15:55:00.000Z",
+  "generatedAtUtc": "2026-08-28T16:15:00.000Z",
   "purpose": "Compact custody index for the frozen BuilderWars foundation, accepted contained reviews, exact candidates, residuals, and held launch gates.",
   "supersession": {
-    "runId": "78d32107-9309-43ce-a775-4f5276842e9d",
-    "receiptSha256": "224df3ecb9248e5345fc042771d02800730effaf53b38bca3796121c52f5ff2d",
-    "reviewedManifestSha256": "a49834d1618400f2ffe1053668fbcc3d8f2d4c4399449c032a295d0f398d55a0",
+    "runId": "de15145e-10d7-4640-899e-254a14139fcf",
+    "receiptSha256": "a52d4c1fcbd3eb60cd8ff5547a97e7301cb59976a06e223af1cd7af92871065f",
+    "reviewedManifestSha256": "f8d790e4fbcf29341ff053e4a1549bf8f8736781fb56776100ffea420ecedebc",
     "state": "superseded_not_valid_for_current_bytes",
-    "reason": "Adoption comparison found a wrong brand-document path and the review requested explicit per-stage mandatory-document mappings. Both are repaired in this revision."
+    "reason": "The contained manifest/checker slice found that three current foundation documents had evolved after their isolated stage receipts without an explicit historical-to-current binding map. This revision adds that map and fail-closed validation."
   },
   "truthBoundary": {
-    "foundationMeaning": "Five isolated document stages, nine historical BuilderWars code slices, and one exact current-candidate affected-source closure passed contained Max review with zero P0/P1 at their bound bytes. This remains planning and local candidate acceptance only until the frozen composite receives its external receipt.",
+    "foundationMeaning": "Five isolated document stages passed at their explicitly historical bound bytes. Three decision documents evolved afterward and are not attributed to those stage receipts; their current bytes require review slot 10. Nine historical BuilderWars code slices and one exact current-candidate affected-source closure also passed with zero P0/P1. This remains planning and local candidate input only until the frozen composite receives its external receipt.",
     "neverImplied": [
       "merge",
       "release",
@@ -46,7 +46,7 @@
     },
     "submittedConcepts": "Accepted only through the hash-bound adopt/defer/reject decision; raw agent submissions grant no authority or production truth.",
     "receiptBodiesEmbedded": false,
-    "receiptBinding": "Each stage binds controller receipt SHA-256 and locally stored receipt-file SHA-256. Code slices bind exact preflight/live receipt identities. Omitted bodies are not claimed as re-read in this compact review.",
+    "receiptBinding": "Each stage binds controller receipt SHA-256 and locally stored receipt-file SHA-256. Stage mandatoryDocuments are historical reviewed bytes, not silent coverage for later edits. historicalStageBindingRule maps every reviewed/current mismatch to review slot 10. Code slices bind exact preflight/live receipt identities. Omitted bodies are not claimed as re-read in this compact review.",
     "selfAcceptanceForbidden": true
   },
   "custody": {
@@ -89,8 +89,8 @@
     },
     {
       "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_LEDGER.v1.json",
-      "sha256": "7e2071c47d1203c11ea23d5981668477244c6e7415b88a9d8ea166f1fc545bb6",
-      "bytes": 40201
+      "sha256": "afea260a6dc223705158d9868a2613b63498de6dd84346e9fc1deb8bdd85cc76",
+      "bytes": 40367
     },
     {
       "path": "docs/BUILDERWARS_DELIVERY_ROADMAP.md",
@@ -229,6 +229,36 @@
       ]
     }
   ],
+  "historicalStageBindingRule": {
+    "meaning": "An isolated stage receipt attests only its mandatoryDocuments hashes and byte counts. A later foundation document may differ only when the exact historical/current mapping is listed here and the current bytes are included in external foundation review slot 10.",
+    "currentCoverage": "external_foundation_review_slot_10_required",
+    "changedAfterStageReview": [
+      {
+        "path": "docs/BUILDERWARS_SUBMITTED_CONCEPTS_DECISION.md",
+        "stageRunId": "df423f9b-2846-49e5-a89b-932f1ca4072b",
+        "reviewedSha256": "e8c13b7e66dd31c4c192286d0d3c06e8cefef9478c45047f87878c9e7223c00d",
+        "reviewedBytes": 17024,
+        "currentSha256": "f1cbd3ff3799d6b25d1d888674b42bc7a3780f9acd045a1271feaffb06359756",
+        "currentBytes": 17088
+      },
+      {
+        "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_DECISIONS.md",
+        "stageRunId": "288d5496-93b4-47cf-944f-f75ef4c1f743",
+        "reviewedSha256": "9859675cf746e9614f1b82d06e69f03ef45b5daf94f6c68476dcd5c0bdd89002",
+        "reviewedBytes": 17819,
+        "currentSha256": "ff3f2f6711d91b10092352a7922047d2484ad774392640bbb3e7e511ce169443",
+        "currentBytes": 17793
+      },
+      {
+        "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_LEDGER.v1.json",
+        "stageRunId": "3e6a6bbd-badd-4546-a22e-017453bcd482",
+        "reviewedSha256": "8c84fe326e2b64a1fe5702b6e67e0eb6e20d92796de266304ddc5daa671c6011",
+        "reviewedBytes": 39752,
+        "currentSha256": "afea260a6dc223705158d9868a2613b63498de6dd84346e9fc1deb8bdd85cc76",
+        "currentBytes": 40367
+      }
+    ]
+  },
   "builderwarsCodeSliceReviews": [
     {
       "order": 1,
@@ -619,6 +649,7 @@
     "isolatedStageCount": 5,
     "codeSliceReviewCount": 9,
     "currentCandidateClosureReviewCount": 1,
+    "historicalStageBindingMismatchCount": 3,
     "residualCount": 23,
     "heldActionCount": 10,
     "nextGateCount": 7,
@@ -633,7 +664,8 @@
     "fallbackAllowed": false,
     "inputClass": "private",
     "authority": "read",
-    "autonomyProfile": "explorer",
+    "autonomyProfile": "standard",
+    "evidenceMode": "inline_exact_bytes_with_sequential_slice_receipts_and_compact_composite",
     "requiredVerdict": "PASS",
     "maximumP0": 0,
     "maximumP1": 0,

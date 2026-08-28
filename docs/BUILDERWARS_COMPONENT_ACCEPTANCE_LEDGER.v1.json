@@ -79,7 +79,7 @@
     "fallbackAllowed": false,
     "executionPolicy": "sequential_only_when_canonical_broker_ceiling_is_nonzero",
     "currentHold": "reviews 1-9 and current-candidate affected-source closure 51119615-11ef-4962-b223-c368e1884485 completed with zero P0/P1; review 10 is the next external review and must be generated from the final committed frozen-foundation bytes",
-    "selfReviewBinding": "The foundation-and-decisions review must be generated after this ledger is frozen and retained as an external immutable receipt. Embedding that receipt here would change the reviewed bytes and create a recursive false binding.",
+    "selfReviewBinding": "The foundation-and-decisions review must be generated after this ledger is frozen. Its first receipt may be embedded only through the checker-enforced pending-to-accepted delta; a second contained adoption audit reviews those final bytes and remains external, avoiding recursive false binding.",
     "reviews": [
       {
         "order": 1,
@@ -226,6 +226,7 @@
         "order": 10,
         "reviewId": "builderwars-foundation-and-decisions",
         "candidate": "builderwars-foundation@7ed78e1993b60359eb257299705e089acc701d1c+frozen-document-bytes",
+        "evidenceMode": "inline_exact_bytes_with_sequential_slice_receipts_and_compact_composite",
         "preflightRunId": null,
         "taskSha256": null,
         "bundleSha256": null,
