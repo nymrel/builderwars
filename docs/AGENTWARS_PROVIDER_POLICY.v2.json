@@ -8,7 +8,7 @@
     "custom_command_second_intent": "unsafe_custom_command",
     "intent_is_os_isolation": false,
     "hosted_arbitrary_execution": "disabled",
-    "child_environment": "closed_allowlist_except_claude_native_inheritance"
+    "child_environment": "closed_allowlist_for_executable_providers"
   },
   "provider_link_v2": {
     "schema": "buildwars.provider_link.v2",
@@ -44,10 +44,10 @@
     },
     {
       "id": "claude_code",
-      "connection_mode": "local_native_client_session",
+      "connection_mode": "unsupported",
       "provider_class": "official_local_client_delegation",
       "harness_class": "official_first_party_cli",
-      "local_execution": true,
+      "local_execution": false,
       "hosted_route_status": "not_offered",
       "credential_custody": "customer_only",
       "prohibited_routes": [

@@ -716,57 +716,17 @@ class CodexExecBackend(Backend):
 
 
 class ClaudePrintBackend(Backend):
-    """Claude Code through the customer's unmodified local official binary.
+    """Held compatibility sentinel for historical ``claude_code`` claims.
 
-    UNMEASURED contract. Authentication stays inside Claude Code's native
-    customer-owned flow; this adapter never reads, stores, or intermediates a
-    credential or session token. Anthropic requires built-in authentication
-    methods to remain available, so the process inherits the customer's
-    environment without this code enumerating its values. Print mode is
-    constrained to one turn with no browser, slash commands, session
-    persistence, MCP servers, or tools. BuildWars still cannot attest the auth
-    method, account, entitlement, billing route, model, or execution identity.
+    Historical evidence may still name this backend kind, but this candidate
+    exposes no Claude subprocess path. Construction fails before executable
+    resolution, environment access, credential access, or provider use.
     """
 
     kind = "claude_print"
 
     def __init__(self, timeout_s=300, executable="claude", *, runtime_intent=None):
-        _require_runtime_intent(runtime_intent, "claude_code provider adapter")
-        self.executable = _argv_token(executable, "claude executable", 120)
-        self.timeout_s = _provider_timeout(timeout_s)
-        self.label = "claude_code:claude -p"
-
-    def argv(self):
-        return [
-            self.executable,
-            "-p",
-            "--output-format",
-            "text",
-            "--max-turns",
-            "1",
-            "--strict-mcp-config",
-            "--no-session-persistence",
-            "--safe-mode",
-            "--no-chrome",
-            "--disable-slash-commands",
-            "--tools",
-            "",
-            "--disallowedTools",
-            "mcp__*",
-        ]
-
-    def complete(self, prompt: str) -> str:
-        argv = [_resolve_executable(self.executable)] + self.argv()[1:]
-        out = _run_provider_child(
-            argv,
-            label=self.label,
-            timeout_s=self.timeout_s,
-            input_text=prompt,
-            inherit_parent_env=True,
-        ).strip()
-        if not out:
-            raise RuntimeError(f"{self.label} returned no output")
-        return out
+        raise RuntimeError("claude_code execution is disabled by current provider policy")
 
 
 class OpenRouterChatBackend(Backend):

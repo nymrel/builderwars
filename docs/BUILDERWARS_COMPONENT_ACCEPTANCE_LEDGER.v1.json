@@ -1,0 +1,760 @@
+{
+  "schemaVersion": "builderwars.component-acceptance-ledger.v1",
+  "status": "review_candidate",
+  "asOf": "2026-08-27",
+  "truthBoundary": {
+    "purpose": "Record exact observed source pins, custody, beta dependency, and missing acceptance evidence without inheriting repository claims.",
+    "notProofOf": [
+      "package acceptance",
+      "security acceptance",
+      "provider or model identity",
+      "production configuration",
+      "deployment",
+      "customer use",
+      "public availability"
+    ],
+    "remoteObservation": "Remote default-branch object IDs were read with git ls-remote on 2026-08-27. An observed object ID is not an accepted integration.",
+    "dirtyCheckoutRule": "Dirty or divergent local checkouts are inventory evidence only and cannot supply adopted bytes.",
+    "acceptanceRule": "A component becomes accepted only after its exact source pin, interface, owner, tests, independent review, failure semantics, cleanup, rollback, revocation, and BuilderWars composition are all recorded and pass."
+  },
+  "foundationSource": {
+    "repository": "https://github.com/nymrel/builderwars.git",
+    "pullRequest": 12,
+    "head": "a83ce49f4a9cfbeb39ca6d22b64a86fd9b865bff",
+    "status": "draft_unmerged_pending_independent_review"
+  },
+  "releaseCandidates": {
+    "builderwars": {
+      "branch": "codex/agentwars-launch-integration-20260825",
+      "head": "3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "remoteMain": "d0cb2b9fc4cba987eb421b6200efcdc9941cd909",
+      "status": "tracked_source_pushed_domain_and_decision_docs_held_untracked"
+    },
+    "nymrel": {
+      "branch": "codex/nymrel-agentwars-runner-pairing-20260825",
+      "head": "4f3b6270cee69f0465f0bfb458958e9bae0ba91c",
+      "remoteMain": "34660606a99b2d732fe274a04dd7757cfdf9feba",
+      "status": "clean_local_candidate_one_commit_ahead_of_remote_feature_not_integrated_or_released"
+    }
+  },
+  "decisionStates": {
+    "candidate": "Exact source is identified but one or more acceptance gates remain.",
+    "adapt": "May be composed after a BuilderWars-specific interface and evidence contract passes.",
+    "reference": "Patterns may inform implementation; the repository is not a runtime dependency.",
+    "hold": "No product dependency or public claim is permitted until named gates pass.",
+    "notLocated": "No current local source checkout was identified; no source or maturity claim is made."
+  },
+  "publicBetaDependency": {
+    "requiredCodeCandidates": [
+      "builderwars-kernel",
+      "nymrel-control-room"
+    ],
+    "conditionalEvidenceAdapters": [
+      "nymrel-proof-ledger"
+    ],
+    "protectedExternalConfiguration": [
+      "Clerk production identity and user.deleted webhook",
+      "production-compatible Redis REST pair and peppers",
+      "reviewer signing keys",
+      "rate limits and feature flags",
+      "builderwars.com Cloudflare zone and DNS",
+      "source-bound production hosting and rollback target"
+    ],
+    "explicitlyNotRequiredForFirstBeta": [
+      "hosted arbitrary external code",
+      "Agent Sandstorm",
+      "PermitMesh",
+      "Agent Proofchain",
+      "Nymrel Swarm Studio",
+      "Nymrel Swarm Protocol",
+      "Presence",
+      "Nymrel Plugin or MCP Hub publication",
+      "Open UCP or payments",
+      "creator payouts",
+      "a universal ranking"
+    ]
+  },
+  "independentReviewQueue": {
+    "route": "opencode-go/glm-5.3-flash/max",
+    "fallbackAllowed": false,
+    "executionPolicy": "sequential_only_when_canonical_broker_ceiling_is_nonzero",
+    "currentHold": "reviews 1-9 completed sequentially with accepted PASS verdicts and zero P0/P1; review 10 is the next external review and must be generated from the final frozen foundation bytes",
+    "selfReviewBinding": "The foundation-and-decisions review must be generated after this ledger is frozen and retained as an external immutable receipt. Embedding that receipt here would change the reviewed bytes and create a recursive false binding.",
+    "reviews": [
+      {
+        "order": 1,
+        "reviewId": "builderwars-hosted-store-core-schema",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "5a0d2287-8a66-4ce5-be56-66881de263e8",
+        "taskSha256": "ea0a2f4b4317f8e60b115494c3cf135f6feee604e3fac63aaca4cd8e5eede1d2",
+        "bundleSha256": "b3456a660ecf5e0e1d0cfb8e1b189f11a7a8a04540524cd78f52cd0f574cf089",
+        "materialSignature": "d80cedea59cfb8b6b442c0e448a1f6d74486da5c9cd030cba0b8cd7b17f0d10a",
+        "preflightReceiptSha256": "5be506b1e02ff7e1d4bd857555211831f5a69f18ce2a2ab9057128cd87e25436",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_0_P3_6",
+        "liveRunId": "cc0d4951-7b1a-4bfa-a9f0-1fc90158698f",
+        "liveReceiptSha256": "3f5df27e6ab2036a867a3467ebcd7536b93b190422032eeadc416550b5073d4d",
+        "acceptance": "accepted"
+      },
+      {
+        "order": 2,
+        "reviewId": "builderwars-hosted-store-pairing-lifecycle",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "9635af94-45b8-445f-9d53-2268981d3964",
+        "taskSha256": "c9ba1a0e8ff12cd13a62180cbe31a20b50972c7da87fdfe8b4daa4c6269e6f62",
+        "bundleSha256": "ed1b74ec4b6345ec37172c7dc8f9c64bf13fffad1e4763cb5b22ef0fd1b6e9a6",
+        "materialSignature": "6ebca29fb3ad40dedad6c3ee53b881c20abcf6d76e92d6d91ebca684bf268643",
+        "preflightReceiptSha256": "6780cb69075cbb2efff0a546104b19a7369d2d24ed35ce05d22311719b244803",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_1_P3_3",
+        "liveRunId": "b6e6c233-94a0-4c1e-9534-ac7d7a4a8104",
+        "liveReceiptSha256": "e5abb5c1f503ebcb8ce416f8eb807a416ce84494bd8382ca5b0970456b6f5dba",
+        "acceptance": "accepted_after_schema_cascade_composite"
+      },
+      {
+        "order": 3,
+        "reviewId": "builderwars-hosted-store-jobs-nonces",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "331e518f-1560-4add-8da8-c4aa84d4de67",
+        "taskSha256": "464c3a9efadeec716c1beba3dbd1ca048fdd9e7d90ca3bd25f666b4a540458f0",
+        "bundleSha256": "3de589775b1b1d3ed8667745f9140d5038d718238d28b18af7326ba009d0b9aa",
+        "materialSignature": "ff9e77f594c906bfb6be35d9dad4ea0d302aebbef3409fdc0432fe543a7c26c0",
+        "preflightReceiptSha256": "3dc51b753fb1e0c8526cfc9b82c22eb4e9159915536a5f1e94a48a08916ce37d",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_2_P3_2",
+        "liveRunId": "f0486315-dce4-4925-a2ce-0eb242bb6bb5",
+        "liveReceiptSha256": "9e67ece750fad11d72e8a49aafc2fecfa1f1319ef335c68892568d1c7f587daf",
+        "acceptance": "accepted_after_constants_and_cascade_composite"
+      },
+      {
+        "order": 4,
+        "reviewId": "builderwars-hosted-store-lease-lifecycle",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "fa57c836-7268-45fd-afa5-1d243c1af877",
+        "taskSha256": "3ece7e0d3857637703468e1d32c5b705631015d68d8c9d080e658d98c1e68483",
+        "bundleSha256": "a2bcc0e861248e184243e7f500c8bda24c69506bd26d1a495dbc0a0853c18b14",
+        "materialSignature": "754ea6b1dfb39621f5dd2b277d70f085956c07182fe181aa9a590f9c2da8271e",
+        "preflightReceiptSha256": "237e17b8e9d1a438c492e4685d7367662efdeef91ea092a5a90e9c9c380c754b",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_1_P3_2",
+        "liveRunId": "84de70d0-26d0-420c-b75f-c4bba22edffc",
+        "liveReceiptSha256": "1696ad0d8b6f60383479195a32e031eda38a8439f3ab949179c3e80c73eec6ec",
+        "acceptance": "accepted_with_typed_error_P2_hardening"
+      },
+      {
+        "order": 5,
+        "reviewId": "builderwars-hosted-store-results",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "52331e4e-4fa1-4aca-8457-a4723b46fc79",
+        "taskSha256": "64fad454e600285ce88c91206efdcb1f893db2bf9f12f046136d56041739b266",
+        "bundleSha256": "03ca777d93b4ad862ea53d3819677a97a3efd8e05d7dce682490a7496614ff70",
+        "materialSignature": "fac7987b03f7a55d86b871c95e6cc8dae6cd77cf5e3630fddd55922e9f3f2e86",
+        "preflightReceiptSha256": "4b587e0d4a1ca8bd9ec53b62d12f98ff8b2d2f47da31ad89122b3941afa2bb52",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_0_P3_2",
+        "liveRunId": "8930c875-6b4f-4d69-ae58-2c43908677b6",
+        "liveReceiptSha256": "bdc57c8eaa1567bb8cec8af66fb2b8306346c611e92b04777af0192411e3b91f",
+        "acceptance": "accepted"
+      },
+      {
+        "order": 6,
+        "reviewId": "builderwars-hosted-tests-pairing",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "683f6104-8a11-44eb-8883-52648318642d",
+        "taskSha256": "f4423da7ef59323176e58b7000ae145341c96222969e19e807f79ccc2264c493",
+        "bundleSha256": "5e335d4928933a09aa57f00b86f37159f6ce4b8b8290247960bfa80504b2b1f3",
+        "materialSignature": "7f130bdf05e5f0eb8f513a79c9b1c4e65d5309e06683afd3afdb2f43c82741fe",
+        "preflightReceiptSha256": "42ae9b5943131706cf2426b64870d0dc542ff39a02ca1d1722cae70a322b3ddc",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_1_P3_4",
+        "liveRunId": "51568526-9590-434e-bbc1-eea6b1daf70a",
+        "liveReceiptSha256": "746574b29294199bb092b7f0925762d781905cea35371ec1dcee6447214208d8",
+        "acceptance": "accepted_after_owner_scoped_source_composite"
+      },
+      {
+        "order": 7,
+        "reviewId": "builderwars-hosted-tests-jobs",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "c4f139fc-e2fa-483a-8683-c2f9946a50bf",
+        "taskSha256": "3e8b72ca900c25f891cda38d6b88a2defdedce0d96d1167213073ff2caacb87b",
+        "bundleSha256": "a2ff36b0b39003a8998deee62344696c61cb9ef0148acea2f12033c9a4cc60f9",
+        "materialSignature": "313a1c8087c4997fbe283593de17221e1f4555e751c7a51f35c5fbcf681c78fc",
+        "preflightReceiptSha256": "3d761d0b398c82063a47eb6139939ed696d6405d8370cbb171c6f55f228e9122",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_2_P3_4",
+        "liveRunId": "fb9ebfd3-bfa7-4141-85de-6b351b91f47a",
+        "liveReceiptSha256": "176ee236c30f229d46009747ffb13f0373f28a3aacad0bfd40ff826950f1e4d3",
+        "acceptance": "accepted_with_renewal_and_refusal_test_P2_hardening"
+      },
+      {
+        "order": 8,
+        "reviewId": "builderwars-hosted-tests-boundary",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "b8b97170-3528-4055-9bda-80e6bacfaf41",
+        "taskSha256": "3ece3fa41328e607f405702f2c91b9162724d348973bd769336bc6cea47b1b51",
+        "bundleSha256": "4851a58cbc8734f78e016fae4d5afceff7adb9736619b6ba61c94b75e684f78c",
+        "materialSignature": "804454983831313854706714b72a22fd3dcda04d187476f955fdc6136d71c830",
+        "preflightReceiptSha256": "4e21562045fc119a8b001d32d1ee9aac4ae4f02747347004c5444222194307bc",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_2_P3_3",
+        "liveRunId": "85e952fa-3948-4c02-85ac-880bbd4d5e00",
+        "liveReceiptSha256": "89033c243902e30570536a0d8f1d8c60431a2b4351d9cdabe1a9710e02ccad6a",
+        "acceptance": "accepted_after_exact_schema_and_strict_int_source_composite"
+      },
+      {
+        "order": 9,
+        "reviewId": "builderwars-request-boundary",
+        "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "preflightRunId": "c7cda090-3f0f-488e-83ac-514d5195e379",
+        "taskSha256": "37c12432be73599288acbbfa13d0d90cc0d17bee55971548a5fe685cc2ed240e",
+        "bundleSha256": "e9fa457b44b8eb12943a7596e5a4209e135fe3b15f3fbe4f80b3bff0098831bd",
+        "materialSignature": "9b46eb5ca5dd4545cf8b1d37c359cd2eafe311a736bb97d46f2fa9df65f1590b",
+        "preflightReceiptSha256": "de655a188f0eb4e4e26fa2be5223fedfe970206a1f7d67d889d4c8a666f2af7e",
+        "preflightStatus": "ready",
+        "liveVerdict": "PASS_P0_0_P1_0_P2_2_P3_3",
+        "liveRunId": "96846d11-bc62-46f8-9dfc-c0194069aa90",
+        "liveReceiptSha256": "60e3f7f2ec476ccf3520ee43383c1a629f644915dc9ba4b4eac814c107c8acb0",
+        "liveReceiptFileSha256": "8e30a3fa03e771b8e9784a3570c4c565349f07918c12d1ee8902a0552dcef901",
+        "liveEvidenceBundleSha256": "2cfad7df6139d0e1787dd3c70feb75590e606f787cbdaba00fb39253f41ab57c",
+        "liveResultSha256": "939647ea64fb8e93e01719ddc12ae93ebb42705a19b2f4290e9f51a7aec01bb8",
+        "acceptance": "accepted_with_depth_type_and_exception_normalization_p2_hardening_backlog",
+        "lastDeniedRunId": "265b2d11-302e-4bed-8123-ef0e3fd2a437",
+        "lastDeniedReceiptSha256": "e6eb938e7c053afeb6f22e7588bb6d779c6390d06a0fd3e78e6e3692232f0c9f",
+        "lastDeniedReason": "provider_seat_denied_capacity_unavailable_after_preflight"
+      },
+      {
+        "order": 10,
+        "reviewId": "builderwars-foundation-and-decisions",
+        "candidate": "builderwars-foundation@frozen-ledger-bytes",
+        "preflightRunId": null,
+        "taskSha256": null,
+        "bundleSha256": null,
+        "materialSignature": null,
+        "preflightReceiptSha256": null,
+        "preflightStatus": "regenerate_after_ledger_freeze",
+        "liveVerdict": "pending_external_receipt"
+      },
+      {
+        "order": 11,
+        "reviewId": "nymrel-claude-creation-gate-repair",
+        "candidate": "nymrel@4f3b6270cee69f0465f0bfb458958e9bae0ba91c",
+        "preflightRunId": "a5b6ad22-bcd2-421a-8d77-8ea51ade289d",
+        "taskSha256": "222fa5474704c0cd6957a7c46b1d722a8b0b74443aae5f1c5dbb5c97970cc169",
+        "bundleSha256": "ed8baf1ad5a4971d1817d8d6103e1bd73c2d3d500523467a5f67a5c20b52a2c0",
+        "materialSignature": "67e80d0fa78e2cb9da16da15dc76d32b13c94d07b87842cb488a7210558929e3",
+        "preflightReceiptSha256": "d5a6cc45aaa30e9c54ec30a9606805e056c9ce72d1cf8a5e397dd611e5377a37",
+        "preflightStatus": "ready",
+        "liveVerdict": "pending_capacity"
+      },
+      {
+        "order": 12,
+        "reviewId": "nymrel-current-git-state-custody",
+        "candidate": "nymrel@4f3b6270cee69f0465f0bfb458958e9bae0ba91c",
+        "preflightCandidate": "nymrel@7912d9d49302fc4928b73a2756756d8b16b272a1",
+        "preflightRunId": "b47b2945-8525-48be-909c-48ea19cc0d71",
+        "taskSha256": "9c2dc449ef2fdc7f1f5e18cce0e15e95096ff71905643fecafbe6e5fd4554d1f",
+        "bundleSha256": "40756c8f0ab4f2af0fedc6e6aa56b1a026dcbd598de6b171275d3807475c2b05",
+        "materialSignature": "88f8b0aaa1c8a0eefdd17cfe95ca252495a03ddc9860bef0f49731613f2acbe7",
+        "preflightReceiptSha256": "b3c5d83f4571d57791fd04acf92ab2a8574339cce9cb3b94bbc8be818cd5bf53",
+        "preflightStatus": "stale_after_candidate_change",
+        "liveVerdict": "pending_regenerated_preflight"
+      },
+      {
+        "order": 13,
+        "reviewId": "nymrel-current-production-journey-verifier",
+        "candidate": "nymrel@4f3b6270cee69f0465f0bfb458958e9bae0ba91c",
+        "preflightCandidate": "nymrel@7912d9d49302fc4928b73a2756756d8b16b272a1",
+        "preflightRunId": "338feff3-85d9-45a6-a86f-8b409f486f41",
+        "taskSha256": "c8a8227dffa9720f7799a70f6ff67649a579071865a9f0d37670c09cf5653536",
+        "bundleSha256": "4bef41523480c98b61f05b0c8efeff4d1814e1ad6da477815c945a50486eaad8",
+        "materialSignature": "dd25ec8ea88c0b705240a0207cb76c8caa91aa88c0ae8de4e96da17ac1193de4",
+        "preflightReceiptSha256": "0cbdf902c579127b4838baf8e35e62adf24c990ab43841db66afc035f3f9b273",
+        "preflightStatus": "stale_after_candidate_change",
+        "liveVerdict": "pending_regenerated_preflight"
+      },
+      {
+        "order": 14,
+        "reviewId": "nymrel-current-public-deployment-verifier",
+        "candidate": "nymrel@4f3b6270cee69f0465f0bfb458958e9bae0ba91c",
+        "preflightCandidate": "nymrel@7912d9d49302fc4928b73a2756756d8b16b272a1",
+        "preflightRunId": "7ee9caa7-48cc-4c0b-866d-55a8f911234b",
+        "taskSha256": "242ab82c8cd3998a181f463497a330820f356859378198608135a6679498c788",
+        "bundleSha256": "f67460c6e5f8694bc1a814973563f99e8298db9e23b4d896d90c278f8b8f0e85",
+        "materialSignature": "11342b2e39561ae507116dc32dba0bc912ee923287d0984c79f122b91802545a",
+        "preflightReceiptSha256": "16ddb522d6cd7ed24a154be9c4864f136542fe428468483f029ba94db26e0d8c",
+        "preflightStatus": "stale_after_candidate_change",
+        "liveVerdict": "pending_regenerated_preflight"
+      },
+      {
+        "order": 15,
+        "reviewId": "nymrel-current-support-tests-remediation",
+        "candidate": "nymrel@4f3b6270cee69f0465f0bfb458958e9bae0ba91c",
+        "preflightCandidate": "nymrel@7912d9d49302fc4928b73a2756756d8b16b272a1",
+        "preflightRunId": "deb917c1-b81e-459e-8150-6477a5ee5682",
+        "taskSha256": "b4f0b7f41a90f8427a24286814fe8b0da950b1abb9514af0dc94e2442641181e",
+        "bundleSha256": "61b3cefe32ad090a1b4b4aea12b1e440f10feea8c183569c9b01ce243a15edb3",
+        "materialSignature": "fc6e07415aa8f9073dd2adc06b271a7b7c9fd7daa58136c565eaa41f294d0cd5",
+        "preflightReceiptSha256": "bc14b1b72f9b66172c4ae5dff4cb03409c195acd00b38356cd7b6b4023cbcc87",
+        "preflightStatus": "stale_after_candidate_change",
+        "liveVerdict": "pending_regenerated_preflight"
+      }
+    ]
+  },
+  "components": [
+    {
+      "componentId": "builderwars-kernel",
+      "sourceRepository": "https://github.com/nymrel/builderwars.git",
+      "observedRemoteDefault": "d0cb2b9fc4cba987eb421b6200efcdc9941cd909",
+      "candidatePin": "3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "candidateBranch": "codex/agentwars-launch-integration-20260825",
+      "localObservation": "tracked source clean; four held untracked decision and cutover documents",
+      "proposedClass": "candidate",
+      "betaDependency": "required",
+      "ownerBoundary": "Owns games, exact rules, match execution contracts, transcript replay, passports, competition schedules, public projections, and competitive result truth.",
+      "currentEvidence": [
+        "hosted control-plane tests 20/20",
+        "provider-hub checker 10/10 sections",
+        "Agent Passport adversarial checks 45/45",
+        "Competition Matrix: 4 entrants, 6 pairs, 24 replay-verified receipts",
+        "standalone verifier parity 45/45 plus 22 snapshot-custody attacks",
+        "feature branch equals its remote and origin/main is unchanged"
+      ],
+      "independentReview": "nine sequential exact-source Max slices passed with zero P0/P1; the external frozen-foundation decision review remains pending",
+      "allowedUse": "local deterministic candidate validation only",
+      "prohibitedClaims": [
+        "integrated main",
+        "production storage",
+        "public accounts",
+        "provider or model attestation",
+        "public launch"
+      ],
+      "acceptanceGates": [
+        "fresh exact-source Max composite with zero P0/P1",
+        "accepted request-boundary and hostile-test reviews",
+        "true-merge ancestry into canonical main after authorization",
+        "immutable runner and verifier assets bound to the integrated commit",
+        "production Redis conformance and exact cleanup",
+        "source-bound live deployment and real-customer journey"
+      ]
+    },
+    {
+      "componentId": "nymrel-control-room",
+      "sourceRepository": "https://github.com/nymrel/nymrel.git",
+      "observedRemoteDefault": "34660606a99b2d732fe274a04dd7757cfdf9feba",
+      "candidatePin": "4f3b6270cee69f0465f0bfb458958e9bae0ba91c",
+      "candidateBranch": "codex/nymrel-agentwars-runner-pairing-20260825",
+      "localObservation": "clean candidate one local commit ahead of its remote feature branch; merge, rebase, deploy, and provider gates remain held",
+      "proposedClass": "candidate",
+      "betaDependency": "required",
+      "ownerBoundary": "Owns customer account UI, protected control room, local-runner pairing UX, private submissions, review workflow, publication controls, support, and release evidence assembly; it does not adjudicate matches.",
+      "currentEvidence": [
+        "exact candidate is clean and locally committed; the Claude creation-gate repair is intentionally not pushed until fresh Max acceptance",
+        "prior bounded Max reviews accepted git custody, stable reads, and test fidelity",
+        "new Claude Code job creation now fails closed in the UI and server while retained Claude evidence remains parseable",
+        "focused Claude-gate tests pass 55/55; lint, typecheck, 1,354 unit tests, operations, distribution, production build, and bundle budget pass",
+        "current focused Git-state, production-journey, public-deployment integration, and support suites pass 49 tests with zero failures and one explicit Windows direct-file-symlink host skip",
+        "no production account, Redis, provider, deployment, or domain action was taken"
+      ],
+      "independentReview": "exact Claude-gate micro-review preflight is ready; live Max verdict and all candidate-identity-dependent Nymrel review packets remain pending",
+      "allowedUse": "local and preview candidate validation only",
+      "prohibitedClaims": [
+        "production Clerk configuration",
+        "production Redis",
+        "public customer control room",
+        "builderwars.com deployment",
+        "customer completion"
+      ],
+      "acceptanceGates": [
+        "fresh exact-source Max review with zero P0/P1",
+        "BuilderWars integrated-commit and asset binding",
+        "protected Clerk, Redis, reviewer, rate-limit, and feature-flag checks",
+        "public route, header, accessibility, mobile, performance, support, deletion, and rollback proof",
+        "fresh consented real-customer journey"
+      ]
+    },
+    {
+      "componentId": "nymrel-proof-ledger",
+      "sourceRepository": "https://github.com/nymrel/nymrel-proof-ledger.git",
+      "observedRemoteDefault": "ca51416d1f9bd7bcea7135be34d80ae59b916dba",
+      "localObservation": "local main at observed remote object with two dirty paths",
+      "proposedClass": "adapt",
+      "betaDependency": "conditional_evidence_adapter",
+      "ownerBoundary": "May attest generic builds, artifacts, roster versions, or release evidence; it cannot replace BuilderWars game-specific transcript replay or result custody.",
+      "allowedUse": "design reference until an exact receipt-composition contract passes",
+      "prohibitedClaims": [
+        "accepted package",
+        "canonical match verifier",
+        "production signer custody"
+      ],
+      "acceptanceGates": [
+        "clean exact source pin",
+        "BuilderWars-to-generic-receipt mapping",
+        "signer and key-custody policy",
+        "cross-runtime tests",
+        "independent review and rollback"
+      ]
+    },
+    {
+      "componentId": "agent-sandstorm",
+      "sourceRepository": "https://github.com/nymrel/agent-sandstorm.git",
+      "observedRemoteDefault": "4528e90c2e5e76f2c792c677080260b643718400",
+      "localObservation": "local main at 13d8250d23547ef32e5b878a45271129d95b7e17 with five dirty paths and not equal to observed remote default",
+      "proposedClass": "hold",
+      "betaDependency": "not_required_while_external_code_is_disabled",
+      "ownerBoundary": "Candidate execution controls only; never establishes entrant, provider, model, person, or result identity.",
+      "allowedUse": "read-only threat-model reference",
+      "prohibitedClaims": [
+        "OS sandbox",
+        "network jail",
+        "filesystem confinement",
+        "ranked external-code eligibility"
+      ],
+      "acceptanceGates": [
+        "exact clean-host Windows, Linux, and macOS control matrix",
+        "egress, filesystem, process-tree, CPU, memory, disk, output, timeout, secret, and cleanup attacks",
+        "independent security review",
+        "receipt-bound enforced and unenforced controls"
+      ]
+    },
+    {
+      "componentId": "agent-action-surety",
+      "sourceRepository": "https://github.com/nymrel/agent-action-surety.git",
+      "observedRemoteDefault": "92626655d03f1357d152027b9966fec53d2c7342",
+      "localObservation": "local main at c58bc36ae794a4ddd234ad327e3c73aa6a5409ff with one dirty path and not equal to observed remote default",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "May inform entrant action policy; BuilderWars rules and receipts remain authoritative.",
+      "allowedUse": "policy vocabulary reference",
+      "prohibitedClaims": [
+        "enforced BuilderWars permission boundary",
+        "competitive scoring authority"
+      ],
+      "acceptanceGates": [
+        "choose one permission vocabulary",
+        "bind policy version into match receipts",
+        "fail closed on unknown actions",
+        "exact adversarial acceptance"
+      ]
+    },
+    {
+      "componentId": "permitmesh",
+      "sourceRepository": "https://github.com/JalenBuildsHub/PermitMesh.git",
+      "observedRemoteDefault": "7e9da5cea9ffcbd8a6f4933d0dd38960de6b3637",
+      "localObservation": "local feature/buzz-interop at ab98446c6c8c27e12cc4ed41b584ab2dc0f7d41c with two dirty paths",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Administrative authority patterns only; not competitive identity, account authentication, or match evidence.",
+      "allowedUse": "architecture reference",
+      "prohibitedClaims": [
+        "canonical BuilderWars authorization service",
+        "identity attestation"
+      ],
+      "acceptanceGates": [
+        "resolve overlap with Clerk account authorization and BuilderWars review roles",
+        "exact interface and maturity review",
+        "avoid a second permission source of truth"
+      ]
+    },
+    {
+      "componentId": "agent-proofchain",
+      "sourceRepository": "https://github.com/nymrel/agent-proofchain.git",
+      "observedRemoteDefault": "9b8a5b901d81adf5b8b870632734232342d3b46e",
+      "localObservation": "local main at e1bd8a9cdcde4877fe9328d800b926ef0a307b9b with three dirty paths and not equal to observed remote default",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Action-provenance patterns only; BuilderWars transcript and receipt chains remain canonical.",
+      "allowedUse": "composition research",
+      "prohibitedClaims": [
+        "second canonical match chain",
+        "accepted appeal evidence format"
+      ],
+      "acceptanceGates": [
+        "deduplicate hash-chain primitives",
+        "define one composition rule with BuilderWars and Proof Ledger",
+        "exact source and verifier review"
+      ]
+    },
+    {
+      "componentId": "nymrel-agent-routing",
+      "sourceRepository": "https://github.com/JalenBuildsHub/nymrel-agent.git",
+      "observedRemoteDefault": "78d99025c935675b6d10582239c7a419edbd5e36",
+      "localObservation": "clean local feature at 489b98844c5f82910d4c9bfc2254e5300f75ad9e with upstream origin/main; no matching remote feature ref was observed",
+      "proposedClass": "adapt",
+      "betaDependency": "not_required_for_fixed_provider_hub_beta",
+      "ownerBoundary": "May explain routing from caller-supplied facts; cannot certify model, provider account, subscription, or execution identity.",
+      "allowedUse": "later budget-class and routing-policy adapter",
+      "prohibitedClaims": [
+        "provider identity attestation",
+        "model identity attestation",
+        "accepted public source pin"
+      ],
+      "acceptanceGates": [
+        "push or select an exact reviewed source pin",
+        "define adapter contract with the BuilderWars provider catalog",
+        "record retries, fallbacks, errors, latency, and cost",
+        "keep studio routing separate from competition policy"
+      ]
+    },
+    {
+      "componentId": "nymrel-swarm-studio",
+      "sourceRepository": "https://github.com/nymrel/nymrel-swarm-studio.git",
+      "observedRemoteDefault": "4d8f6aa6e59bb320c437284a8df014f8e7ea1d33",
+      "localObservation": "local main at a39511c2f9ddbc4a7d3357cc303122a9811f1088 with one dirty path and not equal to observed remote default",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Visual roster and topology patterns only; a match receipt proves the actual roster.",
+      "allowedUse": "team and broadcast design reference",
+      "prohibitedClaims": [
+        "exact team roster evidence",
+        "production control room dependency"
+      ],
+      "acceptanceGates": [
+        "map UI to canonical BuilderWars entities",
+        "replace illustrative claims with bound data",
+        "accessibility and privacy review"
+      ]
+    },
+    {
+      "componentId": "nymrel-swarm-protocol",
+      "sourceRepository": "https://github.com/nymrel/nymrel-swarm-protocol.git",
+      "observedRemoteDefault": "25c83e961964e6a58210df71069e74ed08a1a1aa",
+      "localObservation": "clean local main at c1e8ca66a521b3c6cda9d0d7bf3e264d94e785e3 and not equal to observed remote default",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Coordination pattern only; game rules own allowed communication, substitutions, and scoring.",
+      "allowedUse": "team-protocol design reference",
+      "prohibitedClaims": [
+        "accepted team communication contract",
+        "undeclared side-channel prevention"
+      ],
+      "acceptanceGates": [
+        "select exact canonical source",
+        "version channels, budgets, roles, and substitutions",
+        "bind into roster and match receipts",
+        "adversarial side-channel review"
+      ]
+    },
+    {
+      "componentId": "presence",
+      "sourceRepository": "https://github.com/nymrel/presence.git",
+      "observedRemoteDefault": "a61eba16d550ab1ea715d2141a39027f203bf3af",
+      "localObservation": "clean local main at 18e0ed43d7d4d897c6f9b7557d1954519f5cf3c9 and not equal to observed remote default",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "May transport human attention and intervention state; not answers, credentials, or person identity by default.",
+      "allowedUse": "human-intervention contract reference",
+      "prohibitedClaims": [
+        "authenticated builder identity",
+        "answer transport",
+        "accepted WAN coordination"
+      ],
+      "acceptanceGates": [
+        "select exact source pin",
+        "bind interventions to authenticated roles",
+        "define game-specific allowed windows",
+        "privacy and network acceptance"
+      ]
+    },
+    {
+      "componentId": "nymrel-plugin",
+      "sourceRepository": "https://github.com/nymrel/nymrel-plugin.git",
+      "observedRemoteDefault": "272576c05ff4e0d6511eaa59ea2664b1942652ca",
+      "localObservation": "clean local main equal to observed remote default; separate clean submission candidate at 0adbc76e6d69ec259cbaaadc225563f982eaf813",
+      "proposedClass": "adapt",
+      "betaDependency": "not_required_for_web_beta",
+      "ownerBoundary": "May expose bounded discovery and verification tools; cannot adjudicate, spend, execute entrants, or silently publish matches.",
+      "allowedUse": "later read-only host integration candidate",
+      "prohibitedClaims": [
+        "directory publication",
+        "BuilderWars production host binding",
+        "private runner execution"
+      ],
+      "acceptanceGates": [
+        "choose one public MCP owner",
+        "define read-only tools first",
+        "host-specific publication evidence",
+        "separate public discovery from customer-local execution"
+      ]
+    },
+    {
+      "componentId": "nymrel-mcp-hub",
+      "sourceRepository": "https://github.com/nymrel/nymrel-mcp-hub.git",
+      "observedRemoteDefault": "6f3681b5b162010f1790ff94d9b1435e7c497bda",
+      "localObservation": "local main at observed remote object with five dirty paths",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Tool aggregation patterns only; not a second competition or public MCP source of truth.",
+      "allowedUse": "tool-discovery reference",
+      "prohibitedClaims": [
+        "canonical hosted endpoint",
+        "match adjudication"
+      ],
+      "acceptanceGates": [
+        "resolve overlap with Nymrel Plugin",
+        "select one hosted contract",
+        "exact security and publication review"
+      ]
+    },
+    {
+      "componentId": "nymrel-ecosystem-portal",
+      "sourceRepository": "https://github.com/nymrel/nymrel-ecosystem-portal.git",
+      "observedRemoteDefault": "385d55de9db68818cfe9c18d9a9932ac2f224c8f",
+      "localObservation": "local main at 573888e4b82cd497443e83c7988425049e4ec002 with eleven dirty paths and not equal to observed remote default",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Developer information architecture only; BuilderWars owns product navigation and competition state.",
+      "allowedUse": "design and documentation reference",
+      "prohibitedClaims": [
+        "accepted package catalog",
+        "production BuilderWars portal"
+      ],
+      "acceptanceGates": [
+        "select clean exact source",
+        "remove unproven package claims",
+        "map to canonical BuilderWars entities"
+      ]
+    },
+    {
+      "componentId": "nymrel-machine-trust",
+      "sourceRepository": "https://github.com/nymrel/nymrel-machine-trust.git",
+      "observedRemoteDefault": "6e7f3bebebb92ac35b284753cbf21e56f670e323",
+      "localObservation": "local main at observed remote object with three dirty paths",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Structured discovery reflects accepted records; it does not create evidence or rankings.",
+      "allowedUse": "JSON-LD and machine-discovery reference",
+      "prohibitedClaims": [
+        "model or provider proof",
+        "search ranking outcome",
+        "accepted BuilderWars schema"
+      ],
+      "acceptanceGates": [
+        "map canonical entities and proof boundaries",
+        "validate public source data",
+        "discoverability proof without ranking promises"
+      ]
+    },
+    {
+      "componentId": "nymrel-trust-scorecard",
+      "sourceRepository": "https://github.com/nymrel/nymrel-trust-scorecard.git",
+      "observedRemoteDefault": "54119791285fd08fe2cf8d8d84bd692848d33128",
+      "localObservation": "local main at observed remote object with nineteen dirty paths",
+      "proposedClass": "reference",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Scorecard and badge presentation only; popularity, quality, readiness, and standings remain separate evidence dimensions.",
+      "allowedUse": "UI pattern reference",
+      "prohibitedClaims": [
+        "universal agent score",
+        "evidence-free verified badge"
+      ],
+      "acceptanceGates": [
+        "derive every badge from accepted receipts",
+        "avoid composite-score conflation",
+        "select clean exact source"
+      ]
+    },
+    {
+      "componentId": "local-agent-forge",
+      "sourceRepository": "https://github.com/nymrel/local-agent-forge.git",
+      "observedRemoteDefault": "e95ead8dada152ba4f0a3ffee48470af6710b0c7",
+      "localObservation": "local main at observed remote object with eleven dirty paths",
+      "proposedClass": "reference",
+      "betaDependency": "not_required_because_current_runner_owns_fixed_beta_path",
+      "ownerBoundary": "May inform local and open-model execution; cannot independently attest model identity or reproducibility.",
+      "allowedUse": "local-model execution research",
+      "prohibitedClaims": [
+        "accepted BuilderWars runner",
+        "zero-cost execution",
+        "model identity attestation"
+      ],
+      "acceptanceGates": [
+        "avoid duplicating the current customer-local runner",
+        "bind local model digest and runtime metadata",
+        "record fallbacks and resource limits",
+        "clean exact-source review"
+      ]
+    },
+    {
+      "componentId": "token-spend-dashboard",
+      "sourceRepository": "unverified",
+      "observedRemoteDefault": null,
+      "localObservation": "no checkout named token-spend-dashboard was located in the bounded Desktop inventory",
+      "proposedClass": "notLocated",
+      "betaDependency": "not_required",
+      "ownerBoundary": "No ownership or interface claim is made.",
+      "allowedUse": "none",
+      "prohibitedClaims": [
+        "existing package",
+        "accepted cost accounting"
+      ],
+      "acceptanceGates": [
+        "locate authoritative source",
+        "verify exact cost receipt inputs and reconciliation",
+        "separate private raw cost from public aggregates"
+      ]
+    },
+    {
+      "componentId": "open-ucp",
+      "sourceRepository": "https://github.com/nymrel/open-ucp.git",
+      "observedRemoteDefault": "236980c34cb414e99873fedfdcae76a23fd89777",
+      "localObservation": "local main at observed remote object with five dirty paths",
+      "proposedClass": "hold",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Future commerce rail only; never determines match integrity, ranking, or admission.",
+      "allowedUse": "future research only",
+      "prohibitedClaims": [
+        "entry fees",
+        "prizes",
+        "creator payouts",
+        "payment-ready public beta"
+      ],
+      "acceptanceGates": [
+        "demonstrated demand",
+        "legal, tax, age, jurisdiction, refund, and gambling review",
+        "explicit billing and payout authorization",
+        "separate payment and competition custody"
+      ]
+    },
+    {
+      "componentId": "draft-a-dynasty",
+      "sourceRepository": "https://github.com/JalenBuildsHub/sleeper-dynasty.git",
+      "observedRemoteDefault": "5525e1e796ca3b91b2c1c337823c6fbf84f1be5f",
+      "localObservation": "clean local main equal to observed remote default",
+      "proposedClass": "reference",
+      "betaDependency": "not_required_for_current_fictional_fantasy_circuits",
+      "ownerBoundary": "May inform fantasy UX, roster, trade, and league operations; licensed/live sports data remains separate from frozen BuilderWars fixtures.",
+      "allowedUse": "fantasy product and UX reference",
+      "prohibitedClaims": [
+        "licensed live data for BuilderWars",
+        "shared customer or league data",
+        "accepted competition engine"
+      ],
+      "acceptanceGates": [
+        "identify generic interfaces without customer data",
+        "rights and data-source review",
+        "keep deterministic competition rules in BuilderWars"
+      ]
+    },
+    {
+      "componentId": "swingersclub-tournament-patterns",
+      "sourceRepository": "git@gitlab.com:johnsonjjalen-group/jalenbuilds-studio/SwingersClub.git",
+      "observedRemoteDefault": "7b0df52a649b97afe6a13dc20cadeec1afb546ee",
+      "localObservation": "local feature worktree at b547fa0ef8aa486f0228a038a8506f4a73d30a9f with 586 dirty paths and not equal to observed remote default",
+      "proposedClass": "hold",
+      "betaDependency": "not_required",
+      "ownerBoundary": "Generic tournament-operation patterns only; no customer-specific branding, data, commerce, or private workflow may cross into BuilderWars.",
+      "allowedUse": "read-only pattern reference after custody-safe review",
+      "prohibitedClaims": [
+        "code donor",
+        "shared customer data",
+        "accepted registration or payment workflow"
+      ],
+      "acceptanceGates": [
+        "clean protected-source review",
+        "extract only generic contracts through shared packages",
+        "privacy and customer-data exclusion",
+        "independent acceptance"
+      ]
+    }
+  ]
+}

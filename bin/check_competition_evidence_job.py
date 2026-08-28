@@ -374,13 +374,11 @@ def check_signed_happy_path(root):
             "backendClaim": "claude_code:claude -p",
         }
     )
-    claude_grant = job.validate_competition_poll_response(
-        claude_poll, profile=profile, request_body_sha256=request_sha
-    )
-    check(
-        claude_grant.job.seats[1].provider_claim == "claude_code"
-        and claude_grant.job.seats[1].backend_claim == "claude_code:claude -p",
-        "signed competition accepts the exact local Claude Code claim",
+    expect_error(
+        lambda: job.validate_competition_poll_response(
+            claude_poll, profile=profile, request_body_sha256=request_sha
+        ),
+        "unsupported",
     )
     built = job.build_competition_evidence(
         grant,

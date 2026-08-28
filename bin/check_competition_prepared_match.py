@@ -197,8 +197,6 @@ def check_unsigned_provider_options(root: Path) -> None:
         "unsigned provider-options plan invokes fixed runner once",
     )
 
-    claude_root = root / "unsigned-claude-code"
-    claude_root.mkdir()
     claude_payload = source_checks.job_payload(harness_digest)
     claude_payload["seats"][0].update(
         {
@@ -208,37 +206,10 @@ def check_unsigned_provider_options(root: Path) -> None:
             "backendClaim": "claude_code:claude -p",
         }
     )
-    claude_preparation = source_checks.validate_ready(profile, claude_payload)
-    claude_plan_path = claude_root / "plan.json"
-    claude_plan = source_match.build_source_match_plan(
-        claude_preparation,
-        profile=profile,
-        plan_path=str(claude_plan_path),
-        match_directory=str(claude_root / "match"),
-        summary_path=str(claude_root / "summary.json"),
-        passport_paths=None,
-        backend_timeout=12.5,
+    expect_error(
+        lambda: source_checks.validate_ready(profile, claude_payload),
+        "unsupported",
     )
-    source_match.write_source_match_plan(str(claude_plan_path), claude_plan)
-    claude_prepared = prepared_match.load_prepared_match(str(claude_plan_path))
-    check(
-        claude_prepared.provider_ids == ("claude_code", "opencode"),
-        "prepared match retains the validated Claude Code provider claim",
-    )
-    check(
-        "--seat0-provider=claude_code" in claude_prepared.argv
-        and not any(value.startswith("--seat0-model=") for value in claude_prepared.argv)
-        and not any(value.startswith("--seat0-variant=") for value in claude_prepared.argv),
-        "Claude prepared argv uses no invented model or variant selector",
-    )
-    with mock.patch.object(prepared_match, "_fixed_match_main", return_value=0) as fixed:
-        retained, status = prepared_match.execute_prepared_match(
-            str(claude_plan_path), customer_local_v1=True, provider_usage_v1=True
-        )
-    check(status == 0 and retained == claude_prepared,
-          "Claude prepared plan reaches only the mocked fixed runner")
-    check(fixed.call_count == 1,
-          "Claude prepared plan invokes the fixed runner exactly once")
 
     one_match_key_text = "sk-or-v1-EXAMPLE-" + "e" * 40
     seen_environment = []

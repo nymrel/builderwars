@@ -116,7 +116,6 @@ def base_argv(out_root, summary_path):
 def check_provider_manifests(work):
     cases = (
         ("chatgpt_codex", None, None),
-        ("claude_code", None, None),
         ("opencode", "opencode-go/ox-alpha-free", "max"),
         ("openrouter", "openai/gpt-5:free", None),
         ("hermes", "nous/hermes-4", None),
@@ -299,12 +298,17 @@ def check_provider_manifests(work):
             check(error.code == 2, "CLI parser refuses custom_agent")
         else:
             raise AssertionError("CLI parser accepted custom_agent")
-    claude_args = parse(
-        base_argv(work / "with-claude", work / "with-claude.json")
-        + ["--seat0-provider", "claude_code"]
-    )
-    check(claude_args.seat0_provider == "claude_code",
-          "CLI parser accepts customer-local Claude Code")
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        try:
+            parse(
+                base_argv(work / "with-claude", work / "with-claude.json")
+                + ["--seat0-provider", "claude_code"]
+            )
+        except SystemExit as error:
+            check(error.code == 2, "CLI parser refuses held Claude Code")
+        else:
+            raise AssertionError("CLI parser accepted held Claude Code")
 
 
 def check_preflight_refusals(work):
