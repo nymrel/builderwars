@@ -1,7 +1,7 @@
 {
   "schemaVersion": "builderwars.component-acceptance-ledger.v1",
   "status": "review_candidate",
-  "asOf": "2026-08-27",
+  "asOf": "2026-08-28",
   "truthBoundary": {
     "purpose": "Record exact observed source pins, custody, beta dependency, and missing acceptance evidence without inheriting repository claims.",
     "notProofOf": [
@@ -26,9 +26,9 @@
   "releaseCandidates": {
     "builderwars": {
       "branch": "codex/agentwars-launch-integration-20260825",
-      "head": "3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "head": "7ed78e1993b60359eb257299705e089acc701d1c",
       "remoteMain": "d0cb2b9fc4cba987eb421b6200efcdc9941cd909",
-      "status": "tracked_source_pushed_domain_and_decision_docs_held_untracked"
+      "status": "clean_local_implementation_candidate_five_commits_ahead_of_remote_feature_not_merged_released_or_deployed"
     },
     "nymrel": {
       "branch": "codex/nymrel-agentwars-runner-pairing-20260825",
@@ -78,7 +78,7 @@
     "route": "opencode-go/glm-5.3-flash/max",
     "fallbackAllowed": false,
     "executionPolicy": "sequential_only_when_canonical_broker_ceiling_is_nonzero",
-    "currentHold": "reviews 1-9 completed sequentially with accepted PASS verdicts and zero P0/P1; review 10 is the next external review and must be generated from the final frozen foundation bytes",
+    "currentHold": "reviews 1-9 and current-candidate affected-source closure 51119615-11ef-4962-b223-c368e1884485 completed with zero P0/P1; review 10 is the next external review and must be generated from the final committed frozen-foundation bytes",
     "selfReviewBinding": "The foundation-and-decisions review must be generated after this ledger is frozen and retained as an external immutable receipt. Embedding that receipt here would change the reviewed bytes and create a recursive false binding.",
     "reviews": [
       {
@@ -225,7 +225,7 @@
       {
         "order": 10,
         "reviewId": "builderwars-foundation-and-decisions",
-        "candidate": "builderwars-foundation@frozen-ledger-bytes",
+        "candidate": "builderwars-foundation@7ed78e1993b60359eb257299705e089acc701d1c+frozen-document-bytes",
         "preflightRunId": null,
         "taskSha256": null,
         "bundleSha256": null,
@@ -305,21 +305,22 @@
       "componentId": "builderwars-kernel",
       "sourceRepository": "https://github.com/nymrel/builderwars.git",
       "observedRemoteDefault": "d0cb2b9fc4cba987eb421b6200efcdc9941cd909",
-      "candidatePin": "3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "candidatePin": "7ed78e1993b60359eb257299705e089acc701d1c",
       "candidateBranch": "codex/agentwars-launch-integration-20260825",
-      "localObservation": "tracked source clean; four held untracked decision and cutover documents",
+      "localObservation": "implementation candidate committed and clean before this foundation-freeze documentation change; feature branch is five commits ahead of its remote and is not merged, released, or deployed",
       "proposedClass": "candidate",
       "betaDependency": "required",
       "ownerBoundary": "Owns games, exact rules, match execution contracts, transcript replay, passports, competition schedules, public projections, and competitive result truth.",
       "currentEvidence": [
-        "hosted control-plane tests 20/20",
+        "hosted control-plane tests 25/25",
         "provider-hub checker 10/10 sections",
         "Agent Passport adversarial checks 45/45",
         "Competition Matrix: 4 entrants, 6 pairs, 24 replay-verified receipts",
         "standalone verifier parity 45/45 plus 22 snapshot-custody attacks",
-        "feature branch equals its remote and origin/main is unchanged"
+        "affected-source closure Max run 51119615-11ef-4962-b223-c368e1884485 passed at P0/P1/P2 0",
+        "origin/main remains the recorded ancestor; the feature branch is five local commits ahead of its remote"
       ],
-      "independentReview": "nine sequential exact-source Max slices passed with zero P0/P1; the external frozen-foundation decision review remains pending",
+      "independentReview": "nine sequential exact-source Max slices and one current-candidate affected-source closure passed with zero P0/P1; the external frozen-foundation decision review remains pending",
       "allowedUse": "local deterministic candidate validation only",
       "prohibitedClaims": [
         "integrated main",

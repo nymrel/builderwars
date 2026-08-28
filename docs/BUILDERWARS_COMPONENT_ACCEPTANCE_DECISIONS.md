@@ -24,7 +24,7 @@ The exact candidates are:
 
 | Role | Candidate | Current state |
 | --- | --- | --- |
-| Competition kernel | BuilderWars `3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2` | Pushed feature source; tracked code locally green; sequential Max reviews 1-9 pass with zero P0/P1; final frozen-foundation review remains pending; not on main |
+| Competition kernel | BuilderWars `7ed78e1993b60359eb257299705e089acc701d1c` | Clean local implementation candidate; five commits ahead of its remote feature; sequential Max reviews 1-9 plus affected-source closure `51119615-11ef-4962-b223-c368e1884485` pass with zero P0/P1; final frozen-foundation review remains pending; not on main |
 | Customer control room | Nymrel `4f3b6270cee69f0465f0bfb458958e9bae0ba91c` | Clean local feature candidate with fail-closed Claude creation gate; one commit ahead of its remote; exact Max micro-review preflight ready; protected integration and production configuration remain held |
 
 The external launch dependencies—Clerk, production-compatible Redis, reviewer
@@ -255,9 +255,10 @@ independent review.
 
 ## Next exact move
 
-1. Commit the locally accepted hosted P2 closure without merging, then freeze
+1. Freeze implementation candidate `7ed78e1993b60359eb257299705e089acc701d1c`,
    draft PR `#12`, this ledger, and the domain/submission decisions as one
-   coherent foundation for the final external immutable Max packet.
+   coherent committed foundation; run its deterministic checker and final
+   external immutable Max packet without merging.
 2. Complete the exact Nymrel Claude-gate Max review, push only its feature
    branch if accepted, and regenerate every candidate-identity-dependent
    Nymrel packet without merging.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "builderwars.foundation-composite-acceptance.v1",
   "status": "candidate_frozen_for_external_max_acceptance",
-  "generatedAtUtc": "2026-08-28T06:50:58.192Z",
+  "generatedAtUtc": "2026-08-28T15:55:00.000Z",
   "purpose": "Compact custody index for the frozen BuilderWars foundation, accepted contained reviews, exact candidates, residuals, and held launch gates.",
   "supersession": {
     "runId": "78d32107-9309-43ce-a775-4f5276842e9d",
@@ -11,7 +11,7 @@
     "reason": "Adoption comparison found a wrong brand-document path and the review requested explicit per-stage mandatory-document mappings. Both are repaired in this revision."
   },
   "truthBoundary": {
-    "foundationMeaning": "Five isolated document stages and nine BuilderWars code slices passed contained Max review with zero P0/P1 at their bound bytes. This is planning and candidate-input acceptance only.",
+    "foundationMeaning": "Five isolated document stages, nine historical BuilderWars code slices, and one exact current-candidate affected-source closure passed contained Max review with zero P0/P1 at their bound bytes. This remains planning and local candidate acceptance only until the frozen composite receives its external receipt.",
     "neverImplied": [
       "merge",
       "release",
@@ -57,7 +57,7 @@
     },
     "candidates": {
       "builderwars": {
-        "head": "3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+        "head": "7ed78e1993b60359eb257299705e089acc701d1c",
         "state": "candidate_not_merged_not_released_not_deployed"
       },
       "nymrel": {
@@ -66,8 +66,8 @@
       }
     },
     "coordination": {
-      "claimId": "codex-builderwars-hosted-store-max-acceptance-20260827-2208",
-      "lane": "hosted-store-max-acceptance",
+      "claimId": "codex-builderwars-final-foundation-20260828-0900",
+      "lane": "builderwars-final-foundation",
       "protectedActionsExcluded": true
     }
   },
@@ -84,13 +84,13 @@
     },
     {
       "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_DECISIONS.md",
-      "sha256": "9859675cf746e9614f1b82d06e69f03ef45b5daf94f6c68476dcd5c0bdd89002",
-      "bytes": 17819
+      "sha256": "ff3f2f6711d91b10092352a7922047d2484ad774392640bbb3e7e511ce169443",
+      "bytes": 17793
     },
     {
       "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_LEDGER.v1.json",
-      "sha256": "8c84fe326e2b64a1fe5702b6e67e0eb6e20d92796de266304ddc5daa671c6011",
-      "bytes": 39752
+      "sha256": "7e2071c47d1203c11ea23d5981668477244c6e7415b88a9d8ea166f1fc545bb6",
+      "bytes": 40201
     },
     {
       "path": "docs/BUILDERWARS_DELIVERY_ROADMAP.md",
@@ -114,8 +114,8 @@
     },
     {
       "path": "docs/BUILDERWARS_SUBMITTED_CONCEPTS_DECISION.md",
-      "sha256": "e8c13b7e66dd31c4c192286d0d3c06e8cefef9478c45047f87878c9e7223c00d",
-      "bytes": 17024
+      "sha256": "f1cbd3ff3799d6b25d1d888674b42bc7a3780f9acd045a1271feaffb06359756",
+      "bytes": 17088
     }
   ],
   "isolatedStageReviews": [
@@ -357,6 +357,34 @@
       "acceptance": "accepted_with_depth_type_and_exception_normalization_p2_hardening_backlog"
     }
   ],
+  "currentCandidateClosureReview": {
+    "candidate": "7ed78e1993b60359eb257299705e089acc701d1c",
+    "base": "6330c5b673589eac69ffcb3fb00c16c6973baa61",
+    "runId": "51119615-11ef-4962-b223-c368e1884485",
+    "receiptSha256": "891107e08a1dfc300a6b4460fc8bba88b4f080e9318b3dfafba3afd17bbbe491",
+    "assistantOutputSha256": "ac587924a22c1193d976a6086595d028995bdd0f6b3eace0536ade061d8c98d0",
+    "verdict": "APPROVE_P0_0_P1_0_P2_0_P3_5",
+    "hostedTests": "25/25",
+    "providerHubChecker": "10/10",
+    "sourceFiles": [
+      {
+        "path": "provider_hub_hosted/store.py",
+        "sha256": "a08cd077035dd098e49b874f9a5e204109627d71c1742a683ee813513102f31f"
+      },
+      {
+        "path": "provider_hub_hosted/handlers.py",
+        "sha256": "63b698af1e045bfd07a0ebf5d3b46401799d0952f575299140d7336ad0424df1"
+      },
+      {
+        "path": "provider_hub_hosted/verify.py",
+        "sha256": "73c12ee810d7af9dd05353a815dc8cbc6407d442e0d27e4977a90607ea1079ce"
+      },
+      {
+        "path": "provider_hub_hosted/tests/test_control_plane.py",
+        "sha256": "4814e9116275caec55ba513ff814c456fdd61f24acafbd1605f2da40892d1ddc"
+      }
+    ]
+  },
   "deterministicEvidence": [
     {
       "id": "request-boundary-passport",
@@ -376,7 +404,7 @@
     },
     {
       "id": "hosted-control-plane-unit",
-      "observed": "20/20 local unit checks; hosted Redis remains gated"
+      "observed": "25/25 local unit checks; hosted Redis remains gated"
     }
   ],
   "productAuthority": {
@@ -578,7 +606,7 @@
     "Any inference that an earlier gate authorizes a later protected action."
   ],
   "nextGates": [
-    "External contained composite Max PASS with zero P0/P1 over this exact manifest.",
+    "External contained composite Max PASS with zero P0/P1 over the exact committed manifest, ledger, decisions, review record, and deterministic checker.",
     "Nymrel Claude-creation-gate Max at 4f3b6270cee69f0465f0bfb458958e9bae0ba91c and candidate-packet regeneration.",
     "Authorized true merges, ancestry proof, immutable runner/verifier bundle, release descriptor, revocation, and rollback identities.",
     "Recorded authorization and source-bound Clerk, Redis, keys, policy, rates, flags, and origin configuration without secret disclosure.",
@@ -590,11 +618,13 @@
     "foundationDocumentCount": 9,
     "isolatedStageCount": 5,
     "codeSliceReviewCount": 9,
+    "currentCandidateClosureReviewCount": 1,
     "residualCount": 23,
     "heldActionCount": 10,
     "nextGateCount": 7,
     "allStagesPassZeroP0P1": true,
     "allCodeSlicesPassZeroP0P1": true,
+    "currentCandidateClosurePassZeroP0P1": true,
     "receiptBodiesNotEmbedded": true,
     "noProtectedActionAuthorized": true
   },

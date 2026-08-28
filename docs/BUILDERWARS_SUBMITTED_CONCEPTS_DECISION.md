@@ -110,9 +110,10 @@ The candidate remains held until independent review resolves at least:
 - the redundant or potentially contradictory relationship between evidence
   classes and boolean `attested` fields until validators define the allowed
   combinations;
-- the exact merge and compatibility relationship with the newer BuilderWars
-  launch candidate, whose nine component reviews pass with zero P0/P1 while
-  the final frozen-foundation review remains pending.
+- the exact merge and compatibility relationship with BuilderWars candidate
+  `7ed78e1993b60359eb257299705e089acc701d1c`, whose nine component reviews and
+  current affected-source closure pass with zero P0/P1 while the final
+  frozen-foundation review remains pending.
 
 No file from draft PR `#12` is adopted by this document. Its exact five-file
 candidate has a separate bounded Ox Alpha Max review packet.
