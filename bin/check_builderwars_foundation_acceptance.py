@@ -80,6 +80,7 @@ EXPECTED_HISTORICAL_STAGE_BINDINGS = {
 }
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
+UUID_TEXT = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 CHECKS = 0
 
 
@@ -146,6 +147,19 @@ def digest_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def confined_receipt_path(relative: str) -> Path:
+    check(isinstance(relative, str) and bool(relative), "receipt path is a non-empty string")
+    relative_path = Path(relative)
+    check(not relative_path.is_absolute(), f"receipt path is relative: {relative}")
+    root = RECEIPT_ROOT.resolve()
+    candidate = (root / relative_path).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise AssertionError(f"receipt path escapes receipt root: {relative}") from exc
+    return candidate
+
+
 def validate_document_bindings(foundation: dict[str, Any]) -> None:
     bindings = foundation["foundationDocuments"]
     check(isinstance(bindings, list) and len(bindings) == 9, "nine foundation document bindings")
@@ -172,7 +186,7 @@ def validate_review_history(foundation: dict[str, Any]) -> None:
         for digest_key in ("receiptSha256", "receiptFileSha256", "bundleSha256", "taskPacketSha256"):
             check(HEX64.fullmatch(stage[digest_key]) is not None, f"stage {stage['runId']} {digest_key} format")
         check(HEX40.fullmatch(stage["sourceHead"]) is not None, f"stage {stage['runId']} source-head format")
-        receipt_path = RECEIPT_ROOT / stage["receiptPath"]
+        receipt_path = confined_receipt_path(stage["receiptPath"])
         check(receipt_path.is_file(), f"stage receipt exists: {stage['runId']}")
         check(sha256(receipt_path) == stage["receiptFileSha256"], f"stage receipt file SHA-256: {stage['runId']}")
         receipt = load_json(receipt_path)
@@ -313,9 +327,12 @@ def validate_external_review(
     queue = ledger["independentReviewQueue"]
     review = next(item for item in queue["reviews"] if item["order"] == 10)
     check(review["reviewId"] == "builderwars-foundation-and-decisions", "foundation review occupies queue slot 10")
-    check(review["candidate"].startswith(f"builderwars-foundation@{EXPECTED_CANDIDATE}+"), "foundation review candidate binding")
+    expected_review_candidate = f"builderwars-foundation@{EXPECTED_CANDIDATE}+frozen-document-bytes"
+    check(review["candidate"] == expected_review_candidate, "foundation review candidate binding")
     if allow_pending:
-        check(review["liveVerdict"] in {"pending_external_receipt", "PASS_P0_0_P1_0"}, "foundation review is pending or accepted")
+        check(foundation["status"] == "candidate_frozen_for_external_max_acceptance", "pending foundation status is exact")
+        check(ledger["status"] == "review_candidate", "pending ledger status is exact")
+        check(review["liveVerdict"] == "pending_external_receipt", "foundation review is explicitly pending")
         return
 
     external = foundation["externalFoundationReview"]
@@ -333,6 +350,7 @@ def validate_external_review(
         "reviewedLedgerSha256",
         "reviewedCheckerSha256",
         "reviewedReviewRecordSha256",
+        "finalReviewRecordSha256",
     )
     for key in binding_keys:
         check(review[key] == external[key], f"external review {key} cross-binding")
@@ -360,7 +378,8 @@ def validate_external_review(
     check(normalized_foundation_transition(foundation) == normalized_foundation_transition(frozen_foundation), "foundation transition changes only permitted receipt fields")
     check(normalized_ledger_transition(ledger) == normalized_ledger_transition(frozen_ledger), "ledger transition changes only permitted receipt fields")
 
-    receipt_path = RECEIPT_ROOT / "ox-alpha-agent-runs" / f"{external['runId']}.json"
+    check(UUID_TEXT.fullmatch(external["runId"]) is not None, "external foundation run id format")
+    receipt_path = confined_receipt_path(f"ox-alpha-agent-runs/{external['runId']}.json")
     check(receipt_path.is_file(), "external foundation receipt exists")
     check(sha256(receipt_path) == external["receiptFileSha256"], "external foundation receipt file digest")
     receipt = load_json(receipt_path)
@@ -374,8 +393,9 @@ def validate_external_review(
     check(output.startswith("VERDICT: PASS"), "external foundation verdict is PASS")
     check("SEVERITY COUNTS: P0 0, P1 0" in output, "external foundation verdict has zero P0/P1")
     check(REVIEW_PATH.is_file(), "durable foundation review record exists")
+    check(sha256(REVIEW_PATH) == external["finalReviewRecordSha256"], "durable final review record digest")
     review_text = REVIEW_PATH.read_text(encoding="utf-8")
-    for value in (external[key] for key in binding_keys):
+    for value in (external[key] for key in binding_keys if key != "finalReviewRecordSha256"):
         check(value in review_text, f"durable review record contains {value[:12]}")
 
 
@@ -397,7 +417,10 @@ def main() -> None:
     validate_git_custody(foundation, ledger)
     validate_truth_boundary(foundation, ledger)
     validate_external_review(foundation, ledger, allow_pending=args.allow_pending_review)
-    print(f"PASS BuilderWars foundation acceptance ({CHECKS} checks)")
+    if args.allow_pending_review:
+        print(f"PASS BuilderWars pending foundation candidate ({CHECKS} checks); NOT ACCEPTED")
+    else:
+        print(f"PASS BuilderWars accepted local foundation ({CHECKS} checks); NOT INTEGRATED OR LAUNCHED")
 
 
 if __name__ == "__main__":
