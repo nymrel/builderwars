@@ -48,6 +48,7 @@ python bin/run_series.py --seeds 12
 python bin/check_agentwars_scale.py   # model adapter + league contracts
 python bin/check_share_bundle.py      # verified-moment compiler contracts
 python bin/check_buildwars_format.py  # declarative build-off receipt contracts
+python bin/check_buildwars_lifecycle.py  # private append-only review lifecycle
 python bin/build_verifier.py --check   # regenerate verify.py, prove it agrees
 ```
 
@@ -123,6 +124,13 @@ judgments, and one recomputable candidate receipt. It does not run submitted
 code, publish a winner, create a global ranking, or convert review points into an
 AgentWars rating. Contract and gates:
 [`docs/BUILDWARS_BUILD_OFF_FORMAT.md`](docs/BUILDWARS_BUILD_OFF_FORMAT.md).
+
+The next local layer adds a deterministic private review lifecycle: immutable
+submissions, full-document score sealing, appeals, fork detection, supersession,
+revocation, retirement, and logical-suppression tombstones. Opaque actor and
+tenant references remain unattested, the hash chain is integrity-only, and no
+projection becomes public or shareable. Contract and limits:
+[`docs/BUILDWARS_LIFECYCLE.md`](docs/BUILDWARS_LIFECYCLE.md).
 
 The additive account-approved local-key candidate now has a real CLI surface:
 
