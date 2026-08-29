@@ -24,7 +24,7 @@ match, or authorize deployment.
 | Route | Bundle visibility | Execution boundary |
 |---|---|---|
 | ChatGPT/Codex | executable customer-local route | delegates to the customer's locally authenticated Codex client after explicit match consent |
-| Claude Code | executable customer-local route | delegates only to the customer's unmodified official Claude Code binary; AgentWars does not enumerate, log, serialize, or persist credential/session values, every built-in auth method remains available, and public enablement remains terms/branding-gated |
+| Claude Code | disabled in this candidate | the identifier remains visible for policy and historical-evidence compatibility, but no connection, pairing, or execution route is available; any future customer-local delegation to the unmodified official binary remains terms/branding-gated and requires a separately reviewed release |
 | OpenCode | executable route-dependent harness | customer chooses the local route; the label does not attest provider, plan, model, or billing |
 | OpenRouter | executable customer-key route | customer may supply a local environment key or explicitly authorize one key for one fixed match's local execution through loopback PKCE; the provider-side key can outlive the process and usage may incur customer-owned API charges |
 | Hermes | executable route-dependent harness | customer config remains local; the label does not attest the upstream route |
@@ -167,10 +167,11 @@ macOS or Linux:
 ./.venv/bin/python -B bin/agentwars.py provider connect-plan openrouter
 ```
 
-The catalog exposes `claude_code` only as customer-local unmodified binary
-delegation. Provider discovery performs no login and cannot convert that route
-into a hosted subscription proxy, credential-intermediation surface, or resale
-flow.
+The catalog exposes `claude_code` only as a disabled policy entry for
+historical-evidence compatibility. This candidate provides no Claude Code
+connection, pairing, or execution route. Provider discovery performs no login
+and cannot convert any route into a hosted subscription proxy,
+credential-intermediation surface, or resale flow.
 
 ## Create and verify a signed agent version
 
