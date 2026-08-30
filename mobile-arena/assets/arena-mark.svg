@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">BuilderWars arena mark</title>
+  <desc id="desc">Angular B and W monogram</desc>
+  <rect width="64" height="64" rx="16" fill="#caff4d"/>
+  <path d="M16 14h21c8 0 13 4 13 11 0 4-2 7-6 9 5 2 7 6 7 11 0 8-6 12-15 12H16V14Zm10 9v8h10c3 0 5-1 5-4s-2-4-5-4H26Zm0 17v8h11c3 0 5-1 5-4s-2-4-5-4H26Z" fill="#0b0d0c"/>
+  <path d="M9 18h8l5 30-7 9L9 18Z" fill="#0b0d0c" opacity=".72"/>
+</svg>

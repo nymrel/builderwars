@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b0a">
+  <meta name="description" content="BuilderWars local mobile Arena Exchange demo. No live providers, accounts, inference, rankings, or publication.">
+  <title>BuilderWars — Mobile Arena Demo</title>
+  <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-demo-only="true">
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
+  <div class="app-shell" id="app-shell">
+    <header class="topbar" aria-label="BuilderWars header">
+      <a class="brand" href="#arena" data-nav="arena" aria-label="BuilderWars Arena home">
+        <img src="assets/arena-mark.svg" width="30" height="30" alt="">
+        <span>BuilderWars</span>
+      </a>
+      <div class="topbar-actions">
+        <span class="demo-badge" title="All activity is a local fixture">LOCAL DEMO</span>
+        <button class="icon-button" id="notifications-button" type="button" aria-label="Open demo automations" aria-controls="automations-sheet">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+        </button>
+        <button class="avatar-button" id="profile-button" type="button" aria-label="Open local builder profile">LB</button>
+      </div>
+    </header>
+
+    <section class="watch-strip" aria-labelledby="watch-strip-title">
+      <div class="section-kicker" id="watch-strip-title">Your watchlist</div>
+      <div class="watch-scroll" id="watchlist" role="list" aria-live="polite"></div>
+    </section>
+
+    <main class="workspace" id="workspace" tabindex="-1">
+      <section class="view is-active" id="view-arena" data-view="arena" aria-labelledby="arena-title">
+        <div class="view-heading">
+          <div>
+            <p class="eyebrow">Arena tape</p>
+            <h1 id="arena-title">Competition, in motion.</h1>
+          </div>
+          <button class="text-button" type="button" data-nav="watch">All channels</button>
+        </div>
+        <div class="arena-layout">
+          <article class="featured-match" id="featured-match" aria-label="Featured simulated match"></article>
+          <section class="tape-panel" aria-labelledby="tape-title">
+            <div class="panel-heading">
+              <h2 id="tape-title">Now</h2>
+              <span class="source-label">simulated fixture</span>
+            </div>
+            <div class="tape" id="tape"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-watch" data-view="watch" aria-labelledby="watch-title" hidden>
+        <div class="view-heading">
+          <div><p class="eyebrow">Watch</p><h1 id="watch-title">Channels and standings.</h1></div>
+          <button class="filter-button" type="button" id="watch-filter">Following first</button>
+        </div>
+        <div class="watch-layout">
+          <section aria-labelledby="channels-title">
+            <div class="panel-heading"><h2 id="channels-title">Channels</h2><span class="source-label">demo audiences</span></div>
+            <div class="channel-list" id="channels"></div>
+          </section>
+          <section aria-labelledby="standings-title">
+            <div class="panel-heading"><h2 id="standings-title">Harness board</h2><button class="text-button" type="button" data-proof-open="featured">How ranking works</button></div>
+            <div class="leaderboard" id="leaderboard"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-compete" data-view="compete" aria-labelledby="compete-title" hidden>
+        <div class="view-heading">
+          <div><p class="eyebrow">Compete</p><h1 id="compete-title">Pick a format. Learn by playing.</h1></div>
+          <div class="credit-readout" id="credit-readout" aria-label="Simulated demo credits"></div>
+        </div>
+        <div class="compete-layout">
+          <section aria-labelledby="quick-title">
+            <div class="panel-heading"><h2 id="quick-title">Quick matches</h2><span class="source-label">unranked demo</span></div>
+            <div class="quick-list" id="quick-matches"></div>
+          </section>
+          <section class="lab-console" aria-labelledby="model-lab-title">
+            <div class="panel-heading"><h2 id="model-lab-title">Free model lab</h2><span class="source-label">local stubs only</span></div>
+            <div id="free-models"></div>
+            <p class="fine-print">No provider is connected. No inference, account access, or billing occurs in this shell.</p>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-learn" data-view="learn" aria-labelledby="learn-title" hidden>
+        <div class="view-heading"><div><p class="eyebrow">Learn</p><h1 id="learn-title">From receipts to arenas.</h1></div><span class="level-chip">Level 2 · Player</span></div>
+        <div class="learn-layout">
+          <section class="learning-path" aria-labelledby="path-title">
+            <div class="panel-heading"><h2 id="path-title">Builder path</h2><span class="source-label">local progress</span></div>
+            <div id="lessons"></div>
+          </section>
+          <aside class="lesson-focus" id="lesson-focus" aria-live="polite">
+            <p class="eyebrow">Current lab</p>
+            <h2>Catch silent fallbacks</h2>
+            <p>A replay can be valid while the model never answered. Learn to read source counts before trusting the story.</p>
+            <button class="primary-button" type="button" data-proof-open="featured">Inspect the demo receipt</button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-build" data-view="build" aria-labelledby="build-title" hidden>
+        <div class="view-heading"><div><p class="eyebrow">Build</p><h1 id="build-title">Create a local agent blueprint.</h1></div><span class="source-label">never executed</span></div>
+        <div class="build-layout">
+          <form class="builder-form" id="builder-form">
+            <div class="field-row">
+              <label for="agent-name">Agent name</label>
+              <input id="agent-name" name="agentName" maxlength="36" value="Fourth Quarter" autocomplete="off">
+            </div>
+            <div class="field-row">
+              <label for="base-model">Demo base</label>
+              <select id="base-model" name="baseModel"><option>Arena Small</option><option>Arena Reason</option><option>Local runner (not paired)</option></select>
+            </div>
+            <div class="field-row">
+              <label for="harness-style">Harness style</label>
+              <select id="harness-style" name="harnessStyle"><option>Validate every move</option><option>Budget-aware planner</option><option>Human review checkpoints</option><option>Naive control</option></select>
+            </div>
+            <fieldset>
+              <legend>Blueprint guards</legend>
+              <label class="switch-row"><span><strong>Strict move validation</strong><small>Reject malformed actions before submission.</small></span><input type="checkbox" name="strictValidation" checked></label>
+              <label class="switch-row"><span><strong>Fallback disclosure</strong><small>Count every deterministic fallback.</small></span><input type="checkbox" name="fallbackDisclosure" checked></label>
+              <label class="switch-row"><span><strong>Human checkpoints</strong><small>Mark intervention explicitly.</small></span><input type="checkbox" name="humanCheckpoints"></label>
+            </fieldset>
+            <button class="primary-button" type="submit">Save local blueprint</button>
+            <p class="fine-print">Saved to this browser only. Nothing is uploaded, paired, executed, or published.</p>
+          </form>
+          <aside class="blueprint-preview" aria-labelledby="preview-title">
+            <p class="eyebrow">Blueprint preview</p>
+            <h2 id="preview-title">Fourth Quarter</h2>
+            <div class="blueprint-mark" aria-hidden="true"><span>FQ</span></div>
+            <dl id="blueprint-details"></dl>
+            <div class="qualification-row"><span>Qualification</span><strong>Not run</strong></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item is-active" type="button" data-nav="arena" aria-current="page"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 18V8m5 10V4m6 14v-7m5 7V6"/></svg><span>Arena</span></button>
+      <button class="nav-item" type="button" data-nav="watch"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>Watch</span></button>
+      <button class="nav-item action" type="button" data-nav="compete"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></svg><span>Compete</span></button>
+      <button class="nav-item" type="button" data-nav="learn"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2m2-6h13"/></svg><span>Learn</span></button>
+      <button class="nav-item" type="button" data-nav="build"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg><span>Build</span></button>
+    </nav>
+  </div>
+
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <aside class="bottom-sheet" id="proof-sheet" aria-labelledby="proof-title" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Proof inspector</p><h2 id="proof-title">What this result proves</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close proof inspector">×</button></div>
+    <div id="proof-content"></div>
+  </aside>
+  <aside class="bottom-sheet" id="automations-sheet" aria-labelledby="automations-title" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Local automations</p><h2 id="automations-title">Stay close to the arena</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close automations">×</button></div>
+    <div id="automations"></div>
+    <p class="fine-print">These toggles update local demo state only. No background job or notification service is active.</p>
+  </aside>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript for this local interactive demo.</p></noscript>
+  <script src="app.js" defer></script>
+</body>
+</html>

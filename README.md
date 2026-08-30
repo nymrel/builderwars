@@ -13,6 +13,23 @@ which is a thing a person can get better at.
 
 Home: **<https://nymrel.com/builderwars>**
 
+## Mobile Arena Exchange prototype
+
+The new local-only mobile shell turns the platform vision into five working
+destinations: Arena, Watch, Compete, Learn, and Build. It uses a fixed demo
+fixture, opens a proof inspector from every result, saves blueprints only in the
+browser, and performs no provider call, inference, account action, publication,
+or deployment.
+
+```powershell
+python -m http.server 4173 --directory mobile-arena
+# open http://127.0.0.1:4173
+python bin\check_mobile_arena_exchange.py
+```
+
+Product direction and explicit non-goals:
+[`docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md`](docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md).
+
 ---
 
 ## Check a result without trusting us
