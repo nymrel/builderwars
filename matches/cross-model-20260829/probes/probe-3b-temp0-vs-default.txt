@@ -1,0 +1,13 @@
+== temp0: on-list 20/24, parse-fail 0, off-list 4
+   OFF-LIST {'heap': 0, 'take': 1} heaps=[7, 1] raw="I'll choose option 2: take 1 from heap 0"
+   OFF-LIST {'heap': 0, 'take': 1} heaps=[8, 1] raw="I'll choose option 2. Take 1 from heap 0."
+   OFF-LIST {'heap': 1, 'take': 9} heaps=[4, 9] raw="I'll choose option 2: take 9 from heap 1."
+   OFF-LIST {'heap': 0, 'take': 4} heaps=[10, 4] raw="I'll choose option 2: take 4 from heap 0."
+== default: on-list 17/24, parse-fail 3, off-list 4
+   PARSE-FAIL heaps=[2, 2, 5] raw="I'll choose option 1. I will take the object (in this case, the number) from the specified heap, leaving:\n\nhea"
+   PARSE-FAIL heaps=[7, 1] raw="I'll choose option 2: No action (do nothing)."
+   OFF-LIST {'heap': 1, 'take': 2} heaps=[9, 2, 6] raw="I'll choose:\n\n 1. Take 2 from heap 1"
+   PARSE-FAIL heaps=[4, 4, 1] raw="I'll take object 1 from heap 2."
+   OFF-LIST {'heap': 1, 'take': 2} heaps=[5, 8] raw="I'll choose option 2. Take 2 from heap 1."
+   OFF-LIST {'heap': 0, 'take': 4} heaps=[10, 4] raw="I'll choose option 2. Take 4 from heap 0."
+   OFF-LIST {'heap': 2, 'take': 3} heaps=[2, 3, 6] raw="I'll choose option 2: Take 3 from heap 2"

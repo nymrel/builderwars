@@ -1,0 +1,28 @@
+transcript : dc9dbdb6f884c162.jsonl
+match      : nim seed=4000 id=dc9dbdb6f884c162
+chain head : 59a2abd88d5004fbc1314cecb45f9f615b3ae857b525d7658ba208619204db96
+
+  [PASS] hash_chain
+  [PASS] engine_digest
+  [PASS] game_version
+  [PASS] opening_position_from_seed
+  [PASS] all_positions_follow_the_rules
+  [PASS] all_move_rulings_reproduce
+  [PASS] forfeit_adjudication
+  [PASS] recorded_result_follows_from_state
+
+recorded   : {"winner": 0, "reason": "took_last_object", "moves": 7, "points": {"0": 1, "1": 0}, "decisive": true}
+recomputed : {"winner": 0, "reason": "took_last_object", "moves": 7, "points": {"0": 1, "1": 0}, "decisive": true}
+
+VERDICT: PASS
+
+proves:
+  + transcript unaltered since it was written (hash chain recomputed)
+  + opening position follows from the recorded seed
+  + every move ruling reproduces under this engine's rules
+  + every position follows from the previous one
+  + the recorded winner follows from state, not from any entrant's claim
+
+does not prove:
+  - which model produced any move (the engine never contacts a model; model_attested=False)
+  - wall-clock events such as timeouts, which are recorded facts about the machine the match ran on

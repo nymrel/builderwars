@@ -1,0 +1,8 @@
+== llama3.2:3b temp0: on-list 18/24, parse-fail 0, off-list 6
+   OFF-LIST {'heap': 0, 'take': 3} heaps=[9, 3] raw="I'll choose option 2: take 3 from heap 0."
+   OFF-LIST {'heap': 1, 'take': 6} heaps=[3, 6] raw="I'll choose option 2: take 6 from heap 1."
+   OFF-LIST {'heap': 0, 'take': 1} heaps=[7, 5, 1] raw="I'll choose option 2: take 1 from heap 0"
+   OFF-LIST {'heap': 0, 'take': 1} heaps=[6, 1] raw="I'll choose option 2. Take 1 from heap 0."
+   OFF-LIST {'heap': 0, 'take': 3} heaps=[8, 3] raw="I'll choose option 2. Take 3 from heap 0."
+   OFF-LIST {'heap': 1, 'take': 4} heaps=[1, 1, 1, 4] raw="I'll choose option 2: take 4 from heap 1"
+== qwen2.5:7b temp0: on-list 24/24, parse-fail 0, off-list 0
