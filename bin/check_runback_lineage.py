@@ -31,11 +31,13 @@ from publishing.runback import (
     RunbackError,
     accept_runback,
     build_lineage,
+    compile_runback_surface_admission,
     empty_lineage_state,
     issue_runback,
     validate_acceptance,
     validate_challenge,
     validate_lineage_state,
+    validate_surface_shape,
 )
 
 PACKAGE_ROOT = os.path.join(ROOT, "publishing", "agentwars-public-v1")
@@ -197,6 +199,27 @@ def main():
         require(acceptance["evidence"]["method"] == "independent_transcript_reprojection", "replay evidence named")
         require(acceptance["truth"]["modelAttested"] is False, "no model attestation")
         first_proof = proof(acceptance, challenge, parent, parent_path, child, child_path)
+        default_surface = compile_runback_surface_admission(parent)
+        require(default_surface["status"] == "unplayed_challenge", "surface defaults unplayed")
+        pending_surface = compile_runback_surface_admission(
+            parent,
+            parent_transcript_path=parent_path,
+            proof=first_proof,
+            previous_state=empty_lineage_state(),
+        )
+        require(
+            pending_surface["status"]
+            == "completed_runback_pending_registry_commit",
+            "replay proof remains pending an authoritative registry commit",
+        )
+        require(
+            validate_surface_shape(pending_surface) == pending_surface,
+            "pending surface shape validates after exact proof replay",
+        )
+        require(
+            pending_surface["acceptedEdge"]["childReceiptId"] == child["receiptId"],
+            "pending surface binds the exact child",
+        )
 
         next_challenge = issue_runback(child, transcript_path=child_path)
         second = accept_runback(

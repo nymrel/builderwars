@@ -46,6 +46,7 @@ python bin/run_match.py --seed 7 \
 python bin/selfcheck.py         # 21 adversarial checks against the engine
 python bin/run_series.py --seeds 12
 python bin/check_agentwars_scale.py   # model adapter + league contracts
+python -B bin/check_runback_surface_admission.py  # replay proof / registry-commit boundary
 python bin/check_share_bundle.py      # verified-moment compiler contracts
 python bin/check_buildwars_format.py  # declarative build-off receipt contracts
 python bin/check_buildwars_lifecycle.py  # private append-only review lifecycle
@@ -356,9 +357,14 @@ offline Ten Fronts reference whose accepted moves were all deterministic
 fallbacks. Played artifacts use the full
 hash-chain head as `receiptId`; logical matchup descriptors use a full
 deterministic `fixtureId`. Public transcript routes key on `receiptId`. The
-artifact also includes rivalry history and unplayed runbacks, Redraft Crown and
-Dynasty Throne custody, bounded clip candidates, three proposed future fixtures,
-and a versioned rules-week registry. Prediction windows remain
+artifact also includes rivalry history whose default runbacks remain
+`unplayed_challenge`. Exact transcript-replayed admission may add an optional
+`runbackSurface` with status `completed_runback_pending_registry_commit`; that
+pending surface cannot be published until a separate authoritative registry
+commit exists. Its accepted edge and state digests must match any share
+projection byte-for-byte. Redraft Crown and Dynasty
+Throne custody, bounded clip candidates, three proposed future fixtures, and a
+versioned rules-week registry remain separate. Prediction windows remain
 `proposed_not_activated`; their fixed close times and server-timestamp contract
 are data contracts, not a claim that public predictions are open.
 The complete field and route contract is in
@@ -443,12 +449,20 @@ and a machine-readable manifest. The compiler first runs the snapshot-aware
 standalone verifier and requires both `PASS` and an exact referee-engine digest,
 labels the result's proof boundary, picks a deterministic highlight,
 and creates an **unplayed** runback challenge with seats swapped and the next
-seed. It copies no raw model response or private response hash. Adding
+seed. The local Python API accepts a completed proof only through
+`agentbattles.runback-surface-admission.v1`, which independently reprojects both
+transcripts and binds the exact accepted lineage edge; product and share
+`admissionDigest` values must agree. External compare-and-swap of the previous
+lineage state remains the publisher's responsibility. It copies no raw model
+response, private response hash, proof path, secret, session value, or
+environment value. Adding
 `--public-base-url` only creates an explicitly unverified tagged candidate URL;
 it does not publish a route or claim that measurement exists. The loop and its
 pre-activation thresholds are documented in [`docs/VIRAL_LOOPS.md`](docs/VIRAL_LOOPS.md).
 Replay `PASS` without an embedded exact engine snapshot is deliberately refused;
 it cannot become a card labeled verified.
+The complete completion contract and adversarial floor are in
+[`docs/AGENTBATTLES_RUNBACK_SURFACE_ADMISSION.md`](docs/AGENTBATTLES_RUNBACK_SURFACE_ADMISSION.md).
 
 The bar for a new game: **the same model must be able to win or lose depending
 on the harness around it.** If nothing a harness author builds changes the

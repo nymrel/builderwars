@@ -29,10 +29,12 @@ ACCEPTANCE_SCHEMA = "agentbattles.runback-acceptance.v1"
 LINEAGE_SCHEMA = "agentbattles.runback-lineage.v1"
 LINEAGE_STATE_SCHEMA = "agentbattles.runback-lineage-state.v1"
 RIVALRY_SCHEMA = "agentbattles.rivalry-identity.v1"
+SURFACE_ADMISSION_SCHEMA = "agentbattles.runback-surface-admission.v1"
 MAX_SEED = 2_147_483_647
 MAX_PUBLIC_RECEIPT_BYTES = 512 * 1024
 MAX_TRANSCRIPT_BYTES = 8 * 1024 * 1024
 MAX_ACCEPTANCE_BYTES = 64 * 1024
+MAX_SURFACE_ADMISSION_BYTES = 96 * 1024
 MAX_PROOF_BYTES = 2 * 1024 * 1024
 MAX_LINEAGE_INPUT_BYTES = 32 * 1024 * 1024
 MAX_LINEAGE_ACCEPTANCES = 128
@@ -57,6 +59,17 @@ LINEAGE_BOUNDARY = (
     "bytes. The caller must atomically compare-and-swap the exact previous lineage state for "
     "the returned next state; this pure function is not a global registry, signature, rating, "
     "or append-only store."
+)
+UNPLAYED_SURFACE_BOUNDARY = (
+    "No accepted replay edge was supplied. This deterministic surface is an unplayed "
+    "challenge only and makes no result, provider, model, runtime, rating, or winner claim."
+)
+PENDING_REGISTRY_SURFACE_BOUNDARY = (
+    "Exact parent and child transcript bytes independently reprojected to the stored accepted "
+    "edge, proving a local replay completion candidate only. No authoritative registry commit "
+    "is proven: an external publisher must compare-and-swap the exact previous lineage-state "
+    "digest before any future promotion. No provider, model, runtime, rating, or winner "
+    "narrative is attested."
 )
 
 
@@ -424,6 +437,58 @@ def _challenge_from_verified(
     return payload
 
 
+def _unplayed_surface_from_challenge(challenge: dict[str, Any]) -> dict[str, Any]:
+    payload = {
+        "schemaVersion": SURFACE_ADMISSION_SCHEMA,
+        "status": "unplayed_challenge",
+        "challengeId": challenge["challengeId"],
+        "challengeDigest": challenge["challengeDigest"],
+        "rivalryId": challenge["rivalryId"],
+        "parentReceiptId": challenge["parentReceiptId"],
+        "parentProjectionDigest": challenge["parentProjectionDigest"],
+        "parentFixtureId": challenge["parentFixtureId"],
+        "fixtureId": challenge["fixtureId"],
+        "game": copy.deepcopy(challenge["game"]),
+        "seed": challenge["seed"],
+        "seats": copy.deepcopy(challenge["seats"]),
+        "acceptedEdge": None,
+        "lineage": {
+            "lineageId": None,
+            "previousStateDigest": None,
+            "nextStateDigest": None,
+            "previousHeadReceiptId": None,
+            "headReceiptId": None,
+            "externalCompareAndSwapRequired": False,
+            "externalCompareAndSwapPerformed": False,
+        },
+        "truth": {
+            "replayCompletionProven": False,
+            "authoritativeRegistryCommitProven": False,
+            "parentTranscriptIndependentlyReprojected": False,
+            "childTranscriptIndependentlyReprojected": False,
+            "storedAcceptanceByteEqual": False,
+            "providerAttested": False,
+            "modelAttested": False,
+            "runtimeAttested": False,
+            "ratingEmitted": False,
+            "winnerNarrativeEmitted": False,
+            "authorityBoundary": UNPLAYED_SURFACE_BOUNDARY,
+        },
+    }
+    payload["admissionDigest"] = digest(payload)
+    return payload
+
+
+def derive_unplayed_surface(parent_receipt: dict[str, Any]) -> dict[str, Any]:
+    """Derive the deterministic no-result surface without accepting any proof."""
+
+    frozen_parent = _freeze_json(parent_receipt, "public receipt")
+    parent = _receipt_identity(frozen_parent)
+    return _unplayed_surface_from_challenge(
+        _challenge_from_verified(frozen_parent, parent)
+    )
+
+
 def issue_runback(
     parent_receipt: dict[str, Any], *, transcript_path: Any
 ) -> dict[str, Any]:
@@ -725,7 +790,11 @@ def _admit_proof(
         verification_cache=verification_cache,
         replay_budget=replay_budget,
     )
-    if stored != derived:
+    if _bounded_canonical(
+        stored, "stored acceptance", MAX_ACCEPTANCE_BYTES
+    ) != _bounded_canonical(
+        derived, "transcript-derived acceptance", MAX_ACCEPTANCE_BYTES
+    ):
         raise RunbackError("stored acceptance differs from transcript-derived acceptance")
     return derived
 
@@ -1106,18 +1175,366 @@ def build_lineage(
     }
 
 
+_SURFACE_KEYS = {
+    "schemaVersion",
+    "status",
+    "challengeId",
+    "challengeDigest",
+    "rivalryId",
+    "parentReceiptId",
+    "parentProjectionDigest",
+    "parentFixtureId",
+    "fixtureId",
+    "game",
+    "seed",
+    "seats",
+    "acceptedEdge",
+    "lineage",
+    "truth",
+    "admissionDigest",
+}
+_SURFACE_LINEAGE_KEYS = {
+    "lineageId",
+    "previousStateDigest",
+    "nextStateDigest",
+    "previousHeadReceiptId",
+    "headReceiptId",
+    "externalCompareAndSwapRequired",
+    "externalCompareAndSwapPerformed",
+}
+_SURFACE_TRUTH_KEYS = {
+    "replayCompletionProven",
+    "authoritativeRegistryCommitProven",
+    "parentTranscriptIndependentlyReprojected",
+    "childTranscriptIndependentlyReprojected",
+    "storedAcceptanceByteEqual",
+    "providerAttested",
+    "modelAttested",
+    "runtimeAttested",
+    "ratingEmitted",
+    "winnerNarrativeEmitted",
+    "authorityBoundary",
+}
+_SURFACE_EDGE_KEYS = {
+    "acceptanceDigest",
+    "challengeId",
+    "challengeDigest",
+    "rivalryId",
+    "parentReceiptId",
+    "parentProjectionDigest",
+    "childReceiptId",
+    "childProjectionDigest",
+    "childFixtureId",
+}
+
+
+def validate_surface_shape(surface: Any) -> dict[str, Any]:
+    """Validate only exact shape and self-digest, never replay admission."""
+
+    row = _exact_keys(
+        _freeze_json(surface, "runback surface admission"),
+        _SURFACE_KEYS,
+        "runback surface admission",
+    )
+    _bounded_canonical(
+        row, "runback surface admission", MAX_SURFACE_ADMISSION_BYTES
+    )
+    if row["schemaVersion"] != SURFACE_ADMISSION_SCHEMA:
+        raise RunbackError("runback surface admission schema is unsupported")
+    if row["status"] not in {
+        "unplayed_challenge",
+        "completed_runback_pending_registry_commit",
+    }:
+        raise RunbackError("runback surface admission status is unsupported")
+    if type(row["challengeId"]) is not str or _CHALLENGE_ID.fullmatch(
+        row["challengeId"]
+    ) is None:
+        raise RunbackError("runback surface challenge id is malformed")
+    for key in (
+        "challengeDigest",
+        "rivalryId",
+        "parentReceiptId",
+        "parentProjectionDigest",
+        "parentFixtureId",
+        "fixtureId",
+        "admissionDigest",
+    ):
+        _hex64(row[key], f"runback surface {key}")
+    game = _exact_keys(row["game"], {"name", "version"}, "runback surface game")
+    _game(game)
+    _seed(row["seed"], "runback surface seed")
+    if type(row["seats"]) is not list or len(row["seats"]) != 2:
+        raise RunbackError("runback surface must bind exactly two seats")
+    for expected, seat in enumerate(row["seats"]):
+        _exact_keys(
+            seat,
+            {"seat", "entrantId", "harnessVersionId"},
+            "runback surface seat",
+        )
+        if seat["seat"] != expected:
+            raise RunbackError("runback surface seats must remain ordered 0 and 1")
+        _hex64(seat["entrantId"], "runback surface entrant id")
+        _hex64(seat["harnessVersionId"], "runback surface harness version id")
+    if row["seats"][0]["entrantId"] == row["seats"][1]["entrantId"]:
+        raise RunbackError("runback surface cannot seat one entrant twice")
+    if _fixture_id(game, row["seed"], row["seats"]) != row["fixtureId"]:
+        raise RunbackError("runback surface fixture does not bind game, seed, and seats")
+    if _rivalry_id(game, row["seats"]) != row["rivalryId"]:
+        raise RunbackError("runback surface rivalry does not bind entrant versions")
+
+    lineage = _exact_keys(
+        row["lineage"], _SURFACE_LINEAGE_KEYS, "runback surface lineage"
+    )
+    truth = _exact_keys(
+        row["truth"], _SURFACE_TRUTH_KEYS, "runback surface truth"
+    )
+    false_claims = (
+        "providerAttested",
+        "modelAttested",
+        "runtimeAttested",
+        "ratingEmitted",
+        "winnerNarrativeEmitted",
+    )
+    if any(truth[key] is not False for key in false_claims):
+        raise RunbackError("runback surface contains an unsupported public claim")
+    for key in (
+        "replayCompletionProven",
+        "authoritativeRegistryCommitProven",
+        "parentTranscriptIndependentlyReprojected",
+        "childTranscriptIndependentlyReprojected",
+        "storedAcceptanceByteEqual",
+    ):
+        if type(truth[key]) is not bool:
+            raise RunbackError(f"runback surface truth predicate {key!r} must be boolean")
+
+    if row["status"] == "unplayed_challenge":
+        if row["acceptedEdge"] is not None:
+            raise RunbackError("unplayed runback surface cannot contain an accepted edge")
+        if any(
+            lineage[key] is not None
+            for key in (
+                "lineageId",
+                "previousStateDigest",
+                "nextStateDigest",
+                "previousHeadReceiptId",
+                "headReceiptId",
+            )
+        ):
+            raise RunbackError("unplayed runback surface cannot contain lineage heads")
+        if (
+            lineage["externalCompareAndSwapRequired"] is not False
+            or lineage["externalCompareAndSwapPerformed"] is not False
+        ):
+            raise RunbackError("unplayed runback surface cannot claim external CAS")
+        if any(
+            truth[key] is not False
+            for key in (
+                "replayCompletionProven",
+                "authoritativeRegistryCommitProven",
+                "parentTranscriptIndependentlyReprojected",
+                "childTranscriptIndependentlyReprojected",
+                "storedAcceptanceByteEqual",
+            )
+        ):
+            raise RunbackError("unplayed runback surface cannot claim completion proof")
+        if truth["authorityBoundary"] != UNPLAYED_SURFACE_BOUNDARY:
+            raise RunbackError("unplayed runback surface boundary is not exact")
+    else:
+        edge = _exact_keys(
+            row["acceptedEdge"], _SURFACE_EDGE_KEYS, "runback surface accepted edge"
+        )
+        for key in _SURFACE_EDGE_KEYS - {"challengeId"}:
+            _hex64(edge[key], f"runback surface edge {key}")
+        if type(edge["challengeId"]) is not str or _CHALLENGE_ID.fullmatch(
+            edge["challengeId"]
+        ) is None:
+            raise RunbackError("runback surface edge challenge id is malformed")
+        expected_edge_values = {
+            "challengeId": row["challengeId"],
+            "challengeDigest": row["challengeDigest"],
+            "rivalryId": row["rivalryId"],
+            "parentReceiptId": row["parentReceiptId"],
+            "parentProjectionDigest": row["parentProjectionDigest"],
+            "childFixtureId": row["fixtureId"],
+        }
+        if any(edge[key] != value for key, value in expected_edge_values.items()):
+            raise RunbackError("runback surface edge disagrees with its challenge projection")
+        for key in ("lineageId", "previousStateDigest", "nextStateDigest", "headReceiptId"):
+            _hex64(lineage[key], f"runback surface lineage {key}")
+        if lineage["previousHeadReceiptId"] is not None:
+            _hex64(
+                lineage["previousHeadReceiptId"],
+                "runback surface previous lineage head",
+            )
+        if lineage["headReceiptId"] != edge["childReceiptId"]:
+            raise RunbackError("runback surface lineage head is not the accepted child")
+        if (
+            lineage["externalCompareAndSwapRequired"] is not True
+            or lineage["externalCompareAndSwapPerformed"] is not False
+        ):
+            raise RunbackError("completed runback surface must require an external CAS")
+        if any(
+            truth[key] is not True
+            for key in (
+                "replayCompletionProven",
+                "parentTranscriptIndependentlyReprojected",
+                "childTranscriptIndependentlyReprojected",
+                "storedAcceptanceByteEqual",
+            )
+        ):
+            raise RunbackError("completed runback surface lacks exact replay proof")
+        if truth["authoritativeRegistryCommitProven"] is not False:
+            raise RunbackError("pending runback surface cannot claim a registry commit")
+        if truth["authorityBoundary"] != PENDING_REGISTRY_SURFACE_BOUNDARY:
+            raise RunbackError("pending runback surface boundary is not exact")
+
+    unsigned = copy.deepcopy(row)
+    claimed_digest = unsigned.pop("admissionDigest")
+    if digest(unsigned) != claimed_digest:
+        raise RunbackError("runback surface admission digest does not match its bytes")
+    return copy.deepcopy(row)
+
+
+def compile_runback_surface_admission(
+    parent_receipt: dict[str, Any],
+    *,
+    parent_transcript_path: Any = None,
+    proof: Any = None,
+    previous_state: Any = None,
+) -> dict[str, Any]:
+    """Compile the sole local replay proof into a pending-registry candidate."""
+
+    frozen_parent = _freeze_json(parent_receipt, "surface parent receipt")
+    unplayed = derive_unplayed_surface(frozen_parent)
+    if proof is None and previous_state is None:
+        return validate_surface_shape(unplayed)
+    if proof is None or previous_state is None or type(parent_transcript_path) is not str:
+        raise RunbackError(
+            "completed surface admission requires proof, previous state, and parent transcript"
+        )
+
+    frozen_proof = _freeze_json(proof, "runback surface proof")
+    bundle = _exact_keys(frozen_proof, _PROOF_KEYS, "runback surface proof")
+    if _bounded_canonical(
+        bundle["parentReceipt"], "surface proof parent receipt", MAX_PUBLIC_RECEIPT_BYTES
+    ) != _bounded_canonical(
+        frozen_parent, "surface parent receipt", MAX_PUBLIC_RECEIPT_BYTES
+    ):
+        raise RunbackError("surface proof parent receipt bytes disagree with the surface parent")
+
+    verified_challenge = issue_runback(
+        frozen_parent, transcript_path=parent_transcript_path
+    )
+    if bundle["challenge"] != verified_challenge:
+        raise RunbackError("surface proof challenge differs from the exact parent challenge")
+    lineage = build_lineage([bundle], previous_state=previous_state)
+    basis = lineage["basis"]
+    if basis["acceptanceCount"] != 1 or len(basis["edges"]) != 1 or len(basis["chains"]) != 1:
+        raise RunbackError("surface admission must reconstruct exactly one accepted edge")
+    edge = basis["edges"][0]
+    chain = basis["chains"][0]
+    stored_acceptance = validate_acceptance(bundle["acceptance"])
+    if edge["acceptanceDigest"] != stored_acceptance["acceptanceDigest"]:
+        raise RunbackError("surface accepted edge and stored acceptance digest disagree")
+    if chain["deltaReceiptIds"] != [edge["parentReceiptId"], edge["childReceiptId"]]:
+        raise RunbackError("surface lineage does not contain one exact parent-child edge")
+    if chain["challengeDigests"] != [edge["challengeDigest"]]:
+        raise RunbackError("surface lineage challenge digest does not match its edge")
+
+    pending = copy.deepcopy(unplayed)
+    pending["status"] = "completed_runback_pending_registry_commit"
+    pending["acceptedEdge"] = copy.deepcopy(edge)
+    pending["lineage"] = {
+        "lineageId": lineage["lineageId"],
+        "previousStateDigest": basis["previousStateDigest"],
+        "nextStateDigest": basis["nextStateDigest"],
+        "previousHeadReceiptId": chain["previousHeadReceiptId"],
+        "headReceiptId": chain["headReceiptId"],
+        "externalCompareAndSwapRequired": True,
+        "externalCompareAndSwapPerformed": False,
+    }
+    pending["truth"] = {
+        "replayCompletionProven": True,
+        "authoritativeRegistryCommitProven": False,
+        "parentTranscriptIndependentlyReprojected": True,
+        "childTranscriptIndependentlyReprojected": True,
+        "storedAcceptanceByteEqual": True,
+        "providerAttested": False,
+        "modelAttested": False,
+        "runtimeAttested": False,
+        "ratingEmitted": False,
+        "winnerNarrativeEmitted": False,
+        "authorityBoundary": PENDING_REGISTRY_SURFACE_BOUNDARY,
+    }
+    pending.pop("admissionDigest")
+    pending["admissionDigest"] = digest(pending)
+    return validate_surface_shape(pending)
+
+
+def require_same_surface_bytes(*surfaces: Any) -> dict[str, Any]:
+    """Prove only canonical byte parity, never replay admission or registry authority."""
+
+    if len(surfaces) < 2:
+        raise RunbackError("surface parity requires at least two projections")
+    validated = [validate_surface_shape(surface) for surface in surfaces]
+    expected = _bounded_canonical(
+        validated[0], "runback surface parity", MAX_SURFACE_ADMISSION_BYTES
+    )
+    if any(
+        _bounded_canonical(row, "runback surface parity", MAX_SURFACE_ADMISSION_BYTES)
+        != expected
+        for row in validated[1:]
+    ):
+        raise RunbackError("product and share runback surface admissions disagree")
+    return copy.deepcopy(validated[0])
+
+
+def verify_runback_surface_admission(
+    candidate: Any,
+    parent_receipt: dict[str, Any],
+    *,
+    parent_transcript_path: Any = None,
+    proof: Any = None,
+    previous_state: Any = None,
+) -> dict[str, Any]:
+    """Recompile exact proof inputs and require canonical candidate byte equality."""
+
+    shaped = validate_surface_shape(candidate)
+    recompiled = compile_runback_surface_admission(
+        parent_receipt,
+        parent_transcript_path=parent_transcript_path,
+        proof=proof,
+        previous_state=previous_state,
+    )
+    if _bounded_canonical(
+        shaped, "runback surface proof verification", MAX_SURFACE_ADMISSION_BYTES
+    ) != _bounded_canonical(
+        recompiled, "runback surface proof verification", MAX_SURFACE_ADMISSION_BYTES
+    ):
+        raise RunbackError(
+            "runback surface candidate differs from exact proof recompilation"
+        )
+    return copy.deepcopy(recompiled)
+
+
 __all__ = [
     "ACCEPTANCE_SCHEMA",
     "CHALLENGE_SCHEMA",
     "LINEAGE_SCHEMA",
     "LINEAGE_STATE_SCHEMA",
     "RIVALRY_SCHEMA",
+    "SURFACE_ADMISSION_SCHEMA",
     "RunbackError",
     "accept_runback",
     "build_lineage",
+    "compile_runback_surface_admission",
+    "derive_unplayed_surface",
     "empty_lineage_state",
     "issue_runback",
+    "require_same_surface_bytes",
     "validate_acceptance",
     "validate_challenge",
     "validate_lineage_state",
+    "validate_surface_shape",
+    "verify_runback_surface_admission",
 ]

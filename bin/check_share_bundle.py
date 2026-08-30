@@ -13,7 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "bin"))
 
-from arena.canonical import GENESIS, chain  # noqa: E402
+from arena.canonical import GENESIS, chain, digest  # noqa: E402
 from arena.match import run_match  # noqa: E402
 from arena.transcript import load  # noqa: E402
 from build_share_bundle import (  # noqa: E402
@@ -34,6 +34,13 @@ from build_share_bundle import (  # noqa: E402
     write_bundle,
 )
 from export_site import summarise  # noqa: E402
+from publishing.projection import project_receipt  # noqa: E402
+from publishing.runback import (  # noqa: E402
+    accept_runback,
+    empty_lineage_state,
+    issue_runback,
+    validate_surface_shape,
+)
 
 TEN_FRONTS = os.path.join(
     ROOT,
@@ -134,9 +141,31 @@ def check_bundle_contract():
         require(manifest["highlight"]["clipId"].startswith("clip_"), "bounded moment id")
         require("not a causal" in manifest["highlight"]["label"], "highlight causality guard")
         runback = manifest["rivalry"]["runback"]
-        require(runback["status"] == "unplayed_challenge", "runback must not become a result")
-        require(runback["seed"] == 9401, "runback seed must be deterministic parent+1")
-        require(runback["seats"] == ["Future Proof", "Sunday Machine"], "runback swaps seats")
+        golden_core = {
+            "parentMatchId": manifest["match"]["id"],
+            "parentReceiptId": manifest["match"]["receiptId"],
+            "parentFixtureId": manifest["match"]["fixtureId"],
+            "parentChainHead": manifest["match"]["chainHead"],
+            "game": manifest["match"]["game"],
+            "seed": 9401,
+            "seats": [
+                manifest["entrants"][1]["name"],
+                manifest["entrants"][0]["name"],
+            ],
+        }
+        require(
+            runback
+            == {
+                "status": "unplayed_challenge",
+                "challengeId": "challenge_" + digest(golden_core)[:16],
+                **golden_core,
+            },
+            "default share runback preserves the exact legacy v1 golden shape and types",
+        )
+        require(
+            "runbackSurface" not in manifest["rivalry"],
+            "default share payload omits the optional proof surface sibling",
+        )
         require("response_sha256" not in "".join(first.values()), "derived pack must omit response hashes")
         require("OPENCODE_" not in "".join(first.values()), "derived pack must omit environment names")
         require(
@@ -378,7 +407,13 @@ def check_ten_fronts_moment_bundle():
     runback = manifest["rivalry"]["runback"]
     require(runback["status"] == "unplayed_challenge", "runback is an unplayed challenge")
     require(runback["seed"] == 7001, "runback seed is deterministic parent+1")
-    require(runback["seats"] == ["Stub Even Reserve", "Stub Iron Front"], "runback swaps seats")
+    require(
+        runback["seats"]
+        == [manifest["entrants"][1]["name"], manifest["entrants"][0]["name"]]
+        and all(type(value) is str for value in runback["seats"]),
+        "legacy share runback preserves display-name seat strings",
+    )
+    require("runbackSurface" not in manifest["rivalry"], "default Ten Fronts payload omits proof surface")
     require("response_sha256" not in "".join(first.values()),
             "ten fronts pack must omit response hashes")
     rendered = json.dumps(manifest, sort_keys=True)
@@ -405,6 +440,110 @@ def check_ten_fronts_moment_bundle():
 
         rewrite_and_rechain_copy(TEN_FRONTS, bad, break_scores)
         expect_bundle_error(lambda: build_manifest(bad), "refusing unverified")
+
+
+def check_completed_runback_surface():
+    with tempfile.TemporaryDirectory(prefix="agentwars-share-runback-") as work:
+        parent_result = run_match(
+            game_name="fantasy_redraft",
+            seed=9420,
+            entrants=[
+                scripted_manifest("Share Sunday", "win-now"),
+                scripted_manifest("Share Future", "long-game"),
+            ],
+            out_dir=os.path.join(work, "parent"),
+            match_id="share-surface-parent",
+        )
+        child_result = run_match(
+            game_name="fantasy_redraft",
+            seed=9421,
+            entrants=[
+                scripted_manifest("Share Future", "long-game"),
+                scripted_manifest("Share Sunday", "win-now"),
+            ],
+            out_dir=os.path.join(work, "child"),
+            match_id="share-surface-child",
+        )
+        parent, _parent_records = project_receipt(parent_result["transcript"])
+        child, _child_records = project_receipt(child_result["transcript"])
+        challenge = issue_runback(parent, transcript_path=parent_result["transcript"])
+        acceptance = accept_runback(
+            challenge,
+            parent,
+            child,
+            parent_transcript_path=parent_result["transcript"],
+            child_transcript_path=child_result["transcript"],
+        )
+        runback_proof = {
+            "acceptance": acceptance,
+            "challenge": challenge,
+            "parentReceipt": parent,
+            "parentTranscriptPath": parent_result["transcript"],
+            "childReceipt": child,
+            "childTranscriptPath": child_result["transcript"],
+        }
+        outputs = build_outputs(
+            parent_result["transcript"],
+            runback_proof=runback_proof,
+            previous_lineage_state=empty_lineage_state(),
+        )
+        manifest = json.loads(outputs["manifest.json"])
+        legacy = manifest["rivalry"]["runback"]
+        surface = manifest["rivalry"]["runbackSurface"]
+        require(
+            legacy["status"] == "unplayed_challenge"
+            and all(type(value) is str for value in legacy["seats"]),
+            "proof candidate preserves the legacy share runback unchanged",
+        )
+        require(
+            surface["status"] == "completed_runback_pending_registry_commit",
+            "exact proof produces only a pending share surface",
+        )
+        require(
+            surface["acceptedEdge"]["childReceiptId"] == child["receiptId"],
+            "share surface pins exact accepted child receipt",
+        )
+        require(validate_surface_shape(surface) == surface, "pending share surface shape validates")
+        require(
+            "VERIFIED / PENDING REGISTRY COMMIT" in outputs["card.svg"]
+            and "COMPLETE" not in outputs["card.svg"],
+            "pending card never renders authoritative completion",
+        )
+        require(
+            "Runback verified / pending registry commit" in outputs["match.html"]
+            and "Runback complete" not in outputs["match.html"],
+            "pending HTML never renders authoritative completion",
+        )
+        require(
+            "Runback replay verified / pending registry commit" in outputs["copy.md"]
+            and "Runback completed" not in outputs["copy.md"],
+            "pending copy never renders authoritative completion",
+        )
+        require(
+            all(
+                fragment not in "".join(outputs.values())
+                for fragment in (
+                    parent_result["transcript"],
+                    child_result["transcript"],
+                    "claimed_model",
+                    "OPENCODE_",
+                )
+            ),
+            "completed share outputs omit proof custody and untrusted runtime metadata",
+        )
+        forged = copy.deepcopy(runback_proof)
+        forged["acceptance"]["acceptanceDigest"] = "f" * 64
+        destination = os.path.join(work, "forged-output")
+        expect_bundle_error(
+            lambda: write_bundle(
+                parent_result["transcript"],
+                destination,
+                runback_proof=forged,
+                previous_lineage_state=empty_lineage_state(),
+            ),
+            "surface admission failed closed",
+        )
+        require(not os.path.exists(destination), "failed completion leaves no partial share tree")
 
 
 def rewrite_and_rechain_copy(source, destination, mutate):
@@ -434,6 +573,7 @@ def main():
     check_runtime_forfeit_refusal()
     check_generic_historical_match()
     check_ten_fronts_moment_bundle()
+    check_completed_runback_surface()
     check_url_guard()
     print("AgentWars verified-moment bundle contracts: PASS")
     print("deterministic bundle / provenance parser / hostile escaping / tamper refusal / runback guard")
