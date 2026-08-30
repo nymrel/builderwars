@@ -58,6 +58,7 @@ convert any pending or blocked verdict into approval.
 - `python bin/selfcheck.py`
 - `python bin/check_fantasy_games.py`
 - `python bin/check_agentwars_scale.py`
+- `python bin/check_mobile_arena_exchange.py`
 - `python -B bin/check_runback_lineage.py`
 - `python -B bin/check_runback_surface_admission.py`
 - `python bin/check_share_bundle.py`
