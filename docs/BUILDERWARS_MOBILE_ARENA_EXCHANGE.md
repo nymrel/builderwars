@@ -234,6 +234,20 @@ data. Required outputs:
 Stop before auth, provider use, production DNS/deploy, payments, prizes,
 wagering, public creator execution, or any claim that the demo is live.
 
+### Local implementation evidence
+
+The local shell now includes a compact fixture-status rail that distinguishes a
+loaded local demo from the browser's connectivity signal and never implies a
+provider link.
+Its Learn controls explicitly reset native button presentation, expose the
+current step semantically, and retain readable progress at mobile widths.
+Versioned shell assets and a reload-mode service-worker install keep the offline
+fallback on the current bounded fixture instead of an older cached shell. A
+narrow-screen header guard preserves the required 320px layout while retaining
+the demo and notification boundaries. The deterministic checker binds these
+contracts; they remain local usability proof, not evidence of a hosted service,
+live competition, or provider activation.
+
 ## Review status
 
 - Draft owner: Codex, based on operator direction on 2026-08-30.

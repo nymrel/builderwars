@@ -19,7 +19,7 @@
 
 * { box-sizing: border-box; }
 html { background: var(--bg); scroll-behavior: smooth; }
-body { margin: 0; background: var(--bg); color: var(--text); min-width: 320px; }
+body { margin: 0; background: var(--bg); color: var(--text); min-width: 0; }
 button, input, select { font: inherit; }
 button, a, input, select { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; }
@@ -51,6 +51,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .delta.up { color: var(--lime); }
 .delta.down { color: var(--risk); }
 .sparkline { display: block; width: 100%; height: 20px; margin-top: 4px; }
+.connection-strip { min-height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--line-soft); color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.connection-dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 16%, transparent); }
+.connection-strip[data-state="ready"] .connection-dot { background: var(--lime); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lime) 16%, transparent); }
+.connection-strip[data-state="offline"] .connection-dot { background: #ffd36b; box-shadow: 0 0 0 3px rgb(255 211 107 / .14); }
+.connection-strip[data-state="error"] .connection-dot { background: var(--risk); box-shadow: 0 0 0 3px rgb(255 107 97 / .14); }
+.connection-boundary { margin-left: auto; white-space: nowrap; }
 .workspace { width: min(100%, 1440px); margin: 0 auto; padding: 22px 16px 32px; }
 .view[hidden] { display: none !important; }
 .view.is-active { animation: view-in .24s ease-out both; }
@@ -111,10 +117,13 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.035em; }
 .model-status { color: var(--lime); font-size: 11px; font-weight: 800; }
 .model-status.disabled { color: var(--muted); }
 .fine-print { margin: 16px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
-.lesson-row { grid-template-columns: 42px 1fr auto; gap: 12px; cursor: pointer; }
+.lesson-row { width: 100%; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 12px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--line-soft); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.lesson-row:hover, .lesson-row.is-active { background: linear-gradient(90deg, color-mix(in srgb, var(--lime) 7%, transparent), transparent 78%); }
+.lesson-copy { min-width: 0; display: grid; gap: 4px; }
+.lesson-copy .row-title, .lesson-copy .row-detail { display: block; margin: 0; }
 .lesson-step { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); font-size: 11px; }
 .lesson-step.complete { background: var(--lime); color: var(--bg); border-color: var(--lime); }
-.progress-line { width: 54px; height: 3px; background: var(--line); overflow: hidden; }
+.progress-line { width: 54px; height: 3px; justify-self: end; background: var(--line); overflow: hidden; }
 .progress-line span { display: block; height: 100%; background: var(--lime); }
 .lesson-focus { min-height: 260px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; background: linear-gradient(160deg, #171d12, var(--surface) 70%); }
 .lesson-focus p:not(.eyebrow) { color: var(--muted); line-height: 1.5; }
@@ -160,6 +169,13 @@ legend { margin-bottom: 8px; }
 .automation-row { grid-template-columns: 1fr auto; gap: 12px; }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); width: min(calc(100% - 32px), 460px); transform: translateX(-50%); padding: 13px 15px; border: 1px solid color-mix(in srgb, var(--lime) 45%, var(--line)); border-radius: 10px; background: #151c11; color: var(--text); box-shadow: 0 16px 50px rgb(0 0 0 / .4); font-size: 12px; }
 .noscript { margin: 20px; padding: 16px; border: 1px solid var(--risk); }
+
+@media (max-width: 359px) {
+  .topbar { padding-inline: 12px; }
+  .brand { gap: 7px; font-size: 14px; }
+  .demo-badge { padding-inline: 6px; font-size: 9px; }
+  .avatar-button { display: none; }
+}
 
 @media (min-width: 760px) {
   .topbar { padding-inline: 28px; }

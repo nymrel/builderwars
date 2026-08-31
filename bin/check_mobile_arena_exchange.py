@@ -97,7 +97,12 @@ def main() -> int:
     require('$("#app-shell").inert = true' in js, "modal open must inert the app shell")
     require('$("#app-shell").inert = false' in js, "modal close must restore the app shell")
     require('event.key !== "Tab"' in js and "nextModalFocusIndex" in js, "modal focus loop missing")
-    checks += 3
+    require('id="connection-status"' in html and "updateConnectionStatus" in js, "local connection status rail missing")
+    require('window.addEventListener("online"' in js and 'window.addEventListener("offline"' in js, "connection status events missing")
+    require('.lesson-copy' in css and 'background: transparent' in css, "lesson controls must reset native button presentation")
+    require('aria-current="step"' in js, "active learning step semantics missing")
+    require('@media (max-width: 359px)' in css and '.avatar-button { display: none; }' in css, "320px header overflow guard missing")
+    checks += 8
 
     node = shutil.which("node")
     require(node is not None, "Node.js is required to exercise mobile focus helpers")
@@ -126,17 +131,20 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=5", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html",
-        "./styles.css",
-        "./app.js",
+        "./index.html?v=5",
+        "./styles.css?v=5",
+        "./app.js?v=5",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
     ):
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
+    require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
+    require('caches.match("./index.html?v=5")' in sw, "offline navigation fallback must be versioned")
+    checks += 2
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

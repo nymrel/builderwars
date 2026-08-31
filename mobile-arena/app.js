@@ -4,6 +4,7 @@ const state = {
   data: null,
   activeView: "arena",
   followingFirst: false,
+  activeLesson: null,
   lastFocus: null,
 };
 
@@ -102,12 +103,31 @@ function renderCompete() {
 }
 
 function renderLessons() {
+  if (!state.activeLesson) {
+    state.activeLesson = state.data.lessons.find((lesson) => lesson.progress > 0 && lesson.progress < 100)?.id
+      || state.data.lessons[0]?.id
+      || null;
+  }
   $("#lessons").innerHTML = state.data.lessons.map((lesson) => `
-    <button class="lesson-row" type="button" data-lesson="${escapeHTML(lesson.id)}">
+    <button class="lesson-row ${lesson.id === state.activeLesson ? "is-active" : ""}" type="button" data-lesson="${escapeHTML(lesson.id)}" ${lesson.id === state.activeLesson ? 'aria-current="step"' : ""}>
       <span class="lesson-step ${lesson.progress === 100 ? "complete" : ""}">${lesson.progress === 100 ? "✓" : lesson.step}</span>
-      <span><span class="row-title">${escapeHTML(lesson.title)}</span><span class="row-detail">${escapeHTML(lesson.level)} · ${escapeHTML(lesson.duration)}</span></span>
+      <span class="lesson-copy"><span class="row-title">${escapeHTML(lesson.title)}</span><span class="row-detail">${escapeHTML(lesson.level)} · ${escapeHTML(lesson.duration)}</span></span>
       <span class="progress-line" aria-label="${lesson.progress}% complete"><span style="width:${lesson.progress}%"></span></span>
     </button>`).join("");
+}
+
+function updateConnectionStatus() {
+  const status = $("#connection-status");
+  if (!status || !state.data) return;
+  const online = navigator.onLine;
+  status.dataset.state = online ? "ready" : "offline";
+  $("#connection-copy").textContent = online ? "Local fixture ready" : "Offline · local fixture ready";
+  status.setAttribute(
+    "aria-label",
+    online
+      ? "Browser reports online. Local demo fixture loaded. No provider is connected."
+      : "Browser reports offline. Local demo fixture remains available. No provider is connected.",
+  );
 }
 
 function blueprintFromForm() {
@@ -261,7 +281,17 @@ function bindEvents() {
     const lesson = event.target.closest("[data-lesson]");
     if (lesson) {
       const row = state.data.lessons.find((item) => item.id === lesson.dataset.lesson);
-      if (row) { $("#lesson-focus h2").textContent = row.title; $("#lesson-focus p:not(.eyebrow)").textContent = `${row.level} lab · ${row.duration}. Progress is stored only in this demo fixture.`; }
+      if (row) {
+        state.activeLesson = row.id;
+        $$('[data-lesson]').forEach((control) => {
+          const active = control.dataset.lesson === row.id;
+          control.classList.toggle("is-active", active);
+          if (active) control.setAttribute("aria-current", "step");
+          else control.removeAttribute("aria-current");
+        });
+        $("#lesson-focus h2").textContent = row.title;
+        $("#lesson-focus p:not(.eyebrow)").textContent = `${row.level} lab · ${row.duration}. Progress is stored only in this demo fixture.`;
+      }
     }
   });
 
@@ -286,6 +316,8 @@ function bindEvents() {
     if (event.key === "Escape") closeSheets();
     else trapSheetFocus(event);
   });
+  window.addEventListener("online", updateConnectionStatus);
+  window.addEventListener("offline", updateConnectionStatus);
 }
 
 function renderAll() {
@@ -310,9 +342,16 @@ async function boot() {
     hydrateLocalBlueprint();
     renderAll();
     bindEvents();
+    updateConnectionStatus();
     showView(location.hash.slice(1) || "arena", false);
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
   } catch (error) {
+    const status = $("#connection-status");
+    if (status) {
+      status.dataset.state = "error";
+      $("#connection-copy").textContent = "Local fixture unavailable";
+      status.setAttribute("aria-label", "The local demo fixture could not load. No live service fallback was attempted.");
+    }
     $("#workspace").innerHTML = `<section class="view is-active"><p class="eyebrow">Demo unavailable</p><h1>Local fixture could not load.</h1><p class="match-subtitle">Serve this directory with a local HTTP server, then refresh. No live service fallback will be attempted.</p><pre class="fine-print">${escapeHTML(error.message)}</pre></section>`;
   }
 }

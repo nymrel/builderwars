@@ -1,18 +1,18 @@
 "use strict";
 
-const CACHE_NAME = "builderwars-mobile-arena-demo-v1";
+const CACHE_NAME = "builderwars-mobile-arena-demo-v5";
 const LOCAL_ASSETS = [
-  "./",
-  "./index.html",
-  "./styles.css",
-  "./app.js",
+  "./index.html?v=5",
+  "./styles.css?v=5",
+  "./app.js?v=5",
   "./manifest.webmanifest",
   "./assets/arena-mark.svg",
   "./data/demo-state.json"
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(LOCAL_ASSETS)));
+  const requests = LOCAL_ASSETS.map((asset) => new Request(asset, { cache: "reload" }));
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(requests)));
   self.skipWaiting();
 });
 
@@ -30,5 +30,5 @@ self.addEventListener("fetch", (event) => {
     const copy = response.clone();
     caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
     return response;
-  }).catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html"))));
+  }).catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=5"))));
 });
