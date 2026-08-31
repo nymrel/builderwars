@@ -79,8 +79,11 @@ def main() -> int:
     require('fetch("data/demo-state.json"' in js, "app must load the bounded local fixture")
     require("requestURL.origin !== self.location.origin" in sw, "service worker must reject cross-origin caching")
     require("localStorage.setItem" in js and "localStorage.getItem" in js, "local blueprint persistence missing")
-    require("raw.length > 2048" in js and "never executed" in html, "local blueprint boundary missing")
+    require("BLUEPRINT_MAX_LENGTH = 2048" in js and "raw.length > BLUEPRINT_MAX_LENGTH" in js and "never executed" in html, "local blueprint boundary missing")
+    require("for (const key of BLUEPRINT_GUARD_KEYS)" in js, "saved blueprint guards must hydrate from the bounded key list")
+    require("localStorage.removeItem(BLUEPRINT_STORAGE_KEY)" in js, "invalid local blueprint state must be discarded")
     checks += 5
+    checks += 2
 
     print("[5] accessibility, offline, and reduced-motion contracts")
     for marker in (
@@ -99,10 +102,12 @@ def main() -> int:
     require('event.key !== "Tab"' in js and "nextModalFocusIndex" in js, "modal focus loop missing")
     require('id="connection-status"' in html and "updateConnectionStatus" in js, "local connection status rail missing")
     require('window.addEventListener("online"' in js and 'window.addEventListener("offline"' in js, "connection status events missing")
+    require("history.pushState" in js and 'window.addEventListener("popstate"' in js, "tab history navigation missing")
+    require('window.addEventListener("hashchange"' in js and "syncViewFromLocation" in js, "same-document hash routing missing")
     require('.lesson-copy' in css and 'background: transparent' in css, "lesson controls must reset native button presentation")
     require('aria-current="step"' in js, "active learning step semantics missing")
     require('@media (max-width: 359px)' in css and '.avatar-button { display: none; }' in css, "320px header overflow guard missing")
-    checks += 8
+    checks += 10
 
     node = shutil.which("node")
     require(node is not None, "Node.js is required to exercise mobile focus helpers")
@@ -131,11 +136,11 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=5", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=6", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=5",
-        "./styles.css?v=5",
-        "./app.js?v=5",
+        "./index.html?v=6",
+        "./styles.css?v=6",
+        "./app.js?v=6",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -143,8 +148,10 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('caches.match("./index.html?v=5")' in sw, "offline navigation fallback must be versioned")
-    checks += 2
+    require('NAVIGATION_FALLBACK = "./index.html?v=6"' in sw, "offline navigation fallback must be versioned")
+    require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
+    require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
+    checks += 4
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

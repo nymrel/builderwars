@@ -1,10 +1,11 @@
 "use strict";
 
-const CACHE_NAME = "builderwars-mobile-arena-demo-v5";
+const CACHE_NAME = "builderwars-mobile-arena-demo-v6";
+const NAVIGATION_FALLBACK = "./index.html?v=6";
 const LOCAL_ASSETS = [
-  "./index.html?v=5",
-  "./styles.css?v=5",
-  "./app.js?v=5",
+  NAVIGATION_FALLBACK,
+  "./styles.css?v=6",
+  "./app.js?v=6",
   "./manifest.webmanifest",
   "./assets/arena-mark.svg",
   "./data/demo-state.json"
@@ -30,5 +31,12 @@ self.addEventListener("fetch", (event) => {
     const copy = response.clone();
     caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
     return response;
-  }).catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=5"))));
+  }).catch(async () => {
+    const cached = await caches.match(event.request);
+    if (cached) return cached;
+    if (event.request.mode === "navigate") {
+      return (await caches.match(NAVIGATION_FALLBACK)) || Response.error();
+    }
+    return Response.error();
+  }));
 });

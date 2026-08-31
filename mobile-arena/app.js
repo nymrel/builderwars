@@ -10,6 +10,10 @@ const state = {
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const VIEW_NAMES = ["arena", "watch", "compete", "learn", "build"];
+const BLUEPRINT_STORAGE_KEY = "builderwars.mobile-arena.blueprint.v1";
+const BLUEPRINT_MAX_LENGTH = 2048;
+const BLUEPRINT_GUARD_KEYS = ["strictValidation", "fallbackDisclosure", "humanCheckpoints"];
 const escapeHTML = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
 }[character]));
@@ -144,22 +148,29 @@ function blueprintFromForm() {
 }
 
 function hydrateLocalBlueprint() {
-  const raw = localStorage.getItem("builderwars.mobile-arena.blueprint.v1");
-  if (!raw || raw.length > 2048) return;
   try {
+    const raw = localStorage.getItem(BLUEPRINT_STORAGE_KEY);
+    if (!raw) return;
+    if (raw.length > BLUEPRINT_MAX_LENGTH) {
+      localStorage.removeItem(BLUEPRINT_STORAGE_KEY);
+      return;
+    }
     const blueprint = JSON.parse(raw);
-    if (!blueprint || blueprint.localOnly !== true || typeof blueprint.agentName !== "string") return;
+    if (!blueprint || blueprint.localOnly !== true || typeof blueprint.agentName !== "string") {
+      localStorage.removeItem(BLUEPRINT_STORAGE_KEY);
+      return;
+    }
     const name = blueprint.agentName.trim().slice(0, 36);
     if (name) $("#agent-name").value = name;
     const baseOptions = [...$("#base-model").options].map((option) => option.value);
     if (baseOptions.includes(blueprint.baseModel)) $("#base-model").value = blueprint.baseModel;
     const harnessOptions = [...$("#harness-style").options].map((option) => option.value);
     if (harnessOptions.includes(blueprint.harnessStyle)) $("#harness-style").value = blueprint.harnessStyle;
-    for (const key of ("strictValidation", "fallbackDisclosure", "humanCheckpoints")) {
+    for (const key of BLUEPRINT_GUARD_KEYS) {
       if (typeof blueprint[key] === "boolean") $(`[name="${key}"]`).checked = blueprint[key];
     }
   } catch {
-    localStorage.removeItem("builderwars.mobile-arena.blueprint.v1");
+    try { localStorage.removeItem(BLUEPRINT_STORAGE_KEY); } catch {}
   }
 }
 
@@ -197,7 +208,7 @@ function renderProof() {
   $("#proof-content").innerHTML = `<div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-boundary"><strong>Demo boundary:</strong> this fixture demonstrates the product language only. It is not a public receipt, live match, provider/model attestation, ranked result, or registry commit.</div>`;
 }
 
-function showView(name, updateHash = true) {
+function showView(name, updateHistory = true) {
   if (!$("#view-" + name)) return;
   state.activeView = name;
   $$(".view").forEach((view) => {
@@ -213,8 +224,19 @@ function showView(name, updateHash = true) {
       else control.removeAttribute("aria-current");
     }
   });
-  if (updateHash) history.replaceState(null, "", `#${name}`);
+  if (updateHistory && location.hash !== `#${name}`) history.pushState({ view: name }, "", `#${name}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function syncViewFromLocation({ replaceInvalid = false } = {}) {
+  const target = location.hash.slice(1);
+  if (VIEW_NAMES.includes(target)) {
+    showView(target, false);
+    return;
+  }
+  if (target && document.getElementById(target)) return;
+  showView("arena", false);
+  if (replaceInvalid) history.replaceState({ view: "arena" }, "", "#arena");
 }
 
 function openSheet(sheet) {
@@ -302,8 +324,12 @@ function bindEvents() {
   $("#builder-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const blueprint = renderBlueprint();
-    localStorage.setItem("builderwars.mobile-arena.blueprint.v1", JSON.stringify(blueprint));
-    showToast("Blueprint saved locally. It was not uploaded, paired, executed, or published.");
+    try {
+      localStorage.setItem(BLUEPRINT_STORAGE_KEY, JSON.stringify(blueprint));
+      showToast("Blueprint saved locally. It was not uploaded, paired, executed, or published.");
+    } catch {
+      showToast("Blueprint could not be saved in this browser. Nothing was uploaded or executed.");
+    }
   });
   $("#automations").addEventListener("change", (event) => {
     const input = event.target.closest("[data-automation]");
@@ -318,6 +344,8 @@ function bindEvents() {
   });
   window.addEventListener("online", updateConnectionStatus);
   window.addEventListener("offline", updateConnectionStatus);
+  window.addEventListener("popstate", () => syncViewFromLocation({ replaceInvalid: true }));
+  window.addEventListener("hashchange", () => syncViewFromLocation({ replaceInvalid: true }));
 }
 
 function renderAll() {
@@ -343,7 +371,7 @@ async function boot() {
     renderAll();
     bindEvents();
     updateConnectionStatus();
-    showView(location.hash.slice(1) || "arena", false);
+    syncViewFromLocation({ replaceInvalid: true });
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
   } catch (error) {
     const status = $("#connection-status");
