@@ -36,6 +36,12 @@ its exact review journal can now be exported together as a bounded canonical
 packet and independently reverified from an empty Receipt Lab. Import remains a
 memory-only inspection projection: it applies no blueprint and grants no
 identity, rules, provider, runner, registry, ranking, publication, or spending
+authority. A private correction journal records bounded corrected decisions or
+withdrawals against immutable original review digests. Global append links and
+per-review supersession links preserve every prior record, while a combined
+canonical packet lets a fresh recipient reverify the proposal, original reviews,
+corrections, and effective private projection. It cannot rewrite a review,
+authenticate a reviewer, apply a blueprint, or grant execution or publication
 authority. The shell performs no provider call, inference, account action,
 publication, or deployment.
 
@@ -48,6 +54,7 @@ python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_portable_review.py
 python bin\check_mobile_arena_portable_review_exchange.py
+python bin\check_mobile_arena_portable_review_correction.py
 python bin\check_mobile_arena_exchange.py
 ```
 

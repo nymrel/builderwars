@@ -121,8 +121,15 @@ def main() -> int:
     require("PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH = 262144" in adapter and 'maxlength="262144"' in js, "portable review exchange length boundary missing")
     require("data-portable-review-exchange-prepare" in js and "data-portable-review-exchange-verify" in js, "portable review exchange controls missing")
     require("independent local inspection" in adapter and "No blueprint was applied" in js, "portable review exchange truth boundary missing")
-    checks += 32
-    checks += 2
+    require("appendPortableRunbackReviewCorrection" in adapter and "verifyPortableRunbackReviewCorrectionJournal" in adapter, "portable review correction verifier missing")
+    require('PORTABLE_REVIEW_CORRECTION_SCHEMA = "builderwars.mobile-runback-review-correction.v1"' in adapter, "portable review correction schema drift")
+    require("PORTABLE_REVIEW_CORRECTION_MAX_RECORDS = 64" in adapter and "data-portable-review-correction-submit" in js, "portable review correction controls or record cap missing")
+    require("createPortableRunbackReviewCorrectionExchange" in adapter and "verifyPortableRunbackReviewCorrectionExchange" in adapter, "portable review correction exchange verifier missing")
+    require('PORTABLE_REVIEW_CORRECTION_EXCHANGE_SCHEMA = "builderwars.mobile-runback-review-correction-exchange.v1"' in adapter, "portable review correction exchange schema drift")
+    require("PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH = 524288" in adapter and 'maxlength="524288"' in js, "portable review correction exchange length boundary missing")
+    require("data-portable-review-correction-exchange-prepare" in js and "data-portable-review-correction-exchange-verify" in js, "portable review correction exchange controls missing")
+    require("preserves its immutable target review" in adapter and "No review was rewritten" in js, "portable review correction truth boundary missing")
+    checks += 42
 
     print("[5] accessibility, offline, and reduced-motion contracts")
     for marker in (
@@ -175,12 +182,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=14", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=15", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=14",
-        "./styles.css?v=14",
-        "./data-adapter.js?v=14",
-        "./app.js?v=14",
+        "./index.html?v=15",
+        "./styles.css?v=15",
+        "./data-adapter.js?v=15",
+        "./app.js?v=15",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -189,7 +196,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=14"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=15"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -277,6 +284,20 @@ def main() -> int:
     )
     require(portable_review_exchange_check.returncode == 0, f"portable review exchange regression failed: {portable_review_exchange_check.stderr.strip()}")
     require("PASS" in portable_review_exchange_check.stdout, "portable review exchange regression did not report PASS")
+    checks += 2
+
+    portable_review_correction_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_portable_review_correction.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    require(portable_review_correction_check.returncode == 0, f"portable review correction regression failed: {portable_review_correction_check.stderr.strip()}")
+    require("PASS" in portable_review_correction_check.stdout, "portable review correction regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

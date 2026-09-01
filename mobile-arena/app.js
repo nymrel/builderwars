@@ -20,6 +20,16 @@ const state = {
   portableReviewExchange: null,
   portableReviewExchangeImportText: "",
   portableReviewExchangeVerification: null,
+  portableReviewCorrections: [],
+  portableCorrectionReviewerLabel: "",
+  portableCorrectionTargetDigest: "",
+  portableCorrectionAction: "correct_decision",
+  portableCorrectionDecision: "defer",
+  portableCorrectionReason: "clerical_decision_error",
+  portableReviewCorrectionMessage: null,
+  portableReviewCorrectionExchange: null,
+  portableReviewCorrectionExchangeImportText: "",
+  portableReviewCorrectionExchangeVerification: null,
   lastFocus: null,
 };
 
@@ -40,6 +50,17 @@ const PORTABLE_REVIEW_REASON_LABELS = {
   insufficient_public_evidence: "Insufficient public evidence",
   duplicate_or_stale_proposal: "Duplicate or stale proposal",
   unsafe_or_out_of_scope: "Unsafe or out of scope",
+};
+const PORTABLE_REVIEW_CORRECTION_ACTION_LABELS = {
+  correct_decision: "Correct private decision",
+  withdraw_review: "Withdraw original review",
+};
+const PORTABLE_REVIEW_CORRECTION_REASON_LABELS = {
+  clerical_decision_error: "Clerical decision error",
+  new_private_evidence: "New private evidence",
+  unsafe_scope_discovered: "Unsafe scope discovered",
+  duplicate_review: "Duplicate review",
+  reviewer_requested_withdrawal: "Reviewer-requested withdrawal",
 };
 const RECEIPT_ROUTE_ID = /^[A-Za-z0-9_-]{1,80}$/;
 const escapeHTML = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
@@ -199,6 +220,23 @@ function resetPortableReviewExchangeState({ keepImportText = false } = {}) {
   state.portableReviewExchangeVerification = null;
 }
 
+function resetPortableReviewCorrectionExchangeState({ keepImportText = false } = {}) {
+  state.portableReviewCorrectionExchange = null;
+  if (!keepImportText) state.portableReviewCorrectionExchangeImportText = "";
+  state.portableReviewCorrectionExchangeVerification = null;
+}
+
+function resetPortableReviewCorrectionState({ keepReviewerLabel = false } = {}) {
+  state.portableReviewCorrections = [];
+  if (!keepReviewerLabel) state.portableCorrectionReviewerLabel = "";
+  state.portableCorrectionTargetDigest = "";
+  state.portableCorrectionAction = "correct_decision";
+  state.portableCorrectionDecision = "defer";
+  state.portableCorrectionReason = "clerical_decision_error";
+  state.portableReviewCorrectionMessage = null;
+  resetPortableReviewCorrectionExchangeState();
+}
+
 function resetPortableReviewState({ keepReviewerLabel = false } = {}) {
   state.portableReviews = [];
   if (!keepReviewerLabel) state.portableReviewerLabel = "";
@@ -206,6 +244,7 @@ function resetPortableReviewState({ keepReviewerLabel = false } = {}) {
   state.portableReviewReason = "receipt_guided_guard_change";
   state.portableReviewMessage = null;
   resetPortableReviewExchangeState();
+  resetPortableReviewCorrectionState({ keepReviewerLabel });
 }
 
 function portableReviewReasonOptions(decision) {
@@ -213,17 +252,67 @@ function portableReviewReasonOptions(decision) {
   return reasons.map((reason) => `<option value="${escapeHTML(reason)}" ${reason === state.portableReviewReason ? "selected" : ""}>${escapeHTML(PORTABLE_REVIEW_REASON_LABELS[reason] || reason)}</option>`).join("");
 }
 
+function latestPortableCorrection(reviewDigest) {
+  return [...state.portableReviewCorrections].reverse().find((correction) => correction.targetReview.reviewDigest === reviewDigest) || null;
+}
+
+function portableReviewCorrectionSummary(review) {
+  const correction = latestPortableCorrection(review.reviewDigest);
+  if (!correction) return `<span class="portable-review-effective original">Current private interpretation: original decision</span>`;
+  if (correction.action === "withdraw_review") {
+    return `<span class="portable-review-effective corrected">Current private interpretation: withdrawn by correction ${correction.sequence}</span>`;
+  }
+  return `<span class="portable-review-effective corrected">Current private interpretation: ${escapeHTML(PORTABLE_REVIEW_DECISION_LABELS[correction.correctedDecision] || correction.correctedDecision)} · correction ${correction.sequence}</span>`;
+}
+
 function portableReviewMarkup() {
   const verification = state.portableVerification;
   if (verification?.status !== "verified") return "";
   const decisionOptions = Object.entries(PORTABLE_REVIEW_DECISION_LABELS).map(([decision, label]) => `<option value="${escapeHTML(decision)}" ${decision === state.portableReviewDecision ? "selected" : ""}>${escapeHTML(label)}</option>`).join("");
   const journal = state.portableReviews.length
-    ? `<ol class="portable-review-journal" aria-label="Private append-only review journal">${state.portableReviews.map((review) => `<li class="portable-review-record" data-portable-review-record="${review.sequence}" tabindex="-1"><div><span class="mode-label">Review ${review.sequence} · private</span><strong>${escapeHTML(PORTABLE_REVIEW_DECISION_LABELS[review.decision] || review.decision)}</strong><small>${escapeHTML(PORTABLE_REVIEW_REASON_LABELS[review.reasonCode] || review.reasonCode)} · reviewer ${escapeHTML(review.reviewer.label)} (unattested)</small></div><code>${escapeHTML(review.reviewDigest)}</code><span>${review.blueprintRevision ? "Proposed uncommitted blueprint revision · no execution authority" : "No blueprint revision created"}</span></li>`).join("")}</ol>`
+    ? `<ol class="portable-review-journal" aria-label="Private append-only review journal">${state.portableReviews.map((review) => `<li class="portable-review-record" data-portable-review-record="${review.sequence}" tabindex="-1"><div><span class="mode-label">Review ${review.sequence} · private · original preserved</span><strong>${escapeHTML(PORTABLE_REVIEW_DECISION_LABELS[review.decision] || review.decision)}</strong><small>${escapeHTML(PORTABLE_REVIEW_REASON_LABELS[review.reasonCode] || review.reasonCode)} · reviewer ${escapeHTML(review.reviewer.label)} (unattested)</small></div><code>${escapeHTML(review.reviewDigest)}</code>${portableReviewCorrectionSummary(review)}<span>${review.blueprintRevision ? "Original proposed uncommitted blueprint revision · no execution authority" : "No original blueprint revision created"}</span></li>`).join("")}</ol>`
     : `<div class="portable-review-empty"><strong>No private reviews appended.</strong><span>The verified proposal remains unchanged and still unplayed.</span></div>`;
   const message = state.portableReviewMessage
     ? `<div class="portable-review-status ${state.portableReviewMessage.status}" role="${state.portableReviewMessage.status === "invalid" ? "alert" : "status"}" tabindex="-1"><strong>${escapeHTML(state.portableReviewMessage.title)}</strong><span>${escapeHTML(state.portableReviewMessage.detail)}</span></div>`
     : "";
   return `<section class="portable-review" aria-labelledby="portable-review-title"><div><p class="eyebrow">Private review journal</p><h4 id="portable-review-title">Append a bounded local decision.</h4><p>The reviewer label is not authenticated. Acceptance proposes a local blueprint revision only; it does not approve a runback.</p></div><div class="portable-review-form" role="group" aria-describedby="portable-review-boundary"><label for="portable-reviewer-label">Unattested local reviewer label</label><input id="portable-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.portableReviewerLabel)}" placeholder="Example: local reviewer"><label for="portable-review-decision">Decision</label><select id="portable-review-decision" data-portable-review-decision>${decisionOptions}</select><label for="portable-review-reason">Bounded reason</label><select id="portable-review-reason" data-portable-review-reason>${portableReviewReasonOptions(state.portableReviewDecision)}</select><button class="secondary-button" type="button" data-portable-review-submit>Append private review</button></div>${message}${journal}<div class="learning-boundary" id="portable-review-boundary">Append-only means prior local records are hash-linked and cannot be edited in place. The chain is not a signature and grants no rules, qualification, runner, registry, ranking, publication, or spending authority.</div></section>`;
+}
+
+function portableCorrectionReasonOptions(action) {
+  const reasons = dataAdapter?.PORTABLE_REVIEW_CORRECTION_REASONS?.[action] || [];
+  return reasons.map((reason) => `<option value="${escapeHTML(reason)}" ${reason === state.portableCorrectionReason ? "selected" : ""}>${escapeHTML(PORTABLE_REVIEW_CORRECTION_REASON_LABELS[reason] || reason)}</option>`).join("");
+}
+
+function effectivePortableReviewDecision(review) {
+  const correction = latestPortableCorrection(review.reviewDigest);
+  if (!correction) return review.decision;
+  return correction.action === "correct_decision" ? correction.correctedDecision : null;
+}
+
+function ensurePortableCorrectionSelection() {
+  const selectedReview = state.portableReviews.find((review) => review.reviewDigest === state.portableCorrectionTargetDigest) || state.portableReviews[0] || null;
+  state.portableCorrectionTargetDigest = selectedReview?.reviewDigest || "";
+  if (selectedReview && state.portableCorrectionAction === "correct_decision") {
+    const effectiveDecision = effectivePortableReviewDecision(selectedReview);
+    if (state.portableCorrectionDecision === effectiveDecision) {
+      state.portableCorrectionDecision = Object.keys(PORTABLE_REVIEW_DECISION_LABELS).find((decision) => decision !== effectiveDecision) || "defer";
+    }
+  }
+}
+
+function portableReviewCorrectionMarkup() {
+  if (state.portableVerification?.status !== "verified" || state.portableReviews.length === 0) return "";
+  ensurePortableCorrectionSelection();
+  const targetOptions = state.portableReviews.map((review) => `<option value="${escapeHTML(review.reviewDigest)}" ${review.reviewDigest === state.portableCorrectionTargetDigest ? "selected" : ""}>Review ${review.sequence} · ${escapeHTML(PORTABLE_REVIEW_DECISION_LABELS[review.decision] || review.decision)} · ${escapeHTML(review.reviewDigest.slice(0, 12))}…</option>`).join("");
+  const actionOptions = Object.entries(PORTABLE_REVIEW_CORRECTION_ACTION_LABELS).map(([action, label]) => `<option value="${escapeHTML(action)}" ${action === state.portableCorrectionAction ? "selected" : ""}>${escapeHTML(label)}</option>`).join("");
+  const decisionOptions = Object.entries(PORTABLE_REVIEW_DECISION_LABELS).map(([decision, label]) => `<option value="${escapeHTML(decision)}" ${decision === state.portableCorrectionDecision ? "selected" : ""}>${escapeHTML(label)}</option>`).join("");
+  const message = state.portableReviewCorrectionMessage
+    ? `<div class="portable-review-status ${state.portableReviewCorrectionMessage.status}" role="${state.portableReviewCorrectionMessage.status === "invalid" ? "alert" : "status"}" tabindex="-1"><strong>${escapeHTML(state.portableReviewCorrectionMessage.title)}</strong><span>${escapeHTML(state.portableReviewCorrectionMessage.detail)}</span></div>`
+    : "";
+  const journal = state.portableReviewCorrections.length
+    ? `<ol class="portable-correction-journal" aria-label="Private append-only review correction journal">${state.portableReviewCorrections.map((correction) => `<li class="portable-review-record portable-correction-record" data-portable-review-correction-record="${correction.sequence}" tabindex="-1"><div><span class="mode-label">Correction ${correction.sequence} · private</span><strong>${correction.action === "withdraw_review" ? "Withdraw original review" : `Correct to ${escapeHTML(PORTABLE_REVIEW_DECISION_LABELS[correction.correctedDecision] || correction.correctedDecision)}`}</strong><small>Target review ${correction.targetReview.sequence} · ${escapeHTML(PORTABLE_REVIEW_CORRECTION_REASON_LABELS[correction.reasonCode] || correction.reasonCode)} · reviewer ${escapeHTML(correction.reviewer.label)} (unattested)</small></div><code>${escapeHTML(correction.correctionDigest)}</code><span>${correction.supersedesCorrectionDigest ? `Supersedes correction ${escapeHTML(correction.supersedesCorrectionDigest.slice(0, 12))}… without deleting it` : "First correction for this immutable review"}</span><span>${correction.blueprintRevision ? "Proposed uncommitted correction revision · no execution authority" : "No correction blueprint revision created"}</span></li>`).join("")}</ol>`
+    : `<div class="portable-review-empty"><strong>No corrections appended.</strong><span>Original private reviews remain unchanged.</span></div>`;
+  return `<section class="portable-review portable-review-correction" aria-labelledby="portable-review-correction-title"><div><p class="eyebrow">Private correction history</p><h4 id="portable-review-correction-title">Correct without rewriting.</h4><p>Every record targets an immutable review digest. A later correction may supersede an earlier correction, but neither record is deleted or authenticated.</p></div><div class="portable-review-form" role="group" aria-describedby="portable-review-correction-boundary"><label for="portable-correction-reviewer-label">Unattested correction reviewer label</label><input id="portable-correction-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.portableCorrectionReviewerLabel)}" placeholder="Example: local reviewer"><label for="portable-correction-target">Immutable target review</label><select id="portable-correction-target" data-portable-correction-target>${targetOptions}</select><label for="portable-correction-action">Correction action</label><select id="portable-correction-action" data-portable-correction-action>${actionOptions}</select>${state.portableCorrectionAction === "correct_decision" ? `<label for="portable-correction-decision">Corrected private decision</label><select id="portable-correction-decision" data-portable-correction-decision>${decisionOptions}</select>` : ""}<label for="portable-correction-reason">Bounded correction reason</label><select id="portable-correction-reason" data-portable-correction-reason>${portableCorrectionReasonOptions(state.portableCorrectionAction)}</select><button class="secondary-button" type="button" data-portable-review-correction-submit>Append private correction</button></div>${message}${journal}<div class="learning-boundary" id="portable-review-correction-boundary">The original review and every prior correction remain visible and hash-bound. This private interpretation cannot authenticate a reviewer, apply a blueprint, bind rules, qualify, execute, register, rank, publish, spend, or call a provider.</div></section>`;
 }
 
 function portableReviewExchangeStatusMarkup() {
@@ -244,9 +333,27 @@ function portableReviewExchangeMarkup() {
   return `<section class="portable-review-exchange" aria-labelledby="portable-review-exchange-title"><div><p class="eyebrow">Portable private review packet</p><h4 id="portable-review-exchange-title">Carry the proposal and exact journal together.</h4><p>The packet is canonical, size-bounded, and independently verifiable from an empty Receipt Lab. It remains memory-only inspection data.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-review-exchange-prepare>${prepared ? "Refresh review packet" : "Prepare review packet"}</button>` : ""}${prepared ? `<label for="portable-review-exchange-export">Canonical review packet · read only</label><textarea id="portable-review-exchange-export" class="portable-textarea" rows="7" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Packet SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="portable-review-exchange-import">Paste canonical review packet JSON</label><textarea id="portable-review-exchange-import" class="portable-textarea" rows="7" maxlength="262144" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-review-exchange.v1 JSON">${escapeHTML(state.portableReviewExchangeImportText)}</textarea><button class="secondary-button" type="button" data-portable-review-exchange-verify>Verify review packet</button>${portableReviewExchangeStatusMarkup()}<div class="learning-boundary">Import only reconstructs a private inspection view in page memory. It cannot authenticate reviewers, apply a blueprint, bind rules, qualify, execute, register, rank, publish, spend, or call a provider.</div></section>`;
 }
 
+function portableReviewCorrectionExchangeStatusMarkup() {
+  const verification = state.portableReviewCorrectionExchangeVerification;
+  if (verification?.status === "verified") {
+    const result = verification.result;
+    return `<div class="portable-status verified portable-review-correction-exchange-status" role="status" tabindex="-1"><strong>Correction packet verified · immutable history preserved</strong><span>SHA-256 ${escapeHTML(result.packetDigest)}</span><span>${result.journal.reviewCount} original review${result.journal.reviewCount === 1 ? "" : "s"} · ${result.correctionJournal.correctionCount} correction${result.correctionJournal.correctionCount === 1 ? "" : "s"}</span><span>No review was rewritten, no blueprint was applied, and no authority was granted.</span></div>`;
+  }
+  if (verification?.status === "invalid") {
+    return `<div class="portable-status invalid portable-review-correction-exchange-status" role="alert" tabindex="-1"><strong>Correction packet refused</strong><span>${escapeHTML(verification.message)}</span><span>No proposal, review, correction, or blueprint inspection state was retained.</span></div>`;
+  }
+  return `<div class="portable-status neutral portable-review-correction-exchange-status" role="status" tabindex="-1"><strong>No correction packet imported</strong><span>A fresh recipient can paste one canonical packet and independently recheck its proposal, immutable reviews, supersession links, correction chain, and packet digest.</span></div>`;
+}
+
+function portableReviewCorrectionExchangeMarkup() {
+  const prepared = state.portableReviewCorrectionExchange;
+  const canPrepare = state.portableVerification?.status === "verified" && state.portableReviewCorrections.length > 0;
+  return `<section class="portable-review-exchange portable-review-correction-exchange" aria-labelledby="portable-review-correction-exchange-title"><div><p class="eyebrow">Portable correction packet</p><h4 id="portable-review-correction-exchange-title">Carry immutable reviews and corrections together.</h4><p>The nested review packet and exact correction history are canonical, size-bounded, and independently verifiable from an empty Receipt Lab.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-review-correction-exchange-prepare>${prepared ? "Refresh correction packet" : "Prepare correction packet"}</button>` : ""}${prepared ? `<label for="portable-review-correction-exchange-export">Canonical correction packet · read only</label><textarea id="portable-review-correction-exchange-export" class="portable-textarea" rows="8" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Packet SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="portable-review-correction-exchange-import">Paste canonical correction packet JSON</label><textarea id="portable-review-correction-exchange-import" class="portable-textarea" rows="8" maxlength="524288" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-review-correction-exchange.v1 JSON">${escapeHTML(state.portableReviewCorrectionExchangeImportText)}</textarea><button class="secondary-button" type="button" data-portable-review-correction-exchange-verify>Verify correction packet</button>${portableReviewCorrectionExchangeStatusMarkup()}<div class="learning-boundary">Import reconstructs only memory-local inspection history. It cannot authenticate reviewers, rewrite an original review, apply a blueprint, bind rules, qualify, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+}
+
 function portableRunbackMarkup({ canPrepare = false } = {}) {
   const portable = state.portableRunback;
-  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}${portableReviewMarkup()}${portableReviewExchangeMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
+  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}${portableReviewMarkup()}${portableReviewCorrectionMarkup()}${portableReviewExchangeMarkup()}${portableReviewCorrectionExchangeMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
 }
 
 function renderReceiptLearning() {
@@ -534,9 +641,17 @@ async function appendPortableReview() {
       decision: state.portableReviewDecision,
       reasonCode: state.portableReviewReason,
     }, state.portableReviews);
-    state.portableReviews = [...state.portableReviews, review];
+    const nextReviews = [...state.portableReviews, review];
+    if (state.portableReviewCorrections.length > 0) {
+      await dataAdapter.verifyPortableRunbackReviewCorrectionJournal(
+        state.portableReviewCorrections, verification.result, nextReviews,
+      );
+    }
+    state.portableReviews = nextReviews;
     state.portableReviewerLabel = state.portableReviewerLabel.trim();
     resetPortableReviewExchangeState();
+    resetPortableReviewCorrectionExchangeState();
+    state.portableReviewCorrectionMessage = null;
     state.portableReviewMessage = {
       status: "verified",
       title: `Private review ${review.sequence} appended`,
@@ -583,6 +698,7 @@ async function verifyPortableReviewExchange(serializedInput) {
     state.portableVerification = { status: "verified", result: result.proposalVerification };
     state.portableReviews = result.journal.reviews;
     state.portableReviewMessage = null;
+    resetPortableReviewCorrectionState({ keepReviewerLabel: true });
     state.portableReviewExchange = null;
     state.portableReviewExchangeImportText = importedText;
     state.portableReviewExchangeVerification = { status: "verified", result };
@@ -594,6 +710,101 @@ async function verifyPortableReviewExchange(serializedInput) {
     resetPortableReviewState({ keepReviewerLabel: true });
     state.portableReviewExchangeImportText = importedText;
     state.portableReviewExchangeVerification = { status: "invalid", message: error?.message || "Portable review packet validation failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function appendPortableReviewCorrection() {
+  const verification = state.portableVerification;
+  if (verification?.status !== "verified" || !dataAdapter?.appendPortableRunbackReviewCorrection) return false;
+  try {
+    const correction = await dataAdapter.appendPortableRunbackReviewCorrection(
+      verification.result,
+      state.portableReviews,
+      {
+        reviewerLabel: state.portableCorrectionReviewerLabel.trim(),
+        targetReviewDigest: state.portableCorrectionTargetDigest,
+        action: state.portableCorrectionAction,
+        correctedDecision: state.portableCorrectionAction === "correct_decision" ? state.portableCorrectionDecision : null,
+        reasonCode: state.portableCorrectionReason,
+      },
+      state.portableReviewCorrections,
+    );
+    state.portableReviewCorrections = [...state.portableReviewCorrections, correction];
+    state.portableCorrectionReviewerLabel = state.portableCorrectionReviewerLabel.trim();
+    resetPortableReviewCorrectionExchangeState();
+    state.portableReviewCorrectionMessage = {
+      status: "verified",
+      title: `Private correction ${correction.sequence} appended`,
+      detail: correction.action === "withdraw_review"
+        ? "The original review remains immutable and is now privately interpreted as withdrawn."
+        : correction.blueprintRevision
+          ? "The corrected acceptance created only a proposed, uncommitted correction revision. Qualification and execution remain disabled."
+          : "The original review remains immutable; only its current private interpretation changed.",
+    };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.portableReviewCorrectionMessage = {
+      status: "invalid",
+      title: "Private correction refused",
+      detail: error?.message || "The correction record failed strict local validation.",
+    };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function preparePortableReviewCorrectionExchange() {
+  const verification = state.portableVerification;
+  if (verification?.status !== "verified" || state.portableReviewCorrections.length === 0 || !dataAdapter?.createPortableRunbackReviewCorrectionExchange) return false;
+  try {
+    state.portableReviewCorrectionExchange = await dataAdapter.createPortableRunbackReviewCorrectionExchange(
+      state.portableImportText,
+      state.portableReviews,
+      state.portableReviewCorrections,
+    );
+    state.portableReviewCorrectionExchangeVerification = null;
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.portableReviewCorrectionExchange = null;
+    state.portableReviewCorrectionExchangeVerification = { status: "invalid", message: error?.message || "Portable correction packet preparation failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function verifyPortableReviewCorrectionExchange(serializedInput) {
+  const importedText = String(serializedInput || "").slice(0, dataAdapter?.PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH || 524288);
+  try {
+    const result = await dataAdapter.verifyPortableRunbackReviewCorrectionExchange(serializedInput);
+    state.runbackProposal = null;
+    state.portableRunback = null;
+    state.portableImportText = result.proposalSerialized;
+    state.portableVerification = { status: "verified", result: result.proposalVerification };
+    state.portableReviews = result.journal.reviews;
+    state.portableReviewMessage = null;
+    state.portableReviewExchange = null;
+    state.portableReviewExchangeImportText = result.reviewExchangeSerialized;
+    state.portableReviewExchangeVerification = null;
+    state.portableReviewCorrections = result.correctionJournal.corrections;
+    state.portableReviewCorrectionMessage = null;
+    state.portableReviewCorrectionExchange = null;
+    state.portableReviewCorrectionExchangeImportText = importedText;
+    state.portableReviewCorrectionExchangeVerification = { status: "verified", result };
+    ensurePortableCorrectionSelection();
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.runbackProposal = null;
+    state.portableRunback = null;
+    state.portableVerification = null;
+    state.portableImportText = "";
+    resetPortableReviewState({ keepReviewerLabel: true });
+    state.portableReviewCorrectionExchangeImportText = importedText;
+    state.portableReviewCorrectionExchangeVerification = { status: "invalid", message: error?.message || "Portable correction packet validation failed." };
     renderReceiptLearning();
     return false;
   }
@@ -794,6 +1005,14 @@ function bindEvents() {
         : "Private review refused. No proposal, blueprint, or authority changed.");
       return;
     }
+    if (event.target.closest("[data-portable-review-correction-submit]")) {
+      const appended = await appendPortableReviewCorrection();
+      $(appended ? `[data-portable-review-correction-record="${state.portableReviewCorrections.length}"]` : ".portable-review-correction .portable-review-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(appended
+        ? "Private correction appended. The original review remains immutable and no authority was granted."
+        : "Private correction refused. No review, blueprint, or authority changed.");
+      return;
+    }
     if (event.target.closest("[data-portable-review-exchange-prepare]")) {
       const prepared = await preparePortableReviewExchange();
       $(prepared ? "#portable-review-exchange-export" : ".portable-review-exchange-status.invalid")?.focus?.({ preventScroll: true });
@@ -809,6 +1028,23 @@ function bindEvents() {
       showToast(verified
         ? "Proposal, review chain, and packet digest verified locally. No blueprint was applied."
         : "Review packet refused. No proposal, review, blueprint, or authority was retained.");
+      return;
+    }
+    if (event.target.closest("[data-portable-review-correction-exchange-prepare]")) {
+      const prepared = await preparePortableReviewCorrectionExchange();
+      $(prepared ? "#portable-review-correction-exchange-export" : ".portable-review-correction-exchange-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(prepared
+        ? "Canonical correction packet prepared. Immutable reviews remain preserved and no authority was granted."
+        : "Correction packet preparation failed closed. Nothing was uploaded, rewritten, applied, or published.");
+      return;
+    }
+    if (event.target.closest("[data-portable-review-correction-exchange-verify]")) {
+      const input = $("#portable-review-correction-exchange-import");
+      const verified = await verifyPortableReviewCorrectionExchange(input?.value || "");
+      $(verified ? ".portable-review-correction-exchange-status.verified" : ".portable-review-correction-exchange-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Proposal, immutable reviews, correction history, and packet digest verified locally. Nothing was rewritten."
+        : "Correction packet refused. No proposal, review, correction, blueprint, or authority was retained.");
       return;
     }
     if (event.target.closest("[data-runback-blueprint]")) {
@@ -854,6 +1090,14 @@ function bindEvents() {
       state.portableReviewExchangeImportText = event.target.value.slice(0, dataAdapter?.PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH || 262144);
       state.portableReviewExchangeVerification = null;
     }
+    if (event.target.matches("#portable-correction-reviewer-label")) {
+      state.portableCorrectionReviewerLabel = event.target.value.slice(0, 36);
+      state.portableReviewCorrectionMessage = null;
+    }
+    if (event.target.matches("#portable-review-correction-exchange-import")) {
+      state.portableReviewCorrectionExchangeImportText = event.target.value.slice(0, dataAdapter?.PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH || 524288);
+      state.portableReviewCorrectionExchangeVerification = null;
+    }
   });
   document.addEventListener("change", (event) => {
     if (event.target.matches("[data-portable-review-decision]")) {
@@ -869,6 +1113,34 @@ function bindEvents() {
     if (event.target.matches("[data-portable-review-reason]")) {
       state.portableReviewReason = event.target.value;
       state.portableReviewMessage = null;
+      return;
+    }
+    if (event.target.matches("[data-portable-correction-target]")) {
+      state.portableCorrectionTargetDigest = event.target.value;
+      state.portableReviewCorrectionMessage = null;
+      ensurePortableCorrectionSelection();
+      renderReceiptLearning();
+      $("[data-portable-correction-target]")?.focus?.({ preventScroll: true });
+      return;
+    }
+    if (event.target.matches("[data-portable-correction-action]")) {
+      state.portableCorrectionAction = event.target.value;
+      const reasons = dataAdapter?.PORTABLE_REVIEW_CORRECTION_REASONS?.[state.portableCorrectionAction] || [];
+      state.portableCorrectionReason = reasons[0] || "";
+      state.portableReviewCorrectionMessage = null;
+      ensurePortableCorrectionSelection();
+      renderReceiptLearning();
+      $("[data-portable-correction-action]")?.focus?.({ preventScroll: true });
+      return;
+    }
+    if (event.target.matches("[data-portable-correction-decision]")) {
+      state.portableCorrectionDecision = event.target.value;
+      state.portableReviewCorrectionMessage = null;
+      return;
+    }
+    if (event.target.matches("[data-portable-correction-reason]")) {
+      state.portableCorrectionReason = event.target.value;
+      state.portableReviewCorrectionMessage = null;
     }
   });
 

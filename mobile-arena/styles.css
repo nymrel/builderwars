@@ -175,12 +175,16 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.035em; }
 .portable-review-empty { padding: 11px; display: grid; gap: 4px; border: 1px dashed var(--line); border-radius: 9px; }
 .portable-review-empty strong { font-size: 10px; }
 .portable-review-empty span { color: var(--muted); font-size: 9px; }
-.portable-review-journal { margin: 0; padding: 0; display: grid; gap: 8px; list-style: none; }
+.portable-review-journal, .portable-correction-journal { margin: 0; padding: 0; display: grid; gap: 8px; list-style: none; }
 .portable-review-record { min-width: 0; padding: 11px; display: grid; gap: 7px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
 .portable-review-record > div { display: grid; gap: 4px; }
 .portable-review-record strong { font-size: 10px; }
 .portable-review-record small, .portable-review-record > span { color: var(--muted); font-size: 9px; line-height: 1.45; }
 .portable-review-record code { overflow-wrap: anywhere; color: #b8c89f; font: 9px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.portable-review-effective { padding: 7px 8px; border-radius: 7px; background: var(--surface-2); }
+.portable-review-effective.corrected { color: var(--lime); border-left: 2px solid var(--lime); }
+.portable-review-correction { margin-top: 16px; }
+.portable-correction-record { border-left: 2px solid color-mix(in srgb, var(--lime) 55%, var(--line)); }
 .portable-review-exchange { min-width: 0; margin-top: 10px; padding-top: 18px; display: grid; gap: 12px; border-top: 1px solid var(--line); }
 .portable-review-exchange h4 { margin: 2px 0 0; font-size: 14px; }
 .portable-review-exchange > div > p:not(.eyebrow) { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }

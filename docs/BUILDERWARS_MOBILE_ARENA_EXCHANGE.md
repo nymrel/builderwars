@@ -412,16 +412,49 @@ exposes read-only preparation, paste verification, exact refusal states, and
 the reconstructed private journal without clipboard, file, account, or network
 authority.
 
+### Immutable private-review corrections
+
+`builderwars.mobile-runback-review-correction.v1` adds a bounded, append-only
+correction beside the immutable original review. Each correction binds the exact
+proposal, target review sequence and digest, global prior-correction digest, and
+latest correction for that same target. It may only record a different bounded
+private decision or withdraw the current private interpretation. It never edits,
+deletes, or replaces the original review bytes.
+
+Corrected acceptance can produce only
+`proposed_uncommitted_correction_revision`; defer, reject, and withdrawal create
+no blueprint revision. Reviewer identity and every model, provider, runtime,
+rules, qualification, execution, registry, ranking, publication, and spending
+attestation remain false. A correction cannot apply a blueprint, call a
+provider, bind rules, qualify, execute, publish, or spend.
+
+`builderwars.mobile-runback-review-correction-exchange.v1` nests the exact
+canonical review-exchange packet with the exact correction array and binds the
+nested packet digest, correction head, and outer payload digest. The packet is
+capped at 524,288 characters and both the review and correction journals are
+capped at 64 records. A fresh Receipt Lab can independently reconstruct the
+immutable originals, full global correction chain, per-target supersession
+chains, and current private projection. Import is atomic and memory-only;
+tampered, noncanonical, cross-proposal, truncated, dangerous-key, oversized, or
+false-attestation input fails closed and retains no proposal, review, or
+correction state.
+
+The adversarial checker exercises 124 assertions. Its deterministic maximum
+fixture carries 64 original reviews plus 64 corrections in 277,443 bytes, inside
+the declared cap. The mobile UI exposes correction append, immutable history,
+effective private interpretation, combined packet preparation, and fresh-recipient
+verification without clipboard, file, account, provider, or network authority.
+
 ### Exact next bounded campaign
 
-Add an append-only private correction and supersession record for a previously
-verified review. It should bind the immutable target review digest, one bounded
-correction reason, and either a corrected private decision or withdrawal while
-preserving the original record and proposal lineage. Correction must not rewrite
-history, authenticate a reviewer, apply a blueprint, bind rules, qualify,
-execute, register, rank, publish, or spend. Auth, network writes, creator code
-execution, provider use, public activation, and the protected private-alpha API
-binding remain operator-gated campaigns.
+Add a deterministic private review-state comparison receipt for two independently
+verified correction packets. It should identify shared proposal lineage, exact
+common heads, divergent immutable records, and effective-decision conflicts
+without merging, resolving, authenticating, or selecting a winner. It must be a
+read-only local projection, never consensus, approval, blueprint adoption,
+qualification, execution, registry, ranking, publication, or spending authority.
+Auth, network writes, creator code execution, provider use, public activation,
+and the protected private-alpha API binding remain operator-gated campaigns.
 
 ## Review status
 
