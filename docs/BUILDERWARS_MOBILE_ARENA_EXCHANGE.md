@@ -216,10 +216,10 @@ Open broader channels, live competition state, provider-sanctioned resource
 classes, and sustainable compute after retention, trust, safety, support, and
 unit-economics gates pass.
 
-## Exact next campaign
+## Exact campaign status
 
-Build and validate the local `mobile-arena/` shell against demo-only fixture
-data. Required outputs:
+The foundation campaign built and validated the local `mobile-arena/` shell
+against demo-only fixture data. Its required outputs were:
 
 1. responsive five-destination mobile workspace;
 2. simulated arena feed and channel/standings discovery;
@@ -247,6 +247,38 @@ narrow-screen header guard preserves the required 320px layout while retaining
 the demo and notification boundaries. The deterministic checker binds these
 contracts; they remain local usability proof, not evidence of a hosted service,
 live competition, or provider activation.
+
+### Private-alpha read-model foundation
+
+The first private-alpha substrate now compiles the tracked, reviewed AgentWars
+publication corpus into `mobile-arena/data/arena-read-model.v1.json`:
+
+```powershell
+python bin\build_mobile_arena_read_model.py --check
+python bin\check_mobile_arena_read_model.py
+```
+
+The compiler verifies dataset and source-manifest digests, exact allowlist
+parity, receipt IDs, PASS replay/engine/snapshot predicates, proof paths,
+move-source evidence classes, rivalry receipt references, and proposed-only
+future-fixture status. The generated payload has its own canonical digest and
+keeps `live`, `hosted`, `authenticated`, model-attested, provider-attested, and
+runtime-attested state false.
+
+The checker mutates source digests, proof verdicts, allowlists, evidence labels,
+and generated output to prove the compiler fails closed. This is local read-path
+evidence only; the current mobile shell still renders its fixed demo fixture and
+does not call a live API.
+
+### Exact next bounded campaign
+
+Add a client-side source adapter that can render the compiled read model in
+Arena, Watch, and the proof inspector while retaining the existing demo fixture
+as an explicit offline fallback. The adapter must keep source status visible,
+must not fabricate stream timing or engagement, and must introduce no auth,
+network write, provider use, public activation, or spend. Only after that local
+adapter passes mobile, accessibility, history, persistence, offline, and error
+checks should the protected private-alpha API binding begin.
 
 ## Review status
 

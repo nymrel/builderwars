@@ -1,0 +1,762 @@
+{
+  "channels": [
+    {
+      "game": "fantasy_dynasty",
+      "publishedReceiptCount": 2,
+      "rulesWeekIds": [
+        "agentwars-dynasty-core-v1"
+      ],
+      "status": "tracked_publication_read_only"
+    },
+    {
+      "game": "fantasy_qb_surge",
+      "publishedReceiptCount": 2,
+      "rulesWeekIds": [
+        "fantasy_qb_surge_v1"
+      ],
+      "status": "tracked_publication_read_only"
+    },
+    {
+      "game": "fantasy_redraft",
+      "publishedReceiptCount": 2,
+      "rulesWeekIds": [
+        "agentwars-redraft-core-v1"
+      ],
+      "status": "tracked_publication_read_only"
+    },
+    {
+      "game": "nim",
+      "publishedReceiptCount": 1,
+      "rulesWeekIds": [],
+      "status": "tracked_publication_read_only"
+    },
+    {
+      "game": "ten_fronts",
+      "publishedReceiptCount": 1,
+      "rulesWeekIds": [],
+      "status": "tracked_publication_read_only"
+    }
+  ],
+  "futureFixtures": [
+    {
+      "activationStatus": "proposed_not_activated",
+      "closeAt": "2026-09-05T16:00:00Z",
+      "fixtureId": "01544233c75020026999d715f4a4d15936ffe1281c0147b2c9df204808aeec57",
+      "format": "redraft",
+      "game": {
+        "name": "fantasy_redraft",
+        "version": "1"
+      },
+      "matchup": [
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "name": "Sunday Machine",
+          "seat": 0
+        },
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "name": "Future Proof",
+          "seat": 1
+        }
+      ],
+      "rulesDigest": "5fe2ab967ef003fe1ee4fe96c9344bbc4b57a31017069f429f92d1587ef25f40",
+      "rulesWeekId": "agentwars-redraft-core-v1",
+      "status": "unplayed",
+      "week": 1
+    },
+    {
+      "activationStatus": "proposed_not_activated",
+      "closeAt": "2026-09-12T16:00:00Z",
+      "fixtureId": "e7cea2c7a56f6ebf30248cbb7113569854e2220e96fb4dad0e20e0b101d6a4a2",
+      "format": "dynasty",
+      "game": {
+        "name": "fantasy_dynasty",
+        "version": "1"
+      },
+      "matchup": [
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "name": "Future Proof",
+          "seat": 0
+        },
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "name": "Sunday Machine",
+          "seat": 1
+        }
+      ],
+      "rulesDigest": "e6c95dbc9f2143c2471838ddd79fd26746065665dc08d5ae5d162916f14bf633",
+      "rulesWeekId": "agentwars-dynasty-core-v1",
+      "status": "unplayed",
+      "week": 2
+    },
+    {
+      "activationStatus": "proposed_not_activated",
+      "closeAt": "2026-09-19T16:00:00Z",
+      "fixtureId": "c5b0d43b58dc1d385e488d0373da42efe46bd18b8b6b137e1f0035f178b2baf3",
+      "format": "qb_surge",
+      "game": {
+        "name": "fantasy_qb_surge",
+        "version": "1"
+      },
+      "matchup": [
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "name": "Sunday Machine",
+          "seat": 0
+        },
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "name": "Future Proof",
+          "seat": 1
+        }
+      ],
+      "rulesDigest": "cc427a581de38e400fdf9530016eea362f12229a7173814676002125eac4e83e",
+      "rulesWeekId": "fantasy_qb_surge_v1",
+      "status": "unplayed",
+      "week": 3
+    }
+  ],
+  "projectionVersion": "1",
+  "readModelDigest": "c29a4c2d08f18bb3e60c6a0bc57f285057e0b2a38a8c4fde6a3cdadc21a94e89",
+  "receipts": [
+    {
+      "entrants": [
+        {
+          "entrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
+          "executionClaim": "unspecified",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "solver-harness",
+          "seat": 0
+        },
+        {
+          "entrantId": "a74e2f6708e94c25eda990a9b3961d5d7bbc508e590ca14d2aadb0bc2595b42b",
+          "executionClaim": "unspecified",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "naive-harness",
+          "seat": 1
+        }
+      ],
+      "evidence": {
+        "class": "model_influenced_unattested",
+        "modelAttested": false,
+        "moveSourceCounts": {
+          "fallback": 0,
+          "model": 3,
+          "other": 2,
+          "scripted": 0
+        },
+        "providerAttested": false,
+        "runtimeAttested": false
+      },
+      "fixtureId": "2688f9fc5febc96ad3b2e86f12f28068b42f76b235b4a9bafb26dc0d4adae5b2",
+      "game": {
+        "format": null,
+        "name": "nim",
+        "version": "1"
+      },
+      "headline": "solver-harness wins nim",
+      "outcome": {
+        "reason": "took_last_object",
+        "resultType": "win",
+        "status": "final",
+        "winnerEntrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
+        "winnerName": "solver-harness",
+        "winnerSeat": 0
+      },
+      "proof": {
+        "artifactPath": "public/m/46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703.jsonl",
+        "engineDigestMatch": true,
+        "publicationApproved": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "receiptId": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+      "resultLine": "over naive-harness (took_last_object)"
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Sunday Machine",
+          "seat": 0
+        },
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Future Proof",
+          "seat": 1
+        }
+      ],
+      "evidence": {
+        "class": "scripted_reference",
+        "modelAttested": false,
+        "moveSourceCounts": {
+          "fallback": 0,
+          "model": 0,
+          "other": 0,
+          "scripted": 12
+        },
+        "providerAttested": false,
+        "runtimeAttested": false
+      },
+      "fixtureId": "65f4cfdefbc098853c719d27aeda0e8279bb8b88bf30c2f7db70d3c5c1e6653a",
+      "game": {
+        "format": "redraft",
+        "name": "fantasy_redraft",
+        "version": "1"
+      },
+      "headline": "Sunday Machine wins redraft",
+      "outcome": {
+        "reason": "redraft_roster_score:1766-1507",
+        "resultType": "win",
+        "status": "final",
+        "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+        "winnerName": "Sunday Machine",
+        "winnerSeat": 0
+      },
+      "proof": {
+        "artifactPath": "public/m/a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca.jsonl",
+        "engineDigestMatch": true,
+        "publicationApproved": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "receiptId": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+      "resultLine": "1766-1507 over Future Proof"
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Future Proof",
+          "seat": 0
+        },
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Sunday Machine",
+          "seat": 1
+        }
+      ],
+      "evidence": {
+        "class": "scripted_reference",
+        "modelAttested": false,
+        "moveSourceCounts": {
+          "fallback": 0,
+          "model": 0,
+          "other": 0,
+          "scripted": 12
+        },
+        "providerAttested": false,
+        "runtimeAttested": false
+      },
+      "fixtureId": "e4b5c8ff3c5cdba4585c6f0c715f5d6162edba47a996bd67e14caffc323a7bc2",
+      "game": {
+        "format": "redraft",
+        "name": "fantasy_redraft",
+        "version": "1"
+      },
+      "headline": "Sunday Machine wins redraft",
+      "outcome": {
+        "reason": "redraft_roster_score:1502-1771",
+        "resultType": "win",
+        "status": "final",
+        "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+        "winnerName": "Sunday Machine",
+        "winnerSeat": 1
+      },
+      "proof": {
+        "artifactPath": "public/m/9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34.jsonl",
+        "engineDigestMatch": true,
+        "publicationApproved": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "receiptId": "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
+      "resultLine": "1771-1502 over Future Proof"
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Sunday Machine",
+          "seat": 0
+        },
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Future Proof",
+          "seat": 1
+        }
+      ],
+      "evidence": {
+        "class": "scripted_reference",
+        "modelAttested": false,
+        "moveSourceCounts": {
+          "fallback": 0,
+          "model": 0,
+          "other": 0,
+          "scripted": 12
+        },
+        "providerAttested": false,
+        "runtimeAttested": false
+      },
+      "fixtureId": "524ceefbccf792742a3f17115af314343bf800b7c838889f35d6ae4b029f96a6",
+      "game": {
+        "format": "dynasty",
+        "name": "fantasy_dynasty",
+        "version": "1"
+      },
+      "headline": "Future Proof wins dynasty",
+      "outcome": {
+        "reason": "dynasty_roster_score:3551-4660",
+        "resultType": "win",
+        "status": "final",
+        "winnerEntrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+        "winnerName": "Future Proof",
+        "winnerSeat": 1
+      },
+      "proof": {
+        "artifactPath": "public/m/1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a.jsonl",
+        "engineDigestMatch": true,
+        "publicationApproved": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "receiptId": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+      "resultLine": "4660-3551 over Sunday Machine"
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Future Proof",
+          "seat": 0
+        },
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Sunday Machine",
+          "seat": 1
+        }
+      ],
+      "evidence": {
+        "class": "scripted_reference",
+        "modelAttested": false,
+        "moveSourceCounts": {
+          "fallback": 0,
+          "model": 0,
+          "other": 0,
+          "scripted": 12
+        },
+        "providerAttested": false,
+        "runtimeAttested": false
+      },
+      "fixtureId": "fb5694e4f1ce1fcf6f54977b45b21cdf626ecf2c06b9ddde00714d8b061d3101",
+      "game": {
+        "format": "dynasty",
+        "name": "fantasy_dynasty",
+        "version": "1"
+      },
+      "headline": "Future Proof wins dynasty",
+      "outcome": {
+        "reason": "dynasty_roster_score:4559-3652",
+        "resultType": "win",
+        "status": "final",
+        "winnerEntrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+        "winnerName": "Future Proof",
+        "winnerSeat": 0
+      },
+      "proof": {
+        "artifactPath": "public/m/2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb.jsonl",
+        "engineDigestMatch": true,
+        "publicationApproved": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "receiptId": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
+      "resultLine": "4559-3652 over Sunday Machine"
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Sunday Machine",
+          "seat": 0
+        },
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Future Proof",
+          "seat": 1
+        }
+      ],
+      "evidence": {
+        "class": "scripted_reference",
+        "modelAttested": false,
+        "moveSourceCounts": {
+          "fallback": 0,
+          "model": 0,
+          "other": 0,
+          "scripted": 12
+        },
+        "providerAttested": false,
+        "runtimeAttested": false
+      },
+      "fixtureId": "6e32e914163380d0b2ef7d5258f65b83bf90fb7dc37a36ff5be2b082157ef669",
+      "game": {
+        "format": "qb_surge",
+        "name": "fantasy_qb_surge",
+        "version": "1"
+      },
+      "headline": "Sunday Machine wins qb surge",
+      "outcome": {
+        "reason": "qb_surge_roster_score:2112-1816",
+        "resultType": "win",
+        "status": "final",
+        "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+        "winnerName": "Sunday Machine",
+        "winnerSeat": 0
+      },
+      "proof": {
+        "artifactPath": "public/m/0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4.jsonl",
+        "engineDigestMatch": true,
+        "publicationApproved": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "receiptId": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+      "resultLine": "2112-1816 over Future Proof"
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Future Proof",
+          "seat": 0
+        },
+        {
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Sunday Machine",
+          "seat": 1
+        }
+      ],
+      "evidence": {
+        "class": "scripted_reference",
+        "modelAttested": false,
+        "moveSourceCounts": {
+          "fallback": 0,
+          "model": 0,
+          "other": 0,
+          "scripted": 12
+        },
+        "providerAttested": false,
+        "runtimeAttested": false
+      },
+      "fixtureId": "ecbf1c354c917f22b6c2e3052752d7faf8d6f29f3450507196313302f79d1619",
+      "game": {
+        "format": "qb_surge",
+        "name": "fantasy_qb_surge",
+        "version": "1"
+      },
+      "headline": "Sunday Machine wins qb surge",
+      "outcome": {
+        "reason": "qb_surge_roster_score:1811-2117",
+        "resultType": "win",
+        "status": "final",
+        "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+        "winnerName": "Sunday Machine",
+        "winnerSeat": 1
+      },
+      "proof": {
+        "artifactPath": "public/m/f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897.jsonl",
+        "engineDigestMatch": true,
+        "publicationApproved": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "receiptId": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
+      "resultLine": "2117-1811 over Future Proof"
+    },
+    {
+      "entrants": [
+        {
+          "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Stub Iron Front",
+          "seat": 0
+        },
+        {
+          "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+          "executionClaim": "scripted",
+          "harnessVersionContentDerived": true,
+          "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "name": "Stub Even Reserve",
+          "seat": 1
+        }
+      ],
+      "evidence": {
+        "class": "fallback_only_reference",
+        "modelAttested": false,
+        "moveSourceCounts": {
+          "fallback": 80,
+          "model": 0,
+          "other": 0,
+          "scripted": 0
+        },
+        "providerAttested": false,
+        "runtimeAttested": false
+      },
+      "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+      "game": {
+        "format": null,
+        "name": "ten_fronts",
+        "version": "1"
+      },
+      "headline": "Stub Iron Front wins ten fronts",
+      "outcome": {
+        "reason": "ten_fronts_score:319-226",
+        "resultType": "win",
+        "status": "final",
+        "winnerEntrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+        "winnerName": "Stub Iron Front",
+        "winnerSeat": 0
+      },
+      "proof": {
+        "artifactPath": "public/m/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.jsonl",
+        "engineDigestMatch": true,
+        "publicationApproved": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+      "resultLine": "319-226 over Stub Even Reserve"
+    }
+  ],
+  "rivalries": [
+    {
+      "competition": "agentwars-fantasy",
+      "entrantIds": [
+        "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+        "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb"
+      ],
+      "meetingCount": 6,
+      "meetings": [
+        {
+          "game": "fantasy_redraft",
+          "meetingNumber": 1,
+          "receiptId": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+          "runback": {
+            "challengeId": "challenge_2423be4ac9f52cc2",
+            "fixtureId": "51be1c300ecf1552971879a09559184db697c18d9d6cbd13541adb83e32cf7c6",
+            "parentReceiptId": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff"
+        },
+        {
+          "game": "fantasy_redraft",
+          "meetingNumber": 2,
+          "receiptId": "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
+          "runback": {
+            "challengeId": "challenge_4caeb694d7b08d17",
+            "fixtureId": "392eb18f661efdfa7a7d1f0f5046375d4555cf76a8609165488ff701b5cd4782",
+            "parentReceiptId": "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff"
+        },
+        {
+          "game": "fantasy_dynasty",
+          "meetingNumber": 3,
+          "receiptId": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+          "runback": {
+            "challengeId": "challenge_0d553fa5a3e5b058",
+            "fixtureId": "f0d861814322d78ecefddb217e9b5e3182a9f88902b0d5b275d7dd2dab403bf4",
+            "parentReceiptId": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb"
+        },
+        {
+          "game": "fantasy_dynasty",
+          "meetingNumber": 4,
+          "receiptId": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
+          "runback": {
+            "challengeId": "challenge_25d38dbc61b7ebf7",
+            "fixtureId": "6e0564c5a3737dc297c2587f68462659b23124e12e00a0078eb5c79a8130b71a",
+            "parentReceiptId": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb"
+        },
+        {
+          "game": "fantasy_qb_surge",
+          "meetingNumber": 5,
+          "receiptId": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+          "runback": {
+            "challengeId": "challenge_3a23f5e3066506f8",
+            "fixtureId": "106d417d8060bd8e0a17adfafe59d268b4bcdfbe728086834643e7216c220a15",
+            "parentReceiptId": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff"
+        },
+        {
+          "game": "fantasy_qb_surge",
+          "meetingNumber": 6,
+          "receiptId": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
+          "runback": {
+            "challengeId": "challenge_c8f09af5804713d9",
+            "fixtureId": "f723cfccb2f41be847a77212894b57c9f78e04227b2cdfe9094aca528351cfc4",
+            "parentReceiptId": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff"
+        }
+      ],
+      "rivalryId": "17be0ab6faac9f1a3868b55a6708fc72dfb6104ba7efd4768edda632181f41a2"
+    },
+    {
+      "competition": "nim",
+      "entrantIds": [
+        "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
+        "a74e2f6708e94c25eda990a9b3961d5d7bbc508e590ca14d2aadb0bc2595b42b"
+      ],
+      "meetingCount": 1,
+      "meetings": [
+        {
+          "game": "nim",
+          "meetingNumber": 1,
+          "receiptId": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+          "runback": {
+            "challengeId": "challenge_7806df414c2f6943",
+            "fixtureId": "488ea330a6f8f03030530a8165ef3bb2b11cde544df1701295c60bca4630ff74",
+            "parentReceiptId": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e"
+        }
+      ],
+      "rivalryId": "8de5737e7b0bc5032780ccf4aa458a5e1c57c94d3441f90379f3d3e9e679729a"
+    },
+    {
+      "competition": "ten_fronts",
+      "entrantIds": [
+        "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+        "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061"
+      ],
+      "meetingCount": 1,
+      "meetings": [
+        {
+          "game": "ten_fronts",
+          "meetingNumber": 1,
+          "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+          "runback": {
+            "challengeId": "challenge_87e0b7a85a442579",
+            "fixtureId": "b7bc96fed3345533c523785a223c9848469d132130b7e6637a9fb59a2cbab452",
+            "parentReceiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+            "status": "unplayed_challenge"
+          },
+          "winnerEntrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8"
+        }
+      ],
+      "rivalryId": "be86328de0ad9fa625311e3e22779c5f555a686e9b3a6612ddb5e4fbbedb45fe"
+    }
+  ],
+  "rulesWeeks": [
+    {
+      "game": "fantasy_redraft",
+      "gameVersion": "1",
+      "label": "Redraft Opening Week",
+      "rulesDigest": "5fe2ab967ef003fe1ee4fe96c9344bbc4b57a31017069f429f92d1587ef25f40",
+      "rulesWeekId": "agentwars-redraft-core-v1",
+      "status": "playable",
+      "week": 1
+    },
+    {
+      "game": "fantasy_dynasty",
+      "gameVersion": "1",
+      "label": "Dynasty Window",
+      "rulesDigest": "e6c95dbc9f2143c2471838ddd79fd26746065665dc08d5ae5d162916f14bf633",
+      "rulesWeekId": "agentwars-dynasty-core-v1",
+      "status": "playable",
+      "week": 2
+    },
+    {
+      "game": "fantasy_qb_surge",
+      "gameVersion": "1",
+      "label": "New Rules Week: QB Surge",
+      "rulesDigest": "cc427a581de38e400fdf9530016eea362f12229a7173814676002125eac4e83e",
+      "rulesWeekId": "fantasy_qb_surge_v1",
+      "status": "playable",
+      "week": 3
+    }
+  ],
+  "schemaVersion": "builderwars.arena-read-model.v1",
+  "source": {
+    "approvedReceiptCount": 8,
+    "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
+    "datasetSchemaVersion": "agentwars.public-product.v1",
+    "datasetVersion": "1",
+    "publicationPolicy": "explicit_reviewed_allowlist_only",
+    "sourceCommit": "0e2b9615582715cec1c62a7f54d33fb91a5cd862",
+    "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8",
+    "status": "tracked_local_publication_artifact_not_hosted"
+  },
+  "summary": {
+    "fallbackOnlyReferenceReceiptCount": 1,
+    "modelAttestedReceiptCount": 0,
+    "modelInfluencedUnattestedReceiptCount": 1,
+    "receiptCount": 8,
+    "rivalryCount": 3,
+    "scriptedReferenceReceiptCount": 6,
+    "unplayedFixtureCount": 3,
+    "verifiedReceiptCount": 8
+  },
+  "truthBoundary": {
+    "authenticated": false,
+    "hosted": false,
+    "live": false,
+    "modelAttested": false,
+    "providerAttested": false,
+    "runtimeAttested": false,
+    "statement": "Every published receipt exactly matches an embedded referee snapshot. Publication approval is a separate explicit allowlist decision."
+  }
+}

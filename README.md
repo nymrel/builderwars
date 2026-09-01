@@ -27,8 +27,24 @@ python -m http.server 4173 --directory mobile-arena
 python bin\check_mobile_arena_exchange.py
 ```
 
+The companion Arena read model is compiled from the tracked, reviewed
+AgentWars publication artifact. It is deterministic and fail-closed: the build
+rejects digest, allowlist, replay, verifier, evidence-label, and generated-file
+drift before any result can enter a client read path.
+
+```powershell
+python bin\build_mobile_arena_read_model.py --check
+python bin\check_mobile_arena_read_model.py
+```
+
+`mobile-arena/data/arena-read-model.v1.json` is a local read contract, not a
+live or authenticated feed. Its explicit truth boundary keeps model, provider,
+runtime, hosting, and activation claims false until separately proven.
+
 Product direction and explicit non-goals:
 [`docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md`](docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md).
+Current category research and long-term evidence gates:
+[`docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md`](docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md).
 
 ---
 
