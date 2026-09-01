@@ -22,6 +22,7 @@
   const PRIVATE_BLUEPRINT_DELTA_REVIEW_SCHEMA = "builderwars.mobile-private-inspection-blueprint-delta-review.v1";
   const PRIVATE_BLUEPRINT_REVISION_DRAFT_SCHEMA = "builderwars.mobile-private-blueprint-revision-draft.v1";
   const PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-revision-draft-review.v1";
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_SCHEMA = "builderwars.mobile-private-blueprint-guard-completion-proposal.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
@@ -36,6 +37,7 @@
   const PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH = 3145728;
   const PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH = 4194304;
   const PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH = 5242880;
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH = 6291456;
   const SAFE_JSON_NODE_LIMIT = 16384;
   const PORTABLE_REVIEW_COMPARISON_NODE_LIMIT = 49152;
   const PRIVATE_REVIEW_LEARNING_NODE_LIMIT = 65536;
@@ -43,6 +45,7 @@
   const PRIVATE_BLUEPRINT_DELTA_REVIEW_NODE_LIMIT = 81920;
   const PRIVATE_BLUEPRINT_REVISION_DRAFT_NODE_LIMIT = 102400;
   const PRIVATE_BLUEPRINT_DRAFT_REVIEW_NODE_LIMIT = 131072;
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_NODE_LIMIT = 163840;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -65,6 +68,7 @@
   const PRIVATE_BLUEPRINT_DELTA_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one private inspection-to-blueprint guard proposal and records exactly one immutable private local review. An accept-for-revision decision may create only a proposed uncommitted local revision candidate; it does not adopt the guard, edit the parent proposal, declare correctness, create consensus, grant approval or progress, authenticate identity, merge or resolve histories, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.";
   const PRIVATE_BLUEPRINT_REVISION_DRAFT_BOUNDARY = "This canonical receipt independently reverifies one accepted private guard-proposal review and derives exactly one versioned local blueprint-revision draft. The draft copies the bound parent blueprint identity and applies only the exact reviewed allowlisted guard while preserving every other guard as carried or unknown. It remains uncommitted, unadopted, unqualified, unplayed, unexecuted, and unpublished; it cannot authenticate identity, declare correctness, create consensus, grant approval or progress, mutate the parent, bind rules, activate a fixture, execute, register, rank, publish, spend, or call a provider.";
   const PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one versioned local blueprint-revision draft and records exactly one immutable private local review. Accept-for-commit-candidate may derive only an uncommitted, unadopted local candidate. Explicit unknown guard values remain unknown and force commit readiness blocked; no decision authenticates identity, declares correctness, creates consensus, grants approval or progress, mutates the draft or parent, binds rules, qualifies, plays, executes, registers, ranks, publishes, spends, or calls a provider.";
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY = "This canonical proposal independently reverifies one accepted private blueprint-draft review candidate and supplies boolean values only for that candidate's exact explicitly unknown guard keys. Every supplied value carries bounded local identity-unattested provenance. The proposal preserves all known and applied guard values and remains uncommitted, unadopted, not commit-ready, unqualified, unplayed, unexecuted, unregistered, and unpublished; it cannot attest provenance or identity, declare correctness, create consensus, grant approval or progress, mutate source lineage, bind rules, execute, spend, or call a provider.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
@@ -156,6 +160,30 @@
     "unknown_guard_values_block_commit_readiness",
     "local_commit_candidate_not_committed",
     "local_commit_candidate_not_adopted",
+    "operator_commit_review_not_attested",
+    "explicit_rules_digest_not_bound",
+    "qualification_not_run",
+    "fixture_not_activated",
+    "sanctioned_runner_not_bound",
+    "registry_not_requested",
+    "publication_not_requested",
+  ]);
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REASONS = Object.freeze([
+    "complete_explicit_unknown_guards",
+    "declare_fixture_specific_safety_posture",
+    "record_private_guard_requirement",
+  ]);
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_PROVENANCE_CODES = Object.freeze([
+    "local_reviewer_declared",
+    "fixture_specific_requirement",
+    "private_evidence_reviewed_locally",
+  ]);
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_BLOCKERS = Object.freeze([
+    "reviewer_identity_unattested",
+    "guard_value_provenance_unattested",
+    "guard_completion_not_reviewed_for_commit",
+    "local_guard_completion_not_committed",
+    "local_guard_completion_not_adopted",
     "operator_commit_review_not_attested",
     "explicit_rules_digest_not_bound",
     "qualification_not_run",
@@ -2265,6 +2293,240 @@
     };
   }
 
+  function privateBlueprintGuardCompletionBinding(draftReviewVerification) {
+    const review = draftReviewVerification.review;
+    const candidate = review.localCommitCandidate;
+    return {
+      draftReviewPacketDigest: draftReviewVerification.packetDigest,
+      draftReviewDigest: review.reviewDigest,
+      commitCandidateDigest: candidate.candidateDigest,
+      commitCandidateKey: candidate.candidateKey,
+      draftPacketDigest: review.draftBinding.draftPacketDigest,
+      draftDigest: review.draftBinding.draftDigest,
+      acceptedReviewPacketDigest: review.draftBinding.acceptedReviewPacketDigest,
+      acceptedReviewDigest: review.draftBinding.acceptedReviewDigest,
+      guardProposalPacketDigest: review.draftBinding.guardProposalPacketDigest,
+      parentProposalPayloadDigest: review.draftBinding.parentProposalPayloadDigest,
+      selectedReviewDigest: review.draftBinding.selectedReviewDigest,
+      appliedGuardId: review.draftBinding.appliedGuardId,
+    };
+  }
+
+  function privateBlueprintGuardDefinition(guardKey) {
+    return RUNBACK_DELTAS.find((guard) => guard.guardKey === guardKey) || null;
+  }
+
+  async function buildPortablePrivateBlueprintGuardCompletionRecord(draftReviewVerification, completionInput) {
+    requireValue(
+      isObject(draftReviewVerification)
+        && draftReviewVerification.schemaVersion === PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA
+        && draftReviewVerification.verificationStatus === "verified_private_local_blueprint_revision_draft_review",
+      "unsafe private blueprint guard completion: verified draft review required",
+    );
+    const review = draftReviewVerification.review;
+    requireValue(
+      review.decision === "accept_for_commit_candidate"
+        && isObject(review.localCommitCandidate)
+        && review.localCommitCandidate.status === "proposed_uncommitted_local_blueprint_commit_candidate",
+      "unsafe private blueprint guard completion: accepted draft review required",
+    );
+    const candidate = review.localCommitCandidate;
+    requireValue(candidate.commitReady === false && candidate.committed === false && candidate.adopted === false, "unsafe private blueprint guard completion: source candidate state drift");
+    requireValue(Array.isArray(candidate.unknownGuardKeys) && candidate.unknownGuardKeys.length > 0, "unsafe private blueprint guard completion: explicit unknown guard keys required");
+    assertSafeKeys(completionInput, "private blueprint guard completion input");
+    requireExactKeys(completionInput, ["reviewerLabel", "reasonCode", "guardCompletions"], "private blueprint guard completion input");
+    requireValue(
+      typeof completionInput.reviewerLabel === "string"
+        && completionInput.reviewerLabel.trim() === completionInput.reviewerLabel
+        && completionInput.reviewerLabel.length > 0
+        && completionInput.reviewerLabel.length <= 36,
+      "unsafe private blueprint guard completion: reviewer label drift",
+    );
+    requireValue(PRIVATE_BLUEPRINT_GUARD_COMPLETION_REASONS.includes(completionInput.reasonCode), "unsafe private blueprint guard completion: reason drift");
+    requireValue(Array.isArray(completionInput.guardCompletions), "unsafe private blueprint guard completion: guard completions drift");
+    requireValue(completionInput.guardCompletions.length === candidate.unknownGuardKeys.length, "unsafe private blueprint guard completion: exact unknown guard set required");
+
+    const guardCompletions = completionInput.guardCompletions.map((completion, index) => {
+      assertSafeKeys(completion, "private blueprint guard completion entry");
+      requireExactKeys(completion, ["guardKey", "value", "provenanceCode"], "private blueprint guard completion entry");
+      const expectedGuardKey = candidate.unknownGuardKeys[index];
+      requireValue(completion.guardKey === expectedGuardKey, "unsafe private blueprint guard completion: exact unknown guard order required");
+      const guard = privateBlueprintGuardDefinition(completion.guardKey);
+      requireValue(guard !== null && candidate.blueprint.guardValues[completion.guardKey] === null, "unsafe private blueprint guard completion: unknown guard binding drift");
+      requireValue(typeof completion.value === "boolean", "unsafe private blueprint guard completion: boolean guard value required");
+      requireValue(PRIVATE_BLUEPRINT_GUARD_COMPLETION_PROVENANCE_CODES.includes(completion.provenanceCode), "unsafe private blueprint guard completion: provenance code drift");
+      return {
+        guardKey: completion.guardKey,
+        label: guard.label,
+        value: completion.value,
+        provenance: {
+          code: completion.provenanceCode,
+          reviewerLabel: completionInput.reviewerLabel,
+          identityAttested: false,
+          localOnly: true,
+        },
+      };
+    });
+
+    const completedBlueprint = clone(candidate.blueprint);
+    for (const completion of guardCompletions) completedBlueprint.guardValues[completion.guardKey] = completion.value;
+    const parentBinding = privateBlueprintGuardCompletionBinding(draftReviewVerification);
+    const record = {
+      proposalStatus: "proposed_uncommitted_local_blueprint_guard_completion",
+      proposalKey: [
+        "private-blueprint-guard-completion-v1",
+        parentBinding.draftReviewPacketDigest,
+        parentBinding.commitCandidateDigest,
+        ...guardCompletions.map((completion) => `${encodeURIComponent(completion.guardKey)}=${completion.value}`),
+      ].join(":"),
+      reasonCode: completionInput.reasonCode,
+      reviewer: {
+        label: completionInput.reviewerLabel,
+        identityAttested: false,
+        localOnly: true,
+      },
+      parentBinding,
+      sourceBlueprint: clone(candidate.blueprint),
+      guardCompletions,
+      completedBlueprint,
+      remainingUnknownGuardKeys: [],
+      guardCompletionStatus: "proposed_complete_guard_values",
+      completionReviewStatus: "not_run",
+      state: {
+        localOnly: true,
+        committed: false,
+        adopted: false,
+        commitReady: false,
+        commitReadinessStatus: "requires_guard_completion_review",
+        qualificationStatus: "not_run",
+        played: false,
+        executionStatus: "disabled",
+        registryStatus: "not_requested",
+        publicationStatus: "not_requested",
+      },
+      blockers: clone(PRIVATE_BLUEPRINT_GUARD_COMPLETION_BLOCKERS),
+      authority: privateBlueprintDeltaAuthority(),
+      boundary: PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY,
+    };
+    const completionDigest = await sha256Hex(canonicalJSON(record));
+    return { ...record, completionDigest };
+  }
+
+  async function createPortablePrivateBlueprintGuardCompletion(serializedDraftReviewInput, completionInput) {
+    const draftReviewVerification = await verifyPortablePrivateBlueprintDraftReview(serializedDraftReviewInput);
+    const completionProposal = await buildPortablePrivateBlueprintGuardCompletionRecord(draftReviewVerification, completionInput);
+    const binding = completionProposal.parentBinding;
+    const payload = {
+      acceptedDraftReviewReceipt: JSON.parse(serializedDraftReviewInput),
+      completionProposal,
+    };
+    const payloadDigest = await sha256Hex(canonicalJSON(payload));
+    const packet = {
+      schemaVersion: PRIVATE_BLUEPRINT_GUARD_COMPLETION_SCHEMA,
+      proposalVersion: 1,
+      payload,
+      integrity: {
+        algorithm: "sha256",
+        payloadDigest,
+        draftReviewPacketDigest: binding.draftReviewPacketDigest,
+        draftReviewDigest: binding.draftReviewDigest,
+        commitCandidateDigest: binding.commitCandidateDigest,
+        draftPacketDigest: binding.draftPacketDigest,
+        draftDigest: binding.draftDigest,
+        acceptedReviewPacketDigest: binding.acceptedReviewPacketDigest,
+        acceptedReviewDigest: binding.acceptedReviewDigest,
+        guardProposalPacketDigest: binding.guardProposalPacketDigest,
+        parentProposalPayloadDigest: binding.parentProposalPayloadDigest,
+        selectedReviewDigest: binding.selectedReviewDigest,
+        completionDigest: completionProposal.completionDigest,
+      },
+      boundary: PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY,
+    };
+    const serialized = canonicalJSON(packet);
+    requireValue(serialized.length <= PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH, "unsafe private blueprint guard completion: packet length rejected");
+    return { packet: clone(packet), serialized };
+  }
+
+  async function verifyPortablePrivateBlueprintGuardCompletion(serializedInput) {
+    requireValue(
+      typeof serializedInput === "string"
+        && serializedInput.length > 0
+        && serializedInput.length <= PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH,
+      "unsafe private blueprint guard completion: input length rejected",
+    );
+    let packet;
+    try {
+      packet = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe private blueprint guard completion: invalid JSON");
+    }
+    assertSafeKeys(packet, "private blueprint guard completion", 0, { nodes: 0 }, PRIVATE_BLUEPRINT_GUARD_COMPLETION_NODE_LIMIT);
+    requireExactKeys(packet, ["schemaVersion", "proposalVersion", "payload", "integrity", "boundary"], "private blueprint guard completion");
+    requireValue(packet.schemaVersion === PRIVATE_BLUEPRINT_GUARD_COMPLETION_SCHEMA && packet.proposalVersion === 1, "unsafe private blueprint guard completion: schema drift");
+    requireValue(packet.boundary === PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY, "unsafe private blueprint guard completion: boundary drift");
+    requireValue(serializedInput === canonicalJSON(packet), "unsafe private blueprint guard completion: packet must use canonical JSON");
+    requireExactKeys(packet.payload, ["acceptedDraftReviewReceipt", "completionProposal"], "private blueprint guard completion payload");
+    requireExactKeys(packet.integrity, [
+      "algorithm", "payloadDigest", "draftReviewPacketDigest", "draftReviewDigest", "commitCandidateDigest",
+      "draftPacketDigest", "draftDigest", "acceptedReviewPacketDigest", "acceptedReviewDigest",
+      "guardProposalPacketDigest", "parentProposalPayloadDigest", "selectedReviewDigest", "completionDigest",
+    ], "private blueprint guard completion integrity");
+    requireValue(packet.integrity.algorithm === "sha256", "unsafe private blueprint guard completion: integrity algorithm drift");
+    for (const key of [
+      "payloadDigest", "draftReviewPacketDigest", "draftReviewDigest", "commitCandidateDigest", "draftPacketDigest",
+      "draftDigest", "acceptedReviewPacketDigest", "acceptedReviewDigest", "guardProposalPacketDigest",
+      "parentProposalPayloadDigest", "selectedReviewDigest", "completionDigest",
+    ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint guard completion: ${key} drift`);
+
+    const completionProposal = packet.payload.completionProposal;
+    requireValue(isObject(completionProposal), "unsafe private blueprint guard completion: proposal record drift");
+    requireExactKeys(completionProposal, [
+      "proposalStatus", "proposalKey", "reasonCode", "reviewer", "parentBinding", "sourceBlueprint",
+      "guardCompletions", "completedBlueprint", "remainingUnknownGuardKeys", "guardCompletionStatus",
+      "completionReviewStatus", "state", "blockers", "authority", "boundary", "completionDigest",
+    ], "private blueprint guard completion proposal");
+    requireValue(isObject(completionProposal.reviewer), "unsafe private blueprint guard completion: reviewer drift");
+    requireExactKeys(completionProposal.reviewer, ["label", "identityAttested", "localOnly"], "private blueprint guard completion reviewer");
+    requireValue(Array.isArray(completionProposal.guardCompletions), "unsafe private blueprint guard completion: guard completions drift");
+    const draftReviewSerialized = canonicalJSON(packet.payload.acceptedDraftReviewReceipt);
+    const draftReviewVerification = await verifyPortablePrivateBlueprintDraftReview(draftReviewSerialized);
+    const expectedCompletion = await buildPortablePrivateBlueprintGuardCompletionRecord(draftReviewVerification, {
+      reviewerLabel: completionProposal.reviewer.label,
+      reasonCode: completionProposal.reasonCode,
+      guardCompletions: completionProposal.guardCompletions.map((completion) => ({
+        guardKey: completion.guardKey,
+        value: completion.value,
+        provenanceCode: completion.provenance?.code,
+      })),
+    });
+    requireValue(canonicalJSON(completionProposal) === canonicalJSON(expectedCompletion), "unsafe private blueprint guard completion: proposal projection mismatch");
+    const binding = expectedCompletion.parentBinding;
+    for (const [integrityKey, bindingKey, message] of [
+      ["draftReviewPacketDigest", "draftReviewPacketDigest", "draft review packet digest binding mismatch"],
+      ["draftReviewDigest", "draftReviewDigest", "draft review digest binding mismatch"],
+      ["commitCandidateDigest", "commitCandidateDigest", "commit candidate digest binding mismatch"],
+      ["draftPacketDigest", "draftPacketDigest", "draft packet digest binding mismatch"],
+      ["draftDigest", "draftDigest", "draft digest binding mismatch"],
+      ["acceptedReviewPacketDigest", "acceptedReviewPacketDigest", "accepted review packet digest binding mismatch"],
+      ["acceptedReviewDigest", "acceptedReviewDigest", "accepted review digest binding mismatch"],
+      ["guardProposalPacketDigest", "guardProposalPacketDigest", "guard proposal packet digest binding mismatch"],
+      ["parentProposalPayloadDigest", "parentProposalPayloadDigest", "parent proposal digest binding mismatch"],
+      ["selectedReviewDigest", "selectedReviewDigest", "selected review digest binding mismatch"],
+    ]) requireValue(equalHex(binding[bindingKey], packet.integrity[integrityKey]), `unsafe private blueprint guard completion: ${message}`);
+    requireValue(equalHex(expectedCompletion.completionDigest, packet.integrity.completionDigest), "unsafe private blueprint guard completion: completion digest binding mismatch");
+    const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
+    requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe private blueprint guard completion: payload digest mismatch");
+    return {
+      schemaVersion: PRIVATE_BLUEPRINT_GUARD_COMPLETION_SCHEMA,
+      verificationStatus: "verified_private_local_blueprint_guard_completion_proposal",
+      packetDigest: computedPayloadDigest,
+      draftReviewSerialized,
+      draftReviewVerification,
+      completionProposal: clone(expectedCompletion),
+      boundary: PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY,
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -2411,6 +2673,10 @@
     PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH,
     PRIVATE_BLUEPRINT_DELTA_REVIEW_REASONS,
     PRIVATE_BLUEPRINT_DELTA_REVIEW_SCHEMA,
+    PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH,
+    PRIVATE_BLUEPRINT_GUARD_COMPLETION_PROVENANCE_CODES,
+    PRIVATE_BLUEPRINT_GUARD_COMPLETION_REASONS,
+    PRIVATE_BLUEPRINT_GUARD_COMPLETION_SCHEMA,
     PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH,
     PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASONS,
     PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA,
@@ -2437,6 +2703,7 @@
     buildRunbackProposal,
     createPortablePrivateBlueprintDelta,
     createPortablePrivateBlueprintDeltaReview,
+    createPortablePrivateBlueprintGuardCompletion,
     createPortablePrivateBlueprintDraftReview,
     createPortablePrivateBlueprintRevisionDraft,
     createPortablePrivateReviewComparison,
@@ -2456,6 +2723,7 @@
     verifyPortableRunbackReviewJournal,
     verifyPortablePrivateBlueprintDelta,
     verifyPortablePrivateBlueprintDeltaReview,
+    verifyPortablePrivateBlueprintGuardCompletion,
     verifyPortablePrivateBlueprintDraftReview,
     verifyPortablePrivateBlueprintRevisionDraft,
     verifyPortablePrivateReviewComparison,

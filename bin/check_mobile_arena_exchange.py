@@ -175,7 +175,16 @@ def main() -> int:
     require("accept_for_commit_candidate" in adapter and "required_guard_values_unknown" in adapter and "guard_change_not_approved" in adapter, "private blueprint draft-review decisions or reasons missing")
     require("blocked_unknown_guard_values" in adapter and "Unknown guard values remain explicit and block commit readiness" in js, "private blueprint draft-review unknown-guard readiness boundary missing")
     require("commitReady: false" in adapter and "Review the draft. Commit nothing." in js, "private blueprint draft-review commit boundary missing")
-    checks += 88
+    require("createPortablePrivateBlueprintGuardCompletion" in adapter and "verifyPortablePrivateBlueprintGuardCompletion" in adapter, "private blueprint guard-completion verifier missing")
+    require('PRIVATE_BLUEPRINT_GUARD_COMPLETION_SCHEMA = "builderwars.mobile-private-blueprint-guard-completion-proposal.v1"' in adapter, "private blueprint guard-completion schema drift")
+    require("PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH = 6291456" in adapter and 'maxlength="6291456"' in js, "private blueprint guard-completion length boundary missing")
+    require("data-private-blueprint-guard-completion-create" in js and "data-private-blueprint-guard-completion-verify" in js, "private blueprint guard-completion controls missing")
+    require("complete_explicit_unknown_guards" in adapter and "fixture_specific_requirement" in adapter and "private_evidence_reviewed_locally" in adapter, "private blueprint guard-completion reasons or provenance missing")
+    require("exact unknown guard set required" in adapter and "Complete exactly the candidate's unknown guard set" in js, "private blueprint guard-completion exact-set boundary missing")
+    require("boolean guard value required" in adapter and "Choose true or false" in js, "private blueprint guard-completion boolean boundary missing")
+    require("preserves all known and applied guard values" in adapter and "Known and applied guards cannot change" in js, "private blueprint guard-completion preservation boundary missing")
+    require("requires_guard_completion_review" in adapter and "review still required" in js and "not commit-ready" in js, "private blueprint guard-completion readiness boundary missing")
+    checks += 97
 
     print("[5] accessibility, offline, and reduced-motion contracts")
     for marker in (
@@ -228,12 +237,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=21", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=22", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=21",
-        "./styles.css?v=21",
-        "./data-adapter.js?v=21",
-        "./app.js?v=21",
+        "./index.html?v=22",
+        "./styles.css?v=22",
+        "./data-adapter.js?v=22",
+        "./app.js?v=22",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -242,7 +251,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=21"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=22"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -428,6 +437,20 @@ def main() -> int:
     )
     require(private_blueprint_draft_review_check.returncode == 0, f"private blueprint draft-review regression failed: {private_blueprint_draft_review_check.stderr.strip()}")
     require("PASS" in private_blueprint_draft_review_check.stdout, "private blueprint draft-review regression did not report PASS")
+    checks += 2
+
+    private_blueprint_guard_completion_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_private_blueprint_guard_completion.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    require(private_blueprint_guard_completion_check.returncode == 0, f"private blueprint guard-completion regression failed: {private_blueprint_guard_completion_check.stderr.strip()}")
+    require("PASS" in private_blueprint_guard_completion_check.stdout, "private blueprint guard-completion regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

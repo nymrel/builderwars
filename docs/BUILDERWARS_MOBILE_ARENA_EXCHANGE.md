@@ -626,17 +626,44 @@ unknown-guard readiness blocking, full ancestry reconstruction, all-false
 authority, nested and resealed tampering, dangerous keys, excessive depth or
 nodes, and oversized input.
 
+### Deterministic private guard-completion proposal
+
+`builderwars.mobile-private-blueprint-guard-completion-proposal.v1` embeds one
+canonical accepted blueprint-draft review and accepts only the exact explicitly
+unknown guard keys from its uncommitted local candidate. Every key must appear
+once, in deterministic order, with an explicit boolean and one bounded local
+provenance code. Missing, extra, duplicated, reordered, non-boolean, or
+non-allowlisted values fail closed. Known and already-applied guard values are
+copied exactly and cannot change.
+
+The proposal keeps reviewer identity and value provenance unattested. It carries
+the complete verified ancestry and remains `localOnly: true`, `committed: false`,
+`adopted: false`, `commitReady: false`, and
+`commitReadinessStatus: requires_guard_completion_review`. Qualification remains
+`not_run`; execution stays `disabled`; registry and publication remain
+`not_requested`; every authority flag is false. Completing explicit values does
+not constitute review, readiness, commitment, adoption, qualification, play,
+execution, registration, ranking, publication, spending, or provider access.
+
+Canonical import is atomic and memory-only. The dedicated checker exercises 227
+adversarial assertions covering all reason, provenance, and boolean combinations;
+exact unknown-key closure; known-guard preservation; canonical determinism; full
+ancestry reconstruction; all-false authority; nested and resealed tampering;
+dangerous keys; excessive depth or nodes; and oversized input. The integrated
+mobile checker runs 226 checks across this contract and every preceding Arena
+Exchange layer.
+
 ### Exact next bounded campaign
 
-Add a deterministic private guard-completion proposal that accepts only one
-verified accepted blueprint-draft review candidate. It may supply boolean values
-only for that candidate's exact explicitly unknown guard keys, with one bounded
-reason and one identity-unattested local provenance record per key. It must not
-change known or applied guard values, remove source lineage, or infer a missing
-value. The result remains an uncommitted, unadopted proposal with qualification,
-execution, registry, and publication disabled pending a later immutable review.
-Auth, network writes, creator code execution, provider use, public activation,
-and the protected private-alpha API binding remain operator-gated campaigns.
+Add one deterministic immutable private review for an exact verified
+guard-completion proposal. The bounded decisions should be
+`accept_for_commit_review`, `defer`, or `reject`; only acceptance may derive a
+locally reviewed candidate for a later operator commit decision. Even acceptance
+must remain uncommitted, unadopted, unqualified, unplayed, unexecuted,
+unregistered, unpublished, and `commitReady: false`, with reviewer identity and
+guard-value provenance unattested. Auth, network writes, creator code execution,
+provider use, operator commit approval, public activation, and the protected
+private-alpha API binding remain separate operator-gated campaigns.
 
 ## Review status
 
