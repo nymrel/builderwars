@@ -38,6 +38,9 @@ const state = {
   privateReviewLearningReceipt: null,
   privateReviewLearningImportText: "",
   privateReviewLearningVerification: null,
+  privateBlueprintDeltaReceipt: null,
+  privateBlueprintDeltaImportText: "",
+  privateBlueprintDeltaVerification: null,
   lastFocus: null,
 };
 
@@ -234,10 +237,17 @@ function resetPortableReviewCorrectionExchangeState({ keepImportText = false } =
   state.portableReviewCorrectionExchangeVerification = null;
 }
 
+function resetPrivateBlueprintDeltaState({ keepImportText = false } = {}) {
+  state.privateBlueprintDeltaReceipt = null;
+  if (!keepImportText) state.privateBlueprintDeltaImportText = "";
+  state.privateBlueprintDeltaVerification = null;
+}
+
 function resetPrivateReviewLearningState({ keepImportText = false } = {}) {
   state.privateReviewLearningReceipt = null;
   if (!keepImportText) state.privateReviewLearningImportText = "";
   state.privateReviewLearningVerification = null;
+  resetPrivateBlueprintDeltaState();
 }
 
 function resetPortableReviewCorrectionState({ keepReviewerLabel = false } = {}) {
@@ -425,7 +435,7 @@ function privateReviewLearningEntriesMarkup() {
     const value = side.effectiveDecision === null ? "Withdrawn" : PORTABLE_REVIEW_DECISION_LABELS[side.effectiveDecision] || side.effectiveDecision;
     return `${value} · ${side.latestCorrectionDigest ? `correction ${side.latestCorrectionDigest.slice(0, 12)}…` : "original state"}`;
   };
-  return `<ol class="portable-comparison-list private-review-learning-list" aria-label="Digest-bound private comparison inspection lessons">${visibleLessons.map((entry) => `<li class="portable-comparison-record private-review-learning-record"><div><span class="mode-label">${escapeHTML(entry.lessonLabel)}</span><strong>${escapeHTML(entry.classification.replaceAll("_", " "))}</strong><code>${escapeHTML(entry.reviewDigest)}</code><small>${escapeHTML(entry.inspectionGuidance)}</small></div><div class="portable-comparison-sides"><span><strong>Packet A</strong>${escapeHTML(decision(entry.left))}</span><span><strong>Packet B</strong>${escapeHTML(decision(entry.right))}</span></div></li>`).join("")}</ol>${lessons.length > visibleLessons.length ? `<p class="portable-digest">${lessons.length - visibleLessons.length} additional inspection lessons remain inside the verified receipt.</p>` : ""}`;
+  return `<ol class="portable-comparison-list private-review-learning-list" aria-label="Digest-bound private comparison inspection lessons">${visibleLessons.map((entry) => `<li class="portable-comparison-record private-review-learning-record"><div><span class="mode-label">${escapeHTML(entry.lessonLabel)}</span><strong>${escapeHTML(entry.classification.replaceAll("_", " "))}</strong><code>${escapeHTML(entry.reviewDigest)}</code><small>${escapeHTML(entry.inspectionGuidance)}</small><button class="secondary-button" type="button" data-private-blueprint-delta-create="${escapeHTML(entry.reviewDigest)}">Propose guard requirement</button></div><div class="portable-comparison-sides"><span><strong>Packet A</strong>${escapeHTML(decision(entry.left))}</span><span><strong>Packet B</strong>${escapeHTML(decision(entry.right))}</span></div></li>`).join("")}</ol>${lessons.length > visibleLessons.length ? `<p class="portable-digest">${lessons.length - visibleLessons.length} additional inspection lessons remain inside the verified receipt.</p>` : ""}`;
 }
 
 function privateReviewLearningMarkup() {
@@ -434,9 +444,29 @@ function privateReviewLearningMarkup() {
   return `<section class="portable-review-exchange private-review-learning" aria-labelledby="private-review-learning-title"><div><p class="eyebrow">Comparison-linked learning</p><h4 id="private-review-learning-title">Turn differences into inspection, not consensus.</h4><p>Each comparison class maps deterministically to evidence, rules-binding, or correction-lineage inspection. The mapping cannot choose a correct packet or award progress.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-private-review-learning-create>${prepared ? "Refresh inspection receipt" : "Create inspection receipt"}</button>` : ""}${prepared ? `<label for="private-review-learning-export">Canonical inspection learning receipt · read only</label><textarea id="private-review-learning-export" class="portable-textarea" rows="10" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Inspection receipt SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-review-learning-import">Paste canonical inspection learning receipt JSON</label><textarea id="private-review-learning-import" class="portable-textarea" rows="10" maxlength="2097152" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-review-learning.v1 JSON">${escapeHTML(state.privateReviewLearningImportText)}</textarea><button class="secondary-button" type="button" data-private-review-learning-verify>Verify inspection receipt</button>${privateReviewLearningStatusMarkup()}${privateReviewLearningEntriesMarkup()}<div class="learning-boundary">Inspection is deterministic and memory-only. It cannot create consensus, approval, progress, blueprint adoption, identity, merge, resolution, rules, qualification, execution, registry, ranking, publication, spending, or provider authority.</div></section>`;
 }
 
+function privateBlueprintDeltaStatusMarkup() {
+  const verification = state.privateBlueprintDeltaVerification;
+  if (verification?.status === "verified") {
+    const result = verification.result;
+    const proposal = result.proposal;
+    const guard = proposal.guardDelta;
+    const current = guard.currentValue === null ? "not carried by parent proposal" : guard.currentValue ? "already declared" : "declared false";
+    return `<div class="portable-status verified private-blueprint-delta-status" role="status" tabindex="-1"><strong>Guard proposal verified · uncommitted and unplayed</strong><span>SHA-256 ${escapeHTML(result.packetDigest)}</span><span>${escapeHTML(proposal.selectedLesson.lessonLabel)} → ${escapeHTML(guard.label)}</span><span>Current guard: ${escapeHTML(current)} · target requirement: true · ${escapeHTML(guard.changeStatus.replaceAll("_", " "))}</span><span>Parent proposal ${escapeHTML(proposal.parentProposalBinding.proposalPayloadDigest)} · Packet A and Packet B remain neutral roles.</span></div>`;
+  }
+  if (verification?.status === "invalid") {
+    return `<div class="portable-status invalid private-blueprint-delta-status" role="alert" tabindex="-1"><strong>Guard proposal refused</strong><span>${escapeHTML(verification.message)}</span><span>No blueprint change, commitment, progress, qualification, play, execution, or authority state was retained.</span></div>`;
+  }
+  return `<div class="portable-status neutral private-blueprint-delta-status" role="status" tabindex="-1"><strong>No guard proposal verified</strong><span>Choose one verified inspection lesson above, or paste one canonical guard proposal. The full ancestry is independently rechecked.</span></div>`;
+}
+
+function privateBlueprintDeltaMarkup() {
+  const prepared = state.privateBlueprintDeltaReceipt;
+  return `<section class="portable-review-exchange private-blueprint-delta" aria-labelledby="private-blueprint-delta-title"><div><p class="eyebrow">Inspection-to-blueprint proposal</p><h4 id="private-blueprint-delta-title">Propose one guard. Adopt nothing.</h4><p>A fixed lesson mapping can propose strict validation, fallback disclosure, or a human checkpoint. It cannot choose a packet, edit the parent proposal, commit a blueprint, or activate a runback.</p></div>${prepared ? `<label for="private-blueprint-delta-export">Canonical guard proposal · read only</label><textarea id="private-blueprint-delta-export" class="portable-textarea" rows="11" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Guard proposal SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-delta-import">Paste canonical guard proposal JSON</label><textarea id="private-blueprint-delta-import" class="portable-textarea" rows="11" maxlength="2621440" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-inspection-blueprint-delta.v1 JSON">${escapeHTML(state.privateBlueprintDeltaImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-delta-verify>Verify guard proposal</button>${privateBlueprintDeltaStatusMarkup()}<div class="learning-boundary">This is a memory-only, proposed requirement. It remains uncommitted and unplayed and cannot create correctness, consensus, approval, progress, blueprint adoption, identity, merge, resolution, rules, qualification, execution, registry, ranking, publication, spending, or provider authority.</div></section>`;
+}
+
 function portableRunbackMarkup({ canPrepare = false } = {}) {
   const portable = state.portableRunback;
-  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}${portableReviewMarkup()}${portableReviewCorrectionMarkup()}${portableReviewExchangeMarkup()}${portableReviewCorrectionExchangeMarkup()}${portableReviewComparisonMarkup()}${privateReviewLearningMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
+  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}${portableReviewMarkup()}${portableReviewCorrectionMarkup()}${portableReviewExchangeMarkup()}${portableReviewCorrectionExchangeMarkup()}${portableReviewComparisonMarkup()}${privateReviewLearningMarkup()}${privateBlueprintDeltaMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
 }
 
 function renderReceiptLearning() {
@@ -939,6 +969,7 @@ async function verifyPortableReviewComparison(serializedInput) {
 
 async function createPrivateReviewLearning() {
   if (!dataAdapter?.createPortablePrivateReviewLearning || !dataAdapter?.verifyPortablePrivateReviewLearning) return false;
+  resetPrivateBlueprintDeltaState();
   const comparisonSerialized = state.portableReviewComparisonVerification?.status === "verified"
     ? state.portableReviewComparisonImportText
     : "";
@@ -961,6 +992,7 @@ async function createPrivateReviewLearning() {
 
 async function verifyPrivateReviewLearning(serializedInput) {
   const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_REVIEW_LEARNING_MAX_LENGTH || 2097152);
+  resetPrivateBlueprintDeltaState();
   try {
     const result = await dataAdapter.verifyPortablePrivateReviewLearning(serializedInput);
     state.privateReviewLearningReceipt = null;
@@ -977,6 +1009,55 @@ async function verifyPrivateReviewLearning(serializedInput) {
     state.privateReviewLearningReceipt = null;
     state.privateReviewLearningImportText = importedText;
     state.privateReviewLearningVerification = { status: "invalid", message: error?.message || "Private review inspection learning receipt validation failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function createPrivateBlueprintDelta(selectedReviewDigest) {
+  if (!dataAdapter?.createPortablePrivateBlueprintDelta || !dataAdapter?.verifyPortablePrivateBlueprintDelta) return false;
+  const learningSerialized = state.privateReviewLearningVerification?.status === "verified"
+    ? state.privateReviewLearningImportText
+    : "";
+  try {
+    const receipt = await dataAdapter.createPortablePrivateBlueprintDelta(learningSerialized, selectedReviewDigest);
+    const result = await dataAdapter.verifyPortablePrivateBlueprintDelta(receipt.serialized);
+    state.privateBlueprintDeltaReceipt = receipt;
+    state.privateBlueprintDeltaImportText = receipt.serialized;
+    state.privateBlueprintDeltaVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintDeltaReceipt = null;
+    state.privateBlueprintDeltaImportText = "";
+    state.privateBlueprintDeltaVerification = { status: "invalid", message: error?.message || "Private guard proposal failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function verifyPrivateBlueprintDelta(serializedInput) {
+  const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH || 2621440);
+  try {
+    const result = await dataAdapter.verifyPortablePrivateBlueprintDelta(serializedInput);
+    const learningVerification = result.learningVerification;
+    state.privateBlueprintDeltaReceipt = null;
+    state.privateBlueprintDeltaImportText = importedText;
+    state.privateBlueprintDeltaVerification = { status: "verified", result };
+    state.privateReviewLearningReceipt = null;
+    state.privateReviewLearningImportText = result.learningSerialized;
+    state.privateReviewLearningVerification = { status: "verified", result: learningVerification };
+    state.portableReviewComparisonReceipt = null;
+    state.portableReviewComparisonImportText = learningVerification.comparisonSerialized;
+    state.portableReviewComparisonVerification = { status: "verified", result: learningVerification.comparisonVerification };
+    state.portableReviewComparisonLeftText = learningVerification.comparisonVerification.leftSerialized;
+    state.portableReviewComparisonRightText = learningVerification.comparisonVerification.rightSerialized;
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintDeltaReceipt = null;
+    state.privateBlueprintDeltaImportText = importedText;
+    state.privateBlueprintDeltaVerification = { status: "invalid", message: error?.message || "Private guard proposal validation failed." };
     renderReceiptLearning();
     return false;
   }
@@ -1253,6 +1334,24 @@ function bindEvents() {
         : "Inspection receipt refused. No verified lesson or authority state was retained.");
       return;
     }
+    const privateDeltaTrigger = event.target.closest("[data-private-blueprint-delta-create]");
+    if (privateDeltaTrigger) {
+      const created = await createPrivateBlueprintDelta(privateDeltaTrigger.dataset.privateBlueprintDeltaCreate || "");
+      $(created ? ".private-blueprint-delta-status.verified" : ".private-blueprint-delta-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(created
+        ? "Exact lesson and parent proposal reverified. One guard requirement was proposed without commitment, play, progress, or authority."
+        : "Guard proposal refused. No blueprint change, commitment, play, progress, or authority state was retained.");
+      return;
+    }
+    if (event.target.closest("[data-private-blueprint-delta-verify]")) {
+      const input = $("#private-blueprint-delta-import");
+      const verified = await verifyPrivateBlueprintDelta(input?.value || "");
+      $(verified ? ".private-blueprint-delta-status.verified" : ".private-blueprint-delta-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Guard proposal and full inspection ancestry verified locally. Nothing was committed, played, qualified, or adopted."
+        : "Guard proposal refused. No verified proposal or authority state was retained.");
+      return;
+    }
     if (event.target.closest("[data-runback-blueprint]")) {
       showView("build");
       $("#agent-name").focus();
@@ -1325,6 +1424,12 @@ function bindEvents() {
       state.privateReviewLearningImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_REVIEW_LEARNING_MAX_LENGTH || 2097152);
       state.privateReviewLearningReceipt = null;
       state.privateReviewLearningVerification = null;
+      resetPrivateBlueprintDeltaState();
+    }
+    if (event.target.matches("#private-blueprint-delta-import")) {
+      state.privateBlueprintDeltaImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH || 2621440);
+      state.privateBlueprintDeltaReceipt = null;
+      state.privateBlueprintDeltaVerification = null;
     }
   });
   document.addEventListener("change", (event) => {

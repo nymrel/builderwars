@@ -52,7 +52,13 @@ state to rules-binding inspection, changed state to correction-lineage
 inspection, and one-sided state to visible-evidence inspection while preserving
 Packet A, Packet B, every source digest, and zero correctness, consensus,
 approval, progress, blueprint-adoption, or execution authority. The shell
-performs no provider call, inference, account action, publication, or deployment.
+can now turn one exact verified lesson into a deterministic guard-only blueprint
+proposal. The fixed mapping offers strict validation, fallback disclosure, or a
+human checkpoint; it binds the parent proposal and every source digest, reports
+whether the parent carried the current guard value, and remains uncommitted,
+unplayed, unqualified, unexecuted, and unpublished with every authority flag
+false. The shell performs no provider call, inference, account action,
+publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -66,6 +72,7 @@ python bin\check_mobile_arena_portable_review_exchange.py
 python bin\check_mobile_arena_portable_review_correction.py
 python bin\check_mobile_arena_private_review_comparison.py
 python bin\check_mobile_arena_private_review_learning.py
+python bin\check_mobile_arena_private_blueprint_delta.py
 python bin\check_mobile_arena_exchange.py
 ```
 

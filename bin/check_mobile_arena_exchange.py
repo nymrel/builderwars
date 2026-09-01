@@ -145,7 +145,15 @@ def main() -> int:
     require("inspect_evidence" in adapter and "inspect_rules_binding" in adapter and "inspect_correction_lineage" in adapter, "bounded inspection lesson allowlist missing")
     require("without declaring either state correct" in adapter and "Neither packet was declared correct" in js, "private review inspection correctness boundary missing")
     require("granting approval or progress" in adapter and "no progress awarded" in js, "private review inspection progress boundary missing")
-    checks += 58
+    require("createPortablePrivateBlueprintDelta" in adapter and "verifyPortablePrivateBlueprintDelta" in adapter, "private guard proposal verifier missing")
+    require('PRIVATE_BLUEPRINT_DELTA_SCHEMA = "builderwars.mobile-private-inspection-blueprint-delta.v1"' in adapter, "private guard proposal schema drift")
+    require("PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH = 2621440" in adapter and 'maxlength="2621440"' in js, "private guard proposal length boundary missing")
+    require("data-private-blueprint-delta-create" in js and "data-private-blueprint-delta-verify" in js, "private guard proposal controls missing")
+    require("PRIVATE_REVIEW_LESSON_DELTA" in adapter and "require_strict_validation" in adapter and "require_fallback_disclosure" in adapter and "require_human_checkpoints" in adapter, "fixed lesson-to-guard mapping missing")
+    require("proposed_uncommitted_guard_delta" in adapter and "uncommitted and unplayed" in js, "private guard proposal state boundary missing")
+    require("not_carried_by_parent_proposal" in adapter and "not carried by parent proposal" in js, "private guard proposal unknown-current disclosure missing")
+    require("does not declare a correct packet" in adapter and "cannot create correctness" in js, "private guard proposal correctness boundary missing")
+    checks += 66
 
     print("[5] accessibility, offline, and reduced-motion contracts")
     for marker in (
@@ -198,12 +206,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=17", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=18", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=17",
-        "./styles.css?v=17",
-        "./data-adapter.js?v=17",
-        "./app.js?v=17",
+        "./index.html?v=18",
+        "./styles.css?v=18",
+        "./data-adapter.js?v=18",
+        "./app.js?v=18",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -212,7 +220,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=17"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=18"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -342,6 +350,20 @@ def main() -> int:
     )
     require(private_review_learning_check.returncode == 0, f"private review inspection learning regression failed: {private_review_learning_check.stderr.strip()}")
     require("PASS" in private_review_learning_check.stdout, "private review inspection learning regression did not report PASS")
+    checks += 2
+
+    private_blueprint_delta_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_private_blueprint_delta.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    require(private_blueprint_delta_check.returncode == 0, f"private blueprint-delta regression failed: {private_blueprint_delta_check.stderr.strip()}")
+    require("PASS" in private_blueprint_delta_check.stdout, "private blueprint-delta regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

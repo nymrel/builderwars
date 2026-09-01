@@ -18,6 +18,7 @@
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_SCHEMA = "builderwars.mobile-runback-review-correction-exchange.v1";
   const PORTABLE_REVIEW_COMPARISON_SCHEMA = "builderwars.mobile-private-review-comparison.v1";
   const PRIVATE_REVIEW_LEARNING_SCHEMA = "builderwars.mobile-private-review-learning.v1";
+  const PRIVATE_BLUEPRINT_DELTA_SCHEMA = "builderwars.mobile-private-inspection-blueprint-delta.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
@@ -28,9 +29,11 @@
   const PORTABLE_REVIEW_COMPARISON_MAX_LENGTH = 1572864;
   const PRIVATE_REVIEW_LEARNING_MAX_ENTRIES = PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES;
   const PRIVATE_REVIEW_LEARNING_MAX_LENGTH = 2097152;
+  const PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH = 2621440;
   const SAFE_JSON_NODE_LIMIT = 16384;
   const PORTABLE_REVIEW_COMPARISON_NODE_LIMIT = 49152;
   const PRIVATE_REVIEW_LEARNING_NODE_LIMIT = 65536;
+  const PRIVATE_BLUEPRINT_DELTA_NODE_LIMIT = 73728;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -49,6 +52,7 @@
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_BOUNDARY = "This canonical packet supports independent local inspection of one still-unplayed proposal, its immutable private reviews, and their append-only correction history. Its SHA-256 digests are not signatures or identity claims. Import is memory-only and cannot rewrite a review, apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
   const PORTABLE_REVIEW_COMPARISON_BOUNDARY = "This canonical receipt independently reverifies and compares two private correction packets for the exact same still-unplayed proposal. It reports digest-bound review-state differences without choosing a winner, merging histories, resolving a dispute, authenticating identity, applying a blueprint, binding rules, qualifying, executing, registering, ranking, publishing, spending, or calling a provider.";
   const PRIVATE_REVIEW_LEARNING_BOUNDARY = "This canonical receipt independently reverifies one private comparison and maps each digest-bound comparison class to one fixed inspection-only lesson. It preserves Packet A, Packet B, and every source digest without declaring either state correct, creating consensus, granting approval or progress, adopting a blueprint, merging histories, resolving a dispute, authenticating identity, binding rules, qualifying, executing, registering, ranking, publishing, spending, or calling a provider.";
+  const PRIVATE_BLUEPRINT_DELTA_BOUNDARY = "This canonical receipt independently reverifies one comparison-linked learning receipt and maps one exact digest-bound inspection lesson to one fixed allowlisted guard requirement. It preserves the parent proposal, Packet A, Packet B, and every source digest. The requirement remains uncommitted and unplayed, does not declare a correct packet, and cannot create consensus, approval, progress, blueprint adoption, identity, merge, resolution, rules, qualification, execution, registry, ranking, publication, spending, or provider authority.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
@@ -85,6 +89,21 @@
     left_only_review: "inspect_evidence",
     right_only_review: "inspect_evidence",
   });
+  const PRIVATE_REVIEW_LESSON_DELTA = Object.freeze({
+    inspect_evidence: "require_fallback_disclosure",
+    inspect_rules_binding: "require_human_checkpoints",
+    inspect_correction_lineage: "require_strict_validation",
+  });
+  const PRIVATE_BLUEPRINT_DELTA_BLOCKERS = Object.freeze([
+    "lesson_does_not_establish_correctness",
+    "local_blueprint_version_not_committed",
+    "explicit_rules_digest_not_bound",
+    "qualification_not_run",
+    "fixture_not_activated",
+    "sanctioned_runner_not_bound",
+    "registry_not_requested",
+    "publication_not_requested",
+  ]);
   const PORTABLE_REVIEW_BLOCKERS = Object.freeze([
     "reviewer_identity_unattested",
     "explicit_rules_digest_not_bound",
@@ -1452,6 +1471,193 @@
     };
   }
 
+  function privateBlueprintDeltaAuthority() {
+    return {
+      correctness: false,
+      consensus: false,
+      approval: false,
+      progress: false,
+      blueprintAdoption: false,
+      identity: false,
+      merge: false,
+      resolution: false,
+      rules: false,
+      qualification: false,
+      execution: false,
+      registry: false,
+      ranking: false,
+      publication: false,
+      spending: false,
+      provider: false,
+    };
+  }
+
+  function buildPortablePrivateBlueprintDelta(learningVerification, selectedReviewDigest) {
+    requireValue(
+      isObject(learningVerification)
+        && learningVerification.schemaVersion === PRIVATE_REVIEW_LEARNING_SCHEMA
+        && learningVerification.verificationStatus === "verified_private_local_review_learning",
+      "unsafe private blueprint delta: verified learning required",
+    );
+    requireValue(typeof selectedReviewDigest === "string" && HEX64.test(selectedReviewDigest), "unsafe private blueprint delta: selected review digest rejected");
+    const lesson = learningVerification.learning.lessons.find((candidate) => candidate.reviewDigest === selectedReviewDigest);
+    requireValue(lesson, "unsafe private blueprint delta: selected lesson missing");
+    const deltaId = PRIVATE_REVIEW_LESSON_DELTA[lesson.lessonId];
+    const delta = RUNBACK_DELTAS.find((candidate) => candidate.id === deltaId);
+    requireValue(delta, "unsafe private blueprint delta: lesson delta unavailable");
+
+    const leftProposalVerification = learningVerification.comparisonVerification.leftVerification.proposalVerification;
+    const rightProposalVerification = learningVerification.comparisonVerification.rightVerification.proposalVerification;
+    requireValue(
+      equalHex(leftProposalVerification.payloadDigest, rightProposalVerification.payloadDigest)
+        && equalHex(leftProposalVerification.payloadDigest, learningVerification.learning.sourceDigests.proposalPayloadDigest),
+      "unsafe private blueprint delta: parent proposal digest mismatch",
+    );
+    const parentProposal = leftProposalVerification.proposal;
+    requireValue(canonicalJSON(parentProposal) === canonicalJSON(rightProposalVerification.proposal), "unsafe private blueprint delta: parent proposal mismatch");
+    const parentCarriesSelectedGuard = parentProposal.blueprintDelta.id === delta.id;
+    const currentValue = parentCarriesSelectedGuard ? parentProposal.blueprintDelta.from : null;
+    const currentValueStatus = parentCarriesSelectedGuard ? "carried_by_parent_proposal" : "not_carried_by_parent_proposal";
+    const changeStatus = currentValue === true
+      ? "already_declared_requirement"
+      : currentValue === false
+        ? "proposed_change"
+        : "proposed_requirement_only";
+    const proposalKey = [
+      "private-inspection-blueprint-delta-v1",
+      learningVerification.packetDigest,
+      leftProposalVerification.payloadDigest,
+      selectedReviewDigest,
+      lesson.lessonId,
+      delta.id,
+      currentValueStatus,
+      currentValue === null ? "unknown" : currentValue ? 1 : 0,
+    ].join(":");
+    return {
+      proposalStatus: "proposed_uncommitted_guard_delta",
+      proposalKey,
+      selectedLesson: {
+        reviewDigest: lesson.reviewDigest,
+        presence: lesson.presence,
+        classification: lesson.classification,
+        lessonId: lesson.lessonId,
+        lessonLabel: lesson.lessonLabel,
+        deltaId: delta.id,
+      },
+      parentProposalBinding: {
+        proposalPayloadDigest: leftProposalVerification.payloadDigest,
+        proposalKey: parentProposal.proposalKey,
+        parentReceiptId: parentProposal.parentReceipt.receiptId,
+        challengeId: parentProposal.runbackLineage.challengeId,
+        runbackFixtureId: parentProposal.runbackLineage.fixtureId,
+      },
+      packetRoles: { left: "packet_a", right: "packet_b" },
+      sourceDigests: clone(learningVerification.learning.sourceDigests),
+      blueprintIdentity: {
+        agentName: parentProposal.blueprint.agentName,
+        declaredBase: parentProposal.blueprint.declaredBase,
+        harnessStyle: parentProposal.blueprint.harnessStyle,
+        localOnly: true,
+      },
+      guardDelta: {
+        id: delta.id,
+        guardKey: delta.guardKey,
+        label: delta.label,
+        rationale: delta.rationale,
+        currentValue,
+        currentValueStatus,
+        targetValue: true,
+        changeStatus,
+      },
+      state: {
+        committed: false,
+        played: false,
+        qualificationStatus: "not_run",
+        executionStatus: "disabled",
+        publicationStatus: "not_requested",
+      },
+      blockers: [...PRIVATE_BLUEPRINT_DELTA_BLOCKERS],
+      authority: privateBlueprintDeltaAuthority(),
+    };
+  }
+
+  async function createPortablePrivateBlueprintDelta(serializedLearningInput, selectedReviewDigest) {
+    const learningVerification = await verifyPortablePrivateReviewLearning(serializedLearningInput);
+    const proposal = buildPortablePrivateBlueprintDelta(learningVerification, selectedReviewDigest);
+    const payload = {
+      learningReceipt: JSON.parse(serializedLearningInput),
+      proposal,
+    };
+    const payloadDigest = await sha256Hex(canonicalJSON(payload));
+    const sourceDigests = proposal.sourceDigests;
+    const packet = {
+      schemaVersion: PRIVATE_BLUEPRINT_DELTA_SCHEMA,
+      proposalVersion: 1,
+      payload,
+      integrity: {
+        algorithm: "sha256",
+        payloadDigest,
+        learningPacketDigest: learningVerification.packetDigest,
+        comparisonPacketDigest: sourceDigests.comparisonPacketDigest,
+        parentProposalPayloadDigest: sourceDigests.proposalPayloadDigest,
+        leftPacketDigest: sourceDigests.left.correctionExchangePacketDigest,
+        rightPacketDigest: sourceDigests.right.correctionExchangePacketDigest,
+        selectedReviewDigest,
+      },
+      boundary: PRIVATE_BLUEPRINT_DELTA_BOUNDARY,
+    };
+    const serialized = canonicalJSON(packet);
+    requireValue(serialized.length <= PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH, "unsafe private blueprint delta: packet length rejected");
+    return { packet: clone(packet), serialized };
+  }
+
+  async function verifyPortablePrivateBlueprintDelta(serializedInput) {
+    requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH, "unsafe private blueprint delta: input length rejected");
+    let packet;
+    try {
+      packet = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe private blueprint delta: invalid JSON");
+    }
+    assertSafeKeys(packet, "private blueprint delta", 0, { nodes: 0 }, PRIVATE_BLUEPRINT_DELTA_NODE_LIMIT);
+    requireExactKeys(packet, ["schemaVersion", "proposalVersion", "payload", "integrity", "boundary"], "private blueprint delta");
+    requireValue(packet.schemaVersion === PRIVATE_BLUEPRINT_DELTA_SCHEMA && packet.proposalVersion === 1, "unsafe private blueprint delta: schema drift");
+    requireValue(packet.boundary === PRIVATE_BLUEPRINT_DELTA_BOUNDARY, "unsafe private blueprint delta: boundary drift");
+    requireValue(serializedInput === canonicalJSON(packet), "unsafe private blueprint delta: packet must use canonical JSON");
+    requireExactKeys(packet.payload, ["learningReceipt", "proposal"], "private blueprint delta payload");
+    requireExactKeys(packet.integrity, [
+      "algorithm", "payloadDigest", "learningPacketDigest", "comparisonPacketDigest", "parentProposalPayloadDigest",
+      "leftPacketDigest", "rightPacketDigest", "selectedReviewDigest",
+    ], "private blueprint delta integrity");
+    requireValue(packet.integrity.algorithm === "sha256", "unsafe private blueprint delta: integrity algorithm drift");
+    for (const key of [
+      "payloadDigest", "learningPacketDigest", "comparisonPacketDigest", "parentProposalPayloadDigest",
+      "leftPacketDigest", "rightPacketDigest", "selectedReviewDigest",
+    ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint delta: ${key} drift`);
+
+    const learningSerialized = canonicalJSON(packet.payload.learningReceipt);
+    const learningVerification = await verifyPortablePrivateReviewLearning(learningSerialized);
+    const expectedProposal = buildPortablePrivateBlueprintDelta(learningVerification, packet.integrity.selectedReviewDigest);
+    requireValue(canonicalJSON(packet.payload.proposal) === canonicalJSON(expectedProposal), "unsafe private blueprint delta: proposal projection mismatch");
+    const sourceDigests = expectedProposal.sourceDigests;
+    requireValue(equalHex(learningVerification.packetDigest, packet.integrity.learningPacketDigest), "unsafe private blueprint delta: learning packet digest binding mismatch");
+    requireValue(equalHex(sourceDigests.comparisonPacketDigest, packet.integrity.comparisonPacketDigest), "unsafe private blueprint delta: comparison packet digest binding mismatch");
+    requireValue(equalHex(sourceDigests.proposalPayloadDigest, packet.integrity.parentProposalPayloadDigest), "unsafe private blueprint delta: parent proposal digest binding mismatch");
+    requireValue(equalHex(sourceDigests.left.correctionExchangePacketDigest, packet.integrity.leftPacketDigest), "unsafe private blueprint delta: left packet digest binding mismatch");
+    requireValue(equalHex(sourceDigests.right.correctionExchangePacketDigest, packet.integrity.rightPacketDigest), "unsafe private blueprint delta: right packet digest binding mismatch");
+    const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
+    requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe private blueprint delta: payload digest mismatch");
+    return {
+      schemaVersion: PRIVATE_BLUEPRINT_DELTA_SCHEMA,
+      verificationStatus: "verified_private_local_blueprint_delta_proposal",
+      packetDigest: computedPayloadDigest,
+      learningSerialized,
+      learningVerification,
+      proposal: clone(expectedProposal),
+      boundary: PRIVATE_BLUEPRINT_DELTA_BOUNDARY,
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -1593,6 +1799,9 @@
     PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES,
     PORTABLE_REVIEW_COMPARISON_MAX_LENGTH,
     PORTABLE_REVIEW_COMPARISON_SCHEMA,
+    PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH,
+    PRIVATE_BLUEPRINT_DELTA_SCHEMA,
+    PRIVATE_REVIEW_LESSON_DELTA,
     PRIVATE_REVIEW_INSPECTION_LESSONS,
     PRIVATE_REVIEW_LEARNING_MAX_ENTRIES,
     PRIVATE_REVIEW_LEARNING_MAX_LENGTH,
@@ -1611,6 +1820,7 @@
     buildQualificationPreview,
     buildReceiptLearningAction,
     buildRunbackProposal,
+    createPortablePrivateBlueprintDelta,
     createPortablePrivateReviewComparison,
     createPortablePrivateReviewLearning,
     createPortableRunbackEnvelope,
@@ -1626,6 +1836,7 @@
     verifyPortableRunbackReviewCorrectionJournal,
     verifyPortableRunbackReviewExchange,
     verifyPortableRunbackReviewJournal,
+    verifyPortablePrivateBlueprintDelta,
     verifyPortablePrivateReviewComparison,
     verifyPortablePrivateReviewLearning,
   };

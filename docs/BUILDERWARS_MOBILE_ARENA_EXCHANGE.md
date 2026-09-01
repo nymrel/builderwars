@@ -504,15 +504,49 @@ adversarial assertions. The Receipt Lab prepares, imports, independently
 verifies, and renders the bounded lessons without storing progress or adopting
 a blueprint.
 
+### Deterministic inspection-to-blueprint guard proposal
+
+`builderwars.mobile-private-inspection-blueprint-delta.v1` accepts exactly one
+canonical comparison-linked learning receipt and one digest-selected lesson.
+It embeds the learning receipt unchanged, independently reverifies the complete
+learning, comparison, correction, review, and parent-proposal ancestry, then
+maps the lesson through a closed allowlist:
+
+- `inspect_evidence` -> `require_fallback_disclosure`;
+- `inspect_rules_binding` -> `require_human_checkpoints`;
+- `inspect_correction_lineage` -> `require_strict_validation`.
+
+No user-supplied delta, guard key, rationale, target, source digest, packet role,
+or parent binding is accepted. The proposal binds the exact lesson review
+digest, learning and comparison digests, both correction packet and head
+digests, parent proposal payload and key, parent receipt, challenge, fixture,
+agent label, declared base, and harness style. Packet A and Packet B remain
+neutral roles.
+
+The parent proposal carries the current value for only its original selected
+guard. When that guard matches the new fixed requirement, the receipt preserves
+the exact boolean. Otherwise it reports `currentValue: null` with
+`not_carried_by_parent_proposal`; it never invents current blueprint state. The
+target is always the allowlisted boolean requirement `true`.
+
+The proposal remains `proposed_uncommitted_guard_delta`, `committed: false`,
+`played: false`, qualification `not_run`, execution `disabled`, and publication
+`not_requested`. Correctness, consensus, approval, progress, blueprint adoption,
+identity, merge, resolution, rules, qualification, execution, registry, ranking,
+publication, spending, and provider authority remain false. Canonical import is
+atomic and memory-only. The dedicated checker exercises 138 adversarial
+assertions, including fixed mappings, all current-value states, swapped packet
+roles, nested ancestry tampering, dangerous keys, excessive depth or nodes, and
+oversized input.
+
 ### Exact next bounded campaign
 
-Add a deterministic inspection-to-blueprint-delta proposal that accepts one
-verified comparison-linked learning receipt and proposes only an allowlisted,
-guard-only harness delta. It must bind the exact lesson and parent proposal,
-remain uncommitted and unplayed, preserve all source digests and packet roles,
-and create no correctness, consensus, approval, progress, blueprint adoption,
-merge, resolution, rules, qualification, execution, registry, ranking,
-publication, spending, or provider authority.
+Add a deterministic private guard-proposal review receipt that accepts one
+verified inspection-to-blueprint proposal and appends one immutable
+accept-for-revision, defer, or reject decision from fixed reason codes.
+Acceptance may create only a proposed, uncommitted local revision candidate;
+it must not adopt the guard, mutate the parent, award progress, bind rules,
+qualify, play, execute, register, rank, publish, spend, or call a provider.
 Auth, network writes, creator code execution, provider use, public activation,
 and the protected private-alpha API binding remain operator-gated campaigns.
 
