@@ -215,6 +215,26 @@ backup, restore, rollback, deployment, feature-flag change, or operator action.
 The exact evidence boundary and protected activation ceremony are documented in
 [`docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md`](docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md).
 
+## Launch threat model — repository-grounded, protected gaps held
+
+BuilderWars now carries an executable public-beta threat model covering the
+future browser-auth adapter, multi-tenant hosted reference, signed runner
+protocol, customer-local provider authority, entrant process boundary,
+publication lineage, deletion/recovery, availability, and release provenance.
+It binds ten threats to eight trust boundaries and sixteen exact source anchors.
+
+```powershell
+python bin\check_builderwars_threat_model.py
+```
+
+The checker validates coverage, source symbols and file digests, risk ordering,
+hostile contract mutations, and zero production authority. A green result is
+not a penetration test or production security approval. Browser principal to
+owner mapping, production-store conformance, rate limits, secret/consent
+receipts, OS-level isolation or continued disablement, monitoring, the data map,
+served-byte parity, and independent security acceptance remain protected. Model:
+[`docs/BUILDERWARS_THREAT_MODEL.md`](docs/BUILDERWARS_THREAT_MODEL.md).
+
 ## Tester ceremony — synthetic rehearsal only
 
 AgentWars now has an exact 16-step first-tester contract, an eight-category

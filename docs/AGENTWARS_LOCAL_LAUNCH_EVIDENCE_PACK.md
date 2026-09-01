@@ -36,7 +36,7 @@ It deliberately records the protected downstream nodes as held.
 | 6 | Replay and verifier parity | Checks package versus standalone verifier parity | Production custody, registry commit, external signature |
 | 7 | Mobile static contracts | Checks deterministic mobile, truth, offline, and accessibility contracts | Hosted route, real user, deployed device support |
 | 8 | Real-browser acceptance | Runs Chromium navigation, failure, storage, responsive, offline, and accessibility journeys | Production browser, authenticated journey, external performance |
-| 9 | Hosted security, abuse, and cleanup | Runs local hosted-control-plane refusal, rollback, and cleanup tests | Production Redis/rate limits/deletion and external security review |
+| 9 | Hosted security, abuse, cleanup, and threat model | Runs local hosted-control-plane refusal, rollback, and cleanup tests plus the repository-grounded 10-threat/8-boundary security model | Production browser auth, production store/rate limits/deletion, OS isolation, penetration review, and security approval |
 | 10 | Launch contracts, measurement, performance, observability, retention/deletion, incident, recovery, and tester-readiness drills | Runs strict measurement and observability zero-baseline gates, deterministic incident/support drills, classified atomic deletion simulation, source-bound rollback/recovery failure drills, deterministic Mobile Arena asset budgets, an exact fail-closed 16-step synthetic tester rehearsal, and digests the governing contracts | Consented human tester and feedback, durable/live counters and telemetry, real deletion, backup/restore, alert delivery, staffed support, production rollback/performance, legal approval |
 | 11 | Protected runtime configuration | Executes nothing; records `HELD_PROTECTED` | Clerk, Redis, webhook, peppers, reviewer keys, rate limits, flags |
 | 12 | Source-bound deployment and rollback | Executes nothing; records `HELD_PROTECTED` | Target, DNS/TLS, served bytes, performance, observability, rollback |
@@ -96,6 +96,10 @@ The JSON includes:
   simulation, five-dimension last-known-good recovery plan, and injected
   deletion/recovery failures with no data access, external deletion, backup,
   restore, deployment, flag, or operator-authority claim;
+- a repository-grounded ten-threat security model covering eight trust
+  boundaries and sixteen exact source anchors, with browser-auth, tenant-store,
+  rate-limit, provider-secret, OS-isolation, monitoring, deletion, deployment,
+  and independent-review production gates held;
 - an exact 16-step tester contract, synthetic six-step local rehearsal,
   eight-category uncollected feedback rubric, 11-class cleanup matrix, and
   non-actionable operator packet with every human and production authority

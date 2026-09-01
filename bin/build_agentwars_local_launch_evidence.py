@@ -141,11 +141,15 @@ STAGES: tuple[StageDefinition, ...] = (
     StageDefinition(
         9,
         "hosted_security_abuse_and_cleanup",
-        "Hosted-control-plane security, refusal, rollback, and cleanup tests",
+        "Hosted-control-plane security, refusal, rollback, cleanup, and repository-grounded threat-model tests",
         "local_executable",
-        commands=((PYTHON, "-m", "unittest", "discover", "-s", "provider_hub_hosted/tests", "-p", "test_*.py"),),
+        commands=(
+            (PYTHON, "-m", "unittest", "discover", "-s", "provider_hub_hosted/tests", "-p", "test_*.py"),
+            (PYTHON, "bin/check_builderwars_threat_model.py"),
+        ),
+        evidence_files=("docs/BUILDERWARS_THREAT_MODEL.md",),
         timeout_seconds=180,
-        not_proven=("production Redis", "production rate limits", "production deletion", "external penetration review"),
+        not_proven=("production browser authentication", "production store", "production rate limits", "production deletion", "OS-level untrusted-code isolation", "external penetration review", "production security approval"),
     ),
     StageDefinition(
         10,

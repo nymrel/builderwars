@@ -97,6 +97,14 @@ def main() -> int:
     check(all(not stage.commands for stage in stages[-3:]), "protected stages execute no command")
     check(all(stage.held_reason and stage.smallest_operator_action for stage in stages[-3:]), "protected stages name reason and smallest operator action")
     check(stages[7].stage_id == "real_browser_acceptance", "browser evidence is stage 8")
+    check(
+        stages[8].commands == (
+            (evidence_builder.PYTHON, "-m", "unittest", "discover", "-s", "provider_hub_hosted/tests", "-p", "test_*.py"),
+            (evidence_builder.PYTHON, "bin/check_builderwars_threat_model.py"),
+        ),
+        "stage 9 runs hosted abuse tests and the repository-grounded threat model",
+    )
+    check(stages[8].evidence_files == ("docs/BUILDERWARS_THREAT_MODEL.md",), "stage 9 binds the reviewed threat-model document")
     check(stages[9].stage_id == "launch_contracts_and_rollback_plan" and stages[9].stage_class == "local_executable", "launch contracts are executable stage 10")
     check(
         stages[9].commands == (
@@ -111,7 +119,7 @@ def main() -> int:
     check(stages[10].stage_id == "protected_runtime_configuration", "protected runtime is the first held gate")
 
     commands = [command for stage in stages for command in stage.commands]
-    check(len(commands) == 16, "local evidence contract has exactly 16 bounded commands")
+    check(len(commands) == 17, "local evidence contract has exactly 17 bounded commands")
     check(all(command and command[0] == evidence_builder.PYTHON for command in commands), "every executable stage uses the current Python runtime directly")
     flattened = " ".join(token for command in commands for token in command).lower()
     for forbidden in ("curl ", "invoke-webrequest", "vercel", "cloudflare", "git push", "deploy", "publish", "oauth", "clerk"):

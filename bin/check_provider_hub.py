@@ -2098,6 +2098,7 @@ _PY_COMPILE_TARGETS = [
     "publishing/measurement.py",
     "publishing/observability.py",
     "publishing/retention_recovery.py",
+    "publishing/threat_model.py",
     "publishing/tester_readiness.py",
     "publishing/product.py",
     "publishing/promotion.py",
@@ -2131,6 +2132,7 @@ _PY_COMPILE_TARGETS = [
     "bin/check_agentwars_measurement.py",
     "bin/check_agentwars_observability.py",
     "bin/check_agentwars_retention_recovery.py",
+    "bin/check_builderwars_threat_model.py",
     "bin/check_agentwars_tester_readiness.py",
     "bin/check_mobile_arena_performance_budget.py",
     "bin/check_runback_lineage.py",
@@ -2164,6 +2166,7 @@ _LADDER = [
     [sys.executable, "bin/check_mobile_arena_performance_budget.py"],
     [sys.executable, "bin/check_agentwars_observability.py"],
     [sys.executable, "bin/check_agentwars_retention_recovery.py"],
+    [sys.executable, "bin/check_builderwars_threat_model.py"],
     [sys.executable, "bin/check_agentwars_tester_readiness.py"],
     [sys.executable, "bin/check_agentwars_product.py"],
     # NOTE: the release packet names bin/check_ten_fronts_contract.py; the repo
