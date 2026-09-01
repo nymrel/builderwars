@@ -11,8 +11,10 @@ from pathlib import Path
 
 from provider_hub.local_runner import base64url_no_pad
 from provider_hub_hosted.browser_gateway import (
+    IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC,
     BrowserAuthorizationGateway,
     BrowserRequest,
+    IdempotencyResponseKeyring,
     InMemoryAccountRateLimiter,
     VerifiedBrowserPrincipal,
 )
@@ -98,6 +100,7 @@ class BrowserIdempotencyTests(unittest.TestCase):
         store: HostedControlPlaneStore,
         *,
         response_key: bytes = RESPONSE_KEY,
+        keyring: IdempotencyResponseKeyring | None = None,
         gateway_type=BrowserAuthorizationGateway,
     ) -> BrowserAuthorizationGateway:
         return gateway_type(
@@ -105,7 +108,10 @@ class BrowserIdempotencyTests(unittest.TestCase):
             allowed_origin=BROWSER_ORIGIN,
             expected_issuer=ISSUER,
             owner_pepper=OWNER_PEPPER,
-            idempotency_response_key=response_key,
+            idempotency_response_keyring=keyring or IdempotencyResponseKeyring(
+                active_key_id="local-current",
+                keys={"local-current": response_key},
+            ),
             rate_limiter=InMemoryAccountRateLimiter(),
         )
 
@@ -169,6 +175,46 @@ class BrowserIdempotencyTests(unittest.TestCase):
             self.assert_error(response, 400, "invalid_request")
         self.assertEqual(resolver_calls, 0)
         self.assertEqual(self._count("pairing_challenges"), 0)
+
+    def test_response_keyring_rejects_invalid_bounds_ids_material_and_duplicates(self):
+        valid = IdempotencyResponseKeyring(
+            active_key_id="key-current",
+            keys={"key-current": b"a" * 32},
+        )
+        self.assertEqual(valid.active_key_id, "key-current")
+        self.assertEqual(valid.key_ids, ("key-current",))
+        self.assertNotIn((b"a" * 32).hex(), repr(valid))
+        with self.assertRaises(AttributeError):
+            valid.active_key_id = "key-replaced"  # type: ignore[misc]
+        with self.assertRaises(AttributeError):
+            valid.key_ids = ("key-replaced",)  # type: ignore[misc]
+
+        invalid = (
+            {"active_key_id": "key-current", "keys": {}},
+            {"active_key_id": "key-missing", "keys": {"key-current": b"a" * 32}},
+            {
+                "active_key_id": "key-a",
+                "keys": {
+                    "key-a": b"a" * 32,
+                    "key-b": b"b" * 32,
+                    "key-c": b"c" * 32,
+                    "key-d": b"d" * 32,
+                },
+            },
+            {"active_key_id": "UPPERCASE", "keys": {"UPPERCASE": b"a" * 32}},
+            {"active_key_id": "key-current", "keys": {"key-current": b"weak"}},
+            {
+                "active_key_id": "key-a",
+                "keys": {"key-a": b"a" * 32, "key-b": b"a" * 32},
+            },
+        )
+        for values in invalid:
+            with self.subTest(values=tuple(values["keys"])):
+                with self.assertRaises((TypeError, ValueError)):
+                    IdempotencyResponseKeyring(**values)
+
+        with self.assertRaises(TypeError):
+            IdempotencyResponseKeyring(active_key_id="key-current", keys=[])  # type: ignore[arg-type]
 
     def test_same_owner_key_and_request_replays_exact_pairing_response(self):
         request = self._request(idempotency_key("exact-replay"))
@@ -297,6 +343,85 @@ class BrowserIdempotencyTests(unittest.TestCase):
 
         self.assertEqual(first.payload, replay.payload)
         self.assertEqual(replay.headers["Idempotency-Replayed"], "true")
+        self.assertEqual(self._count("pairing_challenges"), 1)
+
+    def test_staged_key_rotation_replays_retiring_key_and_seals_new_active_key(self):
+        old_ring = IdempotencyResponseKeyring(
+            active_key_id="key-2026-a",
+            keys={"key-2026-a": b"a" * 32},
+        )
+        old_gateway = self._gateway(self.store, keyring=old_ring)
+        old_request = self._request(idempotency_key("before-key-rotation"))
+        original = self._dispatch(old_request, gateway=old_gateway)
+
+        overlap_ring = IdempotencyResponseKeyring(
+            active_key_id="key-2026-b",
+            keys={"key-2026-a": b"a" * 32, "key-2026-b": b"b" * 32},
+        )
+        overlap_gateway = self._gateway(self.store, keyring=overlap_ring)
+        old_replay = self._dispatch(old_request, gateway=overlap_gateway)
+        new_request = self._request(idempotency_key("after-key-rotation"))
+        new_response = self._dispatch(new_request, gateway=overlap_gateway)
+
+        self.assertEqual(original.payload, old_replay.payload)
+        self.assertEqual(old_replay.headers["Idempotency-Replayed"], "true")
+        self.assertEqual(new_response.status_code, 201)
+        self.assertEqual(new_response.headers["Idempotency-Replayed"], "false")
+        with self.store._lock:
+            rows = self.store._connection.execute(
+                "SELECT idempotency_key, sealed_response FROM browser_idempotency"
+            ).fetchall()
+        envelope_ids = {}
+        for row in rows:
+            sealed = row["sealed_response"]
+            self.assertTrue(sealed.startswith(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC))
+            key_id_length = sealed[len(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC)]
+            start = len(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC) + 1
+            envelope_ids[row["idempotency_key"]] = sealed[start:start + key_id_length].decode("ascii")
+        self.assertEqual(envelope_ids[old_request.idempotency_key], "key-2026-a")
+        self.assertEqual(envelope_ids[new_request.idempotency_key], "key-2026-b")
+
+        retired_ring = IdempotencyResponseKeyring(
+            active_key_id="key-2026-b",
+            keys={"key-2026-b": b"b" * 32},
+        )
+        retired_gateway = self._gateway(self.store, keyring=retired_ring)
+        old_refused = self._dispatch(old_request, gateway=retired_gateway)
+        new_replay = self._dispatch(new_request, gateway=retired_gateway)
+        self.assert_error(old_refused, 503, "idempotency_unavailable")
+        self.assertEqual(new_replay.payload, new_response.payload)
+        self.assertEqual(new_replay.headers["Idempotency-Replayed"], "true")
+        self.assertEqual(self._count("pairing_challenges"), 2)
+
+    def test_key_id_substitution_fails_even_when_both_keys_are_available(self):
+        ring = IdempotencyResponseKeyring(
+            active_key_id="key-a",
+            keys={"key-a": b"a" * 32, "key-b": b"b" * 32},
+        )
+        gateway = self._gateway(self.store, keyring=ring)
+        request = self._request(idempotency_key("key-id-substitution"))
+        first = self._dispatch(request, gateway=gateway)
+        with self.store._transaction() as connection:
+            sealed = connection.execute(
+                "SELECT sealed_response FROM browser_idempotency"
+            ).fetchone()[0]
+            key_id_length_offset = len(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC)
+            key_id_length = sealed[key_id_length_offset]
+            key_id_start = key_id_length_offset + 1
+            self.assertEqual(sealed[key_id_start:key_id_start + key_id_length], b"key-a")
+            substituted = (
+                sealed[:key_id_start]
+                + b"key-b"
+                + sealed[key_id_start + key_id_length:]
+            )
+            connection.execute(
+                "UPDATE browser_idempotency SET sealed_response = ?",
+                (substituted,),
+            )
+        refused = self._dispatch(request, gateway=gateway)
+
+        self.assertEqual(first.status_code, 201)
+        self.assert_error(refused, 503, "idempotency_unavailable")
         self.assertEqual(self._count("pairing_challenges"), 1)
 
     def test_wrong_response_key_fails_closed_without_second_mutation(self):

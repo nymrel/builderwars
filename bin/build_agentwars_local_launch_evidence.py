@@ -157,7 +157,7 @@ STAGES: tuple[StageDefinition, ...] = (
             "production owner pepper custody",
             "production store",
             "durable edge and account rate limits",
-            "production idempotency store parity and response-key custody",
+            "production idempotency store parity, response-key custody, and rotation execution",
             "production deletion",
             "OS-level untrusted-code isolation",
             "external penetration review",

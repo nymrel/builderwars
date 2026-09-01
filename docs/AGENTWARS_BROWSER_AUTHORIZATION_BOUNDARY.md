@@ -79,9 +79,11 @@ Every accepted browser mutation requires one canonical 128-bit idempotency key. 
 - a different owner has a separate key namespace; and
 - pending, malformed, oversized, unauthenticated, wrong-key, or tampered replay state fails closed as `503 idempotency_unavailable`.
 
-Replay responses are canonical JSON encrypted and authenticated with AES-256-GCM. Associated data binds schema, owner, key, operation, request digest, and status. This matters because pairing creation returns a one-time secret that must survive a legitimate client retry without being stored in plaintext. The SQLite row stores only the opaque owner id, public idempotency metadata, request digest, timing, status, and sealed response; the key never appears in the database or response.
+Replay responses are canonical JSON encrypted and authenticated with AES-256-GCM inside the binary envelope `agentwars.idempotency_response_envelope/1`. The envelope carries a non-secret canonical key ID plus a random 96-bit nonce and ciphertext. Associated data binds schema, owner, idempotency key, operation, request digest, status, envelope version, and complete header, so changing a key ID fails authentication even when both named keys exist. This matters because pairing creation returns a one-time secret that must survive a legitimate client retry without being stored in plaintext. The SQLite row stores only the opaque owner id, public idempotency metadata, request digest, timing, status, and sealed response; key material never appears in the database, response, or keyring representation.
 
-The local key is constructor-injected and test-only. Production must provision a separate random 32-byte response key through protected secret custody, define rotation and disaster-recovery behavior, and port the same atomic semantics to the production datastore. The replay record intentionally survives account-row deletion during its 24-hour replay-eligibility window so a retried delete returns the same receipt. Expired local rows are purged opportunistically by the next mutation, not by a proven wall-clock deletion worker; production therefore needs scheduled physical expiry and evidence of bounded deletion. This minimal encrypted record and its retention policy require approval. Rate limiting is evaluated before replay, so retry traffic still consumes the configured owner/operation budget.
+The constructor requires a bounded keyring with exactly one active key, zero to two retiring keys, unique 32-byte material, and lowercase canonical key IDs of 3-32 bytes. New responses always use the active key. Eligible old responses remain replayable only while their key ID stays in the ring. Unknown, malformed, substituted, or deliberately retired key IDs fail closed; the gateway never guesses across keys. Local tests prove a staged `old -> old+new(active) -> new-only` transition, but they do not provision or rotate a real secret.
+
+Production must provision separate random keys through protected custody, retain a retiring key for the complete replay-eligibility window plus an approved rollout margin, exercise rollback before retirement, and prove all instances use the same ordered keyring configuration. The replay record intentionally survives account-row deletion during its 24-hour replay-eligibility window so a retried delete returns the same receipt. Expired local rows are purged opportunistically by the next mutation, not by a proven wall-clock deletion worker; production therefore needs scheduled physical expiry and evidence of bounded deletion. This minimal encrypted record and its retention policy require approval. Rate limiting is evaluated before replay, so retry traffic still consumes the configured owner/operation budget.
 
 ## Error and enumeration boundary
 
@@ -89,7 +91,7 @@ Client errors use bounded codes such as `authentication_required`, `forbidden`, 
 
 Unknown routes are rejected before principal resolution. Foreign and absent tenant objects are indistinguishable. Authentication-provider outage and rate-limiter outage remain explicit safe failures. Production logging must use a separately reviewed redaction schema and must not log the pepper, raw Clerk artifacts, provider credentials, CSRF value, pairing secret, or full request body.
 
-The local idempotency implementation proves a transaction and cryptographic response contract only. It is not proof that a multi-instance production adapter, production datastore, backup, failover region, or rotated key preserves those properties.
+The local idempotency implementation proves transaction, encrypted-envelope, and bounded key-rotation semantics only. It is not proof that a multi-instance production adapter, protected secret manager, production datastore, backup, failover region, or real rotation runbook preserves those properties.
 
 ## Production adapter checklist
 
@@ -100,7 +102,7 @@ Before any authenticated tester or public traffic, the operator-owned integratio
 3. The production owner pepper is provisioned in server-side secret custody and never appears in source, logs, browser bundles, evidence packs, or test fixtures.
 4. Only the browser gateway can call owner-scoped hosted handlers from the public service.
 5. Edge/IP controls and a durable atomic owner/operation limiter are active, observable, and tested for fail-closed degradation.
-6. The 32-byte production idempotency-response key has protected custody, rotation, rollback, and restore procedures; the production store passes same-request replay, request-mismatch conflict, concurrency, rollback, restart, tamper, expiry, and account-deletion conformance.
+6. The one-active/two-retiring production idempotency keyring has protected custody, staged rotation, rollback, retirement, and restore procedures; every instance shares the exact configuration, and the production store passes same-request replay, request-mismatch conflict, concurrency, rollback, restart, tamper, key-ID substitution, expiry, and account-deletion conformance.
 7. CSRF cookie attributes, trusted proxy/origin normalization, CSP, transport security, and error redaction are independently reviewed.
 8. A consented tester completes the protected journey; test state is then deleted and protected flags return to their intended state.
 
@@ -118,4 +120,4 @@ python bin/check_builderwars_threat_model.py
 
 The full local evidence pack also runs the entire hosted test directory in stage 9. A production rollout must have a separately proven rollback that removes public route exposure, revokes the deployment's secret access, restores the prior deployment digest, invalidates affected sessions if necessary, and verifies that no owner command reaches the hosted control plane. Disabling the local reference or deleting evidence is not a rollback.
 
-Until the production checklist is complete, production browser authentication, owner mapping, owner-pepper and idempotency-key custody, durable rate limiting, production-store idempotency parity, public creator execution, and public launch remain held.
+Until the production checklist is complete, production browser authentication, owner mapping, owner-pepper and idempotency-key custody/rotation execution, durable rate limiting, production-store idempotency parity, public creator execution, and public launch remain held.

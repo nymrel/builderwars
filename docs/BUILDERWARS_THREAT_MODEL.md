@@ -4,7 +4,7 @@ Status: repository-grounded local security model for the protected public-beta l
 
 ## Executive summary
 
-BuilderWars has a strong local reference foundation: exact schemas, tenant predicates, a fail-closed browser-authorization gateway, atomic owner-scoped browser idempotency with encrypted replay, signed runner requests, durable nonce consumption, transactional lease and deletion behavior, deterministic replay, bounded publication projections, and source-bound local launch evidence. Those controls are real and testable, but the Clerk verifier, durable perimeter, production-store parity and key custody, and deployment adapters do not yet exist.
+BuilderWars has a strong local reference foundation: exact schemas, tenant predicates, a fail-closed browser-authorization gateway, atomic owner-scoped browser idempotency with versioned encrypted replay and a bounded rotation keyring, signed runner requests, durable nonce consumption, transactional lease and deletion behavior, deterministic replay, bounded publication projections, and source-bound local launch evidence. Those controls are real and testable, but the Clerk verifier, durable perimeter, production-store parity, protected key custody/rotation execution, and deployment adapters do not yet exist.
 
 The launch-critical exposure is production integration of browser authentication. The local gateway rejects request-supplied owner identifiers, requires exact origin and CSRF evidence, accepts only a freshly verified injected principal, derives the owner identifier with a server pepper, enforces strict route/body schemas, and fails closed when its injected account limiter is unavailable. A public service must still cryptographically verify the live Clerk session, provision the pepper, expose only the gateway, and supply durable edge/account controls. The second major boundary is untrusted execution: the current entrant sandbox is a process-lifecycle boundary, not an operating-system jail. Public arbitrary creator or entrant code must remain disabled until independent isolation evidence exists.
 
@@ -60,7 +60,7 @@ Open questions:
 
 | Boundary | Flow | Data and channel | Existing guarantees | Residual gap |
 | --- | --- | --- | --- | --- |
-| B-001 | Internet browser -> browser-authorization gateway | Session and customer actions over future HTTPS | Exact origin; canonical CSRF pair; strict routes/bodies; injected verified principal; owner-scoped local limiter; owner-scoped local idempotency; AES-256-GCM sealed replay | Production Clerk cookie/session verifier, edge controls, durable account limits, owner pepper and idempotency-key custody, and store parity unproven |
+| B-001 | Internet browser -> browser-authorization gateway | Session and customer actions over future HTTPS | Exact origin; canonical CSRF pair; strict routes/bodies; injected verified principal; owner-scoped local limiter; owner-scoped local idempotency; AES-256-GCM sealed replay; versioned bounded keyring rotation | Production Clerk cookie/session verifier, edge controls, durable account limits, owner pepper, idempotency-key custody/rotation execution, and store parity unproven |
 | B-002 | Browser-authorization gateway -> hosted control plane | Opaque owner id and bounded commands, in-process reference | HMAC-derived opaque owner id; no request owner id; canonical validation; uniform foreign-object errors | Live Clerk-subject binding and direct-handler non-exposure unproven |
 | B-003 | Customer-local runner -> runner verifier | Signed exact method, path, body, origin, timestamp, and nonce over future HTTPS | Ed25519, origin binding, timestamp window, durable nonce consumption | TLS edge and perimeter limits unproven |
 | B-004 | Hosted control plane -> hosted state | Tenant, browser-idempotency, runner, nonce, lease, job, and result state | Exact identifiers, parameterized queries, foreign keys, `BEGIN IMMEDIATE`, nested savepoints, mutation/replay-record atomicity | Production adapter idempotency parity, backup, restore, and capacity unproven |
@@ -146,7 +146,7 @@ flowchart LR
 
 | ID | Threat source | Prerequisites | Threat action | Impact | Existing controls | Residual gap | Recommended mitigation | Detection | Likelihood | Severity | Priority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TM-001 | Remote unauthenticated attacker | Production HTTP adapter exposes owner-scoped handlers and accepts an attacker-influenced owner id | Forge or confuse principal-to-owner mapping | Cross-tenant control, deletion, jobs, privacy breach | Gateway exact origin, canonical CSRF, strict routes/bodies, fresh injected principal, HMAC-derived owner, uniform foreign errors, fail-closed local limiter, owner/request-bound idempotency, encrypted replay | Production Clerk/token/cookie wiring, durable edge/account limits, pepper/idempotency-key custody, production-store parity, and direct-handler non-exposure unproven | Verify Clerk server-side; construct only the reviewed principal; provision protected pepper/key and durable limits; port retry conformance; expose only the gateway | Owner-mapping failures, idempotency conflicts/corruption, foreign probes, destructive spikes, and redacted adapter decisions | Medium; high if production bypasses the gateway or trusts unverified principal data | High | Critical, protected hold |
+| TM-001 | Remote unauthenticated attacker | Production HTTP adapter exposes owner-scoped handlers and accepts an attacker-influenced owner id | Forge or confuse principal-to-owner mapping | Cross-tenant control, deletion, jobs, privacy breach | Gateway exact origin, canonical CSRF, strict routes/bodies, fresh injected principal, HMAC-derived owner, uniform foreign errors, fail-closed local limiter, owner/request-bound idempotency, versioned encrypted replay, bounded active/retiring keys | Production Clerk/token/cookie wiring, durable edge/account limits, pepper/idempotency-key custody and rotation execution, production-store parity, and direct-handler non-exposure unproven | Verify Clerk server-side; construct only the reviewed principal; provision protected pepper/keyring and durable limits; exercise overlap/rollback/retirement; port retry conformance; expose only the gateway | Owner-mapping failures, idempotency conflicts/corruption, unknown/substituted key IDs, foreign probes, destructive spikes, and redacted adapter decisions | Medium; high if production bypasses the gateway or trusts unverified principal data | High | Critical, protected hold |
 | TM-002 | Authenticated malicious tenant | Production adapter weakens owner predicates | Enumerate identifiers and exploit an unscoped operation | Cross-tenant disclosure or mutation | SQLite owner predicates, foreign keys, atomic transactions | Production adapter and external multi-tenant test absent | Port invariants as adapter conformance tests; tenant-scoped keys; route fuzzing | Tenant-mismatch denials and destructive-operation anomalies | Low in reference; conditional on integration | High | High, protected hold |
 | TM-003 | Network attacker or malicious runner | Captured signed bytes or verifier drift | Replay or redirect a valid command | Duplicate work, stale result, forged possession | Exact signed bytes, origin, timestamp, durable nonce | Production nonce store, edge, and TLS parity unproven | Preserve atomic nonce and canonical origin/path/body checks; reject redirects | Replay, stale, future, origin, signature, and nonce errors | Low | High | Medium |
 | TM-004 | Remote attacker | Pairing route is public without layered limits | Guess, race, or flood pairing secrets | Enrollment denial or unauthorized binding | High entropy, hash-only storage, TTL, attempt lock, one-winner transaction | Edge, tenant, IP, and global limits absent | Layered durable limits and bounded retry-after | Claim failures, locks, races, distributed guessing | Medium | Medium | Medium |
@@ -168,7 +168,7 @@ flowchart LR
 
 | Path | Review focus | Threats |
 | --- | --- | --- |
-| `provider_hub_hosted/browser_gateway.py` | Exact origin/CSRF, verified-principal contract, opaque owner derivation, strict routes, fail-closed limiter/errors, sealed idempotent replay | TM-001, TM-002, TM-004, TM-009 |
+| `provider_hub_hosted/browser_gateway.py` | Exact origin/CSRF, verified-principal contract, opaque owner derivation, strict routes, fail-closed limiter/errors, sealed idempotent replay, bounded key rotation | TM-001, TM-002, TM-004, TM-009 |
 | `provider_hub_hosted/handlers.py` | External authentication boundary and destructive owner-scoped methods | TM-001, TM-002, TM-009 |
 | `provider_hub_hosted/store.py` | Tenant predicates, nested transactions, browser idempotency, nonces, leases, results, deletion | TM-001, TM-002, TM-003, TM-004, TM-008, TM-009 |
 | `provider_hub_hosted/verify.py` | Signature, origin, timestamp, owner, and nonce verification | TM-003 |
@@ -181,7 +181,7 @@ flowchart LR
 | `publishing/retention_recovery.py` | Deletion, suppression, recovery, rollback truth | TM-008, TM-010 |
 | `bin/build_agentwars_local_launch_evidence.py` | Source custody, bounded child environment, protected holds | TM-008, TM-010 |
 | `provider_hub_hosted/tests/test_control_plane.py` | Tenant, replay, race, rollback, and cleanup conformance | TM-001, TM-002, TM-003, TM-004, TM-008, TM-009 |
-| `provider_hub_hosted/tests/test_browser_idempotency.py` | Same-request replay, owner isolation, concurrency, rollback, restart, ciphertext-tamper, and expiry conformance | TM-001, TM-008, TM-009 |
+| `provider_hub_hosted/tests/test_browser_idempotency.py` | Same-request replay, owner isolation, concurrency, rollback, restart, ciphertext/key-ID tamper, expiry, and staged key-rotation conformance | TM-001, TM-008, TM-009 |
 
 ## Production gates and evidence boundary
 
@@ -189,7 +189,7 @@ The executable model in `publishing/threat_model.py` and checker in `bin/check_b
 
 The following remain protected gates:
 
-1. Production Clerk verification, principal-to-owner mapping, owner-pepper and idempotency-response-key custody/rotation, durable browser rate limits, and adapter-only gateway wiring.
+1. Production Clerk verification, principal-to-owner mapping, owner-pepper and idempotency-response-keyring custody/rotation execution, durable browser rate limits, and adapter-only gateway wiring.
 2. Production store tenant, transaction, browser-idempotency, lease, deletion, and nonce conformance.
 3. Durable edge, service, and tenant rate limits with a named capacity target.
 4. Production secret boundary, customer provider consent, route identity, and cost receipts.
@@ -207,7 +207,7 @@ Local work has no authority to accept provider terms, attest human action, chang
 - Every trust boundary, asset, and entry point appears in at least one threat.
 - Likelihood and impact are separated, and conditional exposure is stated rather than implied.
 - High and critical threats require protected holds; local success cannot flip production authority.
-- Secret custody, tenant isolation, idempotent mutation/replay, arbitrary execution, public ranking, deletion, availability, and supply-chain risks are represented.
+- Secret custody and rotation, tenant isolation, idempotent mutation/replay, arbitrary execution, public ranking, deletion, availability, and supply-chain risks are represented.
 - Assumptions and unanswered production questions are explicit.
 - The threat model is useful for launch review but intentionally refuses to claim customers, traffic, security acceptance, or production readiness.
 

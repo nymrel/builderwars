@@ -239,9 +239,11 @@ The exact sanitized request, verified-principal, opaque-owner, CSRF, route,
 error, rate-limit, atomic idempotency, encrypted replay, production-adapter,
 and rollback contract is documented in
 [`docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md`](docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md).
-The local SQLite reference commits each browser mutation and its AES-256-GCM
-sealed retry response together, while production key custody, datastore parity,
-rotation, multi-instance behavior, and live authentication remain protected.
+The local SQLite reference commits each browser mutation and its versioned
+AES-256-GCM sealed retry response together. A bounded one-active/two-retiring
+keyring proves staged overlap, new-key sealing, deliberate retirement, and
+key-ID substitution refusal; production key custody and rotation execution,
+datastore parity, multi-instance behavior, and live authentication remain protected.
 
 ## Tester ceremony — synthetic rehearsal only
 

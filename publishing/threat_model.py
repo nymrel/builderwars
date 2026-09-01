@@ -107,7 +107,7 @@ def _boundary(boundary_id: str, source: str, destination: str, data: str, channe
 
 
 BOUNDARIES = (
-    _boundary("B-001", "internet_browser", "browser_authorization_gateway", "session_and_customer_actions", "https_future", ("exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies", "injected_verified_principal", "owner_scoped_local_rate_limit_reference", "owner_scoped_local_idempotency_reference", "aes256gcm_sealed_replay_response"), ("production_clerk_cookie_session_verifier_and_edge_limits_unproven", "durable_account_limits_owner_pepper_idempotency_key_custody_and_store_parity_unproven"), ("EA-001", "EA-004", "EA-017")),
+    _boundary("B-001", "internet_browser", "browser_authorization_gateway", "session_and_customer_actions", "https_future", ("exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies", "injected_verified_principal", "owner_scoped_local_rate_limit_reference", "owner_scoped_local_idempotency_reference", "aes256gcm_sealed_replay_response", "versioned_bounded_keyring_rotation_reference"), ("production_clerk_cookie_session_verifier_and_edge_limits_unproven", "durable_account_limits_owner_pepper_idempotency_key_custody_rotation_execution_and_store_parity_unproven"), ("EA-001", "EA-004", "EA-017")),
     _boundary("B-002", "browser_authorization_gateway", "hosted_control_plane", "opaque_owner_id_and_bounded_commands", "in_process_reference", ("hmac_derived_opaque_owner_id", "no_request_owner_id", "canonical_owner_id_validation", "uniform_foreign_object_errors"), ("live_clerk_subject_to_gateway_binding_and_direct_handler_non_exposure_unproven",), ("EA-001", "EA-002", "EA-017")),
     _boundary("B-003", "customer_local_runner", "runner_verifier", "signed_exact_method_path_body_timestamp_nonce", "https_future", ("ed25519_signature", "origin_binding", "timestamp_window", "durable_nonce_consumption"), ("tls_edge_and_perimeter_rate_limits_unproven",), ("EA-005", "EA-006", "EA-007")),
     _boundary("B-004", "hosted_control_plane", "hosted_state_store", "tenant_browser_idempotency_runner_nonce_lease_job_and_result_state", "sqlite_reference", ("exact_identifiers", "parameterized_queries", "foreign_keys", "begin_immediate_transactions", "nested_savepoint_atomicity", "browser_mutation_and_replay_record_same_transaction"), ("production_store_adapter_idempotency_parity_backup_and_capacity_unproven",), ("EA-003", "EA-004", "EA-006")),
@@ -217,10 +217,10 @@ THREATS = (
         "Cross-tenant runner control, state deletion, unauthorized jobs, and privacy breach.",
         ("A-001", "A-002", "A-004", "A-009"), ("B-001", "B-002"), ("EP-001", "EP-002"),
         ("EA-001", "EA-002", "EA-004", "EA-017"),
-        ("production_clerk_token_cookie_session_and_adapter_wiring_unproven", "durable_edge_account_limits_owner_pepper_idempotency_key_custody_and_store_parity_unproven", "direct_handler_non_exposure_unproven"),
-        ("Wire one deny-by-default production adapter that verifies Clerk and constructs the reviewed principal input.", "Provision the owner pepper idempotency-response key and durable edge/account limits through protected secret and state custody.", "Port the same-owner same-key same-request replay and mismatch-refusal transaction contract to the production store.", "Expose only the gateway for owner commands and keep uniform not-found responses for foreign tenant objects."),
+        ("production_clerk_token_cookie_session_and_adapter_wiring_unproven", "durable_edge_account_limits_owner_pepper_idempotency_key_custody_rotation_execution_and_store_parity_unproven", "direct_handler_non_exposure_unproven"),
+        ("Wire one deny-by-default production adapter that verifies Clerk and constructs the reviewed principal input.", "Provision the owner pepper and bounded active-retiring idempotency keyring through protected secret and state custody.", "Exercise staged overlap retirement rollback and disaster recovery without dropping an eligible replay key.", "Port the same-owner same-key same-request replay and mismatch-refusal transaction contract to the production store.", "Expose only the gateway for owner commands and keep uniform not-found responses for foreign tenant objects."),
         ("Alert on owner-mapping failures foreign-object probes and destructive-action spikes.", "Audit redacted subject-to-owner decisions with source and deployment digest."),
-        "medium", "A local gateway reference now rejects request owner ids, bad origin, CSRF, stale principals, schema drift, limiter failure, and idempotency mismatch or replay corruption; likelihood becomes high if production bypasses it or trusts unverified principal data.",
+        "medium", "A local gateway reference now rejects request owner ids, bad origin, CSRF, stale principals, schema drift, limiter failure, idempotency mismatch, replay corruption, unknown key ids, and key-id substitution; likelihood becomes high if production bypasses it or trusts unverified principal data.",
         "high", "A single bypass can cross tenant boundaries and delete or control security-sensitive state.", "critical",
     ),
     _threat(
@@ -350,7 +350,7 @@ CRITICALITY_CALIBRATION = {
 }
 
 FOCUS_PATHS = (
-    {"path": "provider_hub_hosted/browser_gateway.py", "reason": "origin CSRF verified-principal owner derivation exact routes safe errors rate limits and sealed idempotent replay", "threatIds": ["TM-001", "TM-002", "TM-004", "TM-009"]},
+    {"path": "provider_hub_hosted/browser_gateway.py", "reason": "origin CSRF verified-principal owner derivation exact routes safe errors rate limits sealed idempotent replay and bounded key rotation", "threatIds": ["TM-001", "TM-002", "TM-004", "TM-009"]},
     {"path": "provider_hub_hosted/handlers.py", "reason": "external browser-auth boundary and destructive owner-scoped methods", "threatIds": ["TM-001", "TM-002", "TM-009"]},
     {"path": "provider_hub_hosted/store.py", "reason": "tenant predicates nested transactions idempotency nonces leases results and deletion", "threatIds": ["TM-001", "TM-002", "TM-003", "TM-004", "TM-008", "TM-009"]},
     {"path": "provider_hub_hosted/verify.py", "reason": "runner signature origin timestamp owner and nonce verification", "threatIds": ["TM-003"]},
@@ -363,11 +363,11 @@ FOCUS_PATHS = (
     {"path": "publishing/retention_recovery.py", "reason": "deletion suppression recovery and rollback truth boundary", "threatIds": ["TM-008", "TM-010"]},
     {"path": "bin/build_agentwars_local_launch_evidence.py", "reason": "source custody bounded child environment and protected launch holds", "threatIds": ["TM-008", "TM-010"]},
     {"path": "provider_hub_hosted/tests/test_control_plane.py", "reason": "reference conformance for tenant replay race rollback and cleanup behavior", "threatIds": ["TM-001", "TM-002", "TM-003", "TM-004", "TM-008", "TM-009"]},
-    {"path": "provider_hub_hosted/tests/test_browser_idempotency.py", "reason": "same-request replay owner isolation concurrency rollback restart ciphertext tamper and expiry conformance", "threatIds": ["TM-001", "TM-008", "TM-009"]},
+    {"path": "provider_hub_hosted/tests/test_browser_idempotency.py", "reason": "same-request replay owner isolation concurrency rollback restart ciphertext tamper expiry and key rotation conformance", "threatIds": ["TM-001", "TM-008", "TM-009"]},
 )
 
 RESIDUAL_PROTECTED_GATES = (
-    "production_browser_authentication_owner_mapping_pepper_idempotency_key_custody_and_adapter_wiring",
+    "production_browser_authentication_owner_mapping_pepper_idempotency_key_custody_rotation_execution_and_adapter_wiring",
     "production_store_tenant_nonce_and_browser_idempotency_conformance",
     "durable_edge_service_and_tenant_rate_limits",
     "production_secret_and_provider_consent_boundary",

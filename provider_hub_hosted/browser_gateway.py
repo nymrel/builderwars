@@ -48,6 +48,13 @@ MAX_PRINCIPAL_FUTURE_SECONDS = 30
 CSRF_TOKEN_BYTES = 32
 IDEMPOTENCY_RESPONSE_KEY_BYTES = 32
 IDEMPOTENCY_NONCE_BYTES = 12
+IDEMPOTENCY_RESPONSE_ENVELOPE_SCHEMA = "agentwars.idempotency_response_envelope/1"
+IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC = b"AWIR\x01"
+IDEMPOTENCY_KEY_ID_MIN_BYTES = 3
+IDEMPOTENCY_KEY_ID_MAX_BYTES = 32
+IDEMPOTENCY_KEYRING_MAX_KEYS = 3
+
+_IDEMPOTENCY_KEY_ID_RE = re.compile(r"^[a-z][a-z0-9_-]{2,31}$")
 
 PRODUCTION_AUTHORITY = {
     "clerkTokenVerificationActive": False,
@@ -200,6 +207,82 @@ class InMemoryAccountRateLimiter:
         return RateLimitDecision(allowed, limit, remaining, reset_after)
 
 
+class IdempotencyResponseKeyring:
+    """Bounded AES-256-GCM keyring for versioned browser retry responses."""
+
+    __slots__ = ("_active_key_id", "_key_ids", "_keys")
+
+    def __init__(self, *, active_key_id: str, keys: Mapping[str, bytes]):
+        if not isinstance(keys, Mapping):
+            raise TypeError("idempotency response keys must be a mapping")
+        raw_keys = dict(keys)
+        if not 1 <= len(raw_keys) <= IDEMPOTENCY_KEYRING_MAX_KEYS:
+            raise ValueError("idempotency response keyring size is invalid")
+        active_key_id = _validate_idempotency_key_id(active_key_id)
+        if active_key_id not in raw_keys:
+            raise ValueError("active idempotency response key is unavailable")
+
+        material_by_id: dict[str, bytes] = {}
+        observed_material: list[bytes] = []
+        for key_id, key in raw_keys.items():
+            canonical_id = _validate_idempotency_key_id(key_id)
+            if type(key) is not bytes or len(key) != IDEMPOTENCY_RESPONSE_KEY_BYTES:
+                raise ValueError("idempotency response key must contain exactly 32 bytes")
+            if any(hmac.compare_digest(key, existing) for existing in observed_material):
+                raise ValueError("idempotency response key material must be unique")
+            observed_material.append(bytes(key))
+            material_by_id[canonical_id] = bytes(key)
+
+        normalized = {
+            key_id: AESGCM(material_by_id[key_id])
+            for key_id in sorted(material_by_id)
+        }
+
+        self._active_key_id = active_key_id
+        self._key_ids = tuple(normalized)
+        self._keys = normalized
+
+    @property
+    def active_key_id(self) -> str:
+        return self._active_key_id
+
+    @property
+    def key_ids(self) -> tuple[str, ...]:
+        return self._key_ids
+
+    def __repr__(self) -> str:
+        return (
+            "IdempotencyResponseKeyring("
+            f"active_key_id={self.active_key_id!r}, key_ids={self.key_ids!r})"
+        )
+
+    def seal(self, plaintext: bytes, aad: bytes) -> bytes:
+        if type(plaintext) is not bytes or not plaintext or type(aad) is not bytes or not aad:
+            raise ValueError("idempotency response plaintext or associated data is invalid")
+        key_id = self.active_key_id.encode("ascii")
+        header = (
+            IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC
+            + bytes((len(key_id),))
+            + key_id
+        )
+        nonce = os.urandom(IDEMPOTENCY_NONCE_BYTES)
+        ciphertext = self._keys[self.active_key_id].encrypt(
+            nonce,
+            plaintext,
+            _keyring_aad(aad, header),
+        )
+        return header + nonce + ciphertext
+
+    def open(self, sealed: bytes, aad: bytes) -> bytes:
+        header, key_id, nonce, ciphertext = _parse_idempotency_envelope(sealed)
+        if type(aad) is not bytes or not aad:
+            raise ValueError("idempotency response associated data is invalid")
+        cipher = self._keys.get(key_id)
+        if cipher is None:
+            raise ValueError("idempotency response key is unavailable")
+        return cipher.decrypt(nonce, ciphertext, _keyring_aad(aad, header))
+
+
 class BrowserAuthorizationGateway:
     """Authorize exact browser commands before owner-scoped control-plane calls."""
 
@@ -210,7 +293,7 @@ class BrowserAuthorizationGateway:
         allowed_origin: str,
         expected_issuer: str,
         owner_pepper: bytes,
-        idempotency_response_key: bytes,
+        idempotency_response_keyring: IdempotencyResponseKeyring,
         rate_limiter: AccountRateLimiter,
     ):
         if not isinstance(control_plane, HostedControlPlane):
@@ -219,16 +302,13 @@ class BrowserAuthorizationGateway:
             raise TypeError("rate_limiter must implement AccountRateLimiter")
         if type(owner_pepper) is not bytes or len(owner_pepper) < 32:
             raise ValueError("owner pepper must contain at least 32 bytes")
-        if (
-            type(idempotency_response_key) is not bytes
-            or len(idempotency_response_key) != IDEMPOTENCY_RESPONSE_KEY_BYTES
-        ):
-            raise ValueError("idempotency response key must contain exactly 32 bytes")
+        if not isinstance(idempotency_response_keyring, IdempotencyResponseKeyring):
+            raise TypeError("idempotency response keyring is invalid")
         self.control_plane = control_plane
         self.allowed_origin = _canonical_https_origin(allowed_origin, "browser origin")
         self.expected_issuer = _canonical_https_origin(expected_issuer, "principal issuer")
         self._owner_pepper = bytes(owner_pepper)
-        self._idempotency_aead = AESGCM(bytes(idempotency_response_key))
+        self._idempotency_keyring = idempotency_response_keyring
         self._rate_limiter = rate_limiter
 
     def dispatch(
@@ -369,6 +449,12 @@ class BrowserAuthorizationGateway:
             "idempotencyKeyBytes": 16,
             "idempotencyTtlSeconds": BROWSER_IDEMPOTENCY_TTL_SECONDS,
             "idempotencyResponseProtection": "aes256gcm_authenticated_encryption",
+            "idempotencyResponseEnvelopeSchema": IDEMPOTENCY_RESPONSE_ENVELOPE_SCHEMA,
+            "idempotencyResponseKeyringMaxKeys": IDEMPOTENCY_KEYRING_MAX_KEYS,
+            "idempotencyResponseKeyIdBytes": {
+                "min": IDEMPOTENCY_KEY_ID_MIN_BYTES,
+                "max": IDEMPOTENCY_KEY_ID_MAX_BYTES,
+            },
             "idempotencyAtomicity": "same_sqlite_transaction_local_reference",
             "requestCarriesAuthenticationMaterial": False,
             "requestAcceptsOwnerId": False,
@@ -497,7 +583,6 @@ class BrowserAuthorizationGateway:
                 "browser operation returned an invalid success response",
             )
         encoded = _canonical_response_bytes(response.status_code, response.payload)
-        nonce = os.urandom(IDEMPOTENCY_NONCE_BYTES)
         aad = _idempotency_aad(
             owner_id,
             idempotency_key,
@@ -505,7 +590,7 @@ class BrowserAuthorizationGateway:
             request_sha256,
             response.status_code,
         )
-        return response.status_code, nonce + self._idempotency_aead.encrypt(nonce, encoded, aad)
+        return response.status_code, self._idempotency_keyring.seal(encoded, aad)
 
     def _unseal_response(
         self,
@@ -517,10 +602,6 @@ class BrowserAuthorizationGateway:
         operation: str,
         request_sha256: str,
     ) -> HandlerResponse:
-        if type(sealed) is not bytes or len(sealed) <= IDEMPOTENCY_NONCE_BYTES + 16:
-            raise ValueError("sealed idempotency response is invalid")
-        nonce = sealed[:IDEMPOTENCY_NONCE_BYTES]
-        ciphertext = sealed[IDEMPOTENCY_NONCE_BYTES:]
         aad = _idempotency_aad(
             owner_id,
             idempotency_key,
@@ -528,7 +609,7 @@ class BrowserAuthorizationGateway:
             request_sha256,
             status_code,
         )
-        raw = self._idempotency_aead.decrypt(nonce, ciphertext, aad)
+        raw = self._idempotency_keyring.open(sealed, aad)
         value = json.loads(raw.decode("utf-8"))
         if (
             type(value) is not dict
@@ -657,6 +738,59 @@ def _idempotency_aad(
         operation.encode("ascii"),
         request_sha256.encode("ascii"),
         str(status_code).encode("ascii"),
+    ))
+
+
+def _validate_idempotency_key_id(value: str) -> str:
+    if (
+        type(value) is not str
+        or _IDEMPOTENCY_KEY_ID_RE.fullmatch(value) is None
+        or not IDEMPOTENCY_KEY_ID_MIN_BYTES <= len(value) <= IDEMPOTENCY_KEY_ID_MAX_BYTES
+    ):
+        raise ValueError("idempotency response key id is invalid")
+    return value
+
+
+def _parse_idempotency_envelope(
+    sealed: bytes,
+) -> tuple[bytes, str, bytes, bytes]:
+    minimum = (
+        len(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC)
+        + 1
+        + IDEMPOTENCY_KEY_ID_MIN_BYTES
+        + IDEMPOTENCY_NONCE_BYTES
+        + 16
+    )
+    if type(sealed) is not bytes or len(sealed) < minimum:
+        raise ValueError("sealed idempotency response is invalid")
+    if not hmac.compare_digest(
+        sealed[:len(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC)],
+        IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC,
+    ):
+        raise ValueError("sealed idempotency response envelope is invalid")
+    key_id_length = sealed[len(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC)]
+    if not IDEMPOTENCY_KEY_ID_MIN_BYTES <= key_id_length <= IDEMPOTENCY_KEY_ID_MAX_BYTES:
+        raise ValueError("sealed idempotency response key id is invalid")
+    header_end = len(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC) + 1 + key_id_length
+    if len(sealed) <= header_end + IDEMPOTENCY_NONCE_BYTES + 16:
+        raise ValueError("sealed idempotency response is invalid")
+    try:
+        key_id = sealed[
+            len(IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC) + 1:header_end
+        ].decode("ascii")
+    except UnicodeDecodeError as error:
+        raise ValueError("sealed idempotency response key id is invalid") from error
+    key_id = _validate_idempotency_key_id(key_id)
+    header = sealed[:header_end]
+    nonce_end = header_end + IDEMPOTENCY_NONCE_BYTES
+    return header, key_id, sealed[header_end:nonce_end], sealed[nonce_end:]
+
+
+def _keyring_aad(aad: bytes, header: bytes) -> bytes:
+    return b"\x00".join((
+        aad,
+        IDEMPOTENCY_RESPONSE_ENVELOPE_SCHEMA.encode("ascii"),
+        header,
     ))
 
 

@@ -183,10 +183,11 @@ def main() -> int:
         "injected_verified_principal", "owner_scoped_local_rate_limit_reference",
         "owner_scoped_local_idempotency_reference",
         "aes256gcm_sealed_replay_response",
+        "versioned_bounded_keyring_rotation_reference",
     ], "browser boundary guarantees are exact")
     check(boundary_b001["gaps"] == [
         "production_clerk_cookie_session_verifier_and_edge_limits_unproven",
-        "durable_account_limits_owner_pepper_idempotency_key_custody_and_store_parity_unproven",
+        "durable_account_limits_owner_pepper_idempotency_key_custody_rotation_execution_and_store_parity_unproven",
     ], "browser boundary keeps production gaps explicit")
     check(boundary_b002["guarantees"] == [
         "hmac_derived_opaque_owner_id", "no_request_owner_id",
@@ -202,6 +203,10 @@ def main() -> int:
     check(bg.BROWSER_GATEWAY_EVIDENCE_CLASS == "local_browser_authorization_reference", "gateway evidence class is local")
     check(all(type(flag) is bool and flag is False for flag in bg.PRODUCTION_AUTHORITY.values()), "gateway has zero production authority")
     check(bg.IDEMPOTENCY_RESPONSE_KEY_BYTES == 32, "gateway requires an AES-256 response key")
+    check(bg.IDEMPOTENCY_RESPONSE_ENVELOPE_SCHEMA == "agentwars.idempotency_response_envelope/1", "idempotency response envelope is versioned")
+    check(bg.IDEMPOTENCY_RESPONSE_ENVELOPE_MAGIC == b"AWIR\x01", "idempotency response envelope magic is pinned")
+    check(bg.IDEMPOTENCY_KEYRING_MAX_KEYS == 3, "idempotency keyring is bounded to one active and two retiring keys")
+    check((bg.IDEMPOTENCY_KEY_ID_MIN_BYTES, bg.IDEMPOTENCY_KEY_ID_MAX_BYTES) == (3, 32), "idempotency key ids are canonically bounded")
     check(hosted_store.BROWSER_IDEMPOTENCY_TTL_SECONDS == 86_400, "browser replay window is exactly 24 hours")
     check(list(bg.BrowserRequest.__dataclass_fields__) == [
         "method", "path", "body", "origin", "content_type", "csrf_cookie", "csrf_header",
@@ -328,7 +333,7 @@ def main() -> int:
     check("BuilderWars.com apex and www remain untouched" in boundary_markdown, "browser boundary preserves the protected domain boundary")
 
     print(f"BuilderWars threat model: PASS ({CHECKS} checks)")
-    print("10 threats / 8 boundaries / 17 source anchors / local atomic idempotency proven / production auth-store parity and OS-isolation gaps held / zero production security authority")
+    print("10 threats / 8 boundaries / 17 source anchors / local atomic idempotency and bounded key rotation proven / production custody-auth-store parity and OS-isolation gaps held / zero production security authority")
     return 0
 
 
