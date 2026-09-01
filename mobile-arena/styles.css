@@ -181,6 +181,10 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.035em; }
 .portable-review-record strong { font-size: 10px; }
 .portable-review-record small, .portable-review-record > span { color: var(--muted); font-size: 9px; line-height: 1.45; }
 .portable-review-record code { overflow-wrap: anywhere; color: #b8c89f; font: 9px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.portable-review-exchange { min-width: 0; margin-top: 10px; padding-top: 18px; display: grid; gap: 12px; border-top: 1px solid var(--line); }
+.portable-review-exchange h4 { margin: 2px 0 0; font-size: 14px; }
+.portable-review-exchange > div > p:not(.eyebrow) { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.portable-review-exchange .portable-textarea { max-height: 240px; }
 .proof-learning-button { width: 100%; margin-top: 18px; }
 .model-row { grid-template-columns: 1fr auto; gap: 12px; }
 .model-status { color: var(--lime); font-size: 11px; font-weight: 800; }

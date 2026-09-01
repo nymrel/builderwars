@@ -13,9 +13,11 @@
   const RUNBACK_PROPOSAL_SCHEMA = "builderwars.mobile-runback-proposal.v1";
   const PORTABLE_RUNBACK_SCHEMA = "builderwars.mobile-runback-portable.v1";
   const PORTABLE_REVIEW_SCHEMA = "builderwars.mobile-runback-review.v1";
+  const PORTABLE_REVIEW_EXCHANGE_SCHEMA = "builderwars.mobile-runback-review-exchange.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
+  const PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH = 262144;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -29,6 +31,7 @@
   const RUNBACK_PROPOSAL_BOUNDARY = "This versioned object is a local, still-unplayed proposal. It preserves parent receipt and challenge lineage, but it does not qualify, execute, attest, rank, publish, or spend.";
   const PORTABLE_RUNBACK_BOUNDARY = "This canonical envelope carries a local, still-unplayed proposal plus a SHA-256 integrity checksum. The checksum detects accidental or unacknowledged content changes; it is not a signature, does not authenticate an author or provider, and grants no qualification, execution, registry, ranking, publication, or spending authority.";
   const PORTABLE_REVIEW_BOUNDARY = "This append-only local review record binds one verified portable proposal to an unattested reviewer label and a bounded private decision. Its SHA-256 chain is integrity evidence, not a signature or identity claim. It cannot bind missing rules, qualify, execute, attest, register, rank, publish, or spend.";
+  const PORTABLE_REVIEW_EXCHANGE_BOUNDARY = "This canonical packet supports independent local inspection of one still-unplayed proposal and its private review journal. Its SHA-256 digests detect changed content but are not signatures or identity claims. Import is memory-only and cannot apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
@@ -777,6 +780,71 @@
     return clone(sealed);
   }
 
+  async function createPortableRunbackReviewExchange(serializedProposalInput, reviewInput) {
+    const verifiedProposal = await verifyPortableRunbackEnvelope(serializedProposalInput);
+    const journal = await verifyPortableRunbackReviewJournal(reviewInput, verifiedProposal);
+    const proposalEnvelope = JSON.parse(serializedProposalInput);
+    const payload = {
+      proposalEnvelope: clone(proposalEnvelope),
+      reviews: clone(journal.reviews),
+    };
+    const payloadDigest = await sha256Hex(canonicalJSON(payload));
+    const packet = {
+      schemaVersion: PORTABLE_REVIEW_EXCHANGE_SCHEMA,
+      exchangeVersion: 1,
+      payload,
+      integrity: {
+        algorithm: "sha256",
+        payloadDigest,
+        proposalPayloadDigest: verifiedProposal.payloadDigest,
+        reviewHeadDigest: journal.latestReviewDigest,
+      },
+      boundary: PORTABLE_REVIEW_EXCHANGE_BOUNDARY,
+    };
+    const serialized = canonicalJSON(packet);
+    requireValue(serialized.length <= PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH, "unsafe portable review exchange: packet length rejected");
+    return { packet: clone(packet), serialized };
+  }
+
+  async function verifyPortableRunbackReviewExchange(serializedInput) {
+    requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH, "unsafe portable review exchange: input length rejected");
+    let packet;
+    try {
+      packet = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe portable review exchange: invalid JSON");
+    }
+    assertSafeKeys(packet, "portable review exchange");
+    requireExactKeys(packet, ["schemaVersion", "exchangeVersion", "payload", "integrity", "boundary"], "portable review exchange");
+    requireValue(packet.schemaVersion === PORTABLE_REVIEW_EXCHANGE_SCHEMA && packet.exchangeVersion === 1, "unsafe portable review exchange: schema drift");
+    requireValue(packet.boundary === PORTABLE_REVIEW_EXCHANGE_BOUNDARY, "unsafe portable review exchange: boundary drift");
+    requireValue(serializedInput === canonicalJSON(packet), "unsafe portable review exchange: packet must use canonical JSON");
+
+    requireExactKeys(packet.payload, ["proposalEnvelope", "reviews"], "portable review exchange payload");
+    requireExactKeys(packet.integrity, ["algorithm", "payloadDigest", "proposalPayloadDigest", "reviewHeadDigest"], "portable review exchange integrity");
+    requireValue(packet.integrity.algorithm === "sha256", "unsafe portable review exchange: integrity algorithm drift");
+    requireValue(HEX64.test(packet.integrity.payloadDigest) && HEX64.test(packet.integrity.proposalPayloadDigest), "unsafe portable review exchange: integrity digest drift");
+    requireValue(packet.integrity.reviewHeadDigest === null || HEX64.test(packet.integrity.reviewHeadDigest), "unsafe portable review exchange: review head digest drift");
+
+    const proposalSerialized = canonicalJSON(packet.payload.proposalEnvelope);
+    const proposalVerification = await verifyPortableRunbackEnvelope(proposalSerialized);
+    const journal = await verifyPortableRunbackReviewJournal(packet.payload.reviews, proposalVerification);
+    requireValue(equalHex(proposalVerification.payloadDigest, packet.integrity.proposalPayloadDigest), "unsafe portable review exchange: proposal digest binding mismatch");
+    requireValue(journal.latestReviewDigest === packet.integrity.reviewHeadDigest, "unsafe portable review exchange: review head binding mismatch");
+    const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
+    requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe portable review exchange: payload digest mismatch");
+
+    return {
+      schemaVersion: PORTABLE_REVIEW_EXCHANGE_SCHEMA,
+      verificationStatus: "verified_private_local_review_exchange",
+      packetDigest: computedPayloadDigest,
+      proposalSerialized,
+      proposalVerification,
+      journal,
+      boundary: PORTABLE_REVIEW_EXCHANGE_BOUNDARY,
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -908,6 +976,8 @@
     LEARNING_SCHEMA,
     PORTABLE_RUNBACK_MAX_LENGTH,
     PORTABLE_RUNBACK_SCHEMA,
+    PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH,
+    PORTABLE_REVIEW_EXCHANGE_SCHEMA,
     PORTABLE_REVIEW_MAX_RECORDS,
     PORTABLE_REVIEW_REASONS,
     PORTABLE_REVIEW_SCHEMA,
@@ -922,12 +992,14 @@
     buildReceiptLearningAction,
     buildRunbackProposal,
     createPortableRunbackEnvelope,
+    createPortableRunbackReviewExchange,
     demoFallback,
     loadArenaData,
     validateArenaReadModel,
     validateDemoFixture,
     validateRunbackProposal,
     verifyPortableRunbackEnvelope,
+    verifyPortableRunbackReviewExchange,
     verifyPortableRunbackReviewJournal,
   };
 }));

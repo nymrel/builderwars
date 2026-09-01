@@ -384,17 +384,44 @@ is capped at 64 records, stored only in page memory, and cleared on a different
 or invalid import. Its hash chain is integrity evidence, not reviewer identity
 or approval authority. The independent checker exercises 132 assertions.
 
+### Canonical private-review exchange
+
+`builderwars.mobile-runback-review-exchange.v1` carries the original canonical
+portable proposal envelope and the exact private review array as one bounded
+payload. The packet is capped at 262,144 characters and adds three explicit
+SHA-256 bindings: the canonical packet-payload digest, the proposal-payload
+digest, and the latest review digest (or `null` for an empty journal). These are
+content-integrity checks, not signatures, reviewer authentication, provider
+attestation, or approval.
+
+A recipient can start with an empty Receipt Lab, paste one exact canonical
+packet, and independently re-run the strict proposal verifier, every review
+record and prior-digest link, the proposal binding shared by all reviews, the
+review head binding, and the outer packet digest. Unknown fields, noncanonical
+serialization, altered proposal or review content, cross-proposal replay,
+reordering, truncation, oversized journals, dangerous keys, false attestations,
+and committed-blueprint drift fail closed. Successful import reconstructs only
+an in-memory inspection view and the still-private journal. It does not apply a
+blueprint, bind rules, qualify, execute, register, rank, publish, spend, call a
+provider, or authenticate a person.
+
+The adversarial checker exercises 92 assertions, including independent import
+of an empty journal and the full existing 64-record journal. The full packet is
+119,636 bytes in the deterministic fixture, inside the declared cap. Mobile UI
+exposes read-only preparation, paste verification, exact refusal states, and
+the reconstructed private journal without clipboard, file, account, or network
+authority.
+
 ### Exact next bounded campaign
 
-Add canonical export and independent import verification for the bounded review
-journal. The packet should carry the original verified portable envelope and
-its exact append-only review records under a strict size cap, then independently
-recompute both proposal and review-chain digests from an empty Receipt Lab.
-Import must remain inspection-only: no reviewer identity claim, blueprint
-application, rules binding, qualification, execution, registry mutation,
-ranking, publication, or spending. Auth, network writes, creator code execution,
-provider use, public activation, and the protected private-alpha API binding
-remain operator-gated campaigns.
+Add an append-only private correction and supersession record for a previously
+verified review. It should bind the immutable target review digest, one bounded
+correction reason, and either a corrected private decision or withdrawal while
+preserving the original record and proposal lineage. Correction must not rewrite
+history, authenticate a reviewer, apply a blueprint, bind rules, qualify,
+execute, register, rank, publish, or spend. Auth, network writes, creator code
+execution, provider use, public activation, and the protected private-alpha API
+binding remain operator-gated campaigns.
 
 ## Review status
 

@@ -31,8 +31,13 @@ append-only private review decision whose reviewer label remains unattested.
 Only `accept_for_blueprint_revision` creates a proposed, uncommitted local
 blueprint revision; defer and reject create none. Every review stays hash-linked
 in memory and leaves rules, qualification, execution, registry, ranking,
-publication, and spending authority absent. The shell performs no provider
-call, inference, account action, publication, or deployment.
+publication, and spending authority absent. The original canonical proposal and
+its exact review journal can now be exported together as a bounded canonical
+packet and independently reverified from an empty Receipt Lab. Import remains a
+memory-only inspection projection: it applies no blueprint and grants no
+identity, rules, provider, runner, registry, ranking, publication, or spending
+authority. The shell performs no provider call, inference, account action,
+publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -42,6 +47,7 @@ python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_portable_review.py
+python bin\check_mobile_arena_portable_review_exchange.py
 python bin\check_mobile_arena_exchange.py
 ```
 

@@ -116,7 +116,12 @@ def main() -> int:
     require('reviewStatus: "private_local_review"' in adapter and 'status: "proposed_uncommitted_revision"' in adapter, "private review or proposed revision boundary missing")
     require("data-portable-review-submit" in js and "portable-reviewer-label" in js and "portable-review-journal" in js, "portable review mobile controls missing")
     require("not a signature or identity claim" in adapter and "grants no rules" in js, "portable review authenticity or authority boundary missing")
-    checks += 27
+    require("createPortableRunbackReviewExchange" in adapter and "verifyPortableRunbackReviewExchange" in adapter, "portable review exchange verifier missing")
+    require('PORTABLE_REVIEW_EXCHANGE_SCHEMA = "builderwars.mobile-runback-review-exchange.v1"' in adapter, "portable review exchange schema drift")
+    require("PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH = 262144" in adapter and 'maxlength="262144"' in js, "portable review exchange length boundary missing")
+    require("data-portable-review-exchange-prepare" in js and "data-portable-review-exchange-verify" in js, "portable review exchange controls missing")
+    require("independent local inspection" in adapter and "No blueprint was applied" in js, "portable review exchange truth boundary missing")
+    checks += 32
     checks += 2
 
     print("[5] accessibility, offline, and reduced-motion contracts")
@@ -170,12 +175,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=13", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=14", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=13",
-        "./styles.css?v=13",
-        "./data-adapter.js?v=13",
-        "./app.js?v=13",
+        "./index.html?v=14",
+        "./styles.css?v=14",
+        "./data-adapter.js?v=14",
+        "./app.js?v=14",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -184,7 +189,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=13"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=14"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -258,6 +263,20 @@ def main() -> int:
     )
     require(portable_review_check.returncode == 0, f"portable review regression failed: {portable_review_check.stderr.strip()}")
     require("PASS" in portable_review_check.stdout, "portable review regression did not report PASS")
+    checks += 2
+
+    portable_review_exchange_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_portable_review_exchange.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=90,
+        check=False,
+    )
+    require(portable_review_exchange_check.returncode == 0, f"portable review exchange regression failed: {portable_review_exchange_check.stderr.strip()}")
+    require("PASS" in portable_review_exchange_check.stdout, "portable review exchange regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")
