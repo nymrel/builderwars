@@ -37,7 +37,7 @@ It deliberately records the protected downstream nodes as held.
 | 7 | Mobile static contracts | Checks deterministic mobile, truth, offline, and accessibility contracts | Hosted route, real user, deployed device support |
 | 8 | Real-browser acceptance | Runs Chromium navigation, failure, storage, responsive, offline, and accessibility journeys | Production browser, authenticated journey, external performance |
 | 9 | Hosted security, abuse, and cleanup | Runs local hosted-control-plane refusal, rollback, and cleanup tests | Production Redis/rate limits/deletion and external security review |
-| 10 | Launch contracts, measurement baseline, performance budget, and rollback plan | Runs the strict schema-only measurement/zero-baseline gate, enforces deterministic Mobile Arena asset budgets, and digests the domain, completion, North Star, measurement, performance, and pack contracts | Durable/live counters, production rollback, production observability/performance, support, legal approval |
+| 10 | Launch contracts, measurement, performance, observability, incident drills, and rollback plan | Runs strict measurement and observability zero-baseline gates, deterministic incident/support drills, deterministic Mobile Arena asset budgets, and digests the domain, completion, North Star, operations, and pack contracts | Durable/live counters and telemetry, alert delivery, staffed support, production rollback/performance, legal approval |
 | 11 | Protected runtime configuration | Executes nothing; records `HELD_PROTECTED` | Clerk, Redis, webhook, peppers, reviewer keys, rate limits, flags |
 | 12 | Source-bound deployment and rollback | Executes nothing; records `HELD_PROTECTED` | Target, DNS/TLS, served bytes, performance, observability, rollback |
 | 13 | Tester, review, and launch authority | Executes nothing; records `HELD_PROTECTED` | Consented customer, genuine provider match, deletion, detached review, launch decision |
@@ -89,6 +89,9 @@ The JSON includes:
   production, audience, performance, identity, retention, and launch flag false;
 - deterministic raw and gzip budgets for the exact tracked Mobile Arena asset
   set, with no network, timing, real-user, or production-performance claim;
+- a strict ten-event operational schema, zero observability baseline, and
+  deterministic incident/support decisions with no telemetry, alert delivery,
+  flag mutation, rollback execution, or production-authority claim;
 - post-run source/tree/cleanliness proof;
 - false production claims and the next protected gate; and
 - `packDigest`, the SHA-256 of canonical JSON before that field is added.

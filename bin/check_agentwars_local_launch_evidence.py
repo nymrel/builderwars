@@ -102,13 +102,14 @@ def main() -> int:
         stages[9].commands == (
             (evidence_builder.PYTHON, "bin/check_agentwars_measurement.py"),
             (evidence_builder.PYTHON, "bin/check_mobile_arena_performance_budget.py"),
+            (evidence_builder.PYTHON, "bin/check_agentwars_observability.py"),
         ),
-        "stage 10 runs the exact measurement and performance gates",
+        "stage 10 runs the exact measurement, performance, and observability gates",
     )
     check(stages[10].stage_id == "protected_runtime_configuration", "protected runtime is the first held gate")
 
     commands = [command for stage in stages for command in stage.commands]
-    check(len(commands) == 13, "local evidence contract has exactly 13 bounded commands")
+    check(len(commands) == 14, "local evidence contract has exactly 14 bounded commands")
     check(all(command and command[0] == evidence_builder.PYTHON for command in commands), "every executable stage uses the current Python runtime directly")
     flattened = " ".join(token for command in commands for token in command).lower()
     for forbidden in ("curl ", "invoke-webrequest", "vercel", "cloudflare", "git push", "deploy", "publish", "oauth", "clerk"):

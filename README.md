@@ -181,6 +181,23 @@ Core Web Vitals receipt. Contract, limits, and the protected production proof
 still required are documented in
 [`docs/AGENTWARS_PERFORMANCE_BUDGET.md`](docs/AGENTWARS_PERFORMANCE_BUDGET.md).
 
+## Observability and incident contract — uninstrumented
+
+AgentWars now has a strict ten-event operational schema, deterministic zero
+baseline, tamper-resistant in-memory aggregation, and synthetic health, error,
+queue, abuse, integrity, secret, deletion, rollback, and support drills. The
+decision engine can recommend holds, protected-flow disablement, rollback
+assessment, evidence capture, and support routing; it executes none of them.
+
+```powershell
+python bin\check_agentwars_observability.py
+```
+
+No telemetry sink, alert delivery, status page, staffed support queue,
+production threshold, protected flag, or rollback is configured or claimed.
+Contract and production activation boundary:
+[`docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md`](docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md).
+
 ## Local launch evidence pack
 
 One source-bound command assembles the current 13-stage local launch candidate.
