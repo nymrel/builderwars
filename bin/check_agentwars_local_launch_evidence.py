@@ -107,9 +107,10 @@ def main() -> int:
     )
     check(stages[8].evidence_files == (
         "arena/admission.py",
+        "arena/reference_sources.py",
         "docs/BUILDERWARS_THREAT_MODEL.md",
         "docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md",
-    ), "stage 9 binds executable admission, the reviewed threat model, and browser-authorization boundary")
+    ), "stage 9 binds executable admission, reviewed source authority, the threat model, and browser-authorization boundary")
     check(stages[8].not_proven == (
         "production Clerk session verification",
         "production owner pepper custody",

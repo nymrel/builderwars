@@ -35,6 +35,7 @@ from .admission import (
     require_execution_scope,
 )
 from .sandbox import POLICY, Entrant, EntrantFailure
+from .reference_sources import require_reviewed_reference_entrants
 from .scoring import referee_projection, score
 from .transcript import TranscriptWriter
 
@@ -249,6 +250,10 @@ def run_match(
     move_timeout_s = float(move_timeout_s)
     for manifest in entrants:
         validate_manifest(manifest)
+    reviewed_sources = []
+    if execution_scope == REFERENCE_REVIEWED_LOCAL_V1:
+        reviewed_sources = require_reviewed_reference_entrants(entrants)
+    entrant_admission["reviewed_sources"] = reviewed_sources
     seat_envs = _normalize_provisioned_envs(entrants, provisioned_envs)
     if entrants[0]["name"].casefold() == entrants[1]["name"].casefold():
         raise ValueError("entrant names must be unique within a match")
@@ -620,7 +625,7 @@ def run_match(
 
 
 def run_reference_match(**kwargs):
-    """Run a repository-reviewed reference entrant pair on a local host."""
+    """Run an exact registry-bound repository reference pair on a local host."""
 
     if "execution_scope" in kwargs:
         raise TypeError("run_reference_match fixes execution_scope")

@@ -97,3 +97,31 @@ def script_digest(cmd):
         direct.pop("extension")
         return direct
     return None
+
+
+def primary_script_path(cmd):
+    """Resolve the exact harness path selected by :func:`script_digest`.
+
+    This deliberately implements the same strict command grammar as
+    ``script_digest``: an allowlisted interpreter may name a harness only at
+    argv[1], while a direct launch must name a supported executable script at
+    argv[0].  Callers use the resolved path for source-authority checks; the
+    transcript continues to publish only the basename and digest.
+    """
+
+    if not isinstance(cmd, (list, tuple)) or not cmd:
+        return None
+
+    if len(cmd) >= 2 and isinstance(cmd[0], str):
+        interpreted = _script_record(cmd[1])
+        if interpreted is not None:
+            allowed = _INTERPRETERS_BY_EXTENSION.get(
+                interpreted["extension"], frozenset()
+            )
+            if _command_name(cmd[0]) in allowed:
+                return os.path.realpath(cmd[1])
+
+    direct = _script_record(cmd[0])
+    if direct is not None and _command_name(cmd[0]) not in _KNOWN_INTERPRETERS:
+        return os.path.realpath(cmd[0])
+    return None

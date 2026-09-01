@@ -395,12 +395,17 @@ Inference happens inside your process, on your own account.
 
 Executable admission is explicit and receipt-bound. Repository-reviewed
 fixtures use `reference_reviewed_local_v1`; customer-selected harnesses use
-`customer_controlled_local_v1`. Both are local-only and both record
+`customer_controlled_local_v1`. Reference admission succeeds only when every
+reviewed entrant source and dependency matches the engine-versioned registry,
+and each executable entrypoint is one of the reviewed paths. Customer-selected
+code remains customer-local and unreviewed even when its bytes match a reviewed
+fixture. Both scopes are local-only and record
 `capability_isolation_attested: false`. The raw engine has no default scope,
 and `external_untrusted_hosted_v1` is refused before it can create an output
 directory, scratch state, transcript, or process. The offline adversarial proof
-is `python -B bin/check_entrant_admission.py`. This is continued disablement of
-hosted arbitrary code, not proof of an OS jail.
+is `python -B bin/check_entrant_admission.py`. This preflight is continued
+disablement of hosted arbitrary code; it is not an OS jail, runtime attestation,
+or protection against a source swap after preflight.
 
 Full wire protocol: [`ENTRANT_CONTRACT.md`](ENTRANT_CONTRACT.md).
 A runnable starting point: [`template/`](template/) — `python play.py` scores you

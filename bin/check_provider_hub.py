@@ -2100,6 +2100,7 @@ _PY_COMPILE_TARGETS = [
     "publishing/retention_recovery.py",
     "publishing/threat_model.py",
     "arena/admission.py",
+    "arena/reference_sources.py",
     "provider_hub_hosted/browser_gateway.py",
     "provider_hub_hosted/tests/test_browser_gateway.py",
     "provider_hub_hosted/tests/test_browser_idempotency.py",

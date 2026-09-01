@@ -150,6 +150,7 @@ STAGES: tuple[StageDefinition, ...] = (
         ),
         evidence_files=(
             "arena/admission.py",
+            "arena/reference_sources.py",
             "docs/BUILDERWARS_THREAT_MODEL.md",
             "docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md",
         ),

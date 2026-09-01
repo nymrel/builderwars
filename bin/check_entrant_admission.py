@@ -9,9 +9,11 @@ scopes are truthfully bound into a replay-valid transcript.
 
 import json
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -29,6 +31,12 @@ from arena.match import (  # noqa: E402
     run_reference_match,
 )
 from arena.replay import verify  # noqa: E402
+from arena.reference_sources import (  # noqa: E402
+    PROTOCOL as REFERENCE_SOURCE_PROTOCOL,
+    REVIEWED_REFERENCE_SOURCES,
+    UnreviewedReferenceSource,
+    registry_digest,
+)
 
 
 CHECKS = 0
@@ -165,7 +173,122 @@ def main():
             reference_admission["capability_isolation_attested"] is False,
             "reference run does not forge capability isolation",
         )
+        check(
+            reference_admission["reviewed_source_preflight_bound"] is True,
+            "reference source preflight is explicitly bound",
+        )
+        check(
+            reference_admission["reviewed_source_registry_protocol"]
+            == REFERENCE_SOURCE_PROTOCOL,
+            "reference source registry protocol is bound",
+        )
+        check(
+            reference_admission["reviewed_source_registry_digest"] == registry_digest(),
+            "reference source registry digest is bound",
+        )
+        check(
+            reference_admission["reviewed_source_registry_entry_count"]
+            == len(REVIEWED_REFERENCE_SOURCES),
+            "reference source registry size is bound",
+        )
+        check(
+            reference_admission["reviewed_source_registry_scope"]
+            == "all_reviewed_entrant_sources",
+            "reference registry covers entrant entrypoints and shared source dependencies",
+        )
+        reviewed_sources = reference_admission["reviewed_sources"]
+        check(
+            reviewed_sources
+            == [
+                {
+                    "seat": seat,
+                    "path": "entrants/naive_harness.py",
+                    "sha256": REVIEWED_REFERENCE_SOURCES["entrants/naive_harness.py"],
+                }
+                for seat in (0, 1)
+            ],
+            "each reference seat binds its exact reviewed path and digest",
+        )
         check(verify(reference["transcript"])["verdict"] == "PASS", "reference replay remains valid")
+
+        copied_harness = root / "copied-naive-harness.py"
+        shutil.copyfile(harness, copied_harness)
+        copied_pair = [
+            manifest("Copied Alpha", str(copied_harness)),
+            manifest("Copied Beta", str(copied_harness)),
+        ]
+        copied_out = root / "copied-reference"
+        expect_error(
+            lambda: run_match(
+                game_name="nim",
+                seed=51,
+                entrants=copied_pair,
+                execution_scope=REFERENCE_REVIEWED_LOCAL_V1,
+                out_dir=str(copied_out),
+            ),
+            UnreviewedReferenceSource,
+            "outside the reviewed repository root",
+        )
+        check(
+            not copied_out.exists(),
+            "byte-identical external copy cannot bypass reference source authority",
+        )
+
+        unregistered = os.path.join(ROOT, "entrants", "backends.py")
+        unregistered_pair = [
+            manifest("Unregistered Alpha", unregistered),
+            manifest("Unregistered Beta", unregistered),
+        ]
+        unregistered_out = root / "unregistered-reference"
+        expect_error(
+            lambda: run_reference_match(
+                game_name="nim",
+                seed=52,
+                entrants=unregistered_pair,
+                out_dir=str(unregistered_out),
+            ),
+            UnreviewedReferenceSource,
+            "is not an executable reviewed entrypoint",
+        )
+        check(
+            not unregistered_out.exists(),
+            "unregistered repository source creates no output directory",
+        )
+
+        ambiguous_pair = [dict(pair[0]), dict(pair[1])]
+        ambiguous_pair[0]["cmd"] = [sys.executable, "-c", "raise SystemExit(0)", harness]
+        ambiguous_out = root / "ambiguous-reference"
+        expect_error(
+            lambda: run_reference_match(
+                game_name="nim",
+                seed=53,
+                entrants=ambiguous_pair,
+                out_dir=str(ambiguous_out),
+            ),
+            UnreviewedReferenceSource,
+            "does not identify one exact supported harness",
+        )
+        check(
+            not ambiguous_out.exists(),
+            "ambiguous command creates no output directory or process",
+        )
+
+        drift_out = root / "digest-drift-reference"
+        with mock.patch("arena.reference_sources.file_digest", return_value="0" * 64):
+            expect_error(
+                lambda: run_reference_match(
+                    game_name="nim",
+                    seed=54,
+                    entrants=pair,
+                    out_dir=str(drift_out),
+                ),
+                UnreviewedReferenceSource,
+                "reviewed registry digest mismatch",
+            )
+        check(
+            not drift_out.exists(),
+            "reviewed source digest drift creates no output directory or process",
+        )
 
         customer = run_customer_local_match(
             game_name="nim",
@@ -184,6 +307,12 @@ def main():
             "customer source remains explicitly unreviewed",
         )
         check(customer_admission["platform_hosted"] is False, "customer run is not platform-hosted")
+        check(
+            customer_admission["reviewed_source_preflight_bound"] is False
+            and customer_admission["reviewed_source_registry_scope"] is None
+            and customer_admission["reviewed_sources"] == [],
+            "customer-local source is never mislabeled as repository reviewed",
+        )
         check(verify(customer["transcript"])["verdict"] == "PASS", "customer replay remains valid")
 
         expect_error(

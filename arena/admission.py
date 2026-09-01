@@ -13,6 +13,9 @@ created.
 
 from copy import deepcopy
 
+from .reference_sources import PROTOCOL as REFERENCE_SOURCE_PROTOCOL
+from .reference_sources import REVIEWED_REFERENCE_SOURCES, registry_digest
+
 
 PROTOCOL = "builderwars/entrant-admission/1"
 
@@ -37,6 +40,11 @@ _ADMISSION_RECORDS = {
         "platform_hosted": False,
         "public_uploaded_code": False,
         "capability_isolation_attested": False,
+        "reviewed_source_preflight_bound": True,
+        "reviewed_source_registry_protocol": REFERENCE_SOURCE_PROTOCOL,
+        "reviewed_source_registry_digest": registry_digest(),
+        "reviewed_source_registry_entry_count": len(REVIEWED_REFERENCE_SOURCES),
+        "reviewed_source_registry_scope": "all_reviewed_entrant_sources",
     },
     CUSTOMER_CONTROLLED_LOCAL_V1: {
         "protocol": PROTOCOL,
@@ -47,6 +55,11 @@ _ADMISSION_RECORDS = {
         "platform_hosted": False,
         "public_uploaded_code": False,
         "capability_isolation_attested": False,
+        "reviewed_source_preflight_bound": False,
+        "reviewed_source_registry_protocol": None,
+        "reviewed_source_registry_digest": None,
+        "reviewed_source_registry_entry_count": 0,
+        "reviewed_source_registry_scope": None,
     },
 }
 

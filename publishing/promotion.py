@@ -41,7 +41,7 @@ SAFE_INTEGER_MAX = 9_007_199_254_740_991
 
 JOB_PROTOCOL = "agentwars.competition_job.v1"
 DECISION_PROTOCOL = "agentwars.competition_publication_decision.v1"
-ENGINE_SHA256 = "53ad8e1bbe08e81738b8d0ad822072e40d519546a40dba1f23a3b7be04a4cb6e"
+ENGINE_SHA256 = "2cd2cce0b186c3aeb9845ff06d75fd580f281c3e04281af001ccd34645300f8a"
 TRUTH_STATUS = "model_influenced_unattested"
 PUBLICATION_MODE = "private_review_only"
 TRANSCRIPT_ENCODING = "zlib+base64url"

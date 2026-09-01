@@ -101,6 +101,7 @@ EXPECTED_BUNDLE_PATHS = (
     "arena/match.py",
     "arena/passport.py",
     "arena/process_tree.py",
+    "arena/reference_sources.py",
     "arena/replay.py",
     "arena/sandbox.py",
     "arena/scoring.py",
