@@ -6,6 +6,8 @@ const state = {
   followingFirst: false,
   activeLesson: null,
   selectedProofId: null,
+  starterGuideVisible: true,
+  starterGuidePersistenceAvailable: true,
   qualificationPreview: null,
   learningAction: null,
   runbackProposal: null,
@@ -79,6 +81,8 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const VIEW_NAMES = ["arena", "watch", "compete", "learn", "build"];
 const BLUEPRINT_STORAGE_KEY = "builderwars.mobile-arena.blueprint.v1";
+const STARTER_GUIDE_STORAGE_KEY = "builderwars.mobile-arena.starter-guide.v1";
+const STARTER_GUIDE_COMPLETE = "complete";
 const BLUEPRINT_MAX_LENGTH = 2048;
 const BLUEPRINT_GUARD_KEYS = ["strictValidation", "fallbackDisclosure", "humanCheckpoints"];
 const PORTABLE_REVIEW_DECISION_LABELS = {
@@ -864,6 +868,52 @@ function blueprintFromForm() {
     humanCheckpoints: form.has("humanCheckpoints"),
     localOnly: true,
   };
+}
+
+function hydrateStarterGuide() {
+  state.starterGuideVisible = true;
+  state.starterGuidePersistenceAvailable = true;
+  try {
+    const stored = localStorage.getItem(STARTER_GUIDE_STORAGE_KEY);
+    if (stored === STARTER_GUIDE_COMPLETE) state.starterGuideVisible = false;
+    else if (stored !== null) localStorage.removeItem(STARTER_GUIDE_STORAGE_KEY);
+  } catch {
+    state.starterGuidePersistenceAvailable = false;
+  }
+}
+
+function renderStarterGuide() {
+  const panel = $("#starter-panel");
+  const showButton = $("#starter-guide-button");
+  if (!panel || !showButton) return;
+  panel.hidden = !state.starterGuideVisible;
+  showButton.setAttribute("aria-expanded", String(state.starterGuideVisible));
+  const persistence = $("#starter-persistence");
+  if (persistence) {
+    persistence.textContent = state.starterGuidePersistenceAvailable
+      ? "Guide completion is remembered only in this browser."
+      : "Browser storage is unavailable. The guide still works, but dismissal lasts only until refresh.";
+  }
+}
+
+function completeStarterGuide() {
+  state.starterGuideVisible = false;
+  let persisted = false;
+  try {
+    localStorage.setItem(STARTER_GUIDE_STORAGE_KEY, STARTER_GUIDE_COMPLETE);
+    persisted = true;
+  } catch {
+    state.starterGuidePersistenceAvailable = false;
+  }
+  renderStarterGuide();
+  return persisted;
+}
+
+function showStarterGuide() {
+  state.starterGuideVisible = true;
+  showView("arena");
+  renderStarterGuide();
+  $("#starter-panel")?.focus?.({ preventScroll: true });
 }
 
 function hydrateLocalBlueprint() {
@@ -1905,6 +1955,31 @@ function renderSourceChrome() {
 
 function bindEvents() {
   document.addEventListener("click", async (event) => {
+    if (event.target.closest("[data-starter-show]")) {
+      showStarterGuide();
+      return;
+    }
+    if (event.target.closest("[data-starter-dismiss]")) {
+      const persisted = completeStarterGuide();
+      showToast(persisted
+        ? "Starter guide hidden in this browser. No account or remote preference was created."
+        : "Starter guide hidden for this page. Browser storage is unavailable; nothing was uploaded.");
+      return;
+    }
+    const starterAction = event.target.closest("[data-starter-action]");
+    if (starterAction) {
+      completeStarterGuide();
+      if (starterAction.dataset.starterAction === "proof") {
+        if (!openReceiptProof("featured")) showToast("Reviewed proof is unavailable in this bounded source.");
+      } else if (starterAction.dataset.starterAction === "compete") {
+        showView("compete");
+        $("#quick-matches .queue-button")?.focus?.({ preventScroll: true });
+      } else if (starterAction.dataset.starterAction === "build") {
+        showView("build");
+        $("#agent-name")?.focus?.({ preventScroll: true });
+      }
+      return;
+    }
     const nav = event.target.closest("[data-nav]");
     if (nav) { event.preventDefault(); showView(nav.dataset.nav); return; }
     const proof = event.target.closest("[data-proof-open]");
@@ -2477,6 +2552,7 @@ function bindEvents() {
 
 function renderAll() {
   renderSourceChrome();
+  renderStarterGuide();
   renderWatchlist();
   renderFeatured();
   renderTape();
@@ -2494,6 +2570,7 @@ async function boot() {
   try {
     if (!dataAdapter) throw new Error("local data adapter unavailable");
     state.data = await dataAdapter.loadArenaData(fetch);
+    hydrateStarterGuide();
     hydrateLocalBlueprint();
     renderAll();
     bindEvents();

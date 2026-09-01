@@ -239,6 +239,13 @@ wagering, public creator execution, or any claim that the demo is live.
 The local shell now includes a compact fixture-status rail that distinguishes a
 loaded local demo from the browser's connectivity signal and never implies a
 provider link.
+First-time browsers now receive one bounded starter rail with three exact moves:
+inspect a reviewed receipt, preview an inactive fixture, or shape a browser-local
+blueprint. The rail states the account, provider, live-match, and publication
+boundaries before any action. Completion uses a dedicated local-storage key;
+returning browsers can reopen the guide, and denied storage remains usable while
+disclosing that dismissal lasts only until refresh. No onboarding action creates
+an identity, account, remote preference, queue, execution, or publication state.
 Its Learn controls explicitly reset native button presentation, expose the
 current step semantically, and retain readable progress at mobile widths.
 Versioned shell assets, the installed manifest start URL, and the service-worker
@@ -258,15 +265,16 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 125
-assertions across 13 isolated journeys: five-destination navigation; browser
+It starts an ephemeral loopback server and runs managed Chromium through 149
+assertions across 14 isolated journeys: first-run starter selection, returning
+state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
 fixture qualification; local blueprint persistence; denied storage; semantic
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v25 HTML requests; and a v25-only installed
+cross-origin requests; coherent v26 HTML requests; and a v26-only installed
 offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.

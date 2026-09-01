@@ -24,6 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MOBILE_ARENA = ROOT / "mobile-arena"
 READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
+SHELL_VERSION = "26"
+SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
     {"width": 320, "height": 720},
@@ -142,9 +144,35 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require(response is not None and response.ok, "normal: loopback shell returns HTTP success")
         wait_for_source(page, "verified_corpus")
         requested_resources = set(observed["same_origin_requests"])
-        for resource in ("/styles.css?v=25", "/data-adapter.js?v=25", "/app.js?v=25"):
+        for resource in (f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
             evidence.require(resource in requested_resources, f"normal: installed HTML requests current shell resource {resource}")
-        evidence.require(not any("?v=24" in resource for resource in requested_resources), "normal: retired v24 shell URLs are not requested")
+        evidence.require(not any("?v=25" in resource for resource in requested_resources), "normal: retired v25 shell URLs are not requested")
+        evidence.require(locator_visible(page, "#starter-panel"), "starter: first browser visit exposes the local starter guide")
+        evidence.require(page.locator("[data-starter-action]").count() == 3, "starter: exactly three bounded first moves are available")
+        starter_boundary = page.locator("#starter-boundary").inner_text().lower()
+        evidence.require(all(term in starter_boundary for term in ("no account", "no provider", "no live match", "no publication")), "starter: protected boundaries are visible before any action")
+        evidence.require(page.locator(".starter-grid").evaluate("node => node.scrollWidth > node.clientWidth"), "starter: phone layout exposes a horizontally scrollable action rail")
+        page.locator(".starter-grid").evaluate("node => { node.scrollLeft = node.scrollWidth; }")
+        evidence.require(page.locator(".starter-grid").evaluate("node => node.scrollLeft > 0"), "starter: later first moves remain reachable without document overflow")
+        page.locator('[data-starter-action="proof"]').click()
+        evidence.require(locator_visible(page, "#proof-sheet"), "starter: proof path opens the reviewed receipt inspector")
+        evidence.require(page.locator("#starter-panel").is_hidden(), "starter: choosing a path closes the guide for this session")
+        evidence.require(page.evaluate("localStorage.getItem('builderwars.mobile-arena.starter-guide.v1')") == "complete", "starter: completion persists only in the dedicated browser-local key")
+        page.locator("#proof-sheet [data-sheet-close]").click()
+        page.wait_for_function("document.querySelector('#proof-sheet').hidden === true")
+        page.reload(wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        evidence.require(page.locator("#starter-panel").is_hidden(), "starter: returning browser does not obscure the Arena")
+        evidence.require(page.locator("#starter-guide-button").get_attribute("aria-expanded") == "false", "starter: returning state is announced as collapsed")
+        page.locator("#starter-guide-button").click()
+        evidence.require(locator_visible(page, "#starter-panel"), "starter: returning tester can reopen the guide")
+        evidence.require(page.evaluate("document.activeElement?.id") == "starter-panel", "starter: reopened guide receives keyboard focus")
+        page.locator('[data-starter-action="build"]').click()
+        assert_view(evidence, page, "build")
+        evidence.require(page.evaluate("document.activeElement?.id") == "agent-name", "starter: build path focuses the first local blueprint field")
+        evidence.require(page.locator("#starter-panel").is_hidden(), "starter: reopened guide closes after the selected path")
+        page.locator('.bottom-nav [data-nav="arena"]').click()
+        evidence.journey("first-run starter, returning state, and re-open")
         evidence.require(page.locator("#source-badge").inner_text() == "LOCAL CORPUS", "normal: reviewed local corpus is explicitly labeled")
         evidence.require("verified corpus ready" in page.locator("#connection-copy").inner_text().lower(), "normal: connection rail names the verified corpus")
         evidence.require("No provider is connected" in (page.locator("#connection-status").get_attribute("aria-label") or ""), "normal: connection rail denies provider linkage")
@@ -294,6 +322,15 @@ def storage_denial_journey(browser: Any, base_url: str, evidence: Evidence) -> N
     try:
         page.goto(base_url, wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
+        evidence.require(locator_visible(page, "#starter-panel"), "storage denial: first-run guide remains usable")
+        evidence.require(page.evaluate("document.documentElement.scrollWidth <= innerWidth") is True, "storage denial: visible starter guide fits the 320px viewport")
+        evidence.require("storage is unavailable" in page.locator("#starter-persistence").inner_text().lower(), "storage denial: guide persistence limit is explicit")
+        page.locator("[data-starter-dismiss]").click()
+        evidence.require("hidden for this page" in page.locator("#toast").inner_text().lower(), "storage denial: guide dismissal is session-scoped")
+        evidence.require("nothing was uploaded" in page.locator("#toast").inner_text().lower(), "storage denial: guide dismissal does not imply a remote fallback")
+        page.reload(wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        evidence.require(locator_visible(page, "#starter-panel"), "storage denial: guide returns after reload when completion cannot persist")
         page.locator('.bottom-nav [data-nav="build"]').click()
         page.locator("#agent-name").fill("Denied Storage")
         page.locator("#builder-form button[type=submit]").click()
@@ -337,7 +374,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v25');
+              const cache = await caches.open('builderwars-mobile-arena-v26');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;
@@ -345,10 +382,10 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
               return { keys, urls };
             }"""
         )
-        evidence.require(cache_state["keys"] == ["builderwars-mobile-arena-v25"], f"offline: exactly the current shell cache is installed ({cache_state['keys']!r})")
-        for resource in ("/index.html?v=25", "/styles.css?v=25", "/data-adapter.js?v=25", "/app.js?v=25"):
+        evidence.require(cache_state["keys"] == [SHELL_CACHE_NAME], f"offline: exactly the current shell cache is installed ({cache_state['keys']!r})")
+        for resource in (f"/index.html?v={SHELL_VERSION}", f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
             evidence.require(resource in cache_state["urls"], f"offline: current shell cache contains {resource}")
-        evidence.require(not any("?v=24" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v24 URLs")
+        evidence.require(not any("?v=25" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v25 URLs")
         page.reload(wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
         evidence.require(page.evaluate("navigator.serviceWorker.controller !== null") is True, "offline: service worker controls the warmed shell")

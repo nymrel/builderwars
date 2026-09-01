@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "25"
+EXPECTED_SHELL_VERSION = "26"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -82,6 +82,13 @@ def main() -> int:
     for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "builder-form", "featured-match", "quick-matches", "rivalries", "receipt-learning", "proof-learning-button"):
         require(f'id="{required}"' in html, f"missing interactive surface: {required}")
         checks += 1
+    for required in ("starter-panel", "starter-title", "starter-boundary", "starter-guide-button", "starter-persistence"):
+        require(f'id="{required}"' in html, f"missing first-run starter surface: {required}")
+        checks += 1
+    require(all(f'data-starter-action="{action}"' in html for action in ("proof", "compete", "build")), "starter path must expose proof, compete, and build actions")
+    require("No account · no provider · no live match · no publication" in html, "starter path truth boundary missing")
+    require('aria-controls="starter-panel"' in html and 'aria-describedby="starter-boundary"' in html, "starter path accessible relationships missing")
+    checks += 3
 
     print("[4] local-only network and execution boundary")
     combined = "\n".join((html, css, js, adapter, sw, json.dumps(fixture), json.dumps(read_model), json.dumps(webmanifest)))
@@ -97,6 +104,11 @@ def main() -> int:
     require("BLUEPRINT_MAX_LENGTH = 2048" in js and "raw.length > BLUEPRINT_MAX_LENGTH" in js and "never executed" in html, "local blueprint boundary missing")
     require("for (const key of BLUEPRINT_GUARD_KEYS)" in js, "saved blueprint guards must hydrate from the bounded key list")
     require("localStorage.removeItem(BLUEPRINT_STORAGE_KEY)" in js, "invalid local blueprint state must be discarded")
+    require('STARTER_GUIDE_STORAGE_KEY = "builderwars.mobile-arena.starter-guide.v1"' in js, "starter guide must use its own bounded browser-local key")
+    require("hydrateStarterGuide" in js and "completeStarterGuide" in js and "showStarterGuide" in js, "starter guide lifecycle missing")
+    require("starterGuidePersistenceAvailable = false" in js and "dismissal lasts only until refresh" in js, "starter guide storage-denial disclosure missing")
+    require("No account or remote preference was created" in js and "nothing was uploaded" in js, "starter guide persistence truth boundary missing")
+    checks += 4
     require("buildQualificationPreview" in adapter and 'qualificationStatus: "not_run"' in adapter, "deterministic qualification preview missing")
     require('executionStatus: "disabled"' in adapter and "computeAllowed: false" in adapter and "networkAllowed: false" in adapter, "qualification execution boundary missing")
     require("formatArenaRoute" in js and "parseArenaRoute" in js and "/receipt/" in js, "receipt-addressable route contract missing")
@@ -297,7 +309,8 @@ def main() -> int:
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
-    require("?v=24" not in html and "?v=24" not in sw and "?v=24" not in json.dumps(webmanifest), "retired shell generation must not remain addressable")
+    addressed_versions = set(re.findall(r"\?v=(\d+)", "\n".join((html, sw, json.dumps(webmanifest)))))
+    require(addressed_versions == {EXPECTED_SHELL_VERSION}, "only the current shell generation may remain addressable")
     checks += 3
     checks += 7
 

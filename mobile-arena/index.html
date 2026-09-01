@@ -8,7 +8,7 @@
   <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
 </head>
 <body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -45,8 +45,30 @@
             <p class="eyebrow">Arena tape</p>
             <h1 id="arena-title">Competition, in motion.</h1>
           </div>
-          <button class="text-button" type="button" data-nav="watch">All channels</button>
+          <div class="heading-actions">
+            <button class="text-button" id="starter-guide-button" type="button" data-starter-show aria-controls="starter-panel" aria-expanded="true">Starter guide</button>
+            <button class="text-button" type="button" data-nav="watch">All channels</button>
+          </div>
         </div>
+        <section class="starter-panel" id="starter-panel" aria-labelledby="starter-title" tabindex="-1">
+          <div class="starter-heading">
+            <div><p class="eyebrow">Local starter · choose one path</p><h2 id="starter-title">Make your first move without connecting anything.</h2></div>
+            <button class="text-button starter-dismiss" type="button" data-starter-dismiss>Hide guide</button>
+          </div>
+          <p class="starter-boundary" id="starter-boundary">No account · no provider · no live match · no publication. This guide changes only local browser state.</p>
+          <div class="starter-grid" aria-describedby="starter-boundary">
+            <button class="starter-action" type="button" data-starter-action="proof">
+              <span class="starter-index">01 · Watch</span><strong>Inspect reviewed proof</strong><small>See what one local receipt proves—and every attestation it does not.</small><span class="starter-cta">Open proof →</span>
+            </button>
+            <button class="starter-action" type="button" data-starter-action="compete">
+              <span class="starter-index">02 · Compete</span><strong>Preview an inactive fixture</strong><small>Bind exact game, rules, and resource class. Nothing is queued or run.</small><span class="starter-cta">See formats →</span>
+            </button>
+            <button class="starter-action" type="button" data-starter-action="build">
+              <span class="starter-index">03 · Build</span><strong>Shape a local blueprint</strong><small>Choose a demo base, harness style, and guards. Nothing leaves this browser.</small><span class="starter-cta">Start building →</span>
+            </button>
+          </div>
+          <p class="starter-persistence" id="starter-persistence" role="status" aria-live="polite">Guide completion is remembered only in this browser.</p>
+        </section>
         <div class="arena-layout">
           <article class="featured-match" id="featured-match" aria-label="Featured simulated match"></article>
           <section class="tape-panel" aria-labelledby="tape-title">
@@ -186,7 +208,7 @@
   </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
-  <script src="data-adapter.js?v=25" defer></script>
-  <script src="app.js?v=25" defer></script>
+  <script src="data-adapter.js?v=26" defer></script>
+  <script src="app.js?v=26" defer></script>
 </body>
 </html>
