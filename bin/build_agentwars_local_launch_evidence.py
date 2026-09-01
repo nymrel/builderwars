@@ -150,12 +150,14 @@ STAGES: tuple[StageDefinition, ...] = (
     StageDefinition(
         10,
         "launch_contracts_and_rollback_plan",
-        "Launch, domain, rollback, retention, and truth-boundary contracts",
-        "local_observation",
+        "Launch, measurement baseline, rollback, retention, and truth-boundary contracts",
+        "local_executable",
+        commands=((PYTHON, "bin/check_agentwars_measurement.py"),),
         evidence_files=(
             "docs/BUILDERWARS_COM_DOMAIN_CUTOVER_CONTRACT.md",
             "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_DECISIONS.md",
             "docs/AGENTWARS_NORTH_STAR.v1.json",
+            "docs/AGENTWARS_MEASUREMENT_CONTRACT.md",
             "docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md",
         ),
         not_proven=("rollback rehearsal", "observability baseline", "performance budget", "support drill", "legal approval"),
@@ -377,10 +379,12 @@ def build_pack(
             base.update(status="PASS" if not missing else "FAIL", commands=[], evidence=evidence, missing=missing)
         else:
             command_records = [command_runner(command, definition.timeout_seconds) for command in definition.commands]
+            evidence, missing = inspect_files(definition.evidence_files)
             base.update(
-                status="PASS" if all(record["status"] == "PASS" for record in command_records) else "FAIL",
+                status="PASS" if all(record["status"] == "PASS" for record in command_records) and not missing else "FAIL",
                 commands=command_records,
-                evidence=[],
+                evidence=evidence,
+                missing=missing,
             )
         stages.append(base)
 

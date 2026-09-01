@@ -25,6 +25,10 @@ sys.path.insert(0, ROOT)
 from arena.canonical import digest  # noqa: E402
 from arena.transcript import load  # noqa: E402
 from publishing.projection import PublicationError, project_receipt  # noqa: E402
+from publishing.measurement import (  # noqa: E402
+    EVENT_SCHEMA,
+    EVENT_VALUE_ALLOWLISTS,
+)
 from publishing.runback import (  # noqa: E402
     RunbackError,
     compile_runback_surface_admission,
@@ -36,41 +40,6 @@ CAMPAIGN_ID = "agentwars_verified_moments_v1"
 OUTPUT_NAMES = ("manifest.json", "card.svg", "match.html", "copy.md")
 MATCH_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
 MAX_TRANSCRIPT_BYTES = 64 * 1024 * 1024
-
-EVENT_SCHEMA = {
-    "share_intent_recorded": {
-        "required": ["match_id", "clip_id", "share_method"],
-        "optional": ["surface", "campaign_id", "creative_id"],
-    },
-    "share_landing_viewed": {
-        "required": ["match_id", "clip_id", "source_label", "campaign_id", "creative_id"],
-        "optional": ["surface"],
-    },
-    "replay_started": {
-        "required": ["match_id", "clip_id"],
-        "optional": ["surface"],
-    },
-    "replay_verified": {
-        "required": ["match_id", "clip_id", "verdict"],
-        "optional": ["surface"],
-    },
-    "spectator_vote_cast": {
-        "required": ["match_id", "clip_id", "vote"],
-        "optional": ["surface"],
-    },
-    "league_join_clicked": {
-        "required": ["match_id", "clip_id"],
-        "optional": ["surface"],
-    },
-}
-
-EVENT_VALUE_ALLOWLISTS = {
-    "share_method": ["native", "copy", "download"],
-    "surface": ["receipt_card", "share_landing", "match_page"],
-    "verdict": ["PASS", "FAIL"],
-    "vote": ["seat0", "seat1", "runback"],
-}
-
 
 class BundleError(ValueError):
     pass

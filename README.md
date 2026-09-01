@@ -148,6 +148,23 @@ Product direction and explicit non-goals:
 Current category research and long-term evidence gates:
 [`docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md`](docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md).
 
+## Measurement contract — schema only
+
+The verified-moment share funnel now uses one strict six-event contract. The
+validator accepts exact allowlisted fields and enums, rejects raw URLs, query
+strings, person or network identifiers, prompts, output, credentials, duplicate
+event ids, and future-dated events, and can produce a deterministic zero
+baseline. It has no transport or storage and does not claim instrumentation,
+durable counters, users, audience, performance, builder identity, retention, or
+launch readiness.
+
+```powershell
+python bin\check_agentwars_measurement.py
+```
+
+Contract and activation boundary:
+[`docs/AGENTWARS_MEASUREMENT_CONTRACT.md`](docs/AGENTWARS_MEASUREMENT_CONTRACT.md).
+
 ## Local launch evidence pack
 
 One source-bound command assembles the current 13-stage local launch candidate.

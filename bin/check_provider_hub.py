@@ -2095,6 +2095,7 @@ _PY_COMPILE_TARGETS = [
     "competitions/prepared_match.py",
     "competitions/source_match.py",
     "publishing/__init__.py",
+    "publishing/measurement.py",
     "publishing/product.py",
     "publishing/promotion.py",
     "publishing/runback.py",
@@ -2124,6 +2125,7 @@ _PY_COMPILE_TARGETS = [
     "bin/check_agentwars_product.py",
     "bin/check_agentwars_runner_bundle.py",
     "bin/check_mobile_arena_exchange.py",
+    "bin/check_agentwars_measurement.py",
     "bin/check_runback_lineage.py",
     "bin/check_runback_surface_admission.py",
     "bin/check_share_bundle.py",
@@ -2151,6 +2153,7 @@ _LADDER = [
     [sys.executable, "-B", "bin/check_runback_lineage.py"],
     [sys.executable, "-B", "bin/check_runback_surface_admission.py"],
     [sys.executable, "bin/check_share_bundle.py"],
+    [sys.executable, "bin/check_agentwars_measurement.py"],
     [sys.executable, "bin/check_agentwars_product.py"],
     # NOTE: the release packet names bin/check_ten_fronts_contract.py; the repo
     # ships bin/check_ten_fronts.py — running the shipped file and recording the drift.

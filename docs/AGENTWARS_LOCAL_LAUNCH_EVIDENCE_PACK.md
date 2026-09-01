@@ -37,7 +37,7 @@ It deliberately records the protected downstream nodes as held.
 | 7 | Mobile static contracts | Checks deterministic mobile, truth, offline, and accessibility contracts | Hosted route, real user, deployed device support |
 | 8 | Real-browser acceptance | Runs Chromium navigation, failure, storage, responsive, offline, and accessibility journeys | Production browser, authenticated journey, external performance |
 | 9 | Hosted security, abuse, and cleanup | Runs local hosted-control-plane refusal, rollback, and cleanup tests | Production Redis/rate limits/deletion and external security review |
-| 10 | Launch contracts and rollback plan | Digests the domain, completion, North Star, and pack contracts | Rehearsed rollback, observability, performance, support, legal approval |
+| 10 | Launch contracts, measurement baseline, and rollback plan | Runs the strict schema-only measurement/zero-baseline gate and digests the domain, completion, North Star, measurement, and pack contracts | Durable/live counters, rehearsed rollback, observability, performance, support, legal approval |
 | 11 | Protected runtime configuration | Executes nothing; records `HELD_PROTECTED` | Clerk, Redis, webhook, peppers, reviewer keys, rate limits, flags |
 | 12 | Source-bound deployment and rollback | Executes nothing; records `HELD_PROTECTED` | Target, DNS/TLS, served bytes, performance, observability, rollback |
 | 13 | Tester, review, and launch authority | Executes nothing; records `HELD_PROTECTED` | Consented customer, genuine provider match, deletion, detached review, launch decision |
@@ -85,6 +85,8 @@ The JSON includes:
 - ordered stage records with argv, exit code, timeout state, duration, bounded
   sanitized summary, and SHA-256 digests of stdout and stderr;
 - SHA-256 and byte size for required launch-contract files;
+- a strict six-event measurement contract and honest zero baseline with every
+  production, audience, performance, identity, retention, and launch flag false;
 - post-run source/tree/cleanliness proof;
 - false production claims and the next protected gate; and
 - `packDigest`, the SHA-256 of canonical JSON before that field is added.
