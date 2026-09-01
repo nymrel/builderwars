@@ -290,6 +290,7 @@ def cmd_runner_probe(args) -> int:
     key = store.load_key(profile, passphrase.reveal())
     signed = sign_runner_request(
         key,
+        origin=profile["endpointOrigin"],
         method="POST",
         path=RUNNER_PROBE_PATH,
         body=RUNNER_PROBE_BODY,
@@ -341,6 +342,7 @@ def cmd_runner_work(args) -> int:
 
     poll = sign_runner_request(
         key,
+        origin=profile["endpointOrigin"],
         method="POST",
         path=MATCH_JOB_POLL_PATH,
         body=MATCH_JOB_POLL_BODY,
@@ -374,6 +376,7 @@ def cmd_runner_work(args) -> int:
     result_body = encode_result_request(grant_or_terminal, computation)
     result = sign_runner_request(
         key,
+        origin=profile["endpointOrigin"],
         method="POST",
         path=MATCH_JOB_RESULT_PATH,
         body=result_body,
@@ -433,6 +436,7 @@ def cmd_runner_submit_match(args) -> int:
 
     poll = sign_runner_request(
         key,
+        origin=profile["endpointOrigin"],
         method="POST",
         path=COMPETITION_JOB_POLL_PATH,
         body=COMPETITION_JOB_POLL_BODY,
@@ -471,6 +475,7 @@ def cmd_runner_submit_match(args) -> int:
     )
     result = sign_runner_request(
         key,
+        origin=profile["endpointOrigin"],
         method="POST",
         path=COMPETITION_JOB_RESULT_PATH,
         body=evidence.result_body,
@@ -528,6 +533,7 @@ def cmd_runner_prepare_match(args) -> int:
     key = store.load_key(profile, passphrase.reveal())
     request = sign_runner_request(
         key,
+        origin=profile["endpointOrigin"],
         method="POST",
         path=COMPETITION_JOB_PREPARE_PATH,
         body=COMPETITION_JOB_PREPARE_BODY,
@@ -786,6 +792,7 @@ def cmd_runner_request(args) -> int:
     key = store.load_key(profile, passphrase.reveal())
     signed = sign_runner_request(
         key,
+        origin=profile["endpointOrigin"],
         method=args.method,
         path=args.path,
         body=_read_request_body(args.body_file),

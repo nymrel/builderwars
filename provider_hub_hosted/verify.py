@@ -19,6 +19,7 @@ from provider_hub.local_runner import (
     validate_canonical_instant,
     validate_json_body,
     validate_nonce,
+    validate_origin,
     validate_request_path,
     validate_runner_id,
 )
@@ -57,6 +58,7 @@ class IncomingSignedRequest:
 
 @dataclasses.dataclass(frozen=True)
 class VerifiedRunnerRequest:
+    origin: str
     method: str
     path: str
     body: bytes
@@ -90,6 +92,7 @@ def verify_signed_request(
     store: HostedControlPlaneStore,
     request: IncomingSignedRequest,
     *,
+    expected_origin: str,
     now: dt.datetime | None = None,
     expected_path: str | None = None,
     expected_owner_id: str | None = None,
@@ -97,8 +100,11 @@ def verify_signed_request(
     """Verify exact bytes and durably consume a runner nonce.
 
     Signature verification occurs before nonce insertion so an unauthenticated
-    caller cannot burn a legitimate nonce.  The store rechecks runner state and
-    ownership in the nonce transaction to close the verify/use race.
+    caller cannot burn a legitimate nonce.  The server-provided canonical
+    ``expected_origin`` is part of the signed message, so the same signed bytes
+    cannot authenticate on another host with the same path.  The store rechecks
+    runner state and ownership in the nonce transaction to close the verify/use
+    race.
     """
     if not isinstance(store, HostedControlPlaneStore):
         raise TypeError("store must be HostedControlPlaneStore")
@@ -122,6 +128,7 @@ def verify_signed_request(
     if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
         raise SignedRequestError("invalid_method", "runner request method is unsupported")
     try:
+        origin = validate_origin(expected_origin)
         path = validate_request_path(request.path)
         runner_id = validate_runner_id(request.runner_id)
         timestamp = validate_canonical_instant(request.timestamp)
@@ -156,6 +163,7 @@ def verify_signed_request(
     body_sha256 = hashlib.sha256(body).hexdigest()
     try:
         canonical = canonical_runner_request(
+            origin=origin,
             method=request.method,
             path=path,
             body_sha256=body_sha256,
@@ -195,6 +203,7 @@ def verify_signed_request(
             raise SignedRequestError("replayed_request", "signed request was already used") from error
         raise SignedRequestError("runner_refused", "runner request was refused") from error
     return VerifiedRunnerRequest(
+        origin=origin,
         method=request.method,
         path=path,
         body=body,

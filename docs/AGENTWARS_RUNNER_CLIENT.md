@@ -299,10 +299,16 @@ agentwars runner request `
   --response-out response.json
 ```
 
-The signature covers, in order:
+Runner-request protocol v2 binds the signature to the exact canonical endpoint
+origin. The client signs the origin already pinned in its local profile, refuses
+to send those bytes to a different transport origin before opening a connection,
+and never asks the server to trust an origin header. The server reconstructs the
+canonical bytes with its configured allowed origin. The signature covers, in
+order:
 
 ```text
-agentwars.runner_request.v1
+agentwars.runner_request.v2
+origin:https://nymrel.com
 method:POST
 path:/exact/path
 body-sha256:<sha256 of exact body bytes>
@@ -365,7 +371,11 @@ Production is pinned to exact `https://nymrel.com`: no alternate casing,
 explicit port, userinfo, path, query, fragment, proxy, or redirect. Local tests
 may use exact literal `127.0.0.1` or `[::1]` origins. `localhost`, IP shorthand,
 and non-loopback cleartext are refused. TLS uses the system trust store with a
-minimum of TLS 1.2; public-key pinning is not claimed.
+minimum of TLS 1.2; public-key pinning is not claimed. A valid signature created
+for one allowed origin is invalid at another origin even when method, path, body,
+timestamp, nonce, runner id, and key are unchanged. An invalid cross-origin
+presentation does not consume the nonce. Full protocol rationale:
+[`AGENTWARS_SIGNED_REQUEST_ORIGIN_BINDING.md`](AGENTWARS_SIGNED_REQUEST_ORIGIN_BINDING.md).
 
 ## Delete local custody
 
@@ -390,9 +400,10 @@ python bin/check_agent_passport.py
 ```
 
 `check_agentwars_runner.py` uses only a literal loopback server and temporary
-state. Its current 151 checks pin deterministic Python-to-Nymrel Ed25519 and
+state. Its current 161 checks pin deterministic Python-to-Nymrel Ed25519 and
 fixture vectors; attack origins, redirects, response schemas, secret
-reflection, state drift, wrong passphrases, replay, commitments, withheld-output
+reflection, signed-origin/transport-origin confusion, state drift, wrong
+passphrases, replay, commitments, withheld-output
 leakage, and argv leakage; execute the signed poll/result CLI journey; and
 verify that all trust flags remain false. It makes no live provider or Nymrel
 request.

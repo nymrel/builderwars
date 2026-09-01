@@ -19,6 +19,15 @@ review export, `.env` file, or repository history. It does not install Python,
 create a virtual environment, invoke a provider, contact Nymrel, publish a
 match, or authorize deployment.
 
+The bundled runner uses `agentwars.runner_request.v2`. Every Ed25519 request
+signature includes the exact canonical endpoint origin. The local client refuses
+a signed-origin/transport-origin mismatch before network access; the hosted
+verifier reconstructs signatures from its configured allowed origin, not from a
+client-controlled header. The source repository records the protocol details
+and adversarial acceptance evidence in
+`docs/AGENTWARS_SIGNED_REQUEST_ORIGIN_BINDING.md`; that design note is not part
+of the closed bundle payload.
+
 ## Current provider boundary
 
 | Route | Bundle visibility | Execution boundary |

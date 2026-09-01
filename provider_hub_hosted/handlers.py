@@ -21,6 +21,7 @@ from provider_hub.local_runner import (
     RUNNER_PROBE_FALSE_ATTESTATIONS,
     RUNNER_PROBE_PATH,
     validate_json_body,
+    validate_origin,
 )
 from provider_hub.match_worker import (
     MATCH_JOB_ABANDON_PATH,
@@ -156,10 +157,11 @@ def _validate_attempt_payload(
 class HostedControlPlane:
     """Small reference service over :class:`HostedControlPlaneStore`."""
 
-    def __init__(self, store: HostedControlPlaneStore):
+    def __init__(self, store: HostedControlPlaneStore, *, allowed_origin: str):
         if not isinstance(store, HostedControlPlaneStore):
             raise TypeError("store must be HostedControlPlaneStore")
         self.store = store
+        self.allowed_origin = validate_origin(allowed_origin)
 
     def create_pairing(
         self,
@@ -279,7 +281,13 @@ class HostedControlPlane:
         path: str,
         now: dt.datetime | None,
     ) -> VerifiedRunnerRequest:
-        return verify_signed_request(self.store, request, now=now, expected_path=path)
+        return verify_signed_request(
+            self.store,
+            request,
+            expected_origin=self.allowed_origin,
+            now=now,
+            expected_path=path,
+        )
 
     @staticmethod
     def _runner_base(verified: VerifiedRunnerRequest, *, protocol: str) -> dict[str, object]:

@@ -8,8 +8,11 @@ sessions, or model output into Nymrel custody.
 Pairing proves only that a high-entropy browser-created secret was claimed by
 the holder of a local Ed25519 key and later approved by the signed-in account.
 A signed request proves possession of that still-active key and integrity of
-the exact request bytes.  Neither operation attests provider, subscription,
-billing route, model, person, runtime, harness execution, or match execution.
+the exact request bytes for one canonical endpoint origin.  Binding the origin
+prevents an otherwise-valid request from being replayed against a different
+host that implements the same path.  Neither operation attests provider,
+subscription, billing route, model, person, runtime, harness execution, or
+match execution.
 """
 
 from __future__ import annotations
@@ -39,7 +42,7 @@ from provider_hub.catalog import (
 
 
 PAIRING_PROTOCOL = "agentwars.runner_pairing.v1"
-REQUEST_PROTOCOL = "agentwars.runner_request.v1"
+REQUEST_PROTOCOL = "agentwars.runner_request.v2"
 PRODUCTION_ORIGIN = "https://nymrel.com"
 PAIRING_CLAIM_PATH = "/api/builderwars/runners/pairing/claim"
 RUNNER_PROBE_PATH = "/api/builderwars/runners/probe"
@@ -112,6 +115,7 @@ class ProbeResult:
 
 @dataclass(frozen=True)
 class SignedRunnerRequest:
+    origin: str
     method: str
     path: str
     body: bytes
@@ -478,6 +482,7 @@ def validate_nonce(value: str) -> str:
 
 def canonical_runner_request(
     *,
+    origin: str,
     method: str,
     path: str,
     body_sha256: str,
@@ -485,6 +490,7 @@ def canonical_runner_request(
     nonce: str,
     runner_id: str,
 ) -> str:
+    origin = validate_origin(origin)
     if method not in ("POST", "PUT", "PATCH", "DELETE"):
         raise RunnerClientError("signed request method is unsupported")
     path = validate_request_path(path)
@@ -496,6 +502,7 @@ def canonical_runner_request(
     return "\n".join(
         [
             REQUEST_PROTOCOL,
+            f"origin:{origin}",
             f"method:{method}",
             f"path:{path}",
             f"body-sha256:{body_sha256}",
@@ -548,6 +555,7 @@ def validate_json_body(body: bytes, *, maximum_bytes: int = MAX_BODY_BYTES) -> b
 def sign_runner_request(
     private_key: Ed25519PrivateKey,
     *,
+    origin: str,
     method: str,
     path: str,
     body: bytes,
@@ -558,6 +566,7 @@ def sign_runner_request(
     if not isinstance(private_key, Ed25519PrivateKey):
         raise RunnerClientError("runner private key must be Ed25519")
     body = validate_json_body(body)
+    origin = validate_origin(origin)
     method = method.upper() if isinstance(method, str) else method
     path = validate_request_path(path)
     runner_id = validate_runner_id(runner_id)
@@ -568,6 +577,7 @@ def sign_runner_request(
     nonce = base64url_no_pad(nonce_raw)
     body_sha256 = hashlib.sha256(body).hexdigest()
     canonical = canonical_runner_request(
+        origin=origin,
         method=method,
         path=path,
         body_sha256=body_sha256,
@@ -579,6 +589,7 @@ def sign_runner_request(
     if _SIGNATURE_RE.fullmatch(signature) is None:
         raise RunnerClientError("runner request signature is not canonical")
     return SignedRunnerRequest(
+        origin=origin,
         method=method,
         path=path,
         body=body,
@@ -743,8 +754,11 @@ def send_signed_request(
 ) -> tuple[int, dict[str, object], bytes]:
     if not isinstance(signed, SignedRunnerRequest):
         raise RunnerClientError("signed runner request object is invalid")
+    canonical_origin = validate_origin(origin)
+    if not hmac.compare_digest(canonical_origin, signed.origin):
+        raise RunnerClientError("signed runner request origin does not match the transport origin")
     return _request_json(
-        origin=origin,
+        origin=canonical_origin,
         path=signed.path,
         method=signed.method,
         body=signed.body,

@@ -275,7 +275,12 @@ python -B bin/check_agentwars_runner_bundle.py
 
 The one-time browser secret and encrypted-key passphrase are hidden prompts;
 neither is accepted as an argument or persisted. The private Ed25519 key stays
-local. The complete fingerprint must be approved in the signed-in browser, and
+local. Runner-request protocol `agentwars.runner_request.v2` binds every
+signature to the profile's exact canonical endpoint origin as well as the
+method, path, body digest, timestamp, nonce, and runner id. The customer client
+refuses a signed-origin/transport-origin mismatch before network access, and the
+hosted verifier uses its configured origin rather than a client-supplied origin.
+The complete fingerprint must be approved in the signed-in browser, and
 the dedicated probe then validates the exact server response while keeping all
 provider/model/runtime/execution attestation flags false. `runner work --once`
 can additionally complete one pinned SHA-256 fixture through the candidate
@@ -284,7 +289,9 @@ harness, and its `conformance` is digest-only. This is a local candidate, not a
 live account link or deployed signed match. Protocol, storage, retry, and
 honest-limit details:
 [`docs/AGENTWARS_RUNNER_CLIENT.md`](docs/AGENTWARS_RUNNER_CLIENT.md). A
-deterministic, secret-free external-tester bundle is specified and adversarially
+security rationale and host-confusion acceptance contract are recorded in
+[`docs/AGENTWARS_SIGNED_REQUEST_ORIGIN_BINDING.md`](docs/AGENTWARS_SIGNED_REQUEST_ORIGIN_BINDING.md).
+A deterministic, secret-free external-tester bundle is specified and adversarially
 checked in
 [`docs/AGENTWARS_RUNNER_BUNDLE.md`](docs/AGENTWARS_RUNNER_BUNDLE.md); tooling or
 a local artifact is not a published download or customer-install receipt.
