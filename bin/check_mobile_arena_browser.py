@@ -25,7 +25,7 @@ MOBILE_ARENA = ROOT / "mobile-arena"
 READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
-SHELL_VERSION = "28"
+SHELL_VERSION = "29"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -234,6 +234,38 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require("all false" in qualification_text, "qualification: every authority attestation remains false")
         page.keyboard.press("Escape")
         evidence.journey("proposed fixture qualification preview")
+
+        storage_before_exhibition = page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))")
+        exhibition = page.locator('[data-qualification-preview]').filter(has_text="Practice")
+        evidence.require(exhibition.count() == 1, "local exhibition: exactly one separate deterministic practice fixture is available")
+        exhibition.click()
+        exhibition_text = page.locator("#qualification-sheet").inner_text()
+        evidence.require("Local exhibition qualified" in exhibition_text, "local exhibition: safe default blueprint qualifies for bounded practice")
+        evidence.require("Browser memory only · available" in exhibition_text, "local exhibition: execution scope is browser memory only")
+        evidence.require("metadata only · unused" in exhibition_text, "local exhibition: declared demo base is explicitly unused")
+        evidence.require("all false" in exhibition_text, "local exhibition: every authority attestation remains false")
+        page.locator("[data-local-exhibition-run]").click()
+        page.wait_for_selector("#local-exhibition-result-title")
+        result_text = page.locator("#qualification-content").inner_text()
+        evidence.require("Replay verified" in result_text and "Receipt candidate\nVerified locally · unreviewed" in result_text, "local exhibition: receipt candidate is independently replay verified without review claim")
+        evidence.require("Model/provider moves\n0 / 0" in result_text, "local exhibition: model and provider move counts remain zero")
+        evidence.require("Version 1 · seat-swapped · unplayed" in result_text, "local exhibition: a versioned unplayed runback is prepared")
+        evidence.require("Registry/ranking/publication\nNot requested / false / not requested" in result_text, "local exhibition: registry, ranking, and publication remain absent")
+        candidate_digest = page.locator("#qualification-content .proof-row").filter(has_text="Candidate digest").locator("strong").inner_text()
+        evidence.require(len(candidate_digest) == 64 and all(character in "0123456789abcdef" for character in candidate_digest), "local exhibition: receipt candidate exposes a content-shaped digest")
+        evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before_exhibition, "local exhibition: qualification, play, proof, learning, and runback do not touch browser storage")
+        page.locator("[data-local-exhibition-discard]").click()
+        evidence.require(page.locator("#local-exhibition-result-title").count() == 0, "local exhibition: explicit discard clears the memory-only result")
+        evidence.require("tracked receipt or remote state was deleted" in page.locator("#toast").inner_text().lower(), "local exhibition: discard does not imply tracked or remote deletion")
+        page.locator("[data-local-exhibition-run]").click()
+        page.wait_for_selector("#local-exhibition-result-title")
+        page.reload(wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        page.locator('.bottom-nav [data-nav="compete"]').click()
+        page.locator('[data-qualification-preview]').filter(has_text="Practice").click()
+        evidence.require(page.locator("#local-exhibition-result-title").count() == 0 and page.locator("[data-local-exhibition-run]").is_visible(), "local exhibition: reload clears the browser-memory receipt, learning, and runback")
+        page.keyboard.press("Escape")
+        evidence.journey("deterministic local exhibition through receipt, learning, runback, discard, and reload cleanup")
 
         page.locator('.bottom-nav [data-nav="build"]').click()
         page.locator("#agent-name").fill("Browser Proof")
@@ -482,7 +514,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v28');
+              const cache = await caches.open('builderwars-mobile-arena-v29');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;

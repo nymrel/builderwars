@@ -13,6 +13,11 @@
   const TESTER_FEEDBACK_DRAFT_SCHEMA = "builderwars.mobile-tester-feedback-draft/1";
   const TESTER_FEEDBACK_DRAFT_MAX_LENGTH = 16384;
   const QUALIFICATION_SCHEMA = "builderwars.mobile-qualification-preview.v1";
+  const LOCAL_EXHIBITION_QUALIFICATION_SCHEMA = "builderwars.mobile-local-exhibition-qualification.v1";
+  const LOCAL_EXHIBITION_RECEIPT_SCHEMA = "builderwars.mobile-local-exhibition-receipt-candidate.v1";
+  const LOCAL_EXHIBITION_VERIFICATION_SCHEMA = "builderwars.mobile-local-exhibition-verification.v1";
+  const LOCAL_EXHIBITION_LEARNING_SCHEMA = "builderwars.mobile-local-exhibition-learning.v1";
+  const LOCAL_EXHIBITION_RUNBACK_SCHEMA = "builderwars.mobile-local-exhibition-runback.v1";
   const LEARNING_SCHEMA = "builderwars.mobile-receipt-learning.v1";
   const RUNBACK_PROPOSAL_SCHEMA = "builderwars.mobile-runback-proposal.v1";
   const PORTABLE_RUNBACK_SCHEMA = "builderwars.mobile-runback-portable.v1";
@@ -30,6 +35,22 @@
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-guard-completion-review.v1";
   const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_SCHEMA = "builderwars.mobile-private-blueprint-operator-review-packet.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
+  const LOCAL_EXHIBITION_RESOURCE_CLASS = "browser-memory-deterministic-no-model-v1";
+  const LOCAL_EXHIBITION_RULES_DIGEST = "feb22f090c5bc115d8fc939f02b4a17f8ae8894f7bde99ee9ec7385199d83ab0";
+  const LOCAL_EXHIBITION_FIXTURE_ID = "c799e667cec7e3d57f1083953061da0e231ee72369a4dfe449d229c29ab701fb";
+  const LOCAL_EXHIBITION_RULES = Object.freeze({
+    schemaVersion: "builderwars.local-nim-rules.v1",
+    game: Object.freeze({ name: "nim", version: "1" }),
+    initialHeaps: Object.freeze([1, 3, 5]),
+    normalPlay: true,
+    moveKeys: Object.freeze(["heap", "take"]),
+    maxTurns: 9,
+    strategies: Object.freeze({
+      blueprint_solver: "nim_xor_zero_else_first_legal_v1",
+      blueprint_naive: "first_legal_v1",
+      reference: "first_legal_v1",
+    }),
+  });
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
   const PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH = 262144;
@@ -85,6 +106,7 @@
     "launchAuthorized", "publicLaunch",
   ]);
   const TESTER_FEEDBACK_DRAFT_BOUNDARY = "This canonical browser-memory draft contains structured selections only. It is not submitted, stored, consent evidence, human feedback evidence, identity evidence, a support request, an operator action, or launch authority.";
+  const LOCAL_EXHIBITION_BOUNDARY = "This receipt candidate proves only deterministic scripted Nim play and independent local replay in this browser memory. The declared demo base was not used. It does not authenticate identity, attest a model, call a provider, spend, register, rank, publish, or authorize production.";
   const RUNBACK_EXECUTION_BLOCKERS = Object.freeze([
     "explicit_rules_digest_not_bound",
     "qualification_not_run",
@@ -659,6 +681,343 @@
       },
       boundary: "This deterministic preview binds a local blueprint to proposed game, rules, and no-compute resource metadata only. It does not qualify, execute, authenticate, attest, rank, publish, or spend.",
     };
+  }
+
+  function localExhibitionFixtureView() {
+    return {
+      id: LOCAL_EXHIBITION_FIXTURE_ID,
+      mode: "Practice",
+      title: "Your blueprint vs deterministic reference",
+      duration: "9 moves max",
+      cost: "local · no model",
+      ranked: false,
+      enabled: false,
+      previewAllowed: true,
+      exhibitionAllowed: true,
+      actionLabel: "Practice",
+      game: { name: "nim", version: "1" },
+      rulesWeekId: "nim-local-exhibition-v1",
+      rulesDigest: LOCAL_EXHIBITION_RULES_DIGEST,
+      activationStatus: "local_exhibition_available",
+      fixtureStatus: "unplayed",
+      resourceClass: LOCAL_EXHIBITION_RESOURCE_CLASS,
+    };
+  }
+
+  function localExhibitionStrategy(harnessStyle) {
+    if (harnessStyle === "Validate every move") return LOCAL_EXHIBITION_RULES.strategies.blueprint_solver;
+    if (harnessStyle === "Naive control") return LOCAL_EXHIBITION_RULES.strategies.blueprint_naive;
+    return null;
+  }
+
+  function validateLocalExhibitionFixture(fixture) {
+    requireValue(isObject(fixture) && fixture.exhibitionAllowed === true && fixture.previewAllowed === true && fixture.enabled === false, "unsafe local exhibition: fixture unavailable");
+    requireValue(fixture.id === LOCAL_EXHIBITION_FIXTURE_ID, "unsafe local exhibition: fixture id drift");
+    requireValue(isObject(fixture.game) && fixture.game.name === "nim" && fixture.game.version === "1", "unsafe local exhibition: game binding drift");
+    requireValue(fixture.rulesWeekId === "nim-local-exhibition-v1" && fixture.rulesDigest === LOCAL_EXHIBITION_RULES_DIGEST, "unsafe local exhibition: rules binding drift");
+    requireValue(fixture.activationStatus === "local_exhibition_available" && fixture.fixtureStatus === "unplayed", "unsafe local exhibition: lifecycle drift");
+    requireValue(fixture.resourceClass === LOCAL_EXHIBITION_RESOURCE_CLASS, "unsafe local exhibition: resource class drift");
+    requireValue(fixture.ranked === false, "unsafe local exhibition: ranked claim drift");
+    return fixture;
+  }
+
+  function buildLocalExhibitionQualification(blueprintInput, fixtureInput, sourceMode) {
+    const blueprint = validateQualificationBlueprint(blueprintInput);
+    const fixture = validateLocalExhibitionFixture(fixtureInput);
+    requireValue(sourceMode === "verified_corpus", "unsafe local exhibition: verified corpus required");
+    const strategyId = localExhibitionStrategy(blueprint.harnessStyle);
+    const executionBlockers = [];
+    if (!blueprint.strictValidation) executionBlockers.push("strict_validation_required");
+    if (!blueprint.fallbackDisclosure) executionBlockers.push("fallback_disclosure_required");
+    if (!strategyId) executionBlockers.push("harness_style_not_supported_by_local_exhibition");
+    const ready = executionBlockers.length === 0;
+    return {
+      schemaVersion: LOCAL_EXHIBITION_QUALIFICATION_SCHEMA,
+      qualificationStatus: ready ? "qualified_local_exhibition" : "blocked_local_exhibition",
+      executionStatus: ready ? "available_browser_memory_only" : "disabled",
+      publicationStatus: "not_requested",
+      qualificationKey: [
+        "local-nim-exhibition-v1",
+        fixture.id,
+        encodeURIComponent(blueprint.agentName.trim()),
+        encodeURIComponent(blueprint.baseModel),
+        encodeURIComponent(blueprint.harnessStyle),
+        blueprint.strictValidation ? 1 : 0,
+        blueprint.fallbackDisclosure ? 1 : 0,
+        blueprint.humanCheckpoints ? 1 : 0,
+      ].join(":"),
+      blueprint: {
+        agentName: blueprint.agentName.trim(),
+        declaredBase: blueprint.baseModel,
+        declaredBaseUse: "metadata_only_not_used",
+        harnessStyle: blueprint.harnessStyle,
+        strategyId,
+        strictValidation: blueprint.strictValidation,
+        fallbackDisclosure: blueprint.fallbackDisclosure,
+        humanCheckpoints: blueprint.humanCheckpoints,
+        localOnly: true,
+      },
+      fixture: {
+        fixtureId: fixture.id,
+        title: fixture.title,
+        game: clone(fixture.game),
+        rulesWeekId: fixture.rulesWeekId,
+        rulesDigest: fixture.rulesDigest,
+        blueprintSeat: 0,
+        referenceSeat: 1,
+        ranked: false,
+      },
+      resourceClass: {
+        id: LOCAL_EXHIBITION_RESOURCE_CLASS,
+        label: "Browser memory · deterministic scripts · no model",
+        computeClass: "bounded_local_javascript",
+        networkAllowed: false,
+        providerAllowed: false,
+        modelAllowed: false,
+        persistenceAllowed: false,
+      },
+      executionBlockers,
+      attestations: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false },
+      boundary: LOCAL_EXHIBITION_BOUNDARY,
+    };
+  }
+
+  async function validateLocalExhibitionConstants() {
+    const rulesDigest = await sha256Hex(canonicalJSON(LOCAL_EXHIBITION_RULES));
+    requireValue(equalHex(rulesDigest, LOCAL_EXHIBITION_RULES_DIGEST), "unsafe local exhibition: canonical rules digest drift");
+    const fixtureDigest = await sha256Hex(canonicalJSON({
+      schemaVersion: "builderwars.local-exhibition-fixture.v1",
+      game: { name: "nim", version: "1" },
+      rulesDigest,
+      resourceClass: LOCAL_EXHIBITION_RESOURCE_CLASS,
+      blueprintSeat: 0,
+      referenceSeat: 1,
+    }));
+    requireValue(equalHex(fixtureDigest, LOCAL_EXHIBITION_FIXTURE_ID), "unsafe local exhibition: canonical fixture digest drift");
+  }
+
+  function localNimLegalMoves(heaps) {
+    const moves = [];
+    for (let heap = 0; heap < heaps.length; heap += 1) {
+      for (let take = 1; take <= heaps[heap]; take += 1) moves.push({ heap, take });
+    }
+    return moves;
+  }
+
+  function localNimMove(strategyId, heaps) {
+    const legalMoves = localNimLegalMoves(heaps);
+    requireValue(legalMoves.length > 0, "unsafe local exhibition: no legal move available");
+    if (strategyId === LOCAL_EXHIBITION_RULES.strategies.blueprint_solver) {
+      const target = heaps.reduce((value, heap) => value ^ heap, 0);
+      if (target !== 0) {
+        for (let heap = 0; heap < heaps.length; heap += 1) {
+          const wanted = heaps[heap] ^ target;
+          if (wanted < heaps[heap]) return { heap, take: heaps[heap] - wanted };
+        }
+      }
+    } else {
+      requireValue(strategyId === LOCAL_EXHIBITION_RULES.strategies.blueprint_naive || strategyId === LOCAL_EXHIBITION_RULES.strategies.reference, "unsafe local exhibition: unknown deterministic strategy");
+    }
+    return legalMoves[0];
+  }
+
+  function applyLocalNimMove(heapsInput, move) {
+    requireValue(Array.isArray(heapsInput) && heapsInput.length === 3 && heapsInput.every(nonNegativeInteger), "unsafe local exhibition: invalid heap state");
+    requireValue(isObject(move) && Object.keys(move).sort().join(",") === "heap,take", "unsafe local exhibition: invalid move shape");
+    requireValue(Number.isInteger(move.heap) && Number.isInteger(move.take) && move.heap >= 0 && move.heap < heapsInput.length, "unsafe local exhibition: invalid move coordinates");
+    requireValue(move.take >= 1 && move.take <= heapsInput[move.heap], "unsafe local exhibition: illegal move");
+    const heaps = [...heapsInput];
+    heaps[move.heap] -= move.take;
+    return heaps;
+  }
+
+  function validateLocalExhibitionQualification(qualification) {
+    assertSafeKeys(qualification, "local exhibition qualification");
+    requireValue(isObject(qualification) && qualification.schemaVersion === LOCAL_EXHIBITION_QUALIFICATION_SCHEMA, "unsafe local exhibition: qualification schema drift");
+    requireExactKeys(qualification, [
+      "schemaVersion", "qualificationStatus", "executionStatus", "publicationStatus", "qualificationKey", "blueprint", "fixture",
+      "resourceClass", "executionBlockers", "attestations", "boundary",
+    ], "local exhibition qualification");
+    requireValue(qualification.qualificationStatus === "qualified_local_exhibition" && qualification.executionStatus === "available_browser_memory_only", "unsafe local exhibition: qualification is not executable");
+    requireValue(qualification.publicationStatus === "not_requested", "unsafe local exhibition: publication status drift");
+    requireExactKeys(qualification.blueprint, [
+      "agentName", "declaredBase", "declaredBaseUse", "harnessStyle", "strategyId", "strictValidation", "fallbackDisclosure",
+      "humanCheckpoints", "localOnly",
+    ], "local exhibition blueprint");
+    requireValue(isObject(qualification.blueprint) && qualification.blueprint.localOnly === true && qualification.blueprint.declaredBaseUse === "metadata_only_not_used", "unsafe local exhibition: blueprint boundary drift");
+    requireValue(typeof qualification.blueprint.agentName === "string" && qualification.blueprint.agentName.trim() === qualification.blueprint.agentName && qualification.blueprint.agentName.length > 0 && qualification.blueprint.agentName.length <= 36, "unsafe local exhibition: blueprint label drift");
+    requireValue(ALLOWED_BASE_MODELS.has(qualification.blueprint.declaredBase) && ALLOWED_HARNESS_STYLES.has(qualification.blueprint.harnessStyle), "unsafe local exhibition: blueprint declaration drift");
+    requireValue(qualification.blueprint.strictValidation === true && qualification.blueprint.fallbackDisclosure === true, "unsafe local exhibition: required guards missing");
+    requireValue(typeof qualification.blueprint.humanCheckpoints === "boolean", "unsafe local exhibition: human checkpoint drift");
+    requireValue(qualification.blueprint.strategyId === localExhibitionStrategy(qualification.blueprint.harnessStyle), "unsafe local exhibition: strategy binding drift");
+    requireExactKeys(qualification.fixture, ["fixtureId", "title", "game", "rulesWeekId", "rulesDigest", "blueprintSeat", "referenceSeat", "ranked"], "local exhibition fixture");
+    requireExactKeys(qualification.fixture.game, ["name", "version"], "local exhibition game");
+    requireValue(isObject(qualification.fixture) && qualification.fixture.fixtureId === LOCAL_EXHIBITION_FIXTURE_ID && qualification.fixture.rulesDigest === LOCAL_EXHIBITION_RULES_DIGEST && qualification.fixture.ranked === false, "unsafe local exhibition: fixture binding drift");
+    requireValue(qualification.fixture.title === "Your blueprint vs deterministic reference" && qualification.fixture.game.name === "nim" && qualification.fixture.game.version === "1", "unsafe local exhibition: fixture description drift");
+    requireValue(qualification.fixture.rulesWeekId === "nim-local-exhibition-v1" && qualification.fixture.blueprintSeat === 0 && qualification.fixture.referenceSeat === 1, "unsafe local exhibition: fixture seat or rules drift");
+    requireExactKeys(qualification.resourceClass, ["id", "label", "computeClass", "networkAllowed", "providerAllowed", "modelAllowed", "persistenceAllowed"], "local exhibition resource class");
+    requireValue(isObject(qualification.resourceClass) && qualification.resourceClass.id === LOCAL_EXHIBITION_RESOURCE_CLASS, "unsafe local exhibition: resource binding drift");
+    requireValue(qualification.resourceClass.label === "Browser memory · deterministic scripts · no model" && qualification.resourceClass.computeClass === "bounded_local_javascript", "unsafe local exhibition: resource description drift");
+    requireValue(qualification.resourceClass.networkAllowed === false && qualification.resourceClass.providerAllowed === false && qualification.resourceClass.modelAllowed === false && qualification.resourceClass.persistenceAllowed === false, "unsafe local exhibition: resource authority drift");
+    requireValue(Array.isArray(qualification.executionBlockers) && qualification.executionBlockers.length === 0, "unsafe local exhibition: unresolved blockers");
+    requireExactKeys(qualification.attestations, ["identity", "model", "provider", "runtime", "registry", "publication"], "local exhibition attestations");
+    requireValue(isObject(qualification.attestations) && Object.values(qualification.attestations).every((value) => value === false), "unsafe local exhibition: attestation drift");
+    const expectedQualificationKey = [
+      "local-nim-exhibition-v1",
+      qualification.fixture.fixtureId,
+      encodeURIComponent(qualification.blueprint.agentName),
+      encodeURIComponent(qualification.blueprint.declaredBase),
+      encodeURIComponent(qualification.blueprint.harnessStyle),
+      1,
+      1,
+      qualification.blueprint.humanCheckpoints ? 1 : 0,
+    ].join(":");
+    requireValue(qualification.qualificationKey === expectedQualificationKey, "unsafe local exhibition: qualification key drift");
+    requireValue(qualification.boundary === LOCAL_EXHIBITION_BOUNDARY, "unsafe local exhibition: qualification boundary drift");
+    return qualification;
+  }
+
+  async function createLocalExhibitionReceipt(qualificationInput) {
+    await validateLocalExhibitionConstants();
+    const qualification = clone(validateLocalExhibitionQualification(qualificationInput));
+    const qualificationDigest = await sha256Hex(canonicalJSON(qualification));
+    let heaps = [...LOCAL_EXHIBITION_RULES.initialHeaps];
+    let seat = 0;
+    const transcript = [];
+    while (heaps.some((heap) => heap > 0)) {
+      requireValue(transcript.length < LOCAL_EXHIBITION_RULES.maxTurns, "unsafe local exhibition: move bound exceeded");
+      const strategyId = seat === 0 ? qualification.blueprint.strategyId : LOCAL_EXHIBITION_RULES.strategies.reference;
+      const move = localNimMove(strategyId, heaps);
+      const before = [...heaps];
+      heaps = applyLocalNimMove(heaps, move);
+      transcript.push({
+        turn: transcript.length,
+        seat,
+        actor: seat === 0 ? "local_blueprint" : "deterministic_reference",
+        strategyId,
+        before,
+        move,
+        after: [...heaps],
+        moveSource: "deterministic_scripted",
+      });
+      if (heaps.every((heap) => heap === 0)) break;
+      seat = 1 - seat;
+    }
+    const winnerSeat = transcript[transcript.length - 1].seat;
+    const payload = {
+      schemaVersion: LOCAL_EXHIBITION_RECEIPT_SCHEMA,
+      receiptStatus: "local_receipt_candidate_unreviewed",
+      receiptClass: "deterministic_browser_memory_exhibition",
+      qualificationDigest,
+      qualification,
+      fixtureBinding: {
+        fixtureId: LOCAL_EXHIBITION_FIXTURE_ID,
+        game: { name: "nim", version: "1" },
+        rulesDigest: LOCAL_EXHIBITION_RULES_DIGEST,
+        resourceClass: LOCAL_EXHIBITION_RESOURCE_CLASS,
+      },
+      entrants: [
+        { seat: 0, label: qualification.blueprint.agentName, labelStatus: "unattested_local_label", harnessStyle: qualification.blueprint.harnessStyle, strategyId: qualification.blueprint.strategyId },
+        { seat: 1, label: "Deterministic reference", labelStatus: "tracked_local_reference", harnessStyle: "Reference control", strategyId: LOCAL_EXHIBITION_RULES.strategies.reference },
+      ],
+      initialState: { heaps: [...LOCAL_EXHIBITION_RULES.initialHeaps], toMove: 0 },
+      transcript,
+      result: { winnerSeat, winnerLabel: winnerSeat === 0 ? qualification.blueprint.agentName : "Deterministic reference", reason: "took_last_object", moveCount: transcript.length },
+      evidence: {
+        class: "deterministic_scripted_local_exhibition",
+        moveSourceCounts: { deterministicScripted: transcript.length, model: 0, provider: 0, fallback: 0, human: 0 },
+        declaredBaseUsed: false,
+        hiddenReasoningInferred: false,
+      },
+      storageStatus: "browser_memory_only_not_persisted",
+      registryStatus: "not_requested",
+      publicationStatus: "not_requested",
+      ranked: false,
+      attestations: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false },
+      boundary: LOCAL_EXHIBITION_BOUNDARY,
+    };
+    return { ...payload, candidateDigest: await sha256Hex(canonicalJSON(payload)) };
+  }
+
+  async function verifyLocalExhibitionReceipt(receiptInput) {
+    await validateLocalExhibitionConstants();
+    assertSafeKeys(receiptInput, "local exhibition receipt");
+    requireValue(isObject(receiptInput) && receiptInput.schemaVersion === LOCAL_EXHIBITION_RECEIPT_SCHEMA, "unsafe local exhibition receipt: schema drift");
+    requireValue(HEX64.test(receiptInput.candidateDigest), "unsafe local exhibition receipt: candidate digest missing");
+    const unsigned = clone(receiptInput);
+    delete unsigned.candidateDigest;
+    const computedDigest = await sha256Hex(canonicalJSON(unsigned));
+    requireValue(equalHex(computedDigest, receiptInput.candidateDigest), "unsafe local exhibition receipt: candidate digest mismatch");
+    const reconstructed = await createLocalExhibitionReceipt(receiptInput.qualification);
+    requireValue(canonicalJSON(reconstructed) === canonicalJSON(receiptInput), "unsafe local exhibition receipt: deterministic replay mismatch");
+    return {
+      schemaVersion: LOCAL_EXHIBITION_VERIFICATION_SCHEMA,
+      verificationStatus: "verified_local_receipt_candidate",
+      candidateDigest: receiptInput.candidateDigest,
+      qualificationDigest: receiptInput.qualificationDigest,
+      replayVerdict: "PASS",
+      replayedMoveCount: receiptInput.transcript.length,
+      modelMoveCount: 0,
+      providerMoveCount: 0,
+      registryStatus: "not_requested",
+      publicationStatus: "not_requested",
+      ranked: false,
+      attestations: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false },
+      boundary: LOCAL_EXHIBITION_BOUNDARY,
+    };
+  }
+
+  async function createLocalExhibitionLearning(receiptInput, verificationInput) {
+    const verification = await verifyLocalExhibitionReceipt(receiptInput);
+    requireValue(canonicalJSON(verification) === canonicalJSON(verificationInput), "unsafe local exhibition learning: verification drift");
+    const solverUsed = receiptInput.qualification.blueprint.strategyId === LOCAL_EXHIBITION_RULES.strategies.blueprint_solver;
+    const payload = {
+      schemaVersion: LOCAL_EXHIBITION_LEARNING_SCHEMA,
+      learningStatus: "verified_local_observation_only",
+      parentCandidateDigest: receiptInput.candidateDigest,
+      replayVerdict: verification.replayVerdict,
+      observation: `${receiptInput.result.winnerLabel} took the last object after ${receiptInput.result.moveCount} deterministic scripted moves.`,
+      lessonId: solverUsed ? "inspect_xor_zero_strategy" : "compare_first_legal_control",
+      guidance: solverUsed
+        ? "Inspect the visible heap transitions where the blueprint restored XOR zero. This is game-state evidence, not model reasoning."
+        : "Compare the visible first-legal control moves with the solver pattern before changing a future local harness.",
+      recommendedRunback: { version: 1, seatSwap: true, rulesDigest: LOCAL_EXHIBITION_RULES_DIGEST, status: "unplayed" },
+      hiddenReasoningInferred: false,
+      authority: { identity: false, model: false, provider: false, registry: false, publication: false, production: false },
+      boundary: "This learning object summarizes only verified visible moves from one local deterministic exhibition. It does not infer model reasoning, award progress, change a blueprint, or authorize another match.",
+    };
+    return { ...payload, learningDigest: await sha256Hex(canonicalJSON(payload)) };
+  }
+
+  async function createLocalExhibitionRunback(receiptInput, verificationInput, learningInput) {
+    const verification = await verifyLocalExhibitionReceipt(receiptInput);
+    requireValue(canonicalJSON(verification) === canonicalJSON(verificationInput), "unsafe local exhibition runback: verification drift");
+    const learning = await createLocalExhibitionLearning(receiptInput, verificationInput);
+    requireValue(canonicalJSON(learning) === canonicalJSON(learningInput), "unsafe local exhibition runback: learning drift");
+    const payload = {
+      schemaVersion: LOCAL_EXHIBITION_RUNBACK_SCHEMA,
+      runbackVersion: 1,
+      runbackStatus: "versioned_local_runback_unplayed",
+      executionStatus: "not_run",
+      parentCandidateDigest: receiptInput.candidateDigest,
+      parentLearningDigest: learning.learningDigest,
+      fixtureBinding: {
+        parentFixtureId: LOCAL_EXHIBITION_FIXTURE_ID,
+        game: { name: "nim", version: "1" },
+        rulesDigest: LOCAL_EXHIBITION_RULES_DIGEST,
+        resourceClass: LOCAL_EXHIBITION_RESOURCE_CLASS,
+      },
+      seatPlan: { blueprintSeat: 1, referenceSeat: 0, seatSwap: true },
+      blueprint: clone(receiptInput.qualification.blueprint),
+      storageStatus: "browser_memory_only_not_persisted",
+      registryStatus: "not_requested",
+      publicationStatus: "not_requested",
+      ranked: false,
+      attestations: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false },
+      executionBlockers: ["explicit_user_runback_action_not_requested"],
+      boundary: "This digest-bound version 1 runback preserves the exact parent, rules, resource class, blueprint, and swapped seats. It remains unplayed and grants no provider, model, identity, registry, ranking, publication, spending, or production authority.",
+    };
+    return { ...payload, runbackDigest: await sha256Hex(canonicalJSON(payload)) };
   }
 
   function validateReceiptProofForLearning(proof, sourceMode) {
@@ -3193,6 +3552,7 @@
       fixtureStatus: fixture.status,
       resourceClass: PREVIEW_RESOURCE_CLASS,
     }));
+    demo.quickMatches.push(localExhibitionFixtureView());
     demo.watchlist = model.channels.map((channel) => ({
       id: `watch-${channel.game}`,
       symbol: symbolFor(channel.game),
@@ -3425,6 +3785,14 @@
     PORTABLE_REVIEW_SCHEMA,
     QUALIFICATION_SCHEMA,
     PREVIEW_RESOURCE_CLASS,
+    LOCAL_EXHIBITION_QUALIFICATION_SCHEMA,
+    LOCAL_EXHIBITION_RECEIPT_SCHEMA,
+    LOCAL_EXHIBITION_VERIFICATION_SCHEMA,
+    LOCAL_EXHIBITION_LEARNING_SCHEMA,
+    LOCAL_EXHIBITION_RUNBACK_SCHEMA,
+    LOCAL_EXHIBITION_RESOURCE_CLASS,
+    LOCAL_EXHIBITION_RULES_DIGEST,
+    LOCAL_EXHIBITION_FIXTURE_ID,
     READ_MODEL_SCHEMA,
     READ_MODEL_DIGEST_PIN,
     RUNBACK_PROPOSAL_SCHEMA,
@@ -3433,8 +3801,12 @@
     appendPortableRunbackReview,
     appendPortableRunbackReviewCorrection,
     buildQualificationPreview,
+    buildLocalExhibitionQualification,
     buildReceiptLearningAction,
     buildRunbackProposal,
+    createLocalExhibitionLearning,
+    createLocalExhibitionReceipt,
+    createLocalExhibitionRunback,
     createTesterFeedbackDraft,
     createPortablePrivateBlueprintDelta,
     createPortablePrivateBlueprintDeltaReview,
@@ -3471,5 +3843,6 @@
     verifyPortablePrivateReviewComparison,
     verifyPortablePrivateReviewLearning,
     verifyTesterFeedbackDraft,
+    verifyLocalExhibitionReceipt,
   };
 }));

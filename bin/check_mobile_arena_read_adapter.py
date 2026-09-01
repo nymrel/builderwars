@@ -70,9 +70,12 @@ function response(body, ok = true) {
   check(view.tape.length === view.proofReceipts.length, "tape is receipt-backed");
   check(view.channels.every((channel) => channel.viewers === null), "does not invent viewers");
   check(view.leaderboard.every((row) => row.record.includes("not ranked")), "does not invent ranking");
-  check(view.quickMatches.length === 3 && view.quickMatches.every((fixture) => fixture.enabled === false), "keeps proposed fixtures inactive");
-  check(view.quickMatches.every((fixture) => fixture.previewAllowed === true && fixture.actionLabel === "Preview"), "projects proposed fixtures as previews");
-  check(view.quickMatches.every((fixture) => fixture.resourceClass === adapter.PREVIEW_RESOURCE_CLASS), "binds no-compute preview resource class");
+  const proposedFixtures = view.quickMatches.filter((fixture) => !fixture.exhibitionAllowed);
+  const localExhibitions = view.quickMatches.filter((fixture) => fixture.exhibitionAllowed);
+  check(proposedFixtures.length === 3 && proposedFixtures.every((fixture) => fixture.enabled === false), "keeps proposed fixtures inactive");
+  check(proposedFixtures.every((fixture) => fixture.previewAllowed === true && fixture.actionLabel === "Preview"), "projects proposed fixtures as previews");
+  check(proposedFixtures.every((fixture) => fixture.resourceClass === adapter.PREVIEW_RESOURCE_CLASS), "binds no-compute preview resource class");
+  check(localExhibitions.length === 1 && localExhibitions[0].resourceClass === adapter.LOCAL_EXHIBITION_RESOURCE_CLASS, "projects one separate deterministic local exhibition");
   check(view.rivalries.length === 3, "projects three verified rivalries");
   check(view.rivalries.every((rivalry) => view.proofReceipts.some((proof) => proof.receiptId === rivalry.latestReceiptId)), "rivalry receipt links resolve");
   check(view.rivalries.every((rivalry) => rivalry.runbackStatus === "unplayed_challenge"), "rivalry runbacks remain inactive");
@@ -168,7 +171,7 @@ function response(body, ok = true) {
     require(result.returncode == 0, f"Arena read-adapter check failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
     require(payload.get("status") == "PASS", "Arena read adapter did not report PASS")
-    require(payload.get("checks", 0) >= 48, "Arena read adapter coverage unexpectedly shrank")
+    require(payload.get("checks", 0) >= 49, "Arena read adapter coverage unexpectedly shrank")
     print(f"BuilderWars mobile Arena read adapter: PASS ({payload['checks']} checks)")
     print("verified corpus / disclosed demo fallback / fail-closed local source boundary")
     return 0

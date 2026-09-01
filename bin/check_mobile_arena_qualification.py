@@ -62,7 +62,9 @@ check(view.rivalries.length === 3, "projects three verified rivalries");
 check(view.rivalries.every((rivalry) => view.proofReceipts.some((proof) => proof.receiptId === rivalry.latestReceiptId)), "rivalry links resolve to reviewed receipts");
 check(view.rivalries.every((rivalry) => rivalry.runbackStatus === "unplayed_challenge"), "rivalry runbacks remain unplayed");
 check(view.rivalries.every((rivalry) => !String(rivalry.record).toLowerCase().includes("rank")), "rivalries make no rank claim");
-check(view.quickMatches.length === 3 && view.quickMatches.every((fixture) => fixture.previewAllowed), "projects three preview-only fixtures");
+check(view.quickMatches.length === 4 && view.quickMatches.every((fixture) => fixture.previewAllowed), "projects three preview fixtures plus one local exhibition");
+check(view.quickMatches.filter((fixture) => !fixture.exhibitionAllowed).length === 3, "preserves three proposed no-execution fixtures");
+check(view.quickMatches.filter((fixture) => fixture.exhibitionAllowed).length === 1, "projects exactly one separate local exhibition");
 
 const validBlueprint = {
   agentName: "Receipt Runner",
@@ -136,7 +138,7 @@ process.stdout.write(JSON.stringify({ status: "PASS", checks: checks.length }));
     require(result.returncode == 0, f"Arena qualification check failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
     require(payload.get("status") == "PASS", "Arena qualification did not report PASS")
-    require(payload.get("checks", 0) >= 45, "Arena qualification coverage unexpectedly shrank")
+    require(payload.get("checks", 0) >= 47, "Arena qualification coverage unexpectedly shrank")
     print(f"BuilderWars mobile Arena qualification preview: PASS ({payload['checks']} checks)")
     print("receipt routes / verified rivalries / deterministic no-execution qualification boundary")
     return 0

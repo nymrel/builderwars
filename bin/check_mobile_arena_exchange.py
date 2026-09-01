@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "28"
+EXPECTED_SHELL_VERSION = "29"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -154,6 +154,13 @@ def main() -> int:
     checks += 13
     require("buildQualificationPreview" in adapter and 'qualificationStatus: "not_run"' in adapter, "deterministic qualification preview missing")
     require('executionStatus: "disabled"' in adapter and "computeAllowed: false" in adapter and "networkAllowed: false" in adapter, "qualification execution boundary missing")
+    require("buildLocalExhibitionQualification" in adapter and "createLocalExhibitionReceipt" in adapter and "verifyLocalExhibitionReceipt" in adapter, "deterministic local exhibition loop missing")
+    require('LOCAL_EXHIBITION_RESOURCE_CLASS = "browser-memory-deterministic-no-model-v1"' in adapter, "local exhibition resource boundary missing")
+    require('receiptStatus: "local_receipt_candidate_unreviewed"' in adapter and 'verificationStatus: "verified_local_receipt_candidate"' in adapter, "local receipt candidate or replay boundary missing")
+    require("createLocalExhibitionLearning" in adapter and "createLocalExhibitionRunback" in adapter and 'runbackStatus: "versioned_local_runback_unplayed"' in adapter, "local learning or versioned runback contract missing")
+    require("data-local-exhibition-run" in js and "data-local-exhibition-discard" in js, "local exhibition browser lifecycle missing")
+    require("metadata only · unused" in js and "Model/provider moves" in js, "local exhibition no-model disclosure missing")
+    checks += 6
     require("formatArenaRoute" in js and "parseArenaRoute" in js and "/receipt/" in js, "receipt-addressable route contract missing")
     require("unknown rivalry receipt" in adapter and "rivalry outcome drift" in adapter, "rivalry cross-reference checks missing")
     require("buildReceiptLearningAction" in adapter and 'status: "review_only"' in adapter, "proof-linked learning contract missing")
@@ -420,6 +427,20 @@ def main() -> int:
     )
     require(qualification_check.returncode == 0, f"qualification regression failed: {qualification_check.stderr.strip()}")
     require("PASS" in qualification_check.stdout, "qualification regression did not report PASS")
+    checks += 2
+
+    local_exhibition_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_local_exhibition.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(local_exhibition_check.returncode == 0, f"local exhibition regression failed: {local_exhibition_check.stderr.strip()}")
+    require("PASS" in local_exhibition_check.stdout, "local exhibition regression did not report PASS")
     checks += 2
 
     learning_runback_check = subprocess.run(

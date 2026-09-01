@@ -21,7 +21,8 @@ reviewed Arena receipt corpus through a fail-closed client adapter, retains the
 fixed demo fixture as a visibly disclosed fallback, pins and recomputes the
 corpus canonical SHA-256 digest before any `verified_corpus` projection, opens
 receipt-addressable proofs and receipt-backed rivalry history, saves blueprints only in the browser,
-previews deterministic fixture qualification without execution, and turns a
+previews future-fixture qualification without execution, separately runs one
+deterministic browser-memory Nim exhibition with no model or provider, and turns a
 reviewed proof into a bounded learning action plus a versioned, still-unplayed
 runback proposal. The proposal can be exported as canonical JSON and imported
 independently from an empty Receipt Lab for strict local schema and SHA-256
@@ -98,6 +99,7 @@ python -m http.server 4173 --directory mobile-arena
 # open http://127.0.0.1:4173
 python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_qualification.py
+python bin\check_mobile_arena_local_exhibition.py
 python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_portable_review.py
@@ -120,7 +122,9 @@ The browser gate requires Python Playwright plus its managed Chromium in the QA
 environment. It starts an ephemeral `127.0.0.1` server, uses isolated browser
 contexts, and closes Chromium and the server before returning. Its real-browser
 journeys cover all five destinations, browser history, receipt routes, dialog
-focus and Escape restoration, qualification preview, local persistence and
+focus and Escape restoration, qualification preview, the deterministic local
+exhibition through replay-verified receipt candidate, visible learning,
+versioned unplayed runback, discard, and reload cleanup, local persistence and
 storage denial, schema-invalid source fallback, fatal local-source failure,
 reduced motion, service-worker offline reload, responsive widths from 320px to
 1040px, accessible names, console/page errors, document overflow, and a strict

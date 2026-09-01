@@ -283,18 +283,21 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 203
-assertions across 17 isolated journeys: first-run starter selection, returning
+It starts an ephemeral loopback server and runs managed Chromium through 217
+assertions across 18 isolated journeys: first-run starter selection, returning
 state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
-fixture qualification; local blueprint persistence; local-session inspection,
+fixture qualification; a separate deterministic browser-memory Nim exhibition
+through replay-verified receipt candidate, visible learning, a versioned
+seat-swapped unplayed runback, explicit discard, and reload cleanup; local
+blueprint persistence; local-session inspection,
 the eight-category memory-only tester worksheet, reload cleanup, invalid-rubric
 refusal, two-step browser-only cleanup, and starter restart; denied storage; semantic
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v28 HTML requests; and a v28-only installed
+cross-origin requests; coherent v29 HTML requests; and a v29-only installed
 offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
@@ -352,6 +355,7 @@ identity claim. The adapter:
 ```powershell
 python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_qualification.py
+python bin\check_mobile_arena_local_exhibition.py
 python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_exchange.py
@@ -381,6 +385,46 @@ always reports qualification `not_run`, execution `disabled`, publication
 not run, the fixture is not activated, and no sanctioned runner is bound. The
 adapter rejects demo fallback, unsafe blueprints, rule drift, fixture activation,
 resource escalation, and broken rivalry lineage before rendering this state.
+
+### Deterministic browser-memory exhibition loop
+
+Compete also exposes one separate Practice card. It is not one of the three
+proposed league fixtures and does not change their inactive status. The card is
+bound to Nim v1, canonical rules digest
+`feb22f090c5bc115d8fc939f02b4a17f8ae8894f7bde99ee9ec7385199d83ab0`,
+fixture digest
+`c799e667cec7e3d57f1083953061da0e231ee72369a4dfe449d229c29ab701fb`,
+and resource class `browser-memory-deterministic-no-model-v1`.
+
+Only local blueprints with strict validation, fallback disclosure, and one of
+the two explicit deterministic harness profiles qualify. The declared demo base
+is retained as unused metadata. Play uses a fixed `[1, 3, 5]` conformance
+position, an allowlisted scripted strategy, a nine-move ceiling, no randomness,
+no network, no provider, no model, and no persistence. The resulting object is
+`local_receipt_candidate_unreviewed`, not a reviewed or public receipt. A second
+local invocation reconstructs the exact qualification, transcript, result, and
+candidate digest before returning replay `PASS`; edited or resealed transcript,
+rules, fixture, strategy, result, or authority state fails closed.
+
+The verified candidate produces one observation-only learning object over
+visible heap transitions and one digest-bound version 1 seat-swapped runback.
+The runback remains `versioned_local_runback_unplayed` and `not_run`. Identity,
+model, provider, runtime, registry, publication, ranking, spending, and
+production authority remain false or not requested throughout. The browser can
+discard the complete result chain explicitly, and reload clears it because the
+flow never writes browser storage.
+
+```powershell
+python bin\check_mobile_arena_local_exhibition.py
+python bin\check_mobile_arena_exchange.py
+python bin\check_mobile_arena_browser.py
+```
+
+The focused adversarial checker runs 61 assertions. The integrated exchange
+checker runs 315 checks, and real-browser acceptance covers the complete local
+loop plus discard and reload cleanup. These are local exhibition proofs only;
+they do not establish sanctioned execution, model play, a user identity, an
+activated competition, a registry entry, a ranking, publication, or launch.
 
 ### Proof-linked learning and still-unplayed runbacks
 
@@ -712,7 +756,7 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 307 checks across this contract and every preceding Arena
+mobile checker runs 315 checks across this contract and every preceding Arena
 Exchange layer.
 
 ### Deterministic private guard-completion review
@@ -748,7 +792,7 @@ adversarial assertions across every allowed decision/reason pair, candidate
 suppression for defer and reject, exact completed-blueprint and provenance
 preservation, full ancestry reconstruction, all-false authority, nested and
 resealed tampering, dangerous keys, excessive depth or nodes, and oversized
-input. The integrated mobile checker runs 307 checks across this contract and
+input. The integrated mobile checker runs 315 checks across this contract and
 every preceding Arena Exchange layer.
 
 ### Deterministic local operator-review packet
@@ -779,7 +823,7 @@ review-only creation; full lineage reconstruction; exact diff and digest parity;
 deterministic export; zero authority; all-unrun validation; discard rollback;
 operator-decision suppression; nested and fully resealed tampering; dangerous
 keys; excessive depth or nodes; and oversized input. The integrated mobile
-checker runs 307 checks across this contract and every preceding Arena Exchange
+checker runs 315 checks across this contract and every preceding Arena Exchange
 layer. A refused operator-packet import preserves the verified upstream
 completion review while retaining no operator decision or packet authority.
 

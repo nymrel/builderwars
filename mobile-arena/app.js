@@ -12,6 +12,10 @@ const state = {
   blueprintPersistenceAvailable: true,
   blueprintRemovalArmed: false,
   qualificationPreview: null,
+  localExhibitionReceipt: null,
+  localExhibitionVerification: null,
+  localExhibitionLearning: null,
+  localExhibitionRunback: null,
   learningAction: null,
   runbackProposal: null,
   portableRunback: null,
@@ -1219,31 +1223,108 @@ function openReceiptProof(proofId, { updateHistory = true } = {}) {
   return true;
 }
 
+function localExhibitionResultMarkup() {
+  const receipt = state.localExhibitionReceipt;
+  const verification = state.localExhibitionVerification;
+  const learning = state.localExhibitionLearning;
+  const runback = state.localExhibitionRunback;
+  if (!receipt || !verification || !learning || !runback) return "";
+  const rows = [
+    ["Receipt candidate", "Verified locally · unreviewed", "ready"],
+    ["Replay", verification.replayVerdict, "ready"],
+    ["Winner", receipt.result.winnerLabel, ""],
+    ["Moves", `${receipt.result.moveCount} deterministic scripted`, ""],
+    ["Model/provider moves", "0 / 0", ""],
+    ["Candidate digest", receipt.candidateDigest, "mono"],
+    ["Learning", learning.lessonId, ""],
+    ["Runback", "Version 1 · seat-swapped · unplayed", "pending"],
+    ["Registry/ranking/publication", "Not requested / false / not requested", "pending"],
+  ];
+  return `<section class="runback-proposal local-exhibition-result" aria-labelledby="local-exhibition-result-title"><div class="qualification-status"><span>Browser-memory result</span><strong id="local-exhibition-result-title">Replay verified</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-boundary"><strong>Visible learning:</strong> ${escapeHTML(learning.guidance)}</div><div class="proof-boundary"><strong>Runback boundary:</strong> ${escapeHTML(runback.boundary)}</div><button class="secondary-button" type="button" data-local-exhibition-discard>Discard memory-only result</button></section>`;
+}
+
+function clearLocalExhibitionResult() {
+  state.localExhibitionReceipt = null;
+  state.localExhibitionVerification = null;
+  state.localExhibitionLearning = null;
+  state.localExhibitionRunback = null;
+}
+
+async function runLocalExhibition() {
+  const qualification = state.qualificationPreview;
+  if (!qualification || qualification.schemaVersion !== dataAdapter?.LOCAL_EXHIBITION_QUALIFICATION_SCHEMA) return false;
+  clearLocalExhibitionResult();
+  try {
+    const receipt = await dataAdapter.createLocalExhibitionReceipt(qualification);
+    const verification = await dataAdapter.verifyLocalExhibitionReceipt(receipt);
+    const learning = await dataAdapter.createLocalExhibitionLearning(receipt, verification);
+    const runback = await dataAdapter.createLocalExhibitionRunback(receipt, verification, learning);
+    state.localExhibitionReceipt = receipt;
+    state.localExhibitionVerification = verification;
+    state.localExhibitionLearning = learning;
+    state.localExhibitionRunback = runback;
+    renderQualificationPreview(qualification.fixture.fixtureId);
+    return true;
+  } catch {
+    clearLocalExhibitionResult();
+    renderQualificationPreview(qualification.fixture.fixtureId);
+    return false;
+  }
+}
+
 function renderQualificationPreview(fixtureId) {
   const fixture = state.data.quickMatches.find((match) => match.id === fixtureId);
-  if (!fixture || !dataAdapter?.buildQualificationPreview) return false;
+  if (!fixture || !dataAdapter?.buildQualificationPreview || !dataAdapter?.buildLocalExhibitionQualification) return false;
   let preview;
   try {
-    preview = dataAdapter.buildQualificationPreview(blueprintFromForm(), fixture, state.data.sourceMode);
+    preview = fixture.exhibitionAllowed
+      ? dataAdapter.buildLocalExhibitionQualification(blueprintFromForm(), fixture, state.data.sourceMode)
+      : dataAdapter.buildQualificationPreview(blueprintFromForm(), fixture, state.data.sourceMode);
   } catch {
     return false;
   }
   state.qualificationPreview = preview;
+  if (fixture.exhibitionAllowed && state.localExhibitionReceipt?.qualification?.qualificationKey !== preview.qualificationKey) {
+    clearLocalExhibitionResult();
+  }
   $("#qualification-title").textContent = fixture.title;
-  const rows = [
-    ["Qualification", "Not run", "pending"],
-    ["Execution", "Disabled", "pending"],
-    ["Blueprint", preview.blueprint.agentName, ""],
-    ["Declared demo base", preview.blueprint.declaredBase, ""],
-    ["Game", `${preview.fixture.game.name} v${preview.fixture.game.version}`, ""],
-    ["Rules week", preview.fixture.rulesWeekId, ""],
-    ["Rules digest", preview.fixture.rulesDigest, "mono"],
-    ["Resource class", preview.resourceClass.label, ""],
-    ["Fixture", "Proposed · not activated", "pending"],
-    ["Attestations", "Identity/model/provider/runtime/registry/publication: all false", ""],
-  ];
-  const checks = preview.readinessChecks.map((check) => `<li class="qualification-check ${check.ready ? "ready" : "needs-attention"}"><span>${check.ready ? "✓" : "!"}</span><div><strong>${escapeHTML(check.label)}</strong><small>${escapeHTML(check.status)}</small></div></li>`).join("");
-  $("#qualification-content").innerHTML = `<div class="qualification-status"><span>Deterministic local preview</span><strong>${preview.readiness === "blueprint_ready_for_future_attempt" ? "Blueprint guards ready" : "Blueprint guards need attention"}</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><ul class="qualification-checks" aria-label="Qualification preview checks">${checks}</ul><div class="proof-boundary"><strong>Preview boundary:</strong> ${escapeHTML(preview.boundary)}</div>`;
+  if (fixture.exhibitionAllowed) {
+    const ready = preview.qualificationStatus === "qualified_local_exhibition";
+    const rows = [
+      ["Qualification", ready ? "Local exhibition qualified" : "Blocked", ready ? "ready" : "pending"],
+      ["Execution", ready ? "Browser memory only · available" : "Disabled", ready ? "ready" : "pending"],
+      ["Blueprint", preview.blueprint.agentName, ""],
+      ["Declared demo base", `${preview.blueprint.declaredBase} · metadata only · unused`, ""],
+      ["Harness strategy", preview.blueprint.strategyId || "Unsupported in this exhibition", ""],
+      ["Game", `${preview.fixture.game.name} v${preview.fixture.game.version}`, ""],
+      ["Rules digest", preview.fixture.rulesDigest, "mono"],
+      ["Resource class", preview.resourceClass.label, ""],
+      ["Fixture", "Local exhibition · not ranked", "pending"],
+      ["Attestations", "Identity/model/provider/runtime/registry/publication: all false", ""],
+    ];
+    const blockers = preview.executionBlockers.length
+      ? `<div class="proof-boundary"><strong>Blocked:</strong> ${escapeHTML(preview.executionBlockers.join(" · "))}</div>`
+      : "";
+    const action = ready && !state.localExhibitionReceipt
+      ? `<button class="primary-button" type="button" data-local-exhibition-run>Run deterministic local exhibition</button>`
+      : "";
+    $("#qualification-content").innerHTML = `<div class="qualification-status"><span>Deterministic local practice</span><strong>${ready ? "Ready without a model" : "Blueprint needs a supported safe profile"}</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div>${blockers}<div class="proof-boundary"><strong>Exhibition boundary:</strong> ${escapeHTML(preview.boundary)}</div>${action}${localExhibitionResultMarkup()}`;
+  } else {
+    const rows = [
+      ["Qualification", "Not run", "pending"],
+      ["Execution", "Disabled", "pending"],
+      ["Blueprint", preview.blueprint.agentName, ""],
+      ["Declared demo base", preview.blueprint.declaredBase, ""],
+      ["Game", `${preview.fixture.game.name} v${preview.fixture.game.version}`, ""],
+      ["Rules week", preview.fixture.rulesWeekId, ""],
+      ["Rules digest", preview.fixture.rulesDigest, "mono"],
+      ["Resource class", preview.resourceClass.label, ""],
+      ["Fixture", "Proposed · not activated", "pending"],
+      ["Attestations", "Identity/model/provider/runtime/registry/publication: all false", ""],
+    ];
+    const checks = preview.readinessChecks.map((check) => `<li class="qualification-check ${check.ready ? "ready" : "needs-attention"}"><span>${check.ready ? "✓" : "!"}</span><div><strong>${escapeHTML(check.label)}</strong><small>${escapeHTML(check.status)}</small></div></li>`).join("");
+    $("#qualification-content").innerHTML = `<div class="qualification-status"><span>Deterministic local preview</span><strong>${preview.readiness === "blueprint_ready_for_future_attempt" ? "Blueprint guards ready" : "Blueprint guards need attention"}</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><ul class="qualification-checks" aria-label="Qualification preview checks">${checks}</ul><div class="proof-boundary"><strong>Preview boundary:</strong> ${escapeHTML(preview.boundary)}</div>`;
+  }
   return true;
 }
 
@@ -2210,6 +2291,23 @@ function bindEvents() {
     if (qualification) {
       if (renderQualificationPreview(qualification.dataset.qualificationPreview)) openSheet($("#qualification-sheet"));
       else showToast("Qualification preview is unavailable in this bounded source. Nothing was executed.");
+      return;
+    }
+    if (event.target.closest("[data-local-exhibition-run]")) {
+      const button = event.target.closest("[data-local-exhibition-run]");
+      button.disabled = true;
+      button.textContent = "Running deterministic moves…";
+      const completed = await runLocalExhibition();
+      showToast(completed
+        ? "Local exhibition replay verified in browser memory. No model, provider, ranking, registry, or publication was used."
+        : "Local exhibition failed closed. No result was retained or published.");
+      return;
+    }
+    if (event.target.closest("[data-local-exhibition-discard]")) {
+      const fixtureId = state.qualificationPreview?.fixture?.fixtureId;
+      clearLocalExhibitionResult();
+      if (fixtureId) renderQualificationPreview(fixtureId);
+      showToast("Memory-only exhibition result discarded. No tracked receipt or remote state was deleted.");
       return;
     }
     const proofLearning = event.target.closest("[data-proof-learn]");
