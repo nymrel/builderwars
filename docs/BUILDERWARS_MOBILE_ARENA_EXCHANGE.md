@@ -248,6 +248,27 @@ the demo and notification boundaries. The deterministic checker binds these
 contracts; they remain local usability proof, not evidence of a hosted service,
 live competition, or provider activation.
 
+The browser acceptance gate is now durable and self-cleaning:
+
+```powershell
+python bin\check_mobile_arena_browser.py
+```
+
+It starts an ephemeral loopback server and runs managed Chromium through 115
+assertions across 13 isolated journeys: five-destination navigation; browser
+back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
+dialog focus containment, Escape close, and trigger-focus restoration; proposed
+fixture qualification; local blueprint persistence; denied storage; semantic
+dialog/button checks; schema-invalid read-model fallback; fatal local-source
+failure; reduced motion; service-worker offline reload; 320, 390, 768, and
+1040px layouts; zero console/page errors; no document overflow; and zero
+cross-origin requests. The gate found and fixed a history-backed proof-dialog
+defect where Escape closed through `popstate` without returning focus to the
+trigger. Chromium contexts and the loopback server are closed before success.
+The result remains local browser evidence only and leaves hosting, auth,
+provider, live competition, identity, registry, publication, and production
+readiness false.
+
 ### Private-alpha read-model foundation
 
 The first private-alpha substrate now compiles the tracked, reviewed AgentWars
@@ -294,6 +315,7 @@ python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_exchange.py
+python bin\check_mobile_arena_browser.py
 ```
 
 These checks and the browser acceptance pass are local product evidence only.

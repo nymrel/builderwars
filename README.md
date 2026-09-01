@@ -112,7 +112,20 @@ python bin\check_mobile_arena_private_blueprint_guard_completion.py
 python bin\check_mobile_arena_private_blueprint_guard_completion_review.py
 python bin\check_mobile_arena_private_blueprint_operator_review_packet.py
 python bin\check_mobile_arena_exchange.py
+python bin\check_mobile_arena_browser.py
 ```
+
+The browser gate requires Python Playwright plus its managed Chromium in the QA
+environment. It starts an ephemeral `127.0.0.1` server, uses isolated browser
+contexts, and closes Chromium and the server before returning. Its real-browser
+journeys cover all five destinations, browser history, receipt routes, dialog
+focus and Escape restoration, qualification preview, local persistence and
+storage denial, schema-invalid source fallback, fatal local-source failure,
+reduced motion, service-worker offline reload, responsive widths from 320px to
+1040px, accessible names, console/page errors, document overflow, and a strict
+same-origin network boundary. Passing it is local browser evidence only; it is
+not evidence of hosting, authentication, provider access, live competition,
+publication, or production readiness.
 
 The companion Arena read model is compiled from the tracked, reviewed
 AgentWars publication artifact. It is deterministic and fail-closed: the build

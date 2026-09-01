@@ -1852,6 +1852,7 @@ function dismissActiveSheet() {
   const route = parseArenaRoute(location.hash);
   if (!$("#proof-sheet").hidden && route?.receiptId) {
     if (history.state?.overlay === "receipt") {
+      closeSheets();
       history.back();
       return;
     }
