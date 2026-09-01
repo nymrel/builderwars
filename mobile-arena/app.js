@@ -6,6 +6,7 @@ const state = {
   followingFirst: false,
   activeLesson: null,
   selectedProofId: null,
+  qualificationPreview: null,
   lastFocus: null,
 };
 
@@ -15,10 +16,28 @@ const VIEW_NAMES = ["arena", "watch", "compete", "learn", "build"];
 const BLUEPRINT_STORAGE_KEY = "builderwars.mobile-arena.blueprint.v1";
 const BLUEPRINT_MAX_LENGTH = 2048;
 const BLUEPRINT_GUARD_KEYS = ["strictValidation", "fallbackDisclosure", "humanCheckpoints"];
+const RECEIPT_ROUTE_ID = /^[A-Za-z0-9_-]{1,80}$/;
 const escapeHTML = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
 }[character]));
 const dataAdapter = typeof BuilderWarsDataAdapter !== "undefined" ? BuilderWarsDataAdapter : null;
+
+function formatArenaRoute(view, receiptId = null) {
+  const safeView = VIEW_NAMES.includes(view) ? view : "arena";
+  if (!receiptId) return `#${safeView}`;
+  if (!RECEIPT_ROUTE_ID.test(String(receiptId))) return `#${safeView}`;
+  return `#${safeView}/receipt/${receiptId}`;
+}
+
+function parseArenaRoute(hash) {
+  const parts = String(hash || "").replace(/^#/, "").split("/");
+  if (!VIEW_NAMES.includes(parts[0])) return null;
+  if (parts.length === 1) return { view: parts[0], receiptId: null };
+  if (parts.length === 3 && parts[1] === "receipt" && RECEIPT_ROUTE_ID.test(parts[2])) {
+    return { view: parts[0], receiptId: parts[2] };
+  }
+  return null;
+}
 
 function nextModalFocusIndex(currentIndex, count, shiftKey) {
   if (!Number.isInteger(count) || count <= 0) return -1;
@@ -67,7 +86,7 @@ function renderFeatured() {
       <span class="score-separator">—</span>
       <div class="score-side"><span class="score-name">${escapeHTML(match.right.name)}</span><strong class="score">${match.right.score}</strong></div>
     </div>
-    <div class="match-actions"><button class="primary-button" type="button" data-proof-open="${escapeHTML(match.proof.receiptId || "featured")}">Inspect proof</button><button class="secondary-button" type="button" data-runback-preview ${match.runbackAvailable ? "" : "aria-disabled=\"true\""}>${escapeHTML(match.runbackLabel || "Runback preview")}</button></div>`;
+    <div class="match-actions"><a class="primary-button" href="${formatArenaRoute("arena", match.proof.receiptId)}" data-proof-open="${escapeHTML(match.proof.receiptId || "featured")}">Inspect proof</a><button class="secondary-button" type="button" data-runback-preview ${match.runbackAvailable ? "" : "aria-disabled=\"true\""}>${escapeHTML(match.runbackLabel || "Runback preview")}</button></div>`;
   $("#featured-match").setAttribute("aria-label", verified ? "Featured reviewed receipt" : "Featured simulated match");
 }
 
@@ -76,7 +95,7 @@ function renderTape() {
     <div class="tape-row">
       <span class="tape-time">${escapeHTML(row.time)}</span>
       <div><p class="row-title">${escapeHTML(row.headline)}</p><p class="row-detail">${escapeHTML(row.channel)} · ${escapeHTML(row.detail)}</p></div>
-      ${row.receiptId ? `<button class="proof-link" type="button" data-proof-open="${escapeHTML(row.receiptId)}" aria-label="Inspect proof for ${escapeHTML(row.headline)}">Proof</button>` : `<span class="tone-dot ${escapeHTML(row.tone)}" aria-hidden="true"></span>`}
+      ${row.receiptId ? `<a class="proof-link" href="${formatArenaRoute("arena", row.receiptId)}" data-proof-open="${escapeHTML(row.receiptId)}" aria-label="Inspect proof for ${escapeHTML(row.headline)}">Proof</a>` : `<span class="tone-dot ${escapeHTML(row.tone)}" aria-hidden="true"></span>`}
     </div>`).join("");
 }
 
@@ -99,12 +118,26 @@ function renderLeaderboard() {
     </div>`).join("");
 }
 
+function renderRivalries() {
+  const container = $("#rivalries");
+  if (!container) return;
+  if (!state.data.rivalries?.length) {
+    container.innerHTML = `<div class="empty-state"><strong>No reviewed rivalries in this source.</strong><span>Demo fallback does not invent rivalry history.</span></div>`;
+    return;
+  }
+  container.innerHTML = state.data.rivalries.map((rivalry) => `
+    <div class="rivalry-row">
+      <div><span class="mode-label">${escapeHTML(rivalry.competition)}</span><p class="row-title">${escapeHTML(rivalry.title)}</p><p class="row-detail">${escapeHTML(rivalry.record)} · ${rivalry.meetingCount} reviewed meeting${rivalry.meetingCount === 1 ? "" : "s"} · ${rivalry.pendingRunbackCount} pending runback${rivalry.pendingRunbackCount === 1 ? "" : "s"}</p></div>
+      <a class="proof-link" href="${formatArenaRoute("watch", rivalry.latestReceiptId)}" data-proof-open="${escapeHTML(rivalry.latestReceiptId)}" aria-label="Inspect latest reviewed receipt for ${escapeHTML(rivalry.title)}">Latest</a>
+    </div>`).join("");
+}
+
 function renderCompete() {
   $("#credit-readout").innerHTML = `<strong>${state.data.account.creditsRemaining}</strong>${escapeHTML(state.data.account.creditsLabel)}`;
   $("#quick-matches").innerHTML = state.data.quickMatches.map((match) => `
     <div class="quick-row">
       <div><span class="mode-label">${escapeHTML(match.mode)}</span><p class="row-title">${escapeHTML(match.title)}</p><p class="row-detail">${escapeHTML(match.duration)} · ${escapeHTML(match.cost)} · unranked</p></div>
-      <button class="queue-button" type="button" data-queue="${escapeHTML(match.id)}" ${match.enabled === false ? "disabled" : ""}>${escapeHTML(match.actionLabel || "Enter demo")}</button>
+      ${match.previewAllowed ? `<button class="queue-button preview" type="button" data-qualification-preview="${escapeHTML(match.id)}">${escapeHTML(match.actionLabel)}</button>` : `<button class="queue-button" type="button" data-queue="${escapeHTML(match.id)}">${escapeHTML(match.actionLabel || "Enter demo")}</button>`}
     </div>`).join("");
   $("#free-models").innerHTML = state.data.freeModels.map((model) => `
     <div class="model-row"><div><p class="row-title">${escapeHTML(model.name)}</p><p class="row-detail">${escapeHTML(model.source)} · quota ${model.quota}</p></div><span class="model-status ${model.enabled ? "" : "disabled"}">${model.enabled ? escapeHTML(model.latency) : "Unavailable"}</span></div>`).join("");
@@ -190,6 +223,13 @@ function renderBlueprint() {
     <div><dt>Harness</dt><dd>${escapeHTML(blueprint.harnessStyle)}</dd></div>
     <div><dt>Move validation</dt><dd>${blueprint.strictValidation ? "Strict" : "Off"}</dd></div>
     <div><dt>Human checkpoints</dt><dd>${blueprint.humanCheckpoints ? "Declared" : "None"}</dd></div>`;
+  const qualificationStatus = $("#blueprint-qualification-status");
+  if (qualificationStatus) {
+    qualificationStatus.textContent = blueprint.strictValidation && blueprint.fallbackDisclosure
+      ? "Preview ready · not run"
+      : "Guards needed · not run";
+    qualificationStatus.classList.toggle("ready", blueprint.strictValidation && blueprint.fallbackDisclosure);
+  }
   return blueprint;
 }
 
@@ -199,15 +239,13 @@ function renderAutomations() {
 }
 
 function resolveProof(proofId) {
-  if (proofId && proofId !== "featured") {
-    const exact = state.data.proofReceipts?.find((proof) => proof.receiptId === proofId);
-    if (exact) return exact;
-  }
-  return state.data.featured.proof;
+  if (!proofId || proofId === "featured") return state.data.featured.proof;
+  return state.data.proofReceipts?.find((proof) => proof.receiptId === proofId) || null;
 }
 
 function renderProof(proofId = "featured") {
   const proof = resolveProof(proofId);
+  if (!proof) return false;
   state.selectedProofId = proof.receiptId || null;
   $("#proof-title").textContent = proof.headline || "What this result proves";
   let rows;
@@ -243,7 +281,53 @@ function renderProof(proofId = "featured") {
     ];
   }
   const boundaryLabel = state.data.sourceMode === "verified_corpus" ? "Verified-corpus boundary" : "Demo boundary";
-  $("#proof-content").innerHTML = `<div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-boundary"><strong>${boundaryLabel}:</strong> ${escapeHTML(proof.boundary || state.data.truthBoundary.statement)}</div>`;
+  const address = formatArenaRoute(state.activeView, proof.receiptId);
+  $("#proof-content").innerHTML = `<div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-address"><span>Local proof address</span><code>${escapeHTML(address)}</code></div><div class="proof-boundary"><strong>${boundaryLabel}:</strong> ${escapeHTML(proof.boundary || state.data.truthBoundary.statement)}</div>`;
+  return true;
+}
+
+function openReceiptProof(proofId, { updateHistory = true } = {}) {
+  const proof = resolveProof(proofId);
+  if (!proof || !renderProof(proof.receiptId)) {
+    showToast("That receipt is not present in this bounded local source.");
+    return false;
+  }
+  if (updateHistory) {
+    const address = formatArenaRoute(state.activeView, proof.receiptId);
+    if (location.hash !== address) {
+      history.pushState({ view: state.activeView, overlay: "receipt", receiptId: proof.receiptId }, "", address);
+    }
+  }
+  if ($("#proof-sheet").hidden) openSheet($("#proof-sheet"));
+  return true;
+}
+
+function renderQualificationPreview(fixtureId) {
+  const fixture = state.data.quickMatches.find((match) => match.id === fixtureId);
+  if (!fixture || !dataAdapter?.buildQualificationPreview) return false;
+  let preview;
+  try {
+    preview = dataAdapter.buildQualificationPreview(blueprintFromForm(), fixture, state.data.sourceMode);
+  } catch {
+    return false;
+  }
+  state.qualificationPreview = preview;
+  $("#qualification-title").textContent = fixture.title;
+  const rows = [
+    ["Qualification", "Not run", "pending"],
+    ["Execution", "Disabled", "pending"],
+    ["Blueprint", preview.blueprint.agentName, ""],
+    ["Declared demo base", preview.blueprint.declaredBase, ""],
+    ["Game", `${preview.fixture.game.name} v${preview.fixture.game.version}`, ""],
+    ["Rules week", preview.fixture.rulesWeekId, ""],
+    ["Rules digest", preview.fixture.rulesDigest, "mono"],
+    ["Resource class", preview.resourceClass.label, ""],
+    ["Fixture", "Proposed · not activated", "pending"],
+    ["Attestations", "Identity/model/provider/runtime/registry/publication: all false", ""],
+  ];
+  const checks = preview.readinessChecks.map((check) => `<li class="qualification-check ${check.ready ? "ready" : "needs-attention"}"><span>${check.ready ? "✓" : "!"}</span><div><strong>${escapeHTML(check.label)}</strong><small>${escapeHTML(check.status)}</small></div></li>`).join("");
+  $("#qualification-content").innerHTML = `<div class="qualification-status"><span>Deterministic local preview</span><strong>${preview.readiness === "blueprint_ready_for_future_attempt" ? "Blueprint guards ready" : "Blueprint guards need attention"}</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><ul class="qualification-checks" aria-label="Qualification preview checks">${checks}</ul><div class="proof-boundary"><strong>Preview boundary:</strong> ${escapeHTML(preview.boundary)}</div>`;
+  return true;
 }
 
 function showView(name, updateHistory = true) {
@@ -262,19 +346,29 @@ function showView(name, updateHistory = true) {
       else control.removeAttribute("aria-current");
     }
   });
-  if (updateHistory && location.hash !== `#${name}`) history.pushState({ view: name }, "", `#${name}`);
+  const address = formatArenaRoute(name);
+  if (updateHistory && location.hash !== address) history.pushState({ view: name }, "", address);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function syncViewFromLocation({ replaceInvalid = false } = {}) {
-  const target = location.hash.slice(1);
-  if (VIEW_NAMES.includes(target)) {
-    showView(target, false);
+  const route = parseArenaRoute(location.hash);
+  if (route) {
+    showView(route.view, false);
+    if (route.receiptId) {
+      if (!openReceiptProof(route.receiptId, { updateHistory: false })) {
+        closeSheets({ restoreFocus: false });
+        history.replaceState({ view: route.view }, "", formatArenaRoute(route.view));
+      }
+    } else if (!$("#proof-sheet").hidden) {
+      closeSheets({ restoreFocus: false });
+    }
     return;
   }
+  const target = location.hash.slice(1);
   if (target && document.getElementById(target)) return;
   showView("arena", false);
-  if (replaceInvalid) history.replaceState({ view: "arena" }, "", "#arena");
+  if (replaceInvalid) history.replaceState({ view: "arena" }, "", formatArenaRoute("arena"));
 }
 
 function openSheet(sheet) {
@@ -288,12 +382,25 @@ function openSheet(sheet) {
   if (focusable) focusable.focus();
 }
 
-function closeSheets() {
+function closeSheets({ restoreFocus = true } = {}) {
   $$(".bottom-sheet").forEach((sheet) => { sheet.hidden = true; });
   $("#sheet-backdrop").hidden = true;
   $("#app-shell").inert = false;
   document.body.style.overflow = "";
-  restoreModalFocus(state.lastFocus);
+  state.selectedProofId = null;
+  if (restoreFocus) restoreModalFocus(state.lastFocus);
+}
+
+function dismissActiveSheet() {
+  const route = parseArenaRoute(location.hash);
+  if (!$("#proof-sheet").hidden && route?.receiptId) {
+    if (history.state?.overlay === "receipt") {
+      history.back();
+      return;
+    }
+    history.replaceState({ view: route.view }, "", formatArenaRoute(route.view));
+  }
+  closeSheets();
 }
 
 function trapSheetFocus(event) {
@@ -343,8 +450,8 @@ function bindEvents() {
     const nav = event.target.closest("[data-nav]");
     if (nav) { event.preventDefault(); showView(nav.dataset.nav); return; }
     const proof = event.target.closest("[data-proof-open]");
-    if (proof) { renderProof(proof.dataset.proofOpen); openSheet($("#proof-sheet")); return; }
-    if (event.target.closest("[data-sheet-close]") || event.target === $("#sheet-backdrop")) { closeSheets(); return; }
+    if (proof) { event.preventDefault(); openReceiptProof(proof.dataset.proofOpen); return; }
+    if (event.target.closest("[data-sheet-close]") || event.target === $("#sheet-backdrop")) { dismissActiveSheet(); return; }
     const follow = event.target.closest("[data-follow]");
     if (follow) {
       const channel = state.data.channels.find((item) => item.id === follow.dataset.follow);
@@ -361,6 +468,18 @@ function bindEvents() {
       showToast(state.data.sourceMode === "verified_corpus"
         ? "This proposed fixture is not activated. No queue, model, provider, or credit was used."
         : "Demo entry created. No model, provider, quota, or ranked queue was used.");
+      return;
+    }
+    const qualification = event.target.closest("[data-qualification-preview]");
+    if (qualification) {
+      if (renderQualificationPreview(qualification.dataset.qualificationPreview)) openSheet($("#qualification-sheet"));
+      else showToast("Qualification preview is unavailable in this bounded source. Nothing was executed.");
+      return;
+    }
+    if (event.target.closest("[data-qualification-edit]")) {
+      closeSheets({ restoreFocus: false });
+      showView("build");
+      $("#agent-name").focus();
       return;
     }
     if (event.target.closest("[data-runback-preview]")) {
@@ -395,7 +514,7 @@ function bindEvents() {
     const blueprint = renderBlueprint();
     try {
       localStorage.setItem(BLUEPRINT_STORAGE_KEY, JSON.stringify(blueprint));
-      showToast("Blueprint saved locally. It was not uploaded, paired, executed, or published.");
+      showToast("Blueprint saved locally. Preview a proposed fixture next; no qualification or execution occurred.");
     } catch {
       showToast("Blueprint could not be saved in this browser. Nothing was uploaded or executed.");
     }
@@ -408,7 +527,7 @@ function bindEvents() {
     showToast("Local demo preference updated. No background automation is running.");
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeSheets();
+    if (event.key === "Escape") dismissActiveSheet();
     else trapSheetFocus(event);
   });
   window.addEventListener("online", updateConnectionStatus);
@@ -424,6 +543,7 @@ function renderAll() {
   renderTape();
   renderChannels();
   renderLeaderboard();
+  renderRivalries();
   renderCompete();
   renderLessons();
   renderBlueprint();
@@ -453,5 +573,5 @@ async function boot() {
 
 if (typeof document !== "undefined") boot();
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { nextModalFocusIndex, restoreModalFocus };
+  module.exports = { formatArenaRoute, nextModalFocusIndex, parseArenaRoute, restoreModalFocus };
 }

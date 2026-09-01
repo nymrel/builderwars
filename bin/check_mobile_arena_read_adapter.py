@@ -59,6 +59,11 @@ function response(body, ok = true) {
   check(view.channels.every((channel) => channel.viewers === null), "does not invent viewers");
   check(view.leaderboard.every((row) => row.record.includes("not ranked")), "does not invent ranking");
   check(view.quickMatches.length === 3 && view.quickMatches.every((fixture) => fixture.enabled === false), "keeps proposed fixtures inactive");
+  check(view.quickMatches.every((fixture) => fixture.previewAllowed === true && fixture.actionLabel === "Preview"), "projects proposed fixtures as previews");
+  check(view.quickMatches.every((fixture) => fixture.resourceClass === adapter.PREVIEW_RESOURCE_CLASS), "binds no-compute preview resource class");
+  check(view.rivalries.length === 3, "projects three verified rivalries");
+  check(view.rivalries.every((rivalry) => view.proofReceipts.some((proof) => proof.receiptId === rivalry.latestReceiptId)), "rivalry receipt links resolve");
+  check(view.rivalries.every((rivalry) => rivalry.runbackStatus === "unplayed_challenge"), "rivalry runbacks remain inactive");
   check(view.account.creditsRemaining === 0, "does not invent live credits");
   check(view.featured.proof.replayVerdict === "PASS", "preserves replay verdict");
   check(view.featured.proof.receiptId.length === 64, "binds featured proof receipt");
@@ -71,6 +76,10 @@ function response(body, ok = true) {
   rejects((changed) => { changed.summary.receiptCount += 1; }, "receipt count mismatch");
   rejects((changed) => { changed.futureFixtures[0].activationStatus = "activated"; }, "activated future fixture");
   rejects((changed) => { changed.receipts[0].entrants[0].harnessVersionContentDerived = false; }, "harness version drift");
+  rejects((changed) => { changed.rivalries[0].meetings[0].receiptId = "0".repeat(64); }, "unknown rivalry receipt");
+  rejects((changed) => { changed.rivalries[0].meetings[0].winnerEntrantId = changed.rivalries[0].entrantIds[1]; }, "rivalry outcome drift");
+  rejects((changed) => { changed.rivalries[0].meetings[0].meetingNumber = 2; }, "rivalry meeting order drift");
+  rejects((changed) => { changed.rivalries[0].meetings[0].runback.status = "played"; }, "rivalry runback activated");
 
   const validFetch = async (url) => response(url.includes("arena-read-model") ? model : demo);
   const loaded = await adapter.loadArenaData(validFetch);
@@ -111,7 +120,7 @@ function response(body, ok = true) {
     require(result.returncode == 0, f"Arena read-adapter check failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
     require(payload.get("status") == "PASS", "Arena read adapter did not report PASS")
-    require(payload.get("checks", 0) >= 25, "Arena read adapter coverage unexpectedly shrank")
+    require(payload.get("checks", 0) >= 34, "Arena read adapter coverage unexpectedly shrank")
     print(f"BuilderWars mobile Arena read adapter: PASS ({payload['checks']} checks)")
     print("verified corpus / disclosed demo fallback / fail-closed local source boundary")
     return 0

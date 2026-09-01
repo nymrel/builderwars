@@ -1,12 +1,12 @@
 "use strict";
 
-const CACHE_NAME = "builderwars-mobile-arena-v7";
-const NAVIGATION_FALLBACK = "./index.html?v=7";
+const CACHE_NAME = "builderwars-mobile-arena-v8";
+const NAVIGATION_FALLBACK = "./index.html?v=8";
 const LOCAL_ASSETS = [
   NAVIGATION_FALLBACK,
-  "./styles.css?v=7",
-  "./data-adapter.js?v=7",
-  "./app.js?v=7",
+  "./styles.css?v=8",
+  "./data-adapter.js?v=8",
+  "./app.js?v=8",
   "./manifest.webmanifest",
   "./assets/arena-mark.svg",
   "./data/demo-state.json",

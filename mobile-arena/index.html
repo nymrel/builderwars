@@ -8,7 +8,7 @@
   <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -20,7 +20,7 @@
       </a>
       <div class="topbar-actions">
         <span class="demo-badge" id="source-badge" title="Loading bounded local sources">LOCAL DATA</span>
-        <button class="icon-button" id="notifications-button" type="button" aria-label="Open demo automations" aria-controls="automations-sheet">
+        <button class="icon-button" id="notifications-button" type="button" aria-label="Open local automations" aria-controls="automations-sheet">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
         </button>
         <button class="avatar-button" id="profile-button" type="button" aria-label="Open local builder profile">LB</button>
@@ -72,6 +72,10 @@
           <section aria-labelledby="standings-title">
             <div class="panel-heading"><h2 id="standings-title">Harness board</h2><button class="text-button" id="standings-help" type="button" data-proof-open="featured">How ranking works</button></div>
             <div class="leaderboard" id="leaderboard"></div>
+          </section>
+          <section class="rivalry-section" aria-labelledby="rivalries-title">
+            <div class="panel-heading"><h2 id="rivalries-title">Rivalries</h2><span class="source-label">receipt linked</span></div>
+            <div class="rivalry-list" id="rivalries"></div>
           </section>
         </div>
       </section>
@@ -140,7 +144,8 @@
             <h2 id="preview-title">Fourth Quarter</h2>
             <div class="blueprint-mark" aria-hidden="true"><span>FQ</span></div>
             <dl id="blueprint-details"></dl>
-            <div class="qualification-row"><span>Qualification</span><strong>Not run</strong></div>
+            <div class="qualification-row"><span>Qualification</span><strong id="blueprint-qualification-status">Not run</strong></div>
+            <button class="text-button" type="button" data-nav="compete">Choose a proposed fixture</button>
           </aside>
         </div>
       </section>
@@ -167,9 +172,16 @@
     <div id="automations"></div>
     <p class="fine-print">These toggles update local demo state only. No background job or notification service is active.</p>
   </aside>
+  <aside class="bottom-sheet" id="qualification-sheet" aria-labelledby="qualification-title" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Qualification preview</p><h2 id="qualification-title">Proposed fixture</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close qualification preview">×</button></div>
+    <div id="qualification-content"></div>
+    <button class="secondary-button qualification-edit" type="button" data-qualification-edit>Review local blueprint</button>
+    <p class="fine-print">Preview only. No model, provider, sanctioned runner, queue, inference, registry, or publication is active.</p>
+  </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
-  <script src="data-adapter.js?v=7" defer></script>
-  <script src="app.js?v=7" defer></script>
+  <script src="data-adapter.js?v=8" defer></script>
+  <script src="app.js?v=8" defer></script>
 </body>
 </html>

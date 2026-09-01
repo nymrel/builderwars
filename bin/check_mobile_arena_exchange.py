@@ -78,7 +78,7 @@ def main() -> int:
         require(f'id="view-{destination}"' in html, f"missing {destination} view")
         require(f'data-nav="{destination}"' in html, f"missing {destination} navigation")
         checks += 2
-    for required in ("proof-sheet", "automations-sheet", "builder-form", "featured-match", "quick-matches"):
+    for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "builder-form", "featured-match", "quick-matches", "rivalries"):
         require(f'id="{required}"' in html, f"missing interactive surface: {required}")
         checks += 1
 
@@ -96,7 +96,11 @@ def main() -> int:
     require("BLUEPRINT_MAX_LENGTH = 2048" in js and "raw.length > BLUEPRINT_MAX_LENGTH" in js and "never executed" in html, "local blueprint boundary missing")
     require("for (const key of BLUEPRINT_GUARD_KEYS)" in js, "saved blueprint guards must hydrate from the bounded key list")
     require("localStorage.removeItem(BLUEPRINT_STORAGE_KEY)" in js, "invalid local blueprint state must be discarded")
-    checks += 7
+    require("buildQualificationPreview" in adapter and 'qualificationStatus: "not_run"' in adapter, "deterministic qualification preview missing")
+    require('executionStatus: "disabled"' in adapter and "computeAllowed: false" in adapter and "networkAllowed: false" in adapter, "qualification execution boundary missing")
+    require("formatArenaRoute" in js and "parseArenaRoute" in js and "/receipt/" in js, "receipt-addressable route contract missing")
+    require("unknown rivalry receipt" in adapter and "rivalry outcome drift" in adapter, "rivalry cross-reference checks missing")
+    checks += 11
     checks += 2
 
     print("[5] accessibility, offline, and reduced-motion contracts")
@@ -150,12 +154,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=7", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=8", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=7",
-        "./styles.css?v=7",
-        "./data-adapter.js?v=7",
-        "./app.js?v=7",
+        "./index.html?v=8",
+        "./styles.css?v=8",
+        "./data-adapter.js?v=8",
+        "./app.js?v=8",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -164,7 +168,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=7"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=8"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -182,6 +186,20 @@ def main() -> int:
     )
     require(adapter_check.returncode == 0, f"read-adapter regression failed: {adapter_check.stderr.strip()}")
     require("PASS" in adapter_check.stdout, "read-adapter regression did not report PASS")
+    checks += 2
+
+    qualification_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_qualification.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(qualification_check.returncode == 0, f"qualification regression failed: {qualification_check.stderr.strip()}")
+    require("PASS" in qualification_check.stdout, "qualification regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

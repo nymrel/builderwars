@@ -8,7 +8,12 @@
   const DEMO_SCHEMA = "builderwars.mobile-arena-demo.v1";
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
   const VIEW_SCHEMA = "builderwars.mobile-arena-view.v1";
+  const QUALIFICATION_SCHEMA = "builderwars.mobile-qualification-preview.v1";
+  const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const HEX64 = /^[0-9a-f]{64}$/;
+  const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
+  const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
+  const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
 
   function requireValue(predicate, message) {
     if (!predicate) throw new Error(message);
@@ -62,11 +67,13 @@
     requireValue(model.summary.modelAttestedReceiptCount === 0, "unsafe arena read model: model attestation count drift");
 
     const receiptIds = new Set();
+    const receiptById = new Map();
     for (const receipt of model.receipts) {
       requireValue(isObject(receipt) && HEX64.test(receipt.receiptId), "unsafe arena read model: invalid receipt id");
       requireValue(HEX64.test(receipt.fixtureId), `unsafe arena read model: invalid fixture for ${receipt.receiptId}`);
       requireValue(!receiptIds.has(receipt.receiptId), `unsafe arena read model: duplicate receipt ${receipt.receiptId}`);
       receiptIds.add(receipt.receiptId);
+      receiptById.set(receipt.receiptId, receipt);
       requireValue(Array.isArray(receipt.entrants) && receipt.entrants.length >= 2, `unsafe arena read model: entrants missing for ${receipt.receiptId}`);
       requireValue(isObject(receipt.proof), `unsafe arena read model: proof missing for ${receipt.receiptId}`);
       requireValue(receipt.proof.publicationApproved === true, `unsafe arena read model: unpublished receipt ${receipt.receiptId}`);
@@ -89,7 +96,31 @@
     requireValue(Array.isArray(model.channels), "unsafe arena read model: channels missing");
     requireValue(Array.isArray(model.rivalries), "unsafe arena read model: rivalries missing");
     requireValue(Array.isArray(model.futureFixtures), "unsafe arena read model: future fixtures missing");
+    for (const rivalry of model.rivalries) {
+      requireValue(HEX64.test(rivalry.rivalryId), "unsafe arena read model: invalid rivalry id");
+      requireValue(Array.isArray(rivalry.entrantIds) && rivalry.entrantIds.length === 2, `unsafe arena read model: rivalry entrants missing for ${rivalry.rivalryId}`);
+      requireValue(rivalry.entrantIds.every((entrantId) => HEX64.test(entrantId)), `unsafe arena read model: invalid rivalry entrant for ${rivalry.rivalryId}`);
+      requireValue(Array.isArray(rivalry.meetings) && rivalry.meetingCount === rivalry.meetings.length && rivalry.meetingCount > 0, `unsafe arena read model: rivalry meeting count drift for ${rivalry.rivalryId}`);
+      for (const [meetingIndex, meeting] of rivalry.meetings.entries()) {
+        requireValue(receiptIds.has(meeting.receiptId), `unsafe arena read model: unknown rivalry receipt ${meeting.receiptId}`);
+        const receipt = receiptById.get(meeting.receiptId);
+        requireValue(meeting.meetingNumber === meetingIndex + 1, `unsafe arena read model: rivalry meeting order drift for ${rivalry.rivalryId}`);
+        requireValue(receipt.game.name === meeting.game, `unsafe arena read model: rivalry game drift for ${meeting.receiptId}`);
+        requireValue(receipt.outcome.winnerEntrantId === meeting.winnerEntrantId, `unsafe arena read model: rivalry outcome drift for ${meeting.receiptId}`);
+        requireValue(receipt.entrants.every((entrant) => rivalry.entrantIds.includes(entrant.entrantId)), `unsafe arena read model: rivalry entrant drift for ${meeting.receiptId}`);
+        requireValue(rivalry.entrantIds.includes(meeting.winnerEntrantId), `unsafe arena read model: rivalry winner drift for ${meeting.receiptId}`);
+        requireValue(isObject(meeting.runback), `unsafe arena read model: rivalry runback missing for ${meeting.receiptId}`);
+        requireValue(meeting.runback.parentReceiptId === meeting.receiptId, `unsafe arena read model: rivalry parent drift for ${meeting.receiptId}`);
+        requireValue(meeting.runback.status === "unplayed_challenge", `unsafe arena read model: rivalry runback activated for ${meeting.receiptId}`);
+        requireValue(HEX64.test(meeting.runback.fixtureId), `unsafe arena read model: invalid rivalry runback fixture for ${meeting.receiptId}`);
+        requireValue(CHALLENGE_ID.test(meeting.runback.challengeId), `unsafe arena read model: invalid rivalry challenge for ${meeting.receiptId}`);
+      }
+    }
     for (const fixture of model.futureFixtures) {
+      requireValue(HEX64.test(fixture.fixtureId), "unsafe arena read model: invalid future fixture id");
+      requireValue(isObject(fixture.game) && typeof fixture.game.name === "string" && fixture.game.version === "1", `unsafe arena read model: future fixture game drift for ${fixture.fixtureId}`);
+      requireValue(typeof fixture.rulesWeekId === "string" && fixture.rulesWeekId.length > 0, `unsafe arena read model: future fixture rules missing for ${fixture.fixtureId}`);
+      requireValue(HEX64.test(fixture.rulesDigest), `unsafe arena read model: future fixture rules digest missing for ${fixture.fixtureId}`);
       requireValue(fixture.activationStatus === "proposed_not_activated", "unsafe arena read model: activated future fixture");
       requireValue(fixture.status === "unplayed", "unsafe arena read model: future fixture status drift");
     }
@@ -187,6 +218,112 @@
       }));
   }
 
+  function buildRivalryViews(rivalries, receipts) {
+    const entrantNames = new Map();
+    for (const receipt of receipts) {
+      for (const entrant of receipt.entrants) entrantNames.set(entrant.entrantId, entrant.name);
+    }
+    return rivalries.map((rivalry) => {
+      const wins = new Map(rivalry.entrantIds.map((entrantId) => [entrantId, 0]));
+      for (const meeting of rivalry.meetings) wins.set(meeting.winnerEntrantId, wins.get(meeting.winnerEntrantId) + 1);
+      const names = rivalry.entrantIds.map((entrantId) => entrantNames.get(entrantId) || "Unknown entrant");
+      const lastMeeting = rivalry.meetings[rivalry.meetings.length - 1];
+      return {
+        rivalryId: rivalry.rivalryId,
+        competition: gameLabel(rivalry.competition),
+        title: names.join(" vs "),
+        meetingCount: rivalry.meetingCount,
+        record: rivalry.entrantIds.map((entrantId, index) => `${names[index]} ${wins.get(entrantId)}`).join(" · "),
+        gameCount: new Set(rivalry.meetings.map((meeting) => meeting.game)).size,
+        pendingRunbackCount: rivalry.meetings.filter((meeting) => meeting.runback.status === "unplayed_challenge").length,
+        latestReceiptId: lastMeeting.receiptId,
+        latestGame: gameLabel(lastMeeting.game),
+        runbackStatus: "unplayed_challenge",
+      };
+    });
+  }
+
+  function validateQualificationBlueprint(blueprint) {
+    requireValue(isObject(blueprint), "unsafe qualification preview: blueprint missing");
+    requireValue(blueprint.localOnly === true, "unsafe qualification preview: blueprint must stay local only");
+    requireValue(typeof blueprint.agentName === "string" && blueprint.agentName.trim().length > 0 && blueprint.agentName.trim().length <= 36, "unsafe qualification preview: invalid agent name");
+    requireValue(ALLOWED_BASE_MODELS.has(blueprint.baseModel), "unsafe qualification preview: unknown demo base");
+    requireValue(ALLOWED_HARNESS_STYLES.has(blueprint.harnessStyle), "unsafe qualification preview: unknown harness style");
+    for (const field of ["strictValidation", "fallbackDisclosure", "humanCheckpoints"]) {
+      requireValue(typeof blueprint[field] === "boolean", `unsafe qualification preview: ${field} must be boolean`);
+    }
+    return blueprint;
+  }
+
+  function buildQualificationPreview(blueprintInput, fixture, sourceMode) {
+    const blueprint = validateQualificationBlueprint(blueprintInput);
+    requireValue(sourceMode === "verified_corpus", "unsafe qualification preview: verified corpus required");
+    requireValue(isObject(fixture) && fixture.previewAllowed === true && fixture.enabled === false, "unsafe qualification preview: fixture is not preview-only");
+    requireValue(HEX64.test(fixture.id), "unsafe qualification preview: invalid fixture id");
+    requireValue(isObject(fixture.game) && typeof fixture.game.name === "string" && fixture.game.version === "1", "unsafe qualification preview: game binding missing");
+    requireValue(typeof fixture.rulesWeekId === "string" && fixture.rulesWeekId.length > 0 && HEX64.test(fixture.rulesDigest), "unsafe qualification preview: rules binding missing");
+    requireValue(fixture.activationStatus === "proposed_not_activated" && fixture.fixtureStatus === "unplayed", "unsafe qualification preview: fixture activation drift");
+    requireValue(fixture.resourceClass === PREVIEW_RESOURCE_CLASS, "unsafe qualification preview: resource class drift");
+
+    const localGuardsReady = blueprint.strictValidation && blueprint.fallbackDisclosure;
+    const readinessChecks = [
+      { id: "local-blueprint", label: "Local-only blueprint", status: "ready", ready: true },
+      { id: "strict-validation", label: "Strict move validation", status: blueprint.strictValidation ? "ready" : "needs attention", ready: blueprint.strictValidation },
+      { id: "fallback-disclosure", label: "Fallback disclosure", status: blueprint.fallbackDisclosure ? "ready" : "needs attention", ready: blueprint.fallbackDisclosure },
+      { id: "fixture-binding", label: "Pinned game and rules", status: "preview bound", ready: true },
+    ];
+    return {
+      schemaVersion: QUALIFICATION_SCHEMA,
+      previewOnly: true,
+      qualificationStatus: "not_run",
+      executionStatus: "disabled",
+      publicationStatus: "not_requested",
+      readiness: localGuardsReady ? "blueprint_ready_for_future_attempt" : "blueprint_needs_guard_changes",
+      previewKey: [
+        "local-preview",
+        fixture.id,
+        encodeURIComponent(blueprint.agentName.trim()),
+        encodeURIComponent(blueprint.baseModel),
+        encodeURIComponent(blueprint.harnessStyle),
+        blueprint.strictValidation ? 1 : 0,
+        blueprint.fallbackDisclosure ? 1 : 0,
+        blueprint.humanCheckpoints ? 1 : 0,
+      ].join(":"),
+      blueprint: {
+        agentName: blueprint.agentName.trim(),
+        declaredBase: blueprint.baseModel,
+        harnessStyle: blueprint.harnessStyle,
+        localOnly: true,
+      },
+      fixture: {
+        fixtureId: fixture.id,
+        title: fixture.title,
+        game: clone(fixture.game),
+        rulesWeekId: fixture.rulesWeekId,
+        rulesDigest: fixture.rulesDigest,
+        activationStatus: fixture.activationStatus,
+        status: fixture.fixtureStatus,
+      },
+      resourceClass: {
+        id: PREVIEW_RESOURCE_CLASS,
+        label: "Local preview · no compute",
+        computeAllowed: false,
+        networkAllowed: false,
+      },
+      readinessChecks,
+      executionBlockers: ["qualification_not_run", "fixture_not_activated", "sanctioned_runner_not_bound"],
+      attestations: {
+        identity: false,
+        model: false,
+        provider: false,
+        runtime: false,
+        registry: false,
+        publication: false,
+      },
+      boundary: "This deterministic preview binds a local blueprint to proposed game, rules, and no-compute resource metadata only. It does not qualify, execute, authenticate, attest, rank, publish, or spend.",
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -241,7 +378,14 @@
       cost: "proposed · not activated",
       ranked: false,
       enabled: false,
-      actionLabel: "Unavailable",
+      previewAllowed: true,
+      actionLabel: "Preview",
+      game: clone(fixture.game),
+      rulesWeekId: fixture.rulesWeekId,
+      rulesDigest: fixture.rulesDigest,
+      activationStatus: fixture.activationStatus,
+      fixtureStatus: fixture.status,
+      resourceClass: PREVIEW_RESOURCE_CLASS,
     }));
     demo.watchlist = model.channels.map((channel) => ({
       id: `watch-${channel.game}`,
@@ -253,7 +397,7 @@
       delta: null,
       trend: null,
     }));
-    demo.rivalries = clone(model.rivalries);
+    demo.rivalries = buildRivalryViews(model.rivalries, model.receipts);
     return demo;
   }
 
@@ -284,6 +428,7 @@
     demo.featured.statusLabel = "Simulated fixture";
     demo.featured.runbackAvailable = false;
     demo.featured.runbackLabel = "Runback demo";
+    demo.rivalries = [];
     return demo;
   }
 
@@ -306,9 +451,12 @@
 
   return {
     DEMO_SCHEMA,
+    QUALIFICATION_SCHEMA,
+    PREVIEW_RESOURCE_CLASS,
     READ_MODEL_SCHEMA,
     VIEW_SCHEMA,
     adaptArenaReadModel,
+    buildQualificationPreview,
     demoFallback,
     loadArenaData,
     validateArenaReadModel,

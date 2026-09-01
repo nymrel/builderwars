@@ -290,6 +290,7 @@ source and the original fixture as a visibly disclosed fallback. The adapter:
 
 ```powershell
 python bin\check_mobile_arena_read_adapter.py
+python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_exchange.py
 ```
 
@@ -297,14 +298,34 @@ These checks and the browser acceptance pass are local product evidence only.
 They do not prove hosting, auth, providers, real users, rankings, competition
 activation, or publication.
 
+### Receipt addresses, rivalries, and qualification preview
+
+The verified-corpus client now gives every reviewed receipt a local route shaped
+as `#<view>/receipt/<receiptId>`. Direct loads, proof links, close behavior, and
+browser history resolve only receipts in the bounded source. An unknown or
+malformed receipt route closes the inspector and returns to the containing view;
+it never substitutes the featured receipt. Watch also renders three corpus-backed
+rivalries, including reviewed meeting counts, per-entrant win history, pending
+runback counts, and a link to the latest reviewed receipt. This is history, not a
+ranking or an active challenge.
+
+Compete exposes deterministic previews for the three proposed future fixtures.
+A preview binds the current local blueprint to the exact fixture, game version,
+rules week, rules digest, and `local-preview-no-compute-v1` resource class. It
+always reports qualification `not_run`, execution `disabled`, publication
+`not_requested`, all attestations false, and three blockers: qualification has
+not run, the fixture is not activated, and no sanctioned runner is bound. The
+adapter rejects demo fallback, unsafe blueprints, rule drift, fixture activation,
+resource escalation, and broken rivalry lineage before rendering this state.
+
 ### Exact next bounded campaign
 
-Add receipt-addressable navigation and a deterministic local qualification
-preview so a tester can open a specific reviewed receipt, inspect its complete
-proof boundary, choose a proposed fixture, and understand why execution remains
-disabled. Preserve browser history, offline behavior, and local-only state; do
-not add auth, network writes, provider use, public activation, or spend. The
-protected private-alpha API binding remains a later operator-gated campaign.
+Turn one reviewed receipt into a proof-linked learning action and produce a
+versioned, still-unplayed runback proposal that preserves the parent receipt,
+game/rules binding, local blueprint delta, and all false attestations. Keep the
+action local and declarative: no auth, network writes, creator code execution,
+provider use, public activation, or spend. The protected private-alpha API
+binding remains a later operator-gated campaign.
 
 ## Review status
 
