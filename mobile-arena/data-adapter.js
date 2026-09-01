@@ -16,13 +16,17 @@
   const PORTABLE_REVIEW_EXCHANGE_SCHEMA = "builderwars.mobile-runback-review-exchange.v1";
   const PORTABLE_REVIEW_CORRECTION_SCHEMA = "builderwars.mobile-runback-review-correction.v1";
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_SCHEMA = "builderwars.mobile-runback-review-correction-exchange.v1";
+  const PORTABLE_REVIEW_COMPARISON_SCHEMA = "builderwars.mobile-private-review-comparison.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
   const PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH = 262144;
   const PORTABLE_REVIEW_CORRECTION_MAX_RECORDS = 64;
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH = 524288;
+  const PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES = PORTABLE_REVIEW_MAX_RECORDS * 2;
+  const PORTABLE_REVIEW_COMPARISON_MAX_LENGTH = 1572864;
   const SAFE_JSON_NODE_LIMIT = 16384;
+  const PORTABLE_REVIEW_COMPARISON_NODE_LIMIT = 49152;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -39,6 +43,7 @@
   const PORTABLE_REVIEW_EXCHANGE_BOUNDARY = "This canonical packet supports independent local inspection of one still-unplayed proposal and its private review journal. Its SHA-256 digests detect changed content but are not signatures or identity claims. Import is memory-only and cannot apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
   const PORTABLE_REVIEW_CORRECTION_BOUNDARY = "This append-only private correction record preserves its immutable target review and proposal lineage while recording one corrected private decision or withdrawal. Its SHA-256 links are integrity evidence, not signatures, reviewer identity, approval, or authority. It cannot rewrite history, apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_BOUNDARY = "This canonical packet supports independent local inspection of one still-unplayed proposal, its immutable private reviews, and their append-only correction history. Its SHA-256 digests are not signatures or identity claims. Import is memory-only and cannot rewrite a review, apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
+  const PORTABLE_REVIEW_COMPARISON_BOUNDARY = "This canonical receipt independently reverifies and compares two private correction packets for the exact same still-unplayed proposal. It reports digest-bound review-state differences without choosing a winner, merging histories, resolving a dispute, authenticating identity, applying a blueprint, binding rules, qualifying, executing, registering, ranking, publishing, spending, or calling a provider.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
@@ -77,18 +82,18 @@
     return JSON.parse(JSON.stringify(value));
   }
 
-  function assertSafeKeys(value, path = "value", depth = 0, state = { nodes: 0 }) {
+  function assertSafeKeys(value, path = "value", depth = 0, state = { nodes: 0 }, nodeLimit = SAFE_JSON_NODE_LIMIT) {
     requireValue(depth <= 32, "unsafe portable runback: nesting limit exceeded");
     state.nodes += 1;
-    requireValue(state.nodes <= SAFE_JSON_NODE_LIMIT, "unsafe portable runback: node limit exceeded");
+    requireValue(state.nodes <= nodeLimit, "unsafe portable runback: node limit exceeded");
     if (Array.isArray(value)) {
-      value.forEach((item, index) => assertSafeKeys(item, `${path}[${index}]`, depth + 1, state));
+      value.forEach((item, index) => assertSafeKeys(item, `${path}[${index}]`, depth + 1, state, nodeLimit));
       return;
     }
     if (!isObject(value)) return;
     for (const key of Object.keys(value)) {
       requireValue(!DANGEROUS_KEYS.has(key), `unsafe portable runback: prohibited key at ${path}.${key}`);
-      assertSafeKeys(value[key], `${path}.${key}`, depth + 1, state);
+      assertSafeKeys(value[key], `${path}.${key}`, depth + 1, state, nodeLimit);
     }
   }
 
@@ -1111,6 +1116,162 @@
     };
   }
 
+  function comparisonState(effectiveReview) {
+    return {
+      reviewSequence: effectiveReview.reviewSequence,
+      originalDecision: effectiveReview.originalDecision,
+      effectiveStatus: effectiveReview.effectiveStatus,
+      effectiveDecision: effectiveReview.effectiveDecision,
+      latestCorrectionDigest: effectiveReview.latestCorrectionDigest,
+      correctionCount: effectiveReview.correctionCount,
+    };
+  }
+
+  function comparisonPacketSummary(verification) {
+    return {
+      packetDigest: verification.packetDigest,
+      reviewHeadDigest: verification.journal.latestReviewDigest,
+      correctionHeadDigest: verification.correctionJournal.latestCorrectionDigest,
+      reviewCount: verification.journal.reviewCount,
+      correctionCount: verification.correctionJournal.correctionCount,
+    };
+  }
+
+  function buildPortablePrivateReviewComparison(leftVerification, rightVerification) {
+    requireValue(
+      equalHex(leftVerification.proposalVerification.payloadDigest, rightVerification.proposalVerification.payloadDigest),
+      "unsafe portable private review comparison: proposal mismatch",
+    );
+    const leftByDigest = new Map(leftVerification.correctionJournal.effectiveReviews.map((review) => [review.reviewDigest, review]));
+    const rightByDigest = new Map(rightVerification.correctionJournal.effectiveReviews.map((review) => [review.reviewDigest, review]));
+    const reviewDigests = [...new Set([...leftByDigest.keys(), ...rightByDigest.keys()])].sort();
+    requireValue(reviewDigests.length <= PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES, "unsafe portable private review comparison: entry count rejected");
+    const entries = reviewDigests.map((reviewDigest) => {
+      const leftReview = leftByDigest.get(reviewDigest) || null;
+      const rightReview = rightByDigest.get(reviewDigest) || null;
+      const left = leftReview ? comparisonState(leftReview) : null;
+      const right = rightReview ? comparisonState(rightReview) : null;
+      let presence;
+      let classification;
+      if (left && right) {
+        presence = "both";
+        classification = canonicalJSON(left) === canonicalJSON(right)
+          ? "identical_effective_state"
+          : "changed_effective_state";
+      } else if (left) {
+        presence = "left_only";
+        classification = "left_only_review";
+      } else {
+        presence = "right_only";
+        classification = "right_only_review";
+      }
+      return { reviewDigest, presence, classification, left, right };
+    });
+    const summary = {
+      distinctReviewCount: entries.length,
+      sharedReviewCount: entries.filter((entry) => entry.presence === "both").length,
+      leftOnlyReviewCount: entries.filter((entry) => entry.presence === "left_only").length,
+      rightOnlyReviewCount: entries.filter((entry) => entry.presence === "right_only").length,
+      identicalEffectiveStateCount: entries.filter((entry) => entry.classification === "identical_effective_state").length,
+      changedEffectiveStateCount: entries.filter((entry) => entry.classification === "changed_effective_state").length,
+    };
+    return {
+      proposalPayloadDigest: leftVerification.proposalVerification.payloadDigest,
+      left: comparisonPacketSummary(leftVerification),
+      right: comparisonPacketSummary(rightVerification),
+      entries,
+      summary,
+      authority: {
+        identity: false,
+        merge: false,
+        resolution: false,
+        rules: false,
+        qualification: false,
+        execution: false,
+        registry: false,
+        ranking: false,
+        publication: false,
+        spending: false,
+      },
+    };
+  }
+
+  async function createPortablePrivateReviewComparison(leftSerializedInput, rightSerializedInput) {
+    const leftVerification = await verifyPortableRunbackReviewCorrectionExchange(leftSerializedInput);
+    const rightVerification = await verifyPortableRunbackReviewCorrectionExchange(rightSerializedInput);
+    const comparison = buildPortablePrivateReviewComparison(leftVerification, rightVerification);
+    const payload = {
+      leftCorrectionExchangePacket: JSON.parse(leftSerializedInput),
+      rightCorrectionExchangePacket: JSON.parse(rightSerializedInput),
+      comparison,
+    };
+    const payloadDigest = await sha256Hex(canonicalJSON(payload));
+    const packet = {
+      schemaVersion: PORTABLE_REVIEW_COMPARISON_SCHEMA,
+      comparisonVersion: 1,
+      payload,
+      integrity: {
+        algorithm: "sha256",
+        payloadDigest,
+        leftPacketDigest: leftVerification.packetDigest,
+        rightPacketDigest: rightVerification.packetDigest,
+        proposalPayloadDigest: comparison.proposalPayloadDigest,
+      },
+      boundary: PORTABLE_REVIEW_COMPARISON_BOUNDARY,
+    };
+    const serialized = canonicalJSON(packet);
+    requireValue(serialized.length <= PORTABLE_REVIEW_COMPARISON_MAX_LENGTH, "unsafe portable private review comparison: packet length rejected");
+    return { packet: clone(packet), serialized };
+  }
+
+  async function verifyPortablePrivateReviewComparison(serializedInput) {
+    requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PORTABLE_REVIEW_COMPARISON_MAX_LENGTH, "unsafe portable private review comparison: input length rejected");
+    let packet;
+    try {
+      packet = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe portable private review comparison: invalid JSON");
+    }
+    assertSafeKeys(packet, "portable private review comparison", 0, { nodes: 0 }, PORTABLE_REVIEW_COMPARISON_NODE_LIMIT);
+    requireExactKeys(packet, ["schemaVersion", "comparisonVersion", "payload", "integrity", "boundary"], "portable private review comparison");
+    requireValue(packet.schemaVersion === PORTABLE_REVIEW_COMPARISON_SCHEMA && packet.comparisonVersion === 1, "unsafe portable private review comparison: schema drift");
+    requireValue(packet.boundary === PORTABLE_REVIEW_COMPARISON_BOUNDARY, "unsafe portable private review comparison: boundary drift");
+    requireValue(serializedInput === canonicalJSON(packet), "unsafe portable private review comparison: packet must use canonical JSON");
+    requireExactKeys(packet.payload, ["leftCorrectionExchangePacket", "rightCorrectionExchangePacket", "comparison"], "portable private review comparison payload");
+    requireExactKeys(packet.integrity, ["algorithm", "payloadDigest", "leftPacketDigest", "rightPacketDigest", "proposalPayloadDigest"], "portable private review comparison integrity");
+    requireValue(packet.integrity.algorithm === "sha256", "unsafe portable private review comparison: integrity algorithm drift");
+    requireValue(
+      HEX64.test(packet.integrity.payloadDigest)
+        && HEX64.test(packet.integrity.leftPacketDigest)
+        && HEX64.test(packet.integrity.rightPacketDigest)
+        && HEX64.test(packet.integrity.proposalPayloadDigest),
+      "unsafe portable private review comparison: integrity digest drift",
+    );
+
+    const leftSerialized = canonicalJSON(packet.payload.leftCorrectionExchangePacket);
+    const rightSerialized = canonicalJSON(packet.payload.rightCorrectionExchangePacket);
+    const leftVerification = await verifyPortableRunbackReviewCorrectionExchange(leftSerialized);
+    const rightVerification = await verifyPortableRunbackReviewCorrectionExchange(rightSerialized);
+    const expectedComparison = buildPortablePrivateReviewComparison(leftVerification, rightVerification);
+    requireValue(canonicalJSON(packet.payload.comparison) === canonicalJSON(expectedComparison), "unsafe portable private review comparison: comparison projection mismatch");
+    requireValue(equalHex(leftVerification.packetDigest, packet.integrity.leftPacketDigest), "unsafe portable private review comparison: left packet digest binding mismatch");
+    requireValue(equalHex(rightVerification.packetDigest, packet.integrity.rightPacketDigest), "unsafe portable private review comparison: right packet digest binding mismatch");
+    requireValue(equalHex(expectedComparison.proposalPayloadDigest, packet.integrity.proposalPayloadDigest), "unsafe portable private review comparison: proposal digest binding mismatch");
+    const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
+    requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe portable private review comparison: payload digest mismatch");
+    return {
+      schemaVersion: PORTABLE_REVIEW_COMPARISON_SCHEMA,
+      verificationStatus: "verified_private_local_review_comparison",
+      packetDigest: computedPayloadDigest,
+      leftSerialized,
+      rightSerialized,
+      leftVerification,
+      rightVerification,
+      comparison: clone(expectedComparison),
+      boundary: PORTABLE_REVIEW_COMPARISON_BOUNDARY,
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -1249,6 +1410,9 @@
     PORTABLE_REVIEW_CORRECTION_MAX_RECORDS,
     PORTABLE_REVIEW_CORRECTION_REASONS,
     PORTABLE_REVIEW_CORRECTION_SCHEMA,
+    PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES,
+    PORTABLE_REVIEW_COMPARISON_MAX_LENGTH,
+    PORTABLE_REVIEW_COMPARISON_SCHEMA,
     PORTABLE_REVIEW_MAX_RECORDS,
     PORTABLE_REVIEW_REASONS,
     PORTABLE_REVIEW_SCHEMA,
@@ -1263,6 +1427,7 @@
     buildQualificationPreview,
     buildReceiptLearningAction,
     buildRunbackProposal,
+    createPortablePrivateReviewComparison,
     createPortableRunbackEnvelope,
     createPortableRunbackReviewExchange,
     createPortableRunbackReviewCorrectionExchange,
@@ -1276,5 +1441,6 @@
     verifyPortableRunbackReviewCorrectionJournal,
     verifyPortableRunbackReviewExchange,
     verifyPortableRunbackReviewJournal,
+    verifyPortablePrivateReviewComparison,
   };
 }));

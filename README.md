@@ -42,8 +42,12 @@ per-review supersession links preserve every prior record, while a combined
 canonical packet lets a fresh recipient reverify the proposal, original reviews,
 corrections, and effective private projection. It cannot rewrite a review,
 authenticate a reviewer, apply a blueprint, or grant execution or publication
-authority. The shell performs no provider call, inference, account action,
-publication, or deployment.
+authority. Two correction packets for the exact same proposal can now be
+reverified and carried inside one deterministic private comparison receipt. Its
+digest-sorted projection reports shared changed state and one-sided immutable
+reviews without choosing a winner, merging histories, resolving a dispute, or
+granting any authority. The shell performs no provider call, inference, account
+action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -55,6 +59,7 @@ python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_portable_review.py
 python bin\check_mobile_arena_portable_review_exchange.py
 python bin\check_mobile_arena_portable_review_correction.py
+python bin\check_mobile_arena_private_review_comparison.py
 python bin\check_mobile_arena_exchange.py
 ```
 

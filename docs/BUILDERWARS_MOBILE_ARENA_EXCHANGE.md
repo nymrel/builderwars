@@ -445,14 +445,47 @@ the declared cap. The mobile UI exposes correction append, immutable history,
 effective private interpretation, combined packet preparation, and fresh-recipient
 verification without clipboard, file, account, provider, or network authority.
 
+### Deterministic private review-state comparison
+
+`builderwars.mobile-private-review-comparison.v1` accepts exactly two canonical
+correction-exchange packets that independently verify against the same portable
+proposal digest. It embeds both exact packets, reverifies their proposal, review,
+global correction, and per-target supersession chains, then emits one canonical
+comparison receipt capped at 1,572,864 characters. The receipt binds both packet
+digests, their shared proposal digest, the complete comparison payload, and a
+digest-sorted union of immutable review digests.
+
+Every union entry is classified only as `identical_effective_state`,
+`changed_effective_state`, `left_only_review`, or `right_only_review`. For a
+shared review digest, each side preserves the original decision, effective
+status and decision, latest correction digest, and correction count. One-sided
+reviews remain one-sided; no synthetic common record is created. Packet A and
+Packet B are explicit roles, not quality labels.
+
+The authority projection keeps identity, merge, resolution, rules,
+qualification, execution, registry, ranking, publication, and spending false.
+The receipt cannot choose a winner, determine which packet is authoritative,
+merge histories, resolve a dispute, authenticate reviewers, apply a blueprint,
+or call a provider. Cross-proposal input fails closed. Import is atomic and
+memory-only; tampered nested histories, forged comparison counts or authority,
+noncanonical JSON, dangerous keys, excessive depth or nodes, and oversized
+input are refused.
+
+The dedicated checker exercises 81 adversarial assertions. The mobile Receipt
+Lab exposes two bounded source inputs, canonical receipt preparation, independent
+receipt import, compact factual difference rendering, and exact refusal states
+without clipboard, file, account, provider, network, merge, or resolution
+authority.
+
 ### Exact next bounded campaign
 
-Add a deterministic private review-state comparison receipt for two independently
-verified correction packets. It should identify shared proposal lineage, exact
-common heads, divergent immutable records, and effective-decision conflicts
-without merging, resolving, authenticating, or selecting a winner. It must be a
-read-only local projection, never consensus, approval, blueprint adoption,
-qualification, execution, registry, ranking, publication, or spending authority.
+Add a deterministic comparison-to-learning receipt that accepts one verified
+private comparison and selects only a bounded inspection lesson for each factual
+difference class: inspect evidence, inspect rules binding, or inspect correction
+lineage. It must preserve both packet roles and every source digest, avoid
+declaring either state correct, and create no consensus, approval, blueprint
+adoption, merge, resolution, qualification, execution, registry, ranking,
+publication, or spending authority.
 Auth, network writes, creator code execution, provider use, public activation,
 and the protected private-alpha API binding remain operator-gated campaigns.
 

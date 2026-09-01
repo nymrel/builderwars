@@ -30,6 +30,11 @@ const state = {
   portableReviewCorrectionExchange: null,
   portableReviewCorrectionExchangeImportText: "",
   portableReviewCorrectionExchangeVerification: null,
+  portableReviewComparisonLeftText: "",
+  portableReviewComparisonRightText: "",
+  portableReviewComparisonReceipt: null,
+  portableReviewComparisonImportText: "",
+  portableReviewComparisonVerification: null,
   lastFocus: null,
 };
 
@@ -351,9 +356,45 @@ function portableReviewCorrectionExchangeMarkup() {
   return `<section class="portable-review-exchange portable-review-correction-exchange" aria-labelledby="portable-review-correction-exchange-title"><div><p class="eyebrow">Portable correction packet</p><h4 id="portable-review-correction-exchange-title">Carry immutable reviews and corrections together.</h4><p>The nested review packet and exact correction history are canonical, size-bounded, and independently verifiable from an empty Receipt Lab.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-review-correction-exchange-prepare>${prepared ? "Refresh correction packet" : "Prepare correction packet"}</button>` : ""}${prepared ? `<label for="portable-review-correction-exchange-export">Canonical correction packet · read only</label><textarea id="portable-review-correction-exchange-export" class="portable-textarea" rows="8" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Packet SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="portable-review-correction-exchange-import">Paste canonical correction packet JSON</label><textarea id="portable-review-correction-exchange-import" class="portable-textarea" rows="8" maxlength="524288" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-review-correction-exchange.v1 JSON">${escapeHTML(state.portableReviewCorrectionExchangeImportText)}</textarea><button class="secondary-button" type="button" data-portable-review-correction-exchange-verify>Verify correction packet</button>${portableReviewCorrectionExchangeStatusMarkup()}<div class="learning-boundary">Import reconstructs only memory-local inspection history. It cannot authenticate reviewers, rewrite an original review, apply a blueprint, bind rules, qualify, execute, register, rank, publish, spend, or call a provider.</div></section>`;
 }
 
+function portableReviewComparisonStatusMarkup() {
+  const verification = state.portableReviewComparisonVerification;
+  if (verification?.status === "verified") {
+    const result = verification.result;
+    const summary = result.comparison.summary;
+    return `<div class="portable-status verified portable-review-comparison-status" role="status" tabindex="-1"><strong>Comparison receipt verified · read only</strong><span>SHA-256 ${escapeHTML(result.packetDigest)}</span><span>${summary.sharedReviewCount} shared · ${summary.changedEffectiveStateCount} changed effective state · ${summary.leftOnlyReviewCount} Packet A only · ${summary.rightOnlyReviewCount} Packet B only</span><span>No packet won, no histories merged, and no dispute or authority was resolved.</span></div>`;
+  }
+  if (verification?.status === "invalid") {
+    return `<div class="portable-status invalid portable-review-comparison-status" role="alert" tabindex="-1"><strong>Comparison receipt refused</strong><span>${escapeHTML(verification.message)}</span><span>No verified comparison, merge, resolution, blueprint, or authority state was retained.</span></div>`;
+  }
+  return `<div class="portable-status neutral portable-review-comparison-status" role="status" tabindex="-1"><strong>No comparison verified</strong><span>Paste two correction packets for the same proposal, or paste one canonical comparison receipt. Both histories are independently rechecked.</span></div>`;
+}
+
+function portableReviewComparisonEntriesMarkup() {
+  const entries = state.portableReviewComparisonVerification?.status === "verified"
+    ? state.portableReviewComparisonVerification.result.comparison.entries
+    : [];
+  if (entries.length === 0) return "";
+  const visibleEntries = entries.slice(0, 12);
+  const label = (entry) => ({
+    identical_effective_state: "Identical effective state",
+    changed_effective_state: "Changed effective state",
+    left_only_review: "Packet A only",
+    right_only_review: "Packet B only",
+  }[entry.classification] || entry.classification);
+  const decision = (side) => side
+    ? (side.effectiveDecision === null ? "Withdrawn" : PORTABLE_REVIEW_DECISION_LABELS[side.effectiveDecision] || side.effectiveDecision)
+    : "Absent";
+  return `<ol class="portable-comparison-list" aria-label="Digest-bound private review-state differences">${visibleEntries.map((entry) => `<li class="portable-comparison-record"><div><span class="mode-label">${escapeHTML(label(entry))}</span><code>${escapeHTML(entry.reviewDigest)}</code></div><div class="portable-comparison-sides"><span><strong>Packet A</strong>${escapeHTML(decision(entry.left))}</span><span><strong>Packet B</strong>${escapeHTML(decision(entry.right))}</span></div></li>`).join("")}</ol>${entries.length > visibleEntries.length ? `<p class="portable-digest">${entries.length - visibleEntries.length} additional digest-bound entries remain inside the verified receipt.</p>` : ""}`;
+}
+
+function portableReviewComparisonMarkup() {
+  const prepared = state.portableReviewComparisonReceipt;
+  return `<section class="portable-review-exchange portable-review-comparison" aria-labelledby="portable-review-comparison-title"><div><p class="eyebrow">Private review-state comparison</p><h4 id="portable-review-comparison-title">Compare two packets without choosing a winner.</h4><p>Both correction packets must bind the exact same proposal. The receipt reports digest-bound differences and one-sided reviews without merging histories or resolving which packet is authoritative.</p></div><div class="portable-comparison-inputs"><label for="portable-review-comparison-left">Packet A · canonical correction packet</label><textarea id="portable-review-comparison-left" class="portable-textarea" rows="7" maxlength="524288" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste Packet A builderwars.mobile-runback-review-correction-exchange.v1 JSON">${escapeHTML(state.portableReviewComparisonLeftText)}</textarea><label for="portable-review-comparison-right">Packet B · canonical correction packet</label><textarea id="portable-review-comparison-right" class="portable-textarea" rows="7" maxlength="524288" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste Packet B builderwars.mobile-runback-review-correction-exchange.v1 JSON">${escapeHTML(state.portableReviewComparisonRightText)}</textarea><button class="secondary-button" type="button" data-portable-review-comparison-create>Create read-only comparison receipt</button></div>${prepared ? `<label for="portable-review-comparison-export">Canonical comparison receipt · read only</label><textarea id="portable-review-comparison-export" class="portable-textarea" rows="9" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Comparison SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="portable-review-comparison-import">Paste canonical comparison receipt JSON</label><textarea id="portable-review-comparison-import" class="portable-textarea" rows="9" maxlength="1572864" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-review-comparison.v1 JSON">${escapeHTML(state.portableReviewComparisonImportText)}</textarea><button class="secondary-button" type="button" data-portable-review-comparison-verify>Verify comparison receipt</button>${portableReviewComparisonStatusMarkup()}${portableReviewComparisonEntriesMarkup()}<div class="learning-boundary">Comparison is independent, memory-only inspection. It cannot choose a winner, merge histories, resolve a dispute, authenticate identity, apply a blueprint, bind rules, qualify, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+}
+
 function portableRunbackMarkup({ canPrepare = false } = {}) {
   const portable = state.portableRunback;
-  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}${portableReviewMarkup()}${portableReviewCorrectionMarkup()}${portableReviewExchangeMarkup()}${portableReviewCorrectionExchangeMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
+  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}${portableReviewMarkup()}${portableReviewCorrectionMarkup()}${portableReviewExchangeMarkup()}${portableReviewCorrectionExchangeMarkup()}${portableReviewComparisonMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
 }
 
 function renderReceiptLearning() {
@@ -810,6 +851,48 @@ async function verifyPortableReviewCorrectionExchange(serializedInput) {
   }
 }
 
+async function createPortableReviewComparison() {
+  if (!dataAdapter?.createPortablePrivateReviewComparison || !dataAdapter?.verifyPortablePrivateReviewComparison) return false;
+  try {
+    const receipt = await dataAdapter.createPortablePrivateReviewComparison(
+      state.portableReviewComparisonLeftText,
+      state.portableReviewComparisonRightText,
+    );
+    const result = await dataAdapter.verifyPortablePrivateReviewComparison(receipt.serialized);
+    state.portableReviewComparisonReceipt = receipt;
+    state.portableReviewComparisonImportText = receipt.serialized;
+    state.portableReviewComparisonVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.portableReviewComparisonReceipt = null;
+    state.portableReviewComparisonImportText = "";
+    state.portableReviewComparisonVerification = { status: "invalid", message: error?.message || "Private review comparison failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function verifyPortableReviewComparison(serializedInput) {
+  const importedText = String(serializedInput || "").slice(0, dataAdapter?.PORTABLE_REVIEW_COMPARISON_MAX_LENGTH || 1572864);
+  try {
+    const result = await dataAdapter.verifyPortablePrivateReviewComparison(serializedInput);
+    state.portableReviewComparisonReceipt = null;
+    state.portableReviewComparisonLeftText = result.leftSerialized;
+    state.portableReviewComparisonRightText = result.rightSerialized;
+    state.portableReviewComparisonImportText = importedText;
+    state.portableReviewComparisonVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.portableReviewComparisonReceipt = null;
+    state.portableReviewComparisonVerification = { status: "invalid", message: error?.message || "Private review comparison receipt validation failed." };
+    state.portableReviewComparisonImportText = importedText;
+    renderReceiptLearning();
+    return false;
+  }
+}
+
 function showView(name, updateHistory = true) {
   if (!$("#view-" + name)) return;
   state.activeView = name;
@@ -1047,6 +1130,23 @@ function bindEvents() {
         : "Correction packet refused. No proposal, review, correction, blueprint, or authority was retained.");
       return;
     }
+    if (event.target.closest("[data-portable-review-comparison-create]")) {
+      const created = await createPortableReviewComparison();
+      $(created ? ".portable-review-comparison-status.verified" : ".portable-review-comparison-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(created
+        ? "Both correction packets were reverified and compared. No winner, merge, or resolution authority was created."
+        : "Comparison refused. No verified comparison, merge, resolution, or authority state was retained.");
+      return;
+    }
+    if (event.target.closest("[data-portable-review-comparison-verify]")) {
+      const input = $("#portable-review-comparison-import");
+      const verified = await verifyPortableReviewComparison(input?.value || "");
+      $(verified ? ".portable-review-comparison-status.verified" : ".portable-review-comparison-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Comparison receipt and both source histories verified locally. Nothing was merged or resolved."
+        : "Comparison receipt refused. No verified comparison or authority state was retained.");
+      return;
+    }
     if (event.target.closest("[data-runback-blueprint]")) {
       showView("build");
       $("#agent-name").focus();
@@ -1097,6 +1197,20 @@ function bindEvents() {
     if (event.target.matches("#portable-review-correction-exchange-import")) {
       state.portableReviewCorrectionExchangeImportText = event.target.value.slice(0, dataAdapter?.PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH || 524288);
       state.portableReviewCorrectionExchangeVerification = null;
+    }
+    if (event.target.matches("#portable-review-comparison-left")) {
+      state.portableReviewComparisonLeftText = event.target.value.slice(0, dataAdapter?.PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH || 524288);
+      state.portableReviewComparisonReceipt = null;
+      state.portableReviewComparisonVerification = null;
+    }
+    if (event.target.matches("#portable-review-comparison-right")) {
+      state.portableReviewComparisonRightText = event.target.value.slice(0, dataAdapter?.PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH || 524288);
+      state.portableReviewComparisonReceipt = null;
+      state.portableReviewComparisonVerification = null;
+    }
+    if (event.target.matches("#portable-review-comparison-import")) {
+      state.portableReviewComparisonImportText = event.target.value.slice(0, dataAdapter?.PORTABLE_REVIEW_COMPARISON_MAX_LENGTH || 1572864);
+      state.portableReviewComparisonVerification = null;
     }
   });
   document.addEventListener("change", (event) => {
