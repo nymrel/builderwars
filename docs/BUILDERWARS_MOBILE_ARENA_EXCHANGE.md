@@ -650,18 +650,53 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 226 checks across this contract and every preceding Arena
+mobile checker runs 237 checks across this contract and every preceding Arena
 Exchange layer.
+
+### Deterministic private guard-completion review
+
+`builderwars.mobile-private-blueprint-guard-completion-review.v1` embeds one
+canonical verified guard-completion proposal and records exactly one immutable
+private local decision: `accept_for_commit_review`, `defer`, or `reject`.
+Import independently reverifies the completion proposal, accepted blueprint-
+draft review, revision draft, accepted guard review, guard proposal, inspection
+lesson, comparison, both correction packets, both review journals, and bound
+parent proposal before accepting the review.
+
+Only `accept_for_commit_review` derives a
+`proposed_local_blueprint_candidate_for_operator_commit_review`. The candidate
+copies the exact completed blueprint and exact per-key guard-completion
+provenance, but it still forces `localOnly: true`, `committed: false`,
+`adopted: false`, `commitReady: false`,
+`commitReadinessStatus: requires_operator_commit_review`, and
+`operatorReviewStatus: not_run`. Defer and reject create no candidate or
+candidate digest. No outcome attests reviewer identity or guard-value
+provenance.
+
+The review and candidate remain unqualified, unplayed, unexecuted,
+unregistered, unpublished, and all-false authority. They cannot make an
+operator decision, commit or adopt a blueprint, declare correctness, create
+consensus or approval, award progress, mutate lineage, bind rules, activate a
+fixture, execute, rank, publish, spend, or call a provider. A refused review
+import preserves the already verified upstream completion while retaining no
+review or candidate state.
+
+Canonical import is atomic and memory-only. The dedicated checker exercises 217
+adversarial assertions across every allowed decision/reason pair, candidate
+suppression for defer and reject, exact completed-blueprint and provenance
+preservation, full ancestry reconstruction, all-false authority, nested and
+resealed tampering, dangerous keys, excessive depth or nodes, and oversized
+input. The integrated mobile checker runs 237 checks across this contract and
+every preceding Arena Exchange layer.
 
 ### Exact next bounded campaign
 
-Add one deterministic immutable private review for an exact verified
-guard-completion proposal. The bounded decisions should be
-`accept_for_commit_review`, `defer`, or `reject`; only acceptance may derive a
-locally reviewed candidate for a later operator commit decision. Even acceptance
-must remain uncommitted, unadopted, unqualified, unplayed, unexecuted,
-unregistered, unpublished, and `commitReady: false`, with reviewer identity and
-guard-value provenance unattested. Auth, network writes, creator code execution,
+Add one deterministic local operator-review packet for an exact accepted
+guard-completion review. It may prepare only the candidate digest, exact diff,
+validation evidence, remaining blockers, rollback steps, and the smallest later
+operator action. It must not record approval, make a commit decision, commit or
+adopt a blueprint, bind rules, qualify, activate, play, execute, register, rank,
+publish, spend, or call a provider. Auth, network writes, creator code execution,
 provider use, operator commit approval, public activation, and the protected
 private-alpha API binding remain separate operator-gated campaigns.
 

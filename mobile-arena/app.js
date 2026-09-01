@@ -63,6 +63,12 @@ const state = {
   privateBlueprintGuardCompletionReason: "complete_explicit_unknown_guards",
   privateBlueprintGuardCompletionValues: {},
   privateBlueprintGuardCompletionProvenance: {},
+  privateBlueprintGuardCompletionReviewReceipt: null,
+  privateBlueprintGuardCompletionReviewImportText: "",
+  privateBlueprintGuardCompletionReviewVerification: null,
+  privateBlueprintGuardCompletionReviewReviewerLabel: "",
+  privateBlueprintGuardCompletionReviewDecision: "accept_for_commit_review",
+  privateBlueprintGuardCompletionReviewReason: "completion_lineage_verified",
   lastFocus: null,
 };
 
@@ -134,6 +140,21 @@ const PRIVATE_BLUEPRINT_GUARD_COMPLETION_PROVENANCE_LABELS = {
   local_reviewer_declared: "Local reviewer declared",
   fixture_specific_requirement: "Fixture-specific requirement",
   private_evidence_reviewed_locally: "Private evidence reviewed locally",
+};
+const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_DECISION_LABELS = {
+  accept_for_commit_review: "Accept for operator commit review only",
+  defer: "Defer guard completion",
+  reject: "Reject guard completion",
+};
+const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_REASON_LABELS = {
+  completion_lineage_verified: "Completion lineage verified",
+  explicit_guard_values_reviewed: "Explicit guard values reviewed",
+  needs_operator_commit_review: "Needs operator commit review",
+  needs_additional_private_evidence: "Needs additional private evidence",
+  guard_value_provenance_unattested: "Guard-value provenance remains unattested",
+  guard_completion_not_approved: "Guard completion is not approved",
+  known_guard_preservation_failed: "Known-guard preservation failed",
+  unsafe_or_out_of_scope: "Unsafe or out of scope",
 };
 const PRIVATE_BLUEPRINT_GUARD_LABELS = {
   strictValidation: "Strict validation",
@@ -304,6 +325,13 @@ function resetPortableReviewCorrectionExchangeState({ keepImportText = false } =
   state.portableReviewCorrectionExchangeVerification = null;
 }
 
+function resetPrivateBlueprintGuardCompletionReviewState({ keepImportText = false, keepReviewerLabel = false } = {}) {
+  state.privateBlueprintGuardCompletionReviewReceipt = null;
+  if (!keepImportText) state.privateBlueprintGuardCompletionReviewImportText = "";
+  state.privateBlueprintGuardCompletionReviewVerification = null;
+  if (!keepReviewerLabel) state.privateBlueprintGuardCompletionReviewReviewerLabel = "";
+}
+
 function resetPrivateBlueprintGuardCompletionState({ keepImportText = false, keepReviewerLabel = false, keepSelections = false } = {}) {
   state.privateBlueprintGuardCompletionReceipt = null;
   if (!keepImportText) state.privateBlueprintGuardCompletionImportText = "";
@@ -313,6 +341,7 @@ function resetPrivateBlueprintGuardCompletionState({ keepImportText = false, kee
     state.privateBlueprintGuardCompletionValues = {};
     state.privateBlueprintGuardCompletionProvenance = {};
   }
+  resetPrivateBlueprintGuardCompletionReviewState();
 }
 
 function resetPrivateBlueprintDraftReviewState({ keepImportText = false, keepReviewerLabel = false } = {}) {
@@ -656,6 +685,35 @@ function privateBlueprintGuardCompletionStatusMarkup() {
   return `<div class="portable-status neutral private-blueprint-guard-completion-status" role="status" tabindex="-1"><strong>No guard completion verified</strong><span>Supply one explicit boolean and bounded local provenance code for every unknown guard. The result still requires a separate completion review.</span></div>`;
 }
 
+function privateBlueprintGuardCompletionReviewReasonOptions(decision) {
+  const reasons = dataAdapter?.PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_REASONS?.[decision] || [];
+  return reasons.map((reasonCode) => `<option value="${escapeHTML(reasonCode)}" ${reasonCode === state.privateBlueprintGuardCompletionReviewReason ? "selected" : ""}>${escapeHTML(PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_REASON_LABELS[reasonCode] || reasonCode)}</option>`).join("");
+}
+
+function privateBlueprintGuardCompletionReviewStatusMarkup() {
+  const verification = state.privateBlueprintGuardCompletionReviewVerification;
+  if (verification?.status === "verified") {
+    const result = verification.result;
+    const review = result.review;
+    const candidate = review.localCommitReviewCandidate;
+    const candidateStatus = candidate
+      ? `<span>Local candidate reviewed for operator commit decision · not commit-ready</span><span>${escapeHTML(candidate.commitReadinessStatus.replaceAll("_", " "))} · operator review ${escapeHTML(candidate.operatorReviewStatus.replaceAll("_", " "))}</span>`
+      : `<span>No operator commit-review candidate was created.</span>`;
+    return `<div class="portable-status verified private-blueprint-guard-completion-review-status" role="status" tabindex="-1"><strong>Guard-completion review verified · immutable private decision</strong><span>SHA-256 ${escapeHTML(result.packetDigest)}</span><span>${escapeHTML(PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_DECISION_LABELS[review.decision] || review.decision)} · ${escapeHTML(PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_REASON_LABELS[review.reasonCode] || review.reasonCode)}</span><span>Reviewer ${escapeHTML(review.reviewer.label)} · identity unattested · guard-value provenance unattested</span>${candidateStatus}<span>No blueprint was committed, adopted, qualified, activated, played, executed, registered, ranked, or published.</span></div>`;
+  }
+  if (verification?.status === "invalid") {
+    return `<div class="portable-status invalid private-blueprint-guard-completion-review-status" role="alert" tabindex="-1"><strong>Guard-completion review refused</strong><span>${escapeHTML(verification.message)}</span><span>The verified upstream completion remains available. No review, candidate, readiness, commitment, adoption, progress, execution, or authority state was retained.</span></div>`;
+  }
+  return `<div class="portable-status neutral private-blueprint-guard-completion-review-status" role="status" tabindex="-1"><strong>No guard-completion review verified</strong><span>Review one verified complete proposal or paste one canonical review receipt. Accept only prepares a local candidate for a later operator decision.</span></div>`;
+}
+
+function privateBlueprintGuardCompletionReviewMarkup() {
+  const prepared = state.privateBlueprintGuardCompletionReviewReceipt;
+  const canReview = state.privateBlueprintGuardCompletionVerification?.status === "verified";
+  const decisionOptions = Object.entries(PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_DECISION_LABELS).map(([decision, label]) => `<option value="${escapeHTML(decision)}" ${decision === state.privateBlueprintGuardCompletionReviewDecision ? "selected" : ""}>${escapeHTML(label)}</option>`).join("");
+  return `<section class="portable-review private-blueprint-guard-completion-review" aria-labelledby="private-blueprint-guard-completion-review-title"><div><p class="eyebrow">Private completion review</p><h4 id="private-blueprint-guard-completion-review-title">Review one completion. Commit nothing.</h4><p>Accept may prepare only a local candidate for a later operator commit decision. Defer and reject prepare no candidate. Every outcome preserves unattested identity and provenance.</p></div>${canReview ? `<div class="portable-review-form" role="group" aria-describedby="private-blueprint-guard-completion-review-boundary"><label for="private-blueprint-guard-completion-review-reviewer-label">Unattested reviewer label</label><input id="private-blueprint-guard-completion-review-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.privateBlueprintGuardCompletionReviewReviewerLabel)}" placeholder="Example: local referee"><label for="private-blueprint-guard-completion-review-decision">Private decision</label><select id="private-blueprint-guard-completion-review-decision" data-private-blueprint-guard-completion-review-decision>${decisionOptions}</select><label for="private-blueprint-guard-completion-review-reason">Bounded reason</label><select id="private-blueprint-guard-completion-review-reason" data-private-blueprint-guard-completion-review-reason>${privateBlueprintGuardCompletionReviewReasonOptions(state.privateBlueprintGuardCompletionReviewDecision)}</select><button class="secondary-button" type="button" data-private-blueprint-guard-completion-review-create>Record immutable completion review</button></div>` : `<p class="portable-digest">Verify one complete guard-completion proposal before recording a review.</p>`}${prepared ? `<label for="private-blueprint-guard-completion-review-export">Canonical completion-review receipt · read only</label><textarea id="private-blueprint-guard-completion-review-export" class="portable-textarea" rows="18" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Completion-review SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-guard-completion-review-import">Paste canonical completion-review receipt JSON</label><textarea id="private-blueprint-guard-completion-review-import" class="portable-textarea" rows="18" maxlength="7340032" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-guard-completion-review.v1 JSON">${escapeHTML(state.privateBlueprintGuardCompletionReviewImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-guard-completion-review-verify>Verify completion review</button>${privateBlueprintGuardCompletionReviewStatusMarkup()}<div class="learning-boundary" id="private-blueprint-guard-completion-review-boundary">This immutable local review cannot attest identity or provenance, make a candidate commit-ready, commit or adopt a blueprint, declare correctness, create consensus or approval, award progress, mutate lineage, bind rules, qualify, activate, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+}
+
 function privateBlueprintGuardCompletionMarkup() {
   const prepared = state.privateBlueprintGuardCompletionReceipt;
   const candidate = privateBlueprintGuardCompletionCandidate();
@@ -670,7 +728,7 @@ function privateBlueprintGuardCompletionMarkup() {
   const blocked = state.privateBlueprintDraftReviewVerification?.status === "verified" && !candidate
     ? `<p class="portable-digest">Only an accepted blueprint-draft review with an explicit local candidate can propose guard completion.</p>`
     : "";
-  return `<section class="portable-review-exchange private-blueprint-guard-completion" aria-labelledby="private-blueprint-guard-completion-title"><div><p class="eyebrow">Explicit guard completion</p><h4 id="private-blueprint-guard-completion-title">Close every unknown. Claim no readiness.</h4><p>Complete exactly the candidate's unknown guard set with explicit booleans and local, identity-unattested provenance. Known and applied guards cannot change.</p></div>${candidate ? `<div role="group" aria-describedby="private-blueprint-guard-completion-boundary"><label for="private-blueprint-guard-completion-reviewer-label">Unattested reviewer label</label><input id="private-blueprint-guard-completion-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.privateBlueprintGuardCompletionReviewerLabel)}" placeholder="Example: local reviewer"><label for="private-blueprint-guard-completion-reason">Bounded reason</label><select id="private-blueprint-guard-completion-reason" data-private-blueprint-guard-completion-reason>${reasonOptions}</select>${guardFields}<button class="secondary-button" type="button" data-private-blueprint-guard-completion-create>Propose explicit guard completion</button></div>` : blocked}${prepared ? `<label for="private-blueprint-guard-completion-export">Canonical guard-completion proposal · read only</label><textarea id="private-blueprint-guard-completion-export" class="portable-textarea" rows="16" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Guard completion SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-guard-completion-import">Paste canonical guard-completion proposal JSON</label><textarea id="private-blueprint-guard-completion-import" class="portable-textarea" rows="16" maxlength="6291456" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-guard-completion-proposal.v1 JSON">${escapeHTML(state.privateBlueprintGuardCompletionImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-guard-completion-verify>Verify guard completion</button>${privateBlueprintGuardCompletionStatusMarkup()}<div class="learning-boundary" id="private-blueprint-guard-completion-boundary">This local proposal cannot attest identity or provenance, declare correctness, create consensus or approval, award progress, become commit-ready, commit or adopt a blueprint, mutate source lineage, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+  return `<section class="portable-review-exchange private-blueprint-guard-completion" aria-labelledby="private-blueprint-guard-completion-title"><div><p class="eyebrow">Explicit guard completion</p><h4 id="private-blueprint-guard-completion-title">Close every unknown. Claim no readiness.</h4><p>Complete exactly the candidate's unknown guard set with explicit booleans and local, identity-unattested provenance. Known and applied guards cannot change.</p></div>${candidate ? `<div role="group" aria-describedby="private-blueprint-guard-completion-boundary"><label for="private-blueprint-guard-completion-reviewer-label">Unattested reviewer label</label><input id="private-blueprint-guard-completion-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.privateBlueprintGuardCompletionReviewerLabel)}" placeholder="Example: local reviewer"><label for="private-blueprint-guard-completion-reason">Bounded reason</label><select id="private-blueprint-guard-completion-reason" data-private-blueprint-guard-completion-reason>${reasonOptions}</select>${guardFields}<button class="secondary-button" type="button" data-private-blueprint-guard-completion-create>Propose explicit guard completion</button></div>` : blocked}${prepared ? `<label for="private-blueprint-guard-completion-export">Canonical guard-completion proposal · read only</label><textarea id="private-blueprint-guard-completion-export" class="portable-textarea" rows="16" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Guard completion SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-guard-completion-import">Paste canonical guard-completion proposal JSON</label><textarea id="private-blueprint-guard-completion-import" class="portable-textarea" rows="16" maxlength="6291456" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-guard-completion-proposal.v1 JSON">${escapeHTML(state.privateBlueprintGuardCompletionImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-guard-completion-verify>Verify guard completion</button>${privateBlueprintGuardCompletionStatusMarkup()}${privateBlueprintGuardCompletionReviewMarkup()}<div class="learning-boundary" id="private-blueprint-guard-completion-boundary">This local proposal cannot attest identity or provenance, declare correctness, create consensus or approval, award progress, become commit-ready, commit or adopt a blueprint, mutate source lineage, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
 }
 
 function privateBlueprintDraftReviewMarkup() {
@@ -1500,8 +1558,54 @@ async function verifyPrivateBlueprintDraftReview(serializedInput) {
   }
 }
 
+function applyPrivateBlueprintGuardCompletionVerification(result, importedText, { receipt = null } = {}) {
+  const draftReviewVerification = result.draftReviewVerification;
+  const draftVerification = draftReviewVerification.draftVerification;
+  const reviewVerification = draftVerification.acceptedReviewVerification;
+  const deltaVerification = reviewVerification.blueprintDeltaVerification;
+  const learningVerification = deltaVerification.learningVerification;
+  state.privateBlueprintGuardCompletionReceipt = receipt;
+  state.privateBlueprintGuardCompletionImportText = importedText;
+  state.privateBlueprintGuardCompletionVerification = { status: "verified", result };
+  state.privateBlueprintGuardCompletionReviewerLabel = result.completionProposal.reviewer.label;
+  state.privateBlueprintGuardCompletionReason = result.completionProposal.reasonCode;
+  state.privateBlueprintGuardCompletionValues = {};
+  state.privateBlueprintGuardCompletionProvenance = {};
+  for (const completion of result.completionProposal.guardCompletions) {
+    state.privateBlueprintGuardCompletionValues[completion.guardKey] = completion.value;
+    state.privateBlueprintGuardCompletionProvenance[completion.guardKey] = completion.provenance.code;
+  }
+  state.privateBlueprintDraftReviewReceipt = null;
+  state.privateBlueprintDraftReviewImportText = result.draftReviewSerialized;
+  state.privateBlueprintDraftReviewVerification = { status: "verified", result: draftReviewVerification };
+  state.privateBlueprintDraftReviewerLabel = draftReviewVerification.review.reviewer.label;
+  state.privateBlueprintDraftReviewDecision = draftReviewVerification.review.decision;
+  state.privateBlueprintDraftReviewReason = draftReviewVerification.review.reasonCode;
+  state.privateBlueprintRevisionDraftReceipt = null;
+  state.privateBlueprintRevisionDraftImportText = draftReviewVerification.draftSerialized;
+  state.privateBlueprintRevisionDraftVerification = { status: "verified", result: draftVerification };
+  state.privateBlueprintDeltaReviewReceipt = null;
+  state.privateBlueprintDeltaReviewImportText = draftVerification.acceptedReviewSerialized;
+  state.privateBlueprintDeltaReviewVerification = { status: "verified", result: reviewVerification };
+  state.privateBlueprintDeltaReviewerLabel = reviewVerification.review.reviewer.label;
+  state.privateBlueprintDeltaReviewDecision = reviewVerification.review.decision;
+  state.privateBlueprintDeltaReviewReason = reviewVerification.review.reasonCode;
+  state.privateBlueprintDeltaReceipt = null;
+  state.privateBlueprintDeltaImportText = reviewVerification.blueprintDeltaSerialized;
+  state.privateBlueprintDeltaVerification = { status: "verified", result: deltaVerification };
+  state.privateReviewLearningReceipt = null;
+  state.privateReviewLearningImportText = deltaVerification.learningSerialized;
+  state.privateReviewLearningVerification = { status: "verified", result: learningVerification };
+  state.portableReviewComparisonReceipt = null;
+  state.portableReviewComparisonImportText = learningVerification.comparisonSerialized;
+  state.portableReviewComparisonVerification = { status: "verified", result: learningVerification.comparisonVerification };
+  state.portableReviewComparisonLeftText = learningVerification.comparisonVerification.leftSerialized;
+  state.portableReviewComparisonRightText = learningVerification.comparisonVerification.rightSerialized;
+}
+
 async function createPrivateBlueprintGuardCompletion() {
   if (!dataAdapter?.createPortablePrivateBlueprintGuardCompletion || !dataAdapter?.verifyPortablePrivateBlueprintGuardCompletion) return false;
+  resetPrivateBlueprintGuardCompletionReviewState({ keepReviewerLabel: true });
   const candidate = privateBlueprintGuardCompletionCandidate();
   const draftReviewSerialized = state.privateBlueprintDraftReviewVerification?.status === "verified"
     ? state.privateBlueprintDraftReviewImportText
@@ -1520,9 +1624,7 @@ async function createPrivateBlueprintGuardCompletion() {
       guardCompletions,
     });
     const result = await dataAdapter.verifyPortablePrivateBlueprintGuardCompletion(receipt.serialized);
-    state.privateBlueprintGuardCompletionReceipt = receipt;
-    state.privateBlueprintGuardCompletionImportText = receipt.serialized;
-    state.privateBlueprintGuardCompletionVerification = { status: "verified", result };
+    applyPrivateBlueprintGuardCompletionVerification(result, receipt.serialized, { receipt });
     renderReceiptLearning();
     return true;
   } catch (error) {
@@ -1536,56 +1638,64 @@ async function createPrivateBlueprintGuardCompletion() {
 
 async function verifyPrivateBlueprintGuardCompletion(serializedInput) {
   const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH || 6291456);
+  resetPrivateBlueprintGuardCompletionReviewState({ keepReviewerLabel: true });
   try {
     const result = await dataAdapter.verifyPortablePrivateBlueprintGuardCompletion(serializedInput);
-    const draftReviewVerification = result.draftReviewVerification;
-    const draftVerification = draftReviewVerification.draftVerification;
-    const reviewVerification = draftVerification.acceptedReviewVerification;
-    const deltaVerification = reviewVerification.blueprintDeltaVerification;
-    const learningVerification = deltaVerification.learningVerification;
-    state.privateBlueprintGuardCompletionReceipt = null;
-    state.privateBlueprintGuardCompletionImportText = importedText;
-    state.privateBlueprintGuardCompletionVerification = { status: "verified", result };
-    state.privateBlueprintGuardCompletionReviewerLabel = result.completionProposal.reviewer.label;
-    state.privateBlueprintGuardCompletionReason = result.completionProposal.reasonCode;
-    state.privateBlueprintGuardCompletionValues = {};
-    state.privateBlueprintGuardCompletionProvenance = {};
-    for (const completion of result.completionProposal.guardCompletions) {
-      state.privateBlueprintGuardCompletionValues[completion.guardKey] = completion.value;
-      state.privateBlueprintGuardCompletionProvenance[completion.guardKey] = completion.provenance.code;
-    }
-    state.privateBlueprintDraftReviewReceipt = null;
-    state.privateBlueprintDraftReviewImportText = result.draftReviewSerialized;
-    state.privateBlueprintDraftReviewVerification = { status: "verified", result: draftReviewVerification };
-    state.privateBlueprintDraftReviewerLabel = draftReviewVerification.review.reviewer.label;
-    state.privateBlueprintDraftReviewDecision = draftReviewVerification.review.decision;
-    state.privateBlueprintDraftReviewReason = draftReviewVerification.review.reasonCode;
-    state.privateBlueprintRevisionDraftReceipt = null;
-    state.privateBlueprintRevisionDraftImportText = draftReviewVerification.draftSerialized;
-    state.privateBlueprintRevisionDraftVerification = { status: "verified", result: draftVerification };
-    state.privateBlueprintDeltaReviewReceipt = null;
-    state.privateBlueprintDeltaReviewImportText = draftVerification.acceptedReviewSerialized;
-    state.privateBlueprintDeltaReviewVerification = { status: "verified", result: reviewVerification };
-    state.privateBlueprintDeltaReviewerLabel = reviewVerification.review.reviewer.label;
-    state.privateBlueprintDeltaReviewDecision = reviewVerification.review.decision;
-    state.privateBlueprintDeltaReviewReason = reviewVerification.review.reasonCode;
-    state.privateBlueprintDeltaReceipt = null;
-    state.privateBlueprintDeltaImportText = reviewVerification.blueprintDeltaSerialized;
-    state.privateBlueprintDeltaVerification = { status: "verified", result: deltaVerification };
-    state.privateReviewLearningReceipt = null;
-    state.privateReviewLearningImportText = deltaVerification.learningSerialized;
-    state.privateReviewLearningVerification = { status: "verified", result: learningVerification };
-    state.portableReviewComparisonReceipt = null;
-    state.portableReviewComparisonImportText = learningVerification.comparisonSerialized;
-    state.portableReviewComparisonVerification = { status: "verified", result: learningVerification.comparisonVerification };
-    state.portableReviewComparisonLeftText = learningVerification.comparisonVerification.leftSerialized;
-    state.portableReviewComparisonRightText = learningVerification.comparisonVerification.rightSerialized;
+    applyPrivateBlueprintGuardCompletionVerification(result, importedText);
     renderReceiptLearning();
     return true;
   } catch (error) {
     state.privateBlueprintGuardCompletionReceipt = null;
     state.privateBlueprintGuardCompletionImportText = importedText;
     state.privateBlueprintGuardCompletionVerification = { status: "invalid", message: error?.message || "Private blueprint guard completion validation failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function createPrivateBlueprintGuardCompletionReview() {
+  if (!dataAdapter?.createPortablePrivateBlueprintGuardCompletionReview || !dataAdapter?.verifyPortablePrivateBlueprintGuardCompletionReview) return false;
+  const completionSerialized = state.privateBlueprintGuardCompletionVerification?.status === "verified"
+    ? state.privateBlueprintGuardCompletionImportText
+    : "";
+  try {
+    const receipt = await dataAdapter.createPortablePrivateBlueprintGuardCompletionReview(completionSerialized, {
+      reviewerLabel: state.privateBlueprintGuardCompletionReviewReviewerLabel,
+      decision: state.privateBlueprintGuardCompletionReviewDecision,
+      reasonCode: state.privateBlueprintGuardCompletionReviewReason,
+    });
+    const result = await dataAdapter.verifyPortablePrivateBlueprintGuardCompletionReview(receipt.serialized);
+    state.privateBlueprintGuardCompletionReviewReceipt = receipt;
+    state.privateBlueprintGuardCompletionReviewImportText = receipt.serialized;
+    state.privateBlueprintGuardCompletionReviewVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintGuardCompletionReviewReceipt = null;
+    state.privateBlueprintGuardCompletionReviewImportText = "";
+    state.privateBlueprintGuardCompletionReviewVerification = { status: "invalid", message: error?.message || "Private guard-completion review failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function verifyPrivateBlueprintGuardCompletionReview(serializedInput) {
+  const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_MAX_LENGTH || 7340032);
+  try {
+    const result = await dataAdapter.verifyPortablePrivateBlueprintGuardCompletionReview(serializedInput);
+    applyPrivateBlueprintGuardCompletionVerification(result.guardCompletionVerification, result.guardCompletionSerialized);
+    state.privateBlueprintGuardCompletionReviewReceipt = null;
+    state.privateBlueprintGuardCompletionReviewImportText = importedText;
+    state.privateBlueprintGuardCompletionReviewVerification = { status: "verified", result };
+    state.privateBlueprintGuardCompletionReviewReviewerLabel = result.review.reviewer.label;
+    state.privateBlueprintGuardCompletionReviewDecision = result.review.decision;
+    state.privateBlueprintGuardCompletionReviewReason = result.review.reasonCode;
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintGuardCompletionReviewReceipt = null;
+    state.privateBlueprintGuardCompletionReviewImportText = importedText;
+    state.privateBlueprintGuardCompletionReviewVerification = { status: "invalid", message: error?.message || "Private guard-completion review validation failed." };
     renderReceiptLearning();
     return false;
   }
@@ -1948,6 +2058,23 @@ function bindEvents() {
         : "Guard completion refused. No verified proposal, readiness, or authority state was retained.");
       return;
     }
+    if (event.target.closest("[data-private-blueprint-guard-completion-review-create]")) {
+      const created = await createPrivateBlueprintGuardCompletionReview();
+      $(created ? ".private-blueprint-guard-completion-review-status.verified" : ".private-blueprint-guard-completion-review-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(created
+        ? "Immutable completion review recorded. Accept only prepares a local candidate for later operator review; nothing is commit-ready."
+        : "Completion review refused. The verified upstream completion remains available and no review or authority state was retained.");
+      return;
+    }
+    if (event.target.closest("[data-private-blueprint-guard-completion-review-verify]")) {
+      const input = $("#private-blueprint-guard-completion-review-import");
+      const verified = await verifyPrivateBlueprintGuardCompletionReview(input?.value || "");
+      $(verified ? ".private-blueprint-guard-completion-review-status.verified" : ".private-blueprint-guard-completion-review-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Completion review and full ancestry verified locally. No blueprint was committed, adopted, qualified, played, executed, or published."
+        : "Completion review refused. The verified upstream completion remains available and no review or candidate state was retained.");
+      return;
+    }
     if (event.target.closest("[data-runback-blueprint]")) {
       showView("build");
       $("#agent-name").focus();
@@ -2062,11 +2189,23 @@ function bindEvents() {
       state.privateBlueprintGuardCompletionReviewerLabel = event.target.value.slice(0, 36);
       state.privateBlueprintGuardCompletionReceipt = null;
       state.privateBlueprintGuardCompletionVerification = null;
+      resetPrivateBlueprintGuardCompletionReviewState({ keepReviewerLabel: true });
     }
     if (event.target.matches("#private-blueprint-guard-completion-import")) {
       state.privateBlueprintGuardCompletionImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH || 6291456);
       state.privateBlueprintGuardCompletionReceipt = null;
       state.privateBlueprintGuardCompletionVerification = null;
+      resetPrivateBlueprintGuardCompletionReviewState({ keepReviewerLabel: true });
+    }
+    if (event.target.matches("#private-blueprint-guard-completion-review-reviewer-label")) {
+      state.privateBlueprintGuardCompletionReviewReviewerLabel = event.target.value.slice(0, 36);
+      state.privateBlueprintGuardCompletionReviewReceipt = null;
+      state.privateBlueprintGuardCompletionReviewVerification = null;
+    }
+    if (event.target.matches("#private-blueprint-guard-completion-review-import")) {
+      state.privateBlueprintGuardCompletionReviewImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_MAX_LENGTH || 7340032);
+      state.privateBlueprintGuardCompletionReviewReceipt = null;
+      state.privateBlueprintGuardCompletionReviewVerification = null;
     }
   });
   document.addEventListener("change", (event) => {
@@ -2155,6 +2294,7 @@ function bindEvents() {
       state.privateBlueprintGuardCompletionReason = event.target.value;
       state.privateBlueprintGuardCompletionReceipt = null;
       state.privateBlueprintGuardCompletionVerification = null;
+      resetPrivateBlueprintGuardCompletionReviewState({ keepReviewerLabel: true });
       return;
     }
     if (event.target.matches("[data-private-blueprint-guard-completion-value]")) {
@@ -2162,6 +2302,7 @@ function bindEvents() {
       state.privateBlueprintGuardCompletionValues[guardKey] = event.target.value === "true" ? true : event.target.value === "false" ? false : "";
       state.privateBlueprintGuardCompletionReceipt = null;
       state.privateBlueprintGuardCompletionVerification = null;
+      resetPrivateBlueprintGuardCompletionReviewState({ keepReviewerLabel: true });
       return;
     }
     if (event.target.matches("[data-private-blueprint-guard-completion-provenance]")) {
@@ -2169,6 +2310,24 @@ function bindEvents() {
       state.privateBlueprintGuardCompletionProvenance[guardKey] = event.target.value;
       state.privateBlueprintGuardCompletionReceipt = null;
       state.privateBlueprintGuardCompletionVerification = null;
+      resetPrivateBlueprintGuardCompletionReviewState({ keepReviewerLabel: true });
+      return;
+    }
+    if (event.target.matches("[data-private-blueprint-guard-completion-review-decision]")) {
+      const decision = event.target.value;
+      const reasons = dataAdapter?.PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_REASONS?.[decision] || [];
+      state.privateBlueprintGuardCompletionReviewDecision = decision;
+      state.privateBlueprintGuardCompletionReviewReason = reasons[0] || "";
+      state.privateBlueprintGuardCompletionReviewReceipt = null;
+      state.privateBlueprintGuardCompletionReviewVerification = null;
+      const reasonSelect = $("[data-private-blueprint-guard-completion-review-reason]");
+      if (reasonSelect) reasonSelect.innerHTML = privateBlueprintGuardCompletionReviewReasonOptions(decision);
+      return;
+    }
+    if (event.target.matches("[data-private-blueprint-guard-completion-review-reason]")) {
+      state.privateBlueprintGuardCompletionReviewReason = event.target.value;
+      state.privateBlueprintGuardCompletionReviewReceipt = null;
+      state.privateBlueprintGuardCompletionReviewVerification = null;
     }
   });
 

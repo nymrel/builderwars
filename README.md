@@ -68,17 +68,23 @@ cannot create a draft. The draft is canonical and independently reverified from
 the accepted review through the complete private inspection ancestry, but it is
 still uncommitted, unadopted, unqualified, unplayed, unexecuted, unpublished,
 and zero-authority. One verified draft can now receive an immutable private
-   accept-for-commit-candidate, defer, or reject review. Acceptance creates only an
-   uncommitted, unadopted local candidate; explicit unknown guard values remain
-   unknown, force `commitReady: false`, and block commit readiness. Defer and
-   reject create no candidate. One accepted candidate can now receive a
-   deterministic local guard-completion proposal. It must supply exactly one
-   explicit boolean and one bounded identity-unattested provenance code for every
-   unknown guard, preserve every known and applied guard, and carry the full
-   verified ancestry. The completed proposal still forces `commitReady: false`
-   and `requires_guard_completion_review`; it is not a commit, adoption,
-   qualification, run, registry action, or publication. The shell performs no
-   provider call, inference, account action, publication, or deployment.
+accept-for-commit-candidate, defer, or reject review. Acceptance creates only an
+uncommitted, unadopted local candidate; explicit unknown guard values remain
+unknown, force `commitReady: false`, and block commit readiness. Defer and
+reject create no candidate. One accepted candidate can now receive a
+deterministic local guard-completion proposal. It must supply exactly one
+explicit boolean and one bounded identity-unattested provenance code for every
+unknown guard, preserve every known and applied guard, and carry the full
+verified ancestry. The completed proposal still forces `commitReady: false`
+and `requires_guard_completion_review`; it is not a commit, adoption,
+qualification, run, registry action, or publication. One verified completion
+can now receive an immutable accept-for-commit-review, defer, or reject review.
+Only acceptance derives a local candidate for a later operator decision, and
+that candidate still forces `commitReady: false`,
+`requires_operator_commit_review`, and operator review `not_run`. Defer and
+reject derive no candidate. Reviewer identity and guard-value provenance remain
+unattested. The shell performs no provider call, inference, account action,
+publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -97,6 +103,7 @@ python bin\check_mobile_arena_private_blueprint_delta_review.py
 python bin\check_mobile_arena_private_blueprint_revision.py
 python bin\check_mobile_arena_private_blueprint_draft_review.py
 python bin\check_mobile_arena_private_blueprint_guard_completion.py
+python bin\check_mobile_arena_private_blueprint_guard_completion_review.py
 python bin\check_mobile_arena_exchange.py
 ```
 

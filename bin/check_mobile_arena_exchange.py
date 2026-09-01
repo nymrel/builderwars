@@ -184,7 +184,16 @@ def main() -> int:
     require("boolean guard value required" in adapter and "Choose true or false" in js, "private blueprint guard-completion boolean boundary missing")
     require("preserves all known and applied guard values" in adapter and "Known and applied guards cannot change" in js, "private blueprint guard-completion preservation boundary missing")
     require("requires_guard_completion_review" in adapter and "review still required" in js and "not commit-ready" in js, "private blueprint guard-completion readiness boundary missing")
-    checks += 97
+    require("createPortablePrivateBlueprintGuardCompletionReview" in adapter and "verifyPortablePrivateBlueprintGuardCompletionReview" in adapter, "private guard-completion review verifier missing")
+    require('PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-guard-completion-review.v1"' in adapter, "private guard-completion review schema drift")
+    require("PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_MAX_LENGTH = 7340032" in adapter and 'maxlength="7340032"' in js, "private guard-completion review length boundary missing")
+    require("data-private-blueprint-guard-completion-review-create" in js and "data-private-blueprint-guard-completion-review-verify" in js, "private guard-completion review controls missing")
+    require("accept_for_commit_review" in adapter and "guard_value_provenance_unattested" in adapter and "known_guard_preservation_failed" in adapter, "private guard-completion review decisions or reasons missing")
+    require("proposed_local_blueprint_candidate_for_operator_commit_review" in adapter and "reviewed for operator commit decision · not commit-ready" in js, "private guard-completion review candidate boundary missing")
+    require("requires_operator_commit_review" in adapter and "operator review" in js and "Commit nothing." in js, "private guard-completion operator hold missing")
+    require("The verified upstream completion remains available" in js, "private guard-completion review refusal must preserve upstream completion")
+    require("exactly one immutable private local review" in adapter and "immutable private decision" in js, "private guard-completion review immutability boundary missing")
+    checks += 106
 
     print("[5] accessibility, offline, and reduced-motion contracts")
     for marker in (
@@ -237,12 +246,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=22", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=23", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=22",
-        "./styles.css?v=22",
-        "./data-adapter.js?v=22",
-        "./app.js?v=22",
+        "./index.html?v=23",
+        "./styles.css?v=23",
+        "./data-adapter.js?v=23",
+        "./app.js?v=23",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -251,7 +260,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=22"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=23"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -451,6 +460,20 @@ def main() -> int:
     )
     require(private_blueprint_guard_completion_check.returncode == 0, f"private blueprint guard-completion regression failed: {private_blueprint_guard_completion_check.stderr.strip()}")
     require("PASS" in private_blueprint_guard_completion_check.stdout, "private blueprint guard-completion regression did not report PASS")
+    checks += 2
+
+    private_blueprint_guard_completion_review_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_private_blueprint_guard_completion_review.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=240,
+        check=False,
+    )
+    require(private_blueprint_guard_completion_review_check.returncode == 0, f"private guard-completion review regression failed: {private_blueprint_guard_completion_review_check.stderr.strip()}")
+    require("PASS" in private_blueprint_guard_completion_review_check.stdout, "private guard-completion review regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")
