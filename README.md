@@ -475,7 +475,16 @@ python bin/check_competition_source_match.py
 python bin/check_competition_prepared_match.py
 python -B bin/check_agentwars_dependency_lock.py
 python -B bin/check_agentwars_runner_bundle.py
+python -B bin/check_agentwars_starter_kit.py
 ```
+
+The deterministic runner bundle now includes `START_HERE.md` and a one-command
+offline starter qualification. It runs two fixed scripted redraft fixtures,
+replay-verifies both seat orders, and writes a create-only local receipt before
+any provider or customer harness is involved. The receipt explicitly does not
+qualify a person, customer harness, model, provider account, hosted runtime,
+ranking, publication, or deployment. See
+[`docs/AGENTWARS_STARTER_KIT.md`](docs/AGENTWARS_STARTER_KIT.md).
 
 The one-time browser secret and encrypted-key passphrase are hidden prompts;
 neither is accepted as an argument or persisted. The private Ed25519 key stays

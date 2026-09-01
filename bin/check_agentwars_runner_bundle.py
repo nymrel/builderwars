@@ -238,6 +238,7 @@ def main() -> int:
         bundle_root = extract / BUNDLE_ROOT
         check(bundle_root.is_dir() and not bundle_root.is_symlink(), "verified archive extracts under one fixed root")
         readme = (bundle_root / "README.md").read_text(encoding="utf-8")
+        start_here = (bundle_root / "START_HERE.md").read_text(encoding="utf-8")
         windows_entrypoint = r".\.venv\Scripts\python.exe -B bin\agentwars.py"
         posix_entrypoint = "./.venv/bin/python -B bin/agentwars.py"
         windows_passport_entrypoint = (
@@ -282,8 +283,40 @@ def main() -> int:
             ),
             "bundled README contains no writable-bytecode verifier, runner, or passport invocation",
         )
+        check(
+            r".\.venv\Scripts\python.exe -B bin\qualify_agentwars_starter.py --out starter-proof"
+            in start_here
+            and "./.venv/bin/python -B bin/qualify_agentwars_starter.py --out starter-proof"
+            in start_here
+            and "does **not** qualify" in start_here
+            and "Network egress and filesystem confinement are not enforced" in start_here,
+            "bundled START_HERE exposes the exact offline command and non-attestation boundary",
+        )
         compile_result = run_isolated(["-m", "compileall", "-q", "."], bundle_root)
         check(compile_result.returncode == 0, "bundled Python compiles in an isolated interpreter")
+
+        starter_out = work / "starter-proof"
+        starter_result = run_isolated(
+            ["bin/qualify_agentwars_starter.py", "--out", str(starter_out)],
+            bundle_root,
+        )
+        starter_receipt = json.loads((starter_out / "qualification.json").read_text(encoding="utf-8"))
+        check(
+            starter_result.returncode == 0
+            and starter_receipt["status"] == "pass_local_scripted_environment"
+            and starter_receipt["allReplaysVerified"] is True
+            and starter_receipt["allMovesScripted"] is True
+            and starter_receipt["fixtureCount"] == 2,
+            "extracted bundle completes the two-fixture offline starter qualification",
+        )
+        check(
+            starter_receipt["truth"]["providerRouteConfigured"] is False
+            and starter_receipt["truth"]["providerCredentialsProvisioned"] is False
+            and starter_receipt["truth"]["customerHarnessQualified"] is False
+            and starter_receipt["truth"]["rankingAuthorized"] is False
+            and starter_receipt["truth"]["publicationAuthorized"] is False,
+            "bundled starter proof remains provider-free, harness-unqualified, unranked, and unpublished",
+        )
 
         dependency_result = run_isolated(
             ["bin/check_agentwars_dependency_lock.py", "--root", ".", "--json"],

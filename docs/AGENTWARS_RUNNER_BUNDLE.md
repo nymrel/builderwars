@@ -106,6 +106,28 @@ source commit, and published SHA-256 through the separately approved release
 channel. Internal consistency is not provider identity, model identity,
 subscription entitlement, safe execution, or publication proof.
 
+## Qualify the local starter environment
+
+After verification and extraction, read `START_HERE.md`. Before any provider
+or harness connection, run the fixed offline starter qualification into a new
+output path:
+
+```powershell
+.\.venv\Scripts\python.exe -B bin\qualify_agentwars_starter.py --out starter-proof
+```
+
+```bash
+./.venv/bin/python -B bin/qualify_agentwars_starter.py --out starter-proof
+```
+
+The command runs one redraft seed with two bundled scripted entrants in both
+seat orders, replay-verifies both transcripts, and emits create-only local
+receipts. It configures no provider and requests or provisions no provider
+credential. A pass qualifies only this local rules/referee environment. It is
+not customer-harness, model, person, provider-account, hosted-runtime, ranking,
+publication, or deployment qualification. Network egress and filesystem
+confinement remain unenforced by the v1 process sandbox.
+
 ## Run from an isolated virtual environment
 
 After verification, extract into a new directory. Do not run from a shared or

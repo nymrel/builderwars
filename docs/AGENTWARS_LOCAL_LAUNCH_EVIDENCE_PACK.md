@@ -30,7 +30,7 @@ It deliberately records the protected downstream nodes as held.
 | ---: | --- | --- | --- |
 | 1 | Source custody | Records exact commit, tree, branch, and clean status | Canonical-main integration, remote custody, deployment binding |
 | 2 | Deterministic arena | Runs the adversarial engine self-check | Hosted/provider execution and production containment |
-| 3 | Product, leagues, and scale | Checks public product, distinct redraft/dynasty, deterministic scale, and the finite season support/moderation/correction/rollback contract | Live leagues, staffed support, executed moderation/corrections, audience, retention, rankings |
+| 3 | Product, leagues, starter, and scale | Checks public product, distinct redraft/dynasty, deterministic scale, the finite season support/moderation/correction/rollback contract, and a two-fixture offline scripted starter qualification | Live leagues, customer harness/model qualification, staffed support, executed moderation/corrections, audience, retention, rankings |
 | 4 | Provider boundaries and regressions | Runs the complete provider-hub regression ladder | Customer authorization, provider identity, paid compute, production secrets |
 | 5 | Runner bundle and dependencies | Checks immutable offline bundle and dependency lock | Public artifact hosting, Nymrel signature, provider runtime identity |
 | 6 | Replay and verifier parity | Checks package versus standalone verifier parity | Production custody, registry commit, external signature |
@@ -89,6 +89,10 @@ The JSON includes:
   dynasty cohort, scoped standings, bounded support/moderation decisions,
   append-only correction candidates, creator admission held, and every season,
   staffing, action, ranking, and launch authority flag false;
+- two byte-identical offline starter runs covering one fixed redraft seed and
+  both seat orders, with replay-verified scripted moves, no provider route or
+  credential provisioning, no customer harness/model qualification, and no
+  ranking, publication, or deployment authority;
 - a strict six-event measurement contract and honest zero baseline with every
   production, audience, performance, identity, retention, and launch flag false;
 - deterministic raw and gzip budgets for the exact tracked Mobile Arena asset

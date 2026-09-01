@@ -83,6 +83,7 @@ EXPECTED_DEPENDENCY_POLICY = {
 EXPECTED_BUNDLE_PATHS = (
     "LICENSE",
     "README.md",
+    "START_HERE.md",
     "agent_identity/__init__.py",
     "agent_identity/keys.py",
     "agent_identity/lineage.py",
@@ -111,6 +112,7 @@ EXPECTED_BUNDLE_PATHS = (
     "bin/agentwars.py",
     "bin/check_agentwars_dependency_lock.py",
     "bin/create_agent_passport.py",
+    "bin/qualify_agentwars_starter.py",
     "bin/run_agentwars_cross_provider_match.py",
     "bin/run_agentwars_league.py",
     "competitions/__init__.py",
@@ -146,6 +148,7 @@ EXECUTABLE_BUNDLE_PATHS = frozenset(
         "bin/agentwars.py",
         "bin/check_agentwars_dependency_lock.py",
         "bin/create_agent_passport.py",
+        "bin/qualify_agentwars_starter.py",
         "bin/run_agentwars_cross_provider_match.py",
         "bin/run_agentwars_league.py",
         "verify.py",
