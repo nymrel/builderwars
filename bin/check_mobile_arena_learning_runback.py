@@ -34,6 +34,7 @@ function check(predicate, message) {
   checks.push(message);
 }
 function copy(value) { return JSON.parse(JSON.stringify(value)); }
+(async () => {
 function learningRejects(mutator, expected) {
   const proof = copy(validProof);
   let source = "verified_corpus";
@@ -53,7 +54,7 @@ function proposalRejects(mutator, expected) {
   check(message.includes(expected), `proposal rejects ${expected}`);
 }
 
-const view = adapter.adaptArenaReadModel(model, demo);
+const view = await adapter.adaptArenaReadModel(model, demo);
 check(view.proofReceipts.length === 8, "projects eight reviewed proofs");
 check(view.proofReceipts.every((proof) => proof.runback && proof.runback.parentReceiptId === proof.receiptId), "every proof carries parent runback lineage");
 check(view.proofReceipts.every((proof) => proof.runback.status === "unplayed_challenge"), "every proof runback remains unplayed");
@@ -149,6 +150,10 @@ try { adapter.buildReceiptLearningAction(fallbackView.proofReceipts[0], fallback
 check(fallbackMessage.includes("verified corpus required"), "demo fallback cannot enter receipt learning");
 
 process.stdout.write(JSON.stringify({ status: "PASS", checks: checks.length }));
+})().catch((error) => {
+  process.stderr.write(error.stack || error.message);
+  process.exit(1);
+});
 """
 
     result = subprocess.run(

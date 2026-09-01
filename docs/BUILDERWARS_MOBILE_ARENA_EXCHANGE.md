@@ -294,19 +294,26 @@ authenticated user journey, or activated competition.
 ### Verified-corpus client adapter
 
 The mobile shell now treats the compiled read model as its primary competitive
-source and the original fixture as a visibly disclosed fallback. The adapter:
+source and the original fixture as a visibly disclosed fallback. The payload
+digest is integrity evidence, not a signature, server-origin proof, or author
+identity claim. The adapter:
 
 1. validates the read-model schema, digest shape, source policy, receipt count,
    PASS replay/engine/snapshot predicates, allowlist status, content-derived
    harness versions, evidence counts, and false attestation flags;
-2. renders receipt-backed Arena tape, channels, proof inspection, and an
+2. pins the reviewed digest in executable source and asynchronously recomputes
+   canonical SHA-256 before every projection, refusing both stale-content drift
+   and a self-consistent but unreviewed replacement digest;
+3. renders receipt-backed Arena tape, channels, proof inspection, and an
    alphabetic receipt board that explicitly says it is not a ranking;
-3. omits invented viewers, rating deltas, live credits, stream clocks, and
+4. omits invented viewers, rating deltas, live credits, stream clocks, and
    enabled queues;
-4. keeps every proposed future fixture disabled and visibly unactivated;
-5. falls back to the bounded demo only when the verified corpus is missing or
-   invalid, and fails closed if that fallback cannot load; and
-6. caches both bounded local sources for offline inspection without adding any
+5. keeps every proposed future fixture disabled and visibly unactivated;
+6. falls back to the bounded demo when the verified corpus is missing, invalid,
+   digest-mismatched, digest-unreviewed, or cannot be checked because browser
+   SHA-256 is unavailable; the fallback discloses only a bounded reason code and
+   fails closed if the demo cannot load; and
+7. caches both bounded local sources for offline inspection without adding any
    cross-origin capability.
 
 ```powershell

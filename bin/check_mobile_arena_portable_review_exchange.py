@@ -63,7 +63,7 @@ async function rejectsPacket(mutator, expected, { reseal = false, source = packe
 let packet;
 
 async function main() {
-  const view = adapter.adaptArenaReadModel(model, demo);
+  const view = await adapter.adaptArenaReadModel(model, demo);
   const proof = view.proofReceipts.find((candidate) => candidate.moveSourceCounts.model > 0);
   const learning = adapter.buildReceiptLearningAction(proof, "verified_corpus");
   const blueprint = {

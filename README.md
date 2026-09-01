@@ -18,8 +18,9 @@ Home: **<https://nymrel.com/builderwars>**
 The local-only mobile shell turns the platform vision into five working
 destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
 reviewed Arena receipt corpus through a fail-closed client adapter, retains the
-fixed demo fixture as a visibly disclosed fallback, opens receipt-addressable
-proofs and receipt-backed rivalry history, saves blueprints only in the browser,
+fixed demo fixture as a visibly disclosed fallback, pins and recomputes the
+corpus canonical SHA-256 digest before any `verified_corpus` projection, opens
+receipt-addressable proofs and receipt-backed rivalry history, saves blueprints only in the browser,
 previews deterministic fixture qualification without execution, and turns a
 reviewed proof into a bounded learning action plus a versioned, still-unplayed
 runback proposal. The proposal can be exported as canonical JSON and imported
@@ -130,7 +131,10 @@ publication, or production readiness.
 The companion Arena read model is compiled from the tracked, reviewed
 AgentWars publication artifact. It is deterministic and fail-closed: the build
 rejects digest, allowlist, replay, verifier, evidence-label, and generated-file
-drift before any result can enter a client read path.
+drift before any result can enter a client read path. The browser adapter also
+pins the reviewed digest in executable source and recomputes it with Web Crypto
+before projection. Content drift, an internally rehashed but unreviewed model,
+or unavailable SHA-256 can never retain the verified-corpus label.
 
 ```powershell
 python bin\build_mobile_arena_read_model.py --check
@@ -141,7 +145,9 @@ python bin\check_mobile_arena_read_model.py
 live or authenticated feed. Its explicit truth boundary keeps model, provider,
 runtime, hosting, ranking, and activation claims false until separately proven.
 If that contract is missing or invalid, the client discloses `DEMO FALLBACK`;
-if the bounded demo fallback is also unavailable, the shell fails closed.
+digest and integrity failures carry bounded fallback reasons without exposing
+source contents. If the bounded demo fallback is also unavailable, the shell
+fails closed.
 
 Product direction and explicit non-goals:
 [`docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md`](docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md).

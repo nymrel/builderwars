@@ -25,6 +25,7 @@ def main() -> int:
     script = r"""
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const adapter = require(path.join(process.cwd(), "data-adapter.js"));
 const demo = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "demo-state.json"), "utf8"));
 const model = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "arena-read-model.v1.json"), "utf8"));
@@ -34,11 +35,20 @@ function check(predicate, message) {
   checks.push(message);
 }
 function copy(value) { return JSON.parse(JSON.stringify(value)); }
-function rejects(mutator, expected) {
+function canonicalJSON(value) {
+  if (value === null || typeof value === "boolean" || typeof value === "string" || typeof value === "number") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJSON(item)).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJSON(value[key])}`).join(",")}}`;
+}
+function digestModel(value) {
+  const payload = Object.fromEntries(Object.entries(value).filter(([key]) => key !== "readModelDigest"));
+  return crypto.createHash("sha256").update(canonicalJSON(payload), "utf8").digest("hex");
+}
+async function rejects(mutator, expected) {
   const changed = copy(model);
   mutator(changed);
   let message = "";
-  try { adapter.adaptArenaReadModel(changed, demo); } catch (error) { message = error.message; }
+  try { await adapter.adaptArenaReadModel(changed, demo); } catch (error) { message = error.message; }
   check(message.includes(expected), `rejects ${expected}`);
 }
 function response(body, ok = true) {
@@ -49,8 +59,10 @@ function response(body, ok = true) {
   adapter.validateDemoFixture(demo);
   adapter.validateArenaReadModel(model);
   checks.push("validates bounded inputs");
+  await adapter.verifyArenaReadModelIntegrity(model);
+  check(adapter.READ_MODEL_DIGEST_PIN === model.readModelDigest, "pins the reviewed read-model digest in executable source");
 
-  const view = adapter.adaptArenaReadModel(model, demo);
+  const view = await adapter.adaptArenaReadModel(model, demo);
   check(view.schemaVersion === adapter.VIEW_SCHEMA, "projects versioned view schema");
   check(view.sourceMode === "verified_corpus", "selects verified corpus");
   check(view.demoOnly === false, "does not relabel corpus as demo");
@@ -73,18 +85,26 @@ function response(body, ok = true) {
   check(view.proofReceipts.every((proof) => proof.runback?.status === "unplayed_challenge"), "keeps every proof runback unplayed");
   check(view.proofReceipts.every((proof) => proof.game?.version === "1"), "projects proof game bindings");
 
-  rejects((changed) => { changed.truthBoundary.live = true; }, "live must stay false");
-  rejects((changed) => { changed.receipts[0].proof.replayVerdict = "FAIL"; }, "replay failed");
-  rejects((changed) => { changed.receipts[0].proof.publicationApproved = false; }, "unpublished receipt");
-  rejects((changed) => { changed.summary.receiptCount += 1; }, "receipt count mismatch");
-  rejects((changed) => { changed.futureFixtures[0].activationStatus = "activated"; }, "activated future fixture");
-  rejects((changed) => { changed.receipts[0].entrants[0].harnessVersionContentDerived = false; }, "harness version drift");
-  rejects((changed) => { changed.rivalries[0].meetings[0].receiptId = "0".repeat(64); }, "unknown rivalry receipt");
-  rejects((changed) => { changed.rivalries[0].meetings[0].winnerEntrantId = changed.rivalries[0].entrantIds[1]; }, "rivalry outcome drift");
-  rejects((changed) => { changed.rivalries[0].meetings[0].meetingNumber = 2; }, "rivalry meeting order drift");
-  rejects((changed) => { changed.rivalries[0].meetings[0].runback.status = "played"; }, "rivalry runback activated");
-  rejects((changed) => { changed.rivalries[1].meetings[0].receiptId = changed.rivalries[0].meetings[0].receiptId; }, "duplicate rivalry receipt");
-  rejects((changed) => { changed.rivalries[0].meetings.pop(); changed.rivalries[0].meetingCount -= 1; }, "receipt missing rivalry runback lineage");
+  await rejects((changed) => { changed.truthBoundary.live = true; }, "live must stay false");
+  await rejects((changed) => { changed.receipts[0].proof.replayVerdict = "FAIL"; }, "replay failed");
+  await rejects((changed) => { changed.receipts[0].proof.publicationApproved = false; }, "unpublished receipt");
+  await rejects((changed) => { changed.summary.receiptCount += 1; }, "receipt count mismatch");
+  await rejects((changed) => { changed.futureFixtures[0].activationStatus = "activated"; }, "activated future fixture");
+  await rejects((changed) => { changed.receipts[0].entrants[0].harnessVersionContentDerived = false; }, "harness version drift");
+  await rejects((changed) => { changed.rivalries[0].meetings[0].receiptId = "0".repeat(64); }, "unknown rivalry receipt");
+  await rejects((changed) => { changed.rivalries[0].meetings[0].winnerEntrantId = changed.rivalries[0].entrantIds[1]; }, "rivalry outcome drift");
+  await rejects((changed) => { changed.rivalries[0].meetings[0].meetingNumber = 2; }, "rivalry meeting order drift");
+  await rejects((changed) => { changed.rivalries[0].meetings[0].runback.status = "played"; }, "rivalry runback activated");
+  await rejects((changed) => { changed.rivalries[1].meetings[0].receiptId = changed.rivalries[0].meetings[0].receiptId; }, "duplicate rivalry receipt");
+  await rejects((changed) => { changed.rivalries[0].meetings.pop(); changed.rivalries[0].meetingCount -= 1; }, "receipt missing rivalry runback lineage");
+
+  await rejects((changed) => { changed.receipts[0].headline += " altered"; }, "digest mismatch");
+  const rehashedMutation = copy(model);
+  rehashedMutation.receipts[0].headline += " altered and rehashed";
+  rehashedMutation.readModelDigest = digestModel(rehashedMutation);
+  let pinMessage = "";
+  try { await adapter.adaptArenaReadModel(rehashedMutation, demo); } catch (error) { pinMessage = error.message; }
+  check(pinMessage.includes("digest pin mismatch"), "rejects a locally rehashed but unreviewed corpus");
 
   const validFetch = async (url) => response(url.includes("arena-read-model") ? model : demo);
   const loaded = await adapter.loadArenaData(validFetch);
@@ -100,6 +120,29 @@ function response(body, ok = true) {
   const invalidModelFetch = async (url) => response(url.includes("arena-read-model") ? invalidModel : demo);
   const invalidFallback = await adapter.loadArenaData(invalidModelFetch);
   check(invalidFallback.sourceMode === "demo_fixture_fallback", "falls back when corpus is invalid");
+
+  const digestMutation = copy(model);
+  digestMutation.receipts[0].headline += " altered";
+  const digestMutationFetch = async (url) => response(url.includes("arena-read-model") ? digestMutation : demo);
+  const digestFallback = await adapter.loadArenaData(digestMutationFetch);
+  check(digestFallback.sourceMode === "demo_fixture_fallback", "falls back when corpus digest does not match its content");
+  check(digestFallback.sourceMeta.fallbackReason === "verified_read_model_digest_mismatch", "discloses bounded digest-mismatch fallback reason");
+
+  const rehashedMutationFetch = async (url) => response(url.includes("arena-read-model") ? rehashedMutation : demo);
+  const pinFallback = await adapter.loadArenaData(rehashedMutationFetch);
+  check(pinFallback.sourceMode === "demo_fixture_fallback", "falls back when an unreviewed digest is internally self-consistent");
+  check(pinFallback.sourceMeta.fallbackReason === "verified_read_model_digest_mismatch", "does not relabel a rehashed unreviewed corpus as verified");
+
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+  Object.defineProperty(globalThis, "crypto", { value: undefined, configurable: true });
+  try {
+    const unavailableIntegrityFallback = await adapter.loadArenaData(validFetch);
+    check(unavailableIntegrityFallback.sourceMode === "demo_fixture_fallback", "falls back when browser SHA-256 is unavailable");
+    check(unavailableIntegrityFallback.sourceMeta.fallbackReason === "verified_read_model_integrity_unavailable", "discloses bounded integrity-unavailable fallback reason");
+  } finally {
+    if (cryptoDescriptor) Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+    else delete globalThis.crypto;
+  }
 
   let demoFailure = "";
   try { await adapter.loadArenaData(async () => response({}, false)); } catch (error) { demoFailure = error.message; }
@@ -125,7 +168,7 @@ function response(body, ok = true) {
     require(result.returncode == 0, f"Arena read-adapter check failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
     require(payload.get("status") == "PASS", "Arena read adapter did not report PASS")
-    require(payload.get("checks", 0) >= 39, "Arena read adapter coverage unexpectedly shrank")
+    require(payload.get("checks", 0) >= 48, "Arena read adapter coverage unexpectedly shrank")
     print(f"BuilderWars mobile Arena read adapter: PASS ({payload['checks']} checks)")
     print("verified corpus / disclosed demo fallback / fail-closed local source boundary")
     return 0

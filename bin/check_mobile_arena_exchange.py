@@ -259,10 +259,10 @@ def main() -> int:
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
     require(webmanifest.get("start_url") == "./index.html?v=24", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=24",
-        "./styles.css?v=24",
-        "./data-adapter.js?v=24",
-        "./app.js?v=24",
+        "./index.html?v=25",
+        "./styles.css?v=25",
+        "./data-adapter.js?v=25",
+        "./app.js?v=25",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -271,10 +271,11 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=24"' in sw, "offline navigation fallback must be versioned")
+    require('CACHE_NAME = "builderwars-mobile-arena-v25"' in sw, "service-worker cache generation must be pinned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=25"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
-    checks += 4
+    checks += 5
     checks += 2
 
     adapter_check = subprocess.run(

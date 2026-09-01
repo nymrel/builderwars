@@ -35,6 +35,7 @@ function check(predicate, message) {
   checks.push(message);
 }
 function copy(value) { return JSON.parse(JSON.stringify(value)); }
+(async () => {
 function previewRejects(mutator, expected) {
   const blueprint = copy(validBlueprint);
   const fixture = copy(validFixture);
@@ -56,7 +57,7 @@ check(routes.parseArenaRoute("#unknown") === null, "rejects unknown view");
 check(routes.parseArenaRoute("#watch/receipt") === null, "rejects incomplete receipt route");
 check(routes.parseArenaRoute("#watch/receipt/unsafe%2Fvalue") === null, "rejects encoded unsafe receipt id");
 
-const view = adapter.adaptArenaReadModel(model, demo);
+const view = await adapter.adaptArenaReadModel(model, demo);
 check(view.rivalries.length === 3, "projects three verified rivalries");
 check(view.rivalries.every((rivalry) => view.proofReceipts.some((proof) => proof.receiptId === rivalry.latestReceiptId)), "rivalry links resolve to reviewed receipts");
 check(view.rivalries.every((rivalry) => rivalry.runbackStatus === "unplayed_challenge"), "rivalry runbacks remain unplayed");
@@ -116,6 +117,10 @@ previewRejects(({ fixture }) => { fixture.resourceClass = "paid-compute"; }, "re
 previewRejects(({ setSource }) => { setSource("demo_fixture_fallback"); }, "verified corpus required");
 
 process.stdout.write(JSON.stringify({ status: "PASS", checks: checks.length }));
+})().catch((error) => {
+  process.stderr.write(error.stack || error.message);
+  process.exit(1);
+});
 """
 
     result = subprocess.run(

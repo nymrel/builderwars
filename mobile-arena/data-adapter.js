@@ -7,6 +7,7 @@
 }(typeof globalThis !== "undefined" ? globalThis : this, function createDataAdapter() {
   const DEMO_SCHEMA = "builderwars.mobile-arena-demo.v1";
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
+  const READ_MODEL_DIGEST_PIN = "c29a4c2d08f18bb3e60c6a0bc57f285057e0b2a38a8c4fde6a3cdadc21a94e89";
   const VIEW_SCHEMA = "builderwars.mobile-arena-view.v1";
   const QUALIFICATION_SCHEMA = "builderwars.mobile-qualification-preview.v1";
   const LEARNING_SCHEMA = "builderwars.mobile-receipt-learning.v1";
@@ -408,6 +409,27 @@
       requireValue(fixture.activationStatus === "proposed_not_activated", "unsafe arena read model: activated future fixture");
       requireValue(fixture.status === "unplayed", "unsafe arena read model: future fixture status drift");
     }
+    return model;
+  }
+
+  async function verifyArenaReadModelIntegrity(modelInput) {
+    const model = validateArenaReadModel(modelInput);
+    requireValue(
+      typeof TextEncoder !== "undefined" && globalThis.crypto?.subtle,
+      "unsafe arena read model: SHA-256 unavailable",
+    );
+    requireValue(
+      equalHex(model.readModelDigest, READ_MODEL_DIGEST_PIN),
+      "unsafe arena read model: digest pin mismatch",
+    );
+    const digestPayload = Object.fromEntries(
+      Object.entries(model).filter(([key]) => key !== "readModelDigest"),
+    );
+    const computedDigest = await sha256Hex(canonicalJSON(digestPayload));
+    requireValue(
+      equalHex(computedDigest, model.readModelDigest),
+      "unsafe arena read model: digest mismatch",
+    );
     return model;
   }
 
@@ -3078,8 +3100,8 @@
     };
   }
 
-  function adaptArenaReadModel(modelInput, demoInput) {
-    const model = validateArenaReadModel(modelInput);
+  async function adaptArenaReadModel(modelInput, demoInput) {
+    const model = await verifyArenaReadModelIntegrity(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
     const boundary = model.truthBoundary.statement;
     const runbackByReceipt = new Map(model.rivalries.flatMap((rivalry) => rivalry.meetings.map((meeting) => [meeting.receiptId, meeting.runback])));
@@ -3187,6 +3209,15 @@
     return demo;
   }
 
+  function readModelFallbackReason(error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("digest mismatch") || message.includes("digest pin mismatch")) {
+      return "verified_read_model_digest_mismatch";
+    }
+    if (message.includes("SHA-256 unavailable")) return "verified_read_model_integrity_unavailable";
+    return "verified_read_model_unavailable_or_invalid";
+  }
+
   async function fetchJSON(fetchImpl, path, label) {
     const response = await fetchImpl(path, { cache: "no-store" });
     if (!response || response.ok !== true) throw new Error(`${label} request failed`);
@@ -3198,9 +3229,9 @@
     validateDemoFixture(demo);
     try {
       const model = await fetchJSON(fetchImpl, "data/arena-read-model.v1.json", "verified read model");
-      return adaptArenaReadModel(model, demo);
-    } catch {
-      return demoFallback(demo);
+      return await adaptArenaReadModel(model, demo);
+    } catch (error) {
+      return demoFallback(demo, readModelFallbackReason(error));
     }
   }
 
@@ -3249,6 +3280,7 @@
     QUALIFICATION_SCHEMA,
     PREVIEW_RESOURCE_CLASS,
     READ_MODEL_SCHEMA,
+    READ_MODEL_DIGEST_PIN,
     RUNBACK_PROPOSAL_SCHEMA,
     VIEW_SCHEMA,
     adaptArenaReadModel,
@@ -3272,6 +3304,7 @@
     demoFallback,
     loadArenaData,
     validateArenaReadModel,
+    verifyArenaReadModelIntegrity,
     validateDemoFixture,
     validateRunbackProposal,
     verifyPortableRunbackEnvelope,
