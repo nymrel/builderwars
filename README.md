@@ -269,6 +269,21 @@ shortcut substitutions. A green result is not a consented tester session or a
 launch approval. Contract and future protected ceremony:
 [`docs/AGENTWARS_TESTER_CEREMONY.md`](docs/AGENTWARS_TESTER_CEREMONY.md).
 
+The mobile Arena now exposes the exact tracked rubric as an optional local
+worksheet. It requires all eight ratings plus bounded blocker and severe-issue
+classes, then creates canonical digest-bound JSON labeled
+`LOCAL_DRAFT_NOT_COLLECTED`. The draft has zero identity fields, no free text,
+no clipboard or file access, no network transport, no persistence, no human
+feedback claim, and all production-authority flags false. Reload or Reset clears
+it. An invalid rubric disables the worksheet without hiding the Arena or
+substituting another source.
+
+```powershell
+python bin\build_mobile_tester_feedback_rubric.py --check
+python bin\check_mobile_arena_exchange.py
+python bin\check_mobile_arena_browser.py
+```
+
 ## Local launch evidence pack
 
 One source-bound command assembles the current 13-stage local launch candidate.

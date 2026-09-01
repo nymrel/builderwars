@@ -24,7 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MOBILE_ARENA = ROOT / "mobile-arena"
 READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
-SHELL_VERSION = "27"
+TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
+SHELL_VERSION = "28"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -144,9 +145,9 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require(response is not None and response.ok, "normal: loopback shell returns HTTP success")
         wait_for_source(page, "verified_corpus")
         requested_resources = set(observed["same_origin_requests"])
-        for resource in (f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
+        for resource in (f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}", "/data/tester-feedback-rubric.v1.json"):
             evidence.require(resource in requested_resources, f"normal: installed HTML requests current shell resource {resource}")
-        evidence.require(not any("?v=26" in resource for resource in requested_resources), "normal: retired v26 shell URLs are not requested")
+        evidence.require(not any("?v=27" in resource for resource in requested_resources), "normal: retired v27 shell URLs are not requested")
         evidence.require(locator_visible(page, "#starter-panel"), "starter: first browser visit exposes the local starter guide")
         evidence.require(page.locator("[data-starter-action]").count() == 3, "starter: exactly three bounded first moves are available")
         starter_boundary = page.locator("#starter-boundary").inner_text().lower()
@@ -254,6 +255,43 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require(page.locator("#session-starter-status").inner_text() == "Completed locally", "local session: starter completion is described as local")
         evidence.require(page.locator("#session-storage-status").inner_text() == "Available · browser only", "local session: storage scope is visible")
         evidence.require(page.locator("#session-account-status").inner_text() == "None" and page.locator("#session-provider-status").inner_text() == "None", "local session: account and provider remain absent")
+        feedback_button = page.locator("[data-session-open-feedback]")
+        evidence.require(feedback_button.is_enabled(), "tester feedback: verified canonical rubric enables the local worksheet")
+        storage_before_feedback = page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))")
+        feedback_button.click()
+        evidence.require(locator_visible(page, "#tester-feedback-sheet"), "tester feedback: local worksheet opens from session controls")
+        evidence.require(page.locator("#tester-feedback-sheet").evaluate("node => node.contains(document.activeElement)"), "tester feedback: focus enters the worksheet dialog")
+        feedback_boundary = page.locator("#tester-feedback-boundary").inner_text().lower()
+        evidence.require(all(term in feedback_boundary for term in ("no name", "credential", "free text", "no feedback transport")), "tester feedback: identity, secret, free-text, and transport boundaries are explicit")
+        rating_selects = page.locator("#tester-feedback-categories select")
+        evidence.require(rating_selects.count() == 8, "tester feedback: canonical eight-category rubric is rendered exactly")
+        for index in range(8):
+            rating_selects.nth(index).select_option(str((index % 5) + 1))
+        page.locator("#tester-feedback-blocker").select_option("provider_boundary")
+        page.locator("#tester-feedback-severe").select_option("truth_overclaim")
+        page.locator("[data-tester-feedback-generate]").click()
+        evidence.require(locator_visible(page, "#tester-feedback-output"), "tester feedback: complete structured selections create a visible draft")
+        feedback_serialized = page.locator("#tester-feedback-json").input_value()
+        feedback_draft = json.loads(feedback_serialized)
+        evidence.require(feedback_draft["draftStatus"] == "LOCAL_DRAFT_NOT_COLLECTED", "tester feedback: draft cannot be mistaken for collected feedback")
+        evidence.require(len(feedback_draft["ratings"]) == 8 and [row["rating"] for row in feedback_draft["ratings"]] == [1, 2, 3, 4, 5, 1, 2, 3], "tester feedback: exact structured ratings survive canonicalization")
+        evidence.require(feedback_draft["blockerClass"] == "provider_boundary" and feedback_draft["severeIssueClass"] == "truth_overclaim", "tester feedback: bounded triage classes survive canonicalization")
+        evidence.require(feedback_draft["identityFieldsAllowed"] == [] and feedback_draft["freeTextIncluded"] is False, "tester feedback: identity and free text stay absent")
+        evidence.require(feedback_draft["storageMode"] == "browser_memory_only" and feedback_draft["transportStatus"] == "not_configured" and feedback_draft["submissionStatus"] == "not_submitted", "tester feedback: storage, transport, and submission stay absent")
+        evidence.require(feedback_draft["humanFeedbackCollected"] is False and not any(feedback_draft["productionAuthority"].values()), "tester feedback: human evidence and production authority stay false")
+        evidence.require(len(feedback_draft["draftDigest"]) == 64, "tester feedback: canonical draft carries a content-shaped digest")
+        evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before_feedback, "tester feedback: draft generation does not touch browser storage")
+        page.locator("#tester-feedback-sheet [data-sheet-close]").click()
+        evidence.require(page.evaluate("document.activeElement?.id") == "profile-button", "tester feedback: close restores the local-session trigger focus")
+        page.reload(wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        page.locator("#profile-button").click()
+        page.locator("[data-session-open-feedback]").click()
+        evidence.require(page.locator("#tester-feedback-output").is_hidden() and page.locator("#tester-feedback-json").input_value() == "", "tester feedback: reload clears the browser-memory-only draft")
+        evidence.require(page.locator("#tester-feedback-categories select").first.input_value() == "", "tester feedback: reload clears every structured selection")
+        page.locator("#tester-feedback-sheet [data-sheet-close]").click()
+        page.locator("#profile-button").click()
+        evidence.journey("identity-free memory-only tester feedback draft and reload cleanup")
         remove_button = page.locator("[data-session-remove-blueprint]")
         remove_button.click()
         evidence.require(remove_button.inner_text() == "Confirm remove blueprint", "local cleanup: first press only arms blueprint removal")
@@ -335,6 +373,26 @@ def fatal_source_journey(browser: Any, base_url: str, evidence: Evidence) -> Non
         context.close()
 
 
+def tester_rubric_failure_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
+    context = browser.new_context(viewport=VIEWPORTS[0], service_workers="allow")
+    page = context.new_page()
+    observed = install_observers(page, base_url, "tester-rubric-failure")
+    try:
+        page.route(TESTER_RUBRIC_PATH, lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
+        page.goto(base_url, wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        evidence.require(page.locator("#source-badge").inner_text() == "LOCAL CORPUS", "tester rubric failure: the reviewed Arena remains available")
+        page.locator("#profile-button").click()
+        feedback_button = page.locator("[data-session-open-feedback]")
+        evidence.require(feedback_button.is_disabled(), "tester rubric failure: worksheet trigger fails closed")
+        evidence.require(feedback_button.inner_text() == "Tester worksheet unavailable", "tester rubric failure: unavailable state is explicit")
+        evidence.require(not observed["external_requests"], f"tester rubric failure: no remote substitute is requested ({observed['external_requests']})")
+        assert_observers_clean(evidence, observed, "tester-rubric-failure")
+        evidence.journey("invalid tester rubric fails closed without hiding the Arena")
+    finally:
+        context.close()
+
+
 def storage_denial_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
     context = browser.new_context(viewport=VIEWPORTS[0], service_workers="allow")
     context.add_init_script(
@@ -370,6 +428,18 @@ def storage_denial_journey(browser: Any, base_url: str, evidence: Evidence) -> N
         evidence.require(page.locator("#session-blueprint-status").inner_text() == "Unavailable to inspect", "storage denial: blueprint state is not guessed")
         evidence.require(page.locator("[data-session-remove-blueprint]").is_disabled(), "storage denial: destructive control stays disabled without inspectable local state")
         evidence.require(page.locator("#session-account-status").inner_text() == "None" and page.locator("#session-provider-status").inner_text() == "None", "storage denial: no account or provider fallback is implied")
+        page.locator("[data-session-open-feedback]").click()
+        evidence.require(locator_visible(page, "#tester-feedback-sheet"), "storage denial: memory-only tester worksheet remains available")
+        rating_selects = page.locator("#tester-feedback-categories select")
+        for index in range(8):
+            rating_selects.nth(index).select_option("3")
+        page.locator("#tester-feedback-blocker").select_option("none")
+        page.locator("#tester-feedback-severe").select_option("none")
+        page.locator("[data-tester-feedback-generate]").click()
+        denied_feedback = json.loads(page.locator("#tester-feedback-json").input_value())
+        evidence.require(denied_feedback["storageMode"] == "browser_memory_only" and denied_feedback["submissionStatus"] == "not_submitted", "storage denial: tester draft remains memory-only and unsubmitted")
+        page.locator("#tester-feedback-sheet [data-sheet-close]").click()
+        page.locator("#profile-button").click()
         page.locator("[data-session-restart-starter]").click()
         evidence.require(locator_visible(page, "#starter-panel"), "storage denial: starter restart remains usable in the page session")
         evidence.require(page.evaluate("document.activeElement?.id") == "starter-panel", "storage denial: restarted guide receives focus")
@@ -412,7 +482,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v27');
+              const cache = await caches.open('builderwars-mobile-arena-v28');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;
@@ -423,7 +493,8 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         evidence.require(cache_state["keys"] == [SHELL_CACHE_NAME], f"offline: exactly the current shell cache is installed ({cache_state['keys']!r})")
         for resource in (f"/index.html?v={SHELL_VERSION}", f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
             evidence.require(resource in cache_state["urls"], f"offline: current shell cache contains {resource}")
-        evidence.require(not any("?v=26" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v26 URLs")
+        evidence.require("/data/tester-feedback-rubric.v1.json" in cache_state["urls"], "offline: canonical tester rubric is cached with the current shell")
+        evidence.require(not any("?v=27" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v27 URLs")
         page.reload(wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
         evidence.require(page.evaluate("navigator.serviceWorker.controller !== null") is True, "offline: service worker controls the warmed shell")
@@ -463,6 +534,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             normal_journey(browser, base_url, evidence, args.headed)
             fallback_journey(browser, base_url, evidence)
             fatal_source_journey(browser, base_url, evidence)
+            tester_rubric_failure_journey(browser, base_url, evidence)
             storage_denial_journey(browser, base_url, evidence)
             reduced_motion_journey(browser, base_url, evidence)
             offline_journey(browser, base_url, evidence)

@@ -1,0 +1,94 @@
+{
+  "blockerClasses": [
+    "access",
+    "authentication",
+    "pairing",
+    "passport",
+    "build",
+    "qualification",
+    "match",
+    "proof",
+    "replay",
+    "review",
+    "publication",
+    "share",
+    "runback",
+    "cleanup",
+    "deletion",
+    "rollback",
+    "accessibility",
+    "safety",
+    "provider_boundary",
+    "none"
+  ],
+  "categories": [
+    {
+      "categoryId": "orientation_clarity",
+      "prompt": "I knew what to do next."
+    },
+    {
+      "categoryId": "truth_boundary_comprehension",
+      "prompt": "I understood what was live, local, verified, and unattested."
+    },
+    {
+      "categoryId": "receipt_replay_trust",
+      "prompt": "The proof and replay made the result understandable and trustworthy."
+    },
+    {
+      "categoryId": "build_compete_clarity",
+      "prompt": "Building, qualifying, and competing felt coherent."
+    },
+    {
+      "categoryId": "share_runback_clarity",
+      "prompt": "Sharing and starting a runback were understandable."
+    },
+    {
+      "categoryId": "recovery_cleanup_confidence",
+      "prompt": "Revocation, deletion, cleanup, and recovery were clear."
+    },
+    {
+      "categoryId": "accessibility_usability",
+      "prompt": "The experience was usable on my device and access needs."
+    },
+    {
+      "categoryId": "return_intent",
+      "prompt": "I would return for another eligible competition."
+    }
+  ],
+  "freeTextPolicy": "redacted_bounded_private_artifact_not_in_public_receipt",
+  "humanFeedbackCollected": false,
+  "identityFieldsAllowed": [],
+  "productionAuthority": {
+    "accountDeletionCompleted": false,
+    "authenticatedJourneyCompleted": false,
+    "boundedPublicationCompleted": false,
+    "humanConsentAttested": false,
+    "humanIdentityAttested": false,
+    "independentReviewCompleted": false,
+    "launchAuthorized": false,
+    "operatorActionExecuted": false,
+    "productionRollbackCompleted": false,
+    "providerMatchCompleted": false,
+    "publicLaunch": false
+  },
+  "ratingScale": {
+    "1": "strongly_disagree_or_blocked",
+    "2": "disagree_or_major_confusion",
+    "3": "mixed_or_recoverable_confusion",
+    "4": "agree_or_minor_friction",
+    "5": "strongly_agree_or_clear"
+  },
+  "rubricDigest": "64e0a31547a4c8e7a7557c9d570ead7bb2fb3e7ac99d85771e705eb3d3ab53ab",
+  "rubricStatus": "template_only_no_human_response",
+  "schemaVersion": "agentwars.tester-feedback-rubric/1",
+  "severeIssueClasses": [
+    "security",
+    "privacy",
+    "uncontained_execution",
+    "unreplayable_result",
+    "unbounded_cost",
+    "accessibility_blocker",
+    "truth_overclaim",
+    "none"
+  ]
+}

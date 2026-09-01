@@ -71,6 +71,19 @@ blockers, severe issues, and notes are all empty and the status is
 `NOT_COLLECTED_SYNTHETIC_REHEARSAL`. Any synthetic score or note is rejected as
 fabricated human feedback.
 
+The Mobile Arena may rehearse the shape of that future response without
+collecting it. `mobile-arena/data/tester-feedback-rubric.v1.json` is generated
+directly from `feedback_rubric()` and verified by digest before the worksheet is
+enabled. A tester can choose all eight ratings, one allowlisted blocker class,
+and one allowlisted severe-issue class. The browser creates canonical JSON with
+status `LOCAL_DRAFT_NOT_COLLECTED`, `storageMode: browser_memory_only`,
+`transportStatus: not_configured`, `submissionStatus: not_submitted`, no
+identity fields, no free text, `humanFeedbackCollected: false`, and every
+production-authority flag false. It asks for no name, email, account, prompt,
+output, URL, or credential. It uses no clipboard, file, storage, or network
+authority, and reload or Reset clears it. This is a worksheet rehearsal, not the
+feedback receipt required by protected step 16.
+
 The protected ceremony stops and routes a triage receipt when the tester cannot
 understand the truth boundary, cannot recover or clean up, encounters an access
 or safety blocker, sees evidence inconsistency, or cannot complete a required
@@ -130,6 +143,9 @@ Run the local adversarial contract:
 
 ```powershell
 python bin\check_agentwars_tester_readiness.py
+python bin\build_mobile_tester_feedback_rubric.py --check
+python bin\check_mobile_arena_exchange.py
+python bin\check_mobile_arena_browser.py
 ```
 
 The checker covers exact schemas and ordering, deterministic digests, malformed

@@ -8,7 +8,7 @@
   <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=27">
+  <link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -219,14 +219,39 @@
       <div><dt>Storage</dt><dd id="session-storage-status">Checking browser storage</dd></div>
     </dl>
     <div class="session-actions">
+      <button class="primary-button" type="button" data-session-open-feedback aria-controls="tester-feedback-sheet">Prepare local tester feedback</button>
       <button class="secondary-button" type="button" data-session-restart-starter>Restart starter guide</button>
       <button class="danger-button" type="button" data-session-remove-blueprint disabled>Remove saved blueprint</button>
     </div>
     <p class="fine-print">Blueprint removal requires two presses and affects only this browser origin. Reviewed receipts and tracked source files are never deleted by this control.</p>
   </aside>
+  <aside class="bottom-sheet" id="tester-feedback-sheet" aria-labelledby="tester-feedback-title" aria-describedby="tester-feedback-boundary" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Tester worksheet</p><h2 id="tester-feedback-title">Prepare structured feedback locally.</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close tester feedback worksheet">×</button></div>
+    <p class="session-boundary" id="tester-feedback-boundary">Structured selections only. No name, email, account, prompt, output, URL, credential, or free text is requested. This page has no feedback transport.</p>
+    <p class="tester-feedback-status" id="tester-feedback-status" role="status">Loading the canonical local rubric.</p>
+    <form id="tester-feedback-form">
+      <div class="tester-feedback-categories" id="tester-feedback-categories"></div>
+      <div class="tester-feedback-triage">
+        <label for="tester-feedback-blocker"><span>Primary blocker</span><select id="tester-feedback-blocker" name="blockerClass" required><option value="">Choose one</option></select></label>
+        <label for="tester-feedback-severe"><span>Severe issue</span><select id="tester-feedback-severe" name="severeIssueClass" required><option value="">Choose one</option></select></label>
+      </div>
+      <div class="session-actions">
+        <button class="primary-button" type="submit" data-tester-feedback-generate disabled>Prepare memory-only draft</button>
+        <button class="secondary-button" type="button" data-tester-feedback-reset>Reset worksheet</button>
+      </div>
+    </form>
+    <section class="tester-feedback-output" id="tester-feedback-output" aria-labelledby="tester-feedback-output-title" hidden>
+      <div class="qualification-status"><span>Draft status</span><strong id="tester-feedback-output-title">LOCAL_DRAFT_NOT_COLLECTED</strong></div>
+      <label for="tester-feedback-json">Canonical JSON · read only</label>
+      <textarea id="tester-feedback-json" rows="8" maxlength="16384" readonly spellcheck="false"></textarea>
+      <p class="fine-print">This draft exists only in page memory. Reloading or resetting clears it. It is not submitted, stored, copied, consent evidence, human feedback evidence, or launch authority.</p>
+    </section>
+    <p class="fine-print tester-feedback-support">If you hit a security, privacy, access, cost, or truth-boundary concern, stop. Do not enter secrets. Notify the facilitator through the agreed tester channel; no staffed support inbox is configured in this local shell.</p>
+  </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
-  <script src="data-adapter.js?v=27" defer></script>
-  <script src="app.js?v=27" defer></script>
+  <script src="data-adapter.js?v=28" defer></script>
+  <script src="app.js?v=28" defer></script>
 </body>
 </html>

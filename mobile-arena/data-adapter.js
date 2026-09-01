@@ -9,6 +9,9 @@
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
   const READ_MODEL_DIGEST_PIN = "c29a4c2d08f18bb3e60c6a0bc57f285057e0b2a38a8c4fde6a3cdadc21a94e89";
   const VIEW_SCHEMA = "builderwars.mobile-arena-view.v1";
+  const TESTER_FEEDBACK_SCHEMA = "agentwars.tester-feedback-rubric/1";
+  const TESTER_FEEDBACK_DRAFT_SCHEMA = "builderwars.mobile-tester-feedback-draft/1";
+  const TESTER_FEEDBACK_DRAFT_MAX_LENGTH = 16384;
   const QUALIFICATION_SCHEMA = "builderwars.mobile-qualification-preview.v1";
   const LEARNING_SCHEMA = "builderwars.mobile-receipt-learning.v1";
   const RUNBACK_PROPOSAL_SCHEMA = "builderwars.mobile-runback-proposal.v1";
@@ -56,6 +59,32 @@
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+  const TESTER_FEEDBACK_CATEGORIES = Object.freeze([
+    Object.freeze({ categoryId: "orientation_clarity", prompt: "I knew what to do next." }),
+    Object.freeze({ categoryId: "truth_boundary_comprehension", prompt: "I understood what was live, local, verified, and unattested." }),
+    Object.freeze({ categoryId: "receipt_replay_trust", prompt: "The proof and replay made the result understandable and trustworthy." }),
+    Object.freeze({ categoryId: "build_compete_clarity", prompt: "Building, qualifying, and competing felt coherent." }),
+    Object.freeze({ categoryId: "share_runback_clarity", prompt: "Sharing and starting a runback were understandable." }),
+    Object.freeze({ categoryId: "recovery_cleanup_confidence", prompt: "Revocation, deletion, cleanup, and recovery were clear." }),
+    Object.freeze({ categoryId: "accessibility_usability", prompt: "The experience was usable on my device and access needs." }),
+    Object.freeze({ categoryId: "return_intent", prompt: "I would return for another eligible competition." }),
+  ]);
+  const TESTER_FEEDBACK_BLOCKER_CLASSES = Object.freeze([
+    "access", "authentication", "pairing", "passport", "build", "qualification", "match",
+    "proof", "replay", "review", "publication", "share", "runback", "cleanup", "deletion",
+    "rollback", "accessibility", "safety", "provider_boundary", "none",
+  ]);
+  const TESTER_FEEDBACK_SEVERE_ISSUE_CLASSES = Object.freeze([
+    "security", "privacy", "uncontained_execution", "unreplayable_result", "unbounded_cost",
+    "accessibility_blocker", "truth_overclaim", "none",
+  ]);
+  const TESTER_FEEDBACK_AUTHORITY_FIELDS = Object.freeze([
+    "humanConsentAttested", "humanIdentityAttested", "authenticatedJourneyCompleted",
+    "providerMatchCompleted", "independentReviewCompleted", "boundedPublicationCompleted",
+    "accountDeletionCompleted", "productionRollbackCompleted", "operatorActionExecuted",
+    "launchAuthorized", "publicLaunch",
+  ]);
+  const TESTER_FEEDBACK_DRAFT_BOUNDARY = "This canonical browser-memory draft contains structured selections only. It is not submitted, stored, consent evidence, human feedback evidence, identity evidence, a support request, an operator action, or launch authority.";
   const RUNBACK_EXECUTION_BLOCKERS = Object.freeze([
     "explicit_rules_digest_not_bound",
     "qualification_not_run",
@@ -3218,6 +3247,115 @@
     return "verified_read_model_unavailable_or_invalid";
   }
 
+  async function validateTesterFeedbackRubric(rubricInput) {
+    assertSafeKeys(rubricInput, "testerFeedbackRubric");
+    const rubric = clone(rubricInput);
+    requireExactKeys(rubric, [
+      "schemaVersion", "rubricStatus", "categories", "ratingScale", "blockerClasses",
+      "severeIssueClasses", "freeTextPolicy", "identityFieldsAllowed", "humanFeedbackCollected",
+      "productionAuthority", "rubricDigest",
+    ], "tester feedback rubric");
+    requireValue(rubric.schemaVersion === TESTER_FEEDBACK_SCHEMA, "unsafe tester feedback rubric: schema drift");
+    requireValue(rubric.rubricStatus === "template_only_no_human_response", "unsafe tester feedback rubric: status drift");
+    requireValue(Array.isArray(rubric.categories) && rubric.categories.length === TESTER_FEEDBACK_CATEGORIES.length, "unsafe tester feedback rubric: category count drift");
+    rubric.categories.forEach((category, index) => {
+      requireExactKeys(category, ["categoryId", "prompt"], "tester feedback category");
+      requireValue(canonicalJSON(category) === canonicalJSON(TESTER_FEEDBACK_CATEGORIES[index]), "unsafe tester feedback rubric: category drift");
+    });
+    requireExactKeys(rubric.ratingScale, ["1", "2", "3", "4", "5"], "tester feedback rating scale");
+    requireValue(canonicalJSON(rubric.ratingScale) === canonicalJSON({
+      1: "strongly_disagree_or_blocked",
+      2: "disagree_or_major_confusion",
+      3: "mixed_or_recoverable_confusion",
+      4: "agree_or_minor_friction",
+      5: "strongly_agree_or_clear",
+    }), "unsafe tester feedback rubric: rating scale drift");
+    requireValue(canonicalJSON(rubric.blockerClasses) === canonicalJSON(TESTER_FEEDBACK_BLOCKER_CLASSES), "unsafe tester feedback rubric: blocker classes drift");
+    requireValue(canonicalJSON(rubric.severeIssueClasses) === canonicalJSON(TESTER_FEEDBACK_SEVERE_ISSUE_CLASSES), "unsafe tester feedback rubric: severe issue classes drift");
+    requireValue(rubric.freeTextPolicy === "redacted_bounded_private_artifact_not_in_public_receipt", "unsafe tester feedback rubric: free-text policy drift");
+    requireValue(Array.isArray(rubric.identityFieldsAllowed) && rubric.identityFieldsAllowed.length === 0, "unsafe tester feedback rubric: identity fields must remain absent");
+    requireValue(rubric.humanFeedbackCollected === false, "unsafe tester feedback rubric: human feedback cannot be pre-collected");
+    requireExactKeys(rubric.productionAuthority, TESTER_FEEDBACK_AUTHORITY_FIELDS, "tester feedback production authority");
+    requireValue(TESTER_FEEDBACK_AUTHORITY_FIELDS.every((field) => rubric.productionAuthority[field] === false), "unsafe tester feedback rubric: production authority must remain false");
+    requireValue(typeof rubric.rubricDigest === "string" && HEX64.test(rubric.rubricDigest), "unsafe tester feedback rubric: digest malformed");
+    const unsigned = clone(rubric);
+    delete unsigned.rubricDigest;
+    const computedDigest = await sha256Hex(canonicalJSON(unsigned));
+    requireValue(equalHex(computedDigest, rubric.rubricDigest), "unsafe tester feedback rubric: digest mismatch");
+    return rubric;
+  }
+
+  async function createTesterFeedbackDraft(rubricInput, ratingsInput, blockerClass, severeIssueClass) {
+    const rubric = await validateTesterFeedbackRubric(rubricInput);
+    requireExactKeys(ratingsInput, TESTER_FEEDBACK_CATEGORIES.map((category) => category.categoryId), "tester feedback ratings");
+    const ratings = TESTER_FEEDBACK_CATEGORIES.map((category) => {
+      const rating = ratingsInput[category.categoryId];
+      requireValue(Number.isInteger(rating) && rating >= 1 && rating <= 5, "unsafe tester feedback draft: every category requires a rating from 1 to 5");
+      return { categoryId: category.categoryId, rating };
+    });
+    requireValue(TESTER_FEEDBACK_BLOCKER_CLASSES.includes(blockerClass), "unsafe tester feedback draft: blocker class drift");
+    requireValue(TESTER_FEEDBACK_SEVERE_ISSUE_CLASSES.includes(severeIssueClass), "unsafe tester feedback draft: severe issue class drift");
+    const draft = {
+      schemaVersion: TESTER_FEEDBACK_DRAFT_SCHEMA,
+      draftStatus: "LOCAL_DRAFT_NOT_COLLECTED",
+      rubricSchemaVersion: rubric.schemaVersion,
+      rubricDigest: rubric.rubricDigest,
+      ratings,
+      blockerClass,
+      severeIssueClass,
+      identityFieldsAllowed: [],
+      freeTextIncluded: false,
+      storageMode: "browser_memory_only",
+      transportStatus: "not_configured",
+      submissionStatus: "not_submitted",
+      humanFeedbackCollected: false,
+      productionAuthority: Object.fromEntries(TESTER_FEEDBACK_AUTHORITY_FIELDS.map((field) => [field, false])),
+      boundary: TESTER_FEEDBACK_DRAFT_BOUNDARY,
+    };
+    draft.draftDigest = await sha256Hex(canonicalJSON(draft));
+    return { draft: clone(draft), serialized: canonicalJSON(draft) };
+  }
+
+  async function verifyTesterFeedbackDraft(serializedInput, rubricInput) {
+    requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= TESTER_FEEDBACK_DRAFT_MAX_LENGTH, "unsafe tester feedback draft: bounded canonical JSON required");
+    let draft;
+    try {
+      draft = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe tester feedback draft: invalid JSON");
+    }
+    assertSafeKeys(draft, "testerFeedbackDraft");
+    requireValue(serializedInput === canonicalJSON(draft), "unsafe tester feedback draft: canonical JSON required");
+    requireExactKeys(draft, [
+      "schemaVersion", "draftStatus", "rubricSchemaVersion", "rubricDigest", "ratings",
+      "blockerClass", "severeIssueClass", "identityFieldsAllowed", "freeTextIncluded",
+      "storageMode", "transportStatus", "submissionStatus", "humanFeedbackCollected",
+      "productionAuthority", "boundary", "draftDigest",
+    ], "tester feedback draft");
+    const rubric = await validateTesterFeedbackRubric(rubricInput);
+    requireValue(draft.schemaVersion === TESTER_FEEDBACK_DRAFT_SCHEMA && draft.draftStatus === "LOCAL_DRAFT_NOT_COLLECTED", "unsafe tester feedback draft: schema or status drift");
+    requireValue(draft.rubricSchemaVersion === rubric.schemaVersion && equalHex(draft.rubricDigest, rubric.rubricDigest), "unsafe tester feedback draft: rubric binding drift");
+    requireValue(Array.isArray(draft.ratings) && draft.ratings.length === TESTER_FEEDBACK_CATEGORIES.length, "unsafe tester feedback draft: rating count drift");
+    draft.ratings.forEach((rating, index) => {
+      requireExactKeys(rating, ["categoryId", "rating"], "tester feedback rating");
+      requireValue(rating.categoryId === TESTER_FEEDBACK_CATEGORIES[index].categoryId, "unsafe tester feedback draft: rating order drift");
+      requireValue(Number.isInteger(rating.rating) && rating.rating >= 1 && rating.rating <= 5, "unsafe tester feedback draft: rating value drift");
+    });
+    requireValue(TESTER_FEEDBACK_BLOCKER_CLASSES.includes(draft.blockerClass), "unsafe tester feedback draft: blocker class drift");
+    requireValue(TESTER_FEEDBACK_SEVERE_ISSUE_CLASSES.includes(draft.severeIssueClass), "unsafe tester feedback draft: severe issue class drift");
+    requireValue(Array.isArray(draft.identityFieldsAllowed) && draft.identityFieldsAllowed.length === 0 && draft.freeTextIncluded === false, "unsafe tester feedback draft: identity or free text added");
+    requireValue(draft.storageMode === "browser_memory_only" && draft.transportStatus === "not_configured" && draft.submissionStatus === "not_submitted", "unsafe tester feedback draft: storage or transport drift");
+    requireValue(draft.humanFeedbackCollected === false && draft.boundary === TESTER_FEEDBACK_DRAFT_BOUNDARY, "unsafe tester feedback draft: evidence boundary drift");
+    requireExactKeys(draft.productionAuthority, TESTER_FEEDBACK_AUTHORITY_FIELDS, "tester feedback draft production authority");
+    requireValue(TESTER_FEEDBACK_AUTHORITY_FIELDS.every((field) => draft.productionAuthority[field] === false), "unsafe tester feedback draft: production authority must remain false");
+    requireValue(typeof draft.draftDigest === "string" && HEX64.test(draft.draftDigest), "unsafe tester feedback draft: digest malformed");
+    const unsigned = clone(draft);
+    delete unsigned.draftDigest;
+    const computedDigest = await sha256Hex(canonicalJSON(unsigned));
+    requireValue(equalHex(computedDigest, draft.draftDigest), "unsafe tester feedback draft: digest mismatch");
+    return clone(draft);
+  }
+
   async function fetchJSON(fetchImpl, path, label) {
     const response = await fetchImpl(path, { cache: "no-store" });
     if (!response || response.ok !== true) throw new Error(`${label} request failed`);
@@ -3235,9 +3373,17 @@
     }
   }
 
+  async function loadTesterFeedbackRubric(fetchImpl = fetch) {
+    const rubric = await fetchJSON(fetchImpl, "data/tester-feedback-rubric.v1.json", "tester feedback rubric");
+    return validateTesterFeedbackRubric(rubric);
+  }
+
   return {
     DEMO_SCHEMA,
     LEARNING_SCHEMA,
+    TESTER_FEEDBACK_DRAFT_MAX_LENGTH,
+    TESTER_FEEDBACK_DRAFT_SCHEMA,
+    TESTER_FEEDBACK_SCHEMA,
     PORTABLE_RUNBACK_MAX_LENGTH,
     PORTABLE_RUNBACK_SCHEMA,
     PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH,
@@ -3289,6 +3435,7 @@
     buildQualificationPreview,
     buildReceiptLearningAction,
     buildRunbackProposal,
+    createTesterFeedbackDraft,
     createPortablePrivateBlueprintDelta,
     createPortablePrivateBlueprintDeltaReview,
     createPortablePrivateBlueprintGuardCompletion,
@@ -3303,10 +3450,12 @@
     createPortableRunbackReviewCorrectionExchange,
     demoFallback,
     loadArenaData,
+    loadTesterFeedbackRubric,
     validateArenaReadModel,
     verifyArenaReadModelIntegrity,
     validateDemoFixture,
     validateRunbackProposal,
+    validateTesterFeedbackRubric,
     verifyPortableRunbackEnvelope,
     verifyPortableRunbackReviewCorrectionExchange,
     verifyPortableRunbackReviewCorrectionJournal,
@@ -3321,5 +3470,6 @@
     verifyPortablePrivateBlueprintRevisionDraft,
     verifyPortablePrivateReviewComparison,
     verifyPortablePrivateReviewLearning,
+    verifyTesterFeedbackDraft,
   };
 }));

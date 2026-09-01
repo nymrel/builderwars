@@ -77,6 +77,10 @@ const state = {
   privateBlueprintOperatorReviewPacketReceipt: null,
   privateBlueprintOperatorReviewPacketImportText: "",
   privateBlueprintOperatorReviewPacketVerification: null,
+  testerFeedbackRubric: null,
+  testerFeedbackDraft: null,
+  testerFeedbackSerialized: "",
+  testerFeedbackError: null,
   lastFocus: null,
 };
 
@@ -977,6 +981,100 @@ function renderSessionSheet() {
   removeButton.textContent = state.blueprintRemovalArmed
     ? "Confirm remove blueprint"
     : "Remove saved blueprint";
+  const feedbackButton = $("[data-session-open-feedback]");
+  if (feedbackButton) {
+    feedbackButton.disabled = !state.testerFeedbackRubric;
+    feedbackButton.textContent = state.testerFeedbackRubric
+      ? "Prepare local tester feedback"
+      : "Tester worksheet unavailable";
+  }
+}
+
+function feedbackLabel(value) {
+  return String(value).replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase());
+}
+
+function renderTesterFeedbackDraft() {
+  const output = $("#tester-feedback-output");
+  const textarea = $("#tester-feedback-json");
+  if (!output || !textarea) return;
+  output.hidden = !state.testerFeedbackSerialized;
+  textarea.value = state.testerFeedbackSerialized;
+}
+
+function renderTesterFeedbackWorksheet() {
+  const status = $("#tester-feedback-status");
+  const categories = $("#tester-feedback-categories");
+  const blocker = $("#tester-feedback-blocker");
+  const severe = $("#tester-feedback-severe");
+  const generate = $("[data-tester-feedback-generate]");
+  if (!status || !categories || !blocker || !severe || !generate) return;
+  status.classList.remove("ready", "error");
+  if (!state.testerFeedbackRubric) {
+    categories.innerHTML = "";
+    blocker.innerHTML = '<option value="">Unavailable</option>';
+    severe.innerHTML = '<option value="">Unavailable</option>';
+    generate.disabled = true;
+    status.classList.add("error");
+    status.textContent = state.testerFeedbackError || "The canonical local rubric is unavailable. No substitute worksheet was created.";
+    renderTesterFeedbackDraft();
+    return;
+  }
+  const rubric = state.testerFeedbackRubric;
+  const ratingOptions = Object.entries(rubric.ratingScale).map(([value, label]) => `<option value="${escapeHTML(value)}">${escapeHTML(value)} · ${escapeHTML(feedbackLabel(label))}</option>`).join("");
+  categories.innerHTML = rubric.categories.map((category, index) => `
+    <fieldset class="tester-feedback-category">
+      <legend>${index + 1}. ${escapeHTML(category.prompt)}</legend>
+      <label for="tester-feedback-rating-${escapeHTML(category.categoryId)}"><span>Rating</span><select id="tester-feedback-rating-${escapeHTML(category.categoryId)}" name="rating_${escapeHTML(category.categoryId)}" required><option value="">Choose 1–5</option>${ratingOptions}</select></label>
+    </fieldset>`).join("");
+  blocker.innerHTML = `<option value="">Choose one</option>${rubric.blockerClasses.map((value) => `<option value="${escapeHTML(value)}">${escapeHTML(feedbackLabel(value))}</option>`).join("")}`;
+  severe.innerHTML = `<option value="">Choose one</option>${rubric.severeIssueClasses.map((value) => `<option value="${escapeHTML(value)}">${escapeHTML(feedbackLabel(value))}</option>`).join("")}`;
+  generate.disabled = false;
+  status.classList.add("ready");
+  status.textContent = `Canonical rubric verified · ${rubric.categories.length} required ratings · identity fields 0 · transport none.`;
+  renderTesterFeedbackDraft();
+}
+
+async function prepareTesterFeedbackDraft() {
+  if (!state.testerFeedbackRubric) {
+    showToast("The canonical tester rubric is unavailable. No draft was prepared.");
+    return;
+  }
+  const form = $("#tester-feedback-form");
+  if (!form.reportValidity()) return;
+  const values = new FormData(form);
+  const ratings = Object.fromEntries(state.testerFeedbackRubric.categories.map((category) => [
+    category.categoryId,
+    Number(values.get(`rating_${category.categoryId}`)),
+  ]));
+  try {
+    const result = await dataAdapter.createTesterFeedbackDraft(
+      state.testerFeedbackRubric,
+      ratings,
+      String(values.get("blockerClass")),
+      String(values.get("severeIssueClass")),
+    );
+    await dataAdapter.verifyTesterFeedbackDraft(result.serialized, state.testerFeedbackRubric);
+    state.testerFeedbackDraft = result.draft;
+    state.testerFeedbackSerialized = result.serialized;
+    renderTesterFeedbackDraft();
+    $("#tester-feedback-output")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    showToast("Memory-only tester draft prepared. It was not stored or submitted.");
+  } catch {
+    state.testerFeedbackDraft = null;
+    state.testerFeedbackSerialized = "";
+    renderTesterFeedbackDraft();
+    showToast("The tester draft failed closed. Nothing was stored or submitted.");
+  }
+}
+
+function resetTesterFeedbackWorksheet() {
+  $("#tester-feedback-form")?.reset();
+  state.testerFeedbackDraft = null;
+  state.testerFeedbackSerialized = "";
+  renderTesterFeedbackDraft();
+  $("#tester-feedback-categories select")?.focus?.({ preventScroll: true });
+  showToast("Tester worksheet reset. No feedback was stored or submitted.");
 }
 
 function disarmBlueprintRemoval({ render = true } = {}) {
@@ -1964,8 +2062,8 @@ function syncViewFromLocation({ replaceInvalid = false } = {}) {
   if (replaceInvalid) history.replaceState({ view: "arena" }, "", formatArenaRoute("arena"));
 }
 
-function openSheet(sheet) {
-  state.lastFocus = document.activeElement;
+function openSheet(sheet, { returnFocus = null } = {}) {
+  state.lastFocus = returnFocus || document.activeElement;
   $$(".bottom-sheet").forEach((candidate) => { candidate.hidden = candidate !== sheet; });
   $("#app-shell").inert = true;
   $("#sheet-backdrop").hidden = false;
@@ -2002,7 +2100,7 @@ function trapSheetFocus(event) {
   if (event.key !== "Tab") return;
   const sheet = $(".bottom-sheet:not([hidden])");
   if (!sheet) return;
-  const focusables = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])', sheet)
+  const focusables = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])', sheet)
     .filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true");
   if (focusables.length === 0) {
     event.preventDefault();
@@ -2059,6 +2157,16 @@ function bindEvents() {
     }
     if (event.target.closest("[data-session-remove-blueprint]")) {
       armOrRemoveLocalBlueprint();
+      return;
+    }
+    if (event.target.closest("[data-session-open-feedback]")) {
+      disarmBlueprintRemoval({ render: false });
+      renderTesterFeedbackWorksheet();
+      openSheet($("#tester-feedback-sheet"), { returnFocus: $("#profile-button") });
+      return;
+    }
+    if (event.target.closest("[data-tester-feedback-reset]")) {
+      resetTesterFeedbackWorksheet();
       return;
     }
     const starterAction = event.target.closest("[data-starter-action]");
@@ -2619,6 +2727,10 @@ function bindEvents() {
     renderSessionSheet();
     openSheet($("#session-sheet"));
   });
+  $("#tester-feedback-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await prepareTesterFeedbackDraft();
+  });
   $("#watch-filter").addEventListener("click", () => { state.followingFirst = !state.followingFirst; $("#watch-filter").textContent = state.followingFirst ? "Default order" : "Following first"; renderChannels(); });
   $("#builder-form").addEventListener("input", renderBlueprint);
   $("#builder-form").addEventListener("submit", (event) => {
@@ -2670,6 +2782,7 @@ function renderAll() {
   renderReceiptLearning();
   renderBlueprint();
   renderSessionSheet();
+  renderTesterFeedbackWorksheet();
   renderAutomations();
 }
 
@@ -2677,6 +2790,13 @@ async function boot() {
   try {
     if (!dataAdapter) throw new Error("local data adapter unavailable");
     state.data = await dataAdapter.loadArenaData(fetch);
+    try {
+      state.testerFeedbackRubric = await dataAdapter.loadTesterFeedbackRubric(fetch);
+      state.testerFeedbackError = null;
+    } catch {
+      state.testerFeedbackRubric = null;
+      state.testerFeedbackError = "The canonical local rubric could not be verified. No substitute worksheet was created.";
+    }
     hydrateStarterGuide();
     hydrateLocalBlueprint();
     renderAll();

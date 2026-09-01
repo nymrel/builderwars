@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "27"
+EXPECTED_SHELL_VERSION = "28"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -23,6 +23,7 @@ EXPECTED = {
     "assets/arena-mark.svg",
     "data/demo-state.json",
     "data/arena-read-model.v1.json",
+    "data/tester-feedback-rubric.v1.json",
 }
 
 
@@ -53,6 +54,20 @@ def main() -> int:
     webmanifest = json.loads(read("manifest.webmanifest"))
     fixture = json.loads(read("data/demo-state.json"))
     read_model = json.loads(read("data/arena-read-model.v1.json"))
+    feedback_rubric = json.loads(read("data/tester-feedback-rubric.v1.json"))
+
+    rubric_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "build_mobile_tester_feedback_rubric.py"), "--check"],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(rubric_check.returncode == 0, f"mobile tester rubric drift: {rubric_check.stderr.strip()}")
+    checks += 1
 
     print("[2] demo truth boundary is explicit and machine-readable")
     require(fixture.get("schemaVersion") == "builderwars.mobile-arena-demo.v1", "fixture schema drift")
@@ -79,7 +94,7 @@ def main() -> int:
         require(f'id="view-{destination}"' in html, f"missing {destination} view")
         require(f'data-nav="{destination}"' in html, f"missing {destination} navigation")
         checks += 2
-    for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "session-sheet", "builder-form", "featured-match", "quick-matches", "rivalries", "receipt-learning", "proof-learning-button"):
+    for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "session-sheet", "tester-feedback-sheet", "tester-feedback-form", "tester-feedback-categories", "tester-feedback-output", "tester-feedback-json", "builder-form", "featured-match", "quick-matches", "rivalries", "receipt-learning", "proof-learning-button"):
         require(f'id="{required}"' in html, f"missing interactive surface: {required}")
         checks += 1
     for required in ("starter-panel", "starter-title", "starter-boundary", "starter-guide-button", "starter-persistence"):
@@ -94,18 +109,18 @@ def main() -> int:
         checks += 1
     require('id="profile-button"' in html and 'aria-controls="session-sheet"' in html and 'aria-haspopup="dialog"' in html, "local-session trigger semantics missing")
     require("No identity, provider subscription, credential, remote profile, or live activity is connected." in html, "local-session protected boundary missing")
-    require("data-session-restart-starter" in html and "data-session-remove-blueprint" in html, "local-session lifecycle controls missing")
+    require("data-session-open-feedback" in html and "data-session-restart-starter" in html and "data-session-remove-blueprint" in html, "local-session lifecycle controls missing")
     require("requires two presses" in html and "only this browser origin" in html and "never deleted" in html, "browser-only deletion boundary missing")
     checks += 4
 
     print("[4] local-only network and execution boundary")
-    combined = "\n".join((html, css, js, adapter, sw, json.dumps(fixture), json.dumps(read_model), json.dumps(webmanifest)))
+    combined = "\n".join((html, css, js, adapter, sw, json.dumps(fixture), json.dumps(read_model), json.dumps(feedback_rubric), json.dumps(webmanifest)))
     require(re.search(r"https?://", combined, re.IGNORECASE) is None, "mobile shell contains an external URL")
     for forbidden in ("eval(", "new Function", "WebSocket(", "EventSource(", "postMessage(", "document.cookie", "Authorization", "Bearer "):
         require(forbidden not in combined, f"forbidden active capability: {forbidden}")
         checks += 1
     require("dataAdapter.loadArenaData(fetch)" in js, "app must load sources through the fail-closed adapter")
-    require('"data/demo-state.json"' in adapter and '"data/arena-read-model.v1.json"' in adapter, "adapter must load only the two bounded local sources")
+    require('"data/demo-state.json"' in adapter and '"data/arena-read-model.v1.json"' in adapter and '"data/tester-feedback-rubric.v1.json"' in adapter, "adapter must load only the three bounded local sources")
     require('sourceMode = "verified_corpus"' in adapter and 'sourceMode = "demo_fixture_fallback"' in adapter, "adapter source modes must remain explicit")
     require("requestURL.origin !== self.location.origin" in sw, "service worker must reject cross-origin caching")
     require("localStorage.setItem" in js and "localStorage.getItem" in js, "local blueprint persistence missing")
@@ -123,6 +138,20 @@ def main() -> int:
     require("Unavailable to inspect" in js and "Unavailable · page session only" in js, "storage-denial session disclosure missing")
     require("Nothing remote was changed" in js and "tracked source files were not deleted" in js, "local cleanup truth boundary missing")
     checks += 5
+    require(feedback_rubric.get("schemaVersion") == "agentwars.tester-feedback-rubric/1", "tester feedback rubric schema drift")
+    require(feedback_rubric.get("rubricStatus") == "template_only_no_human_response", "tester feedback rubric status drift")
+    require(len(feedback_rubric.get("categories", [])) == 8, "tester feedback rubric must retain all eight categories")
+    require(feedback_rubric.get("identityFieldsAllowed") == [] and feedback_rubric.get("humanFeedbackCollected") is False, "tester feedback identity or collection boundary drift")
+    require(all(value is False for value in feedback_rubric.get("productionAuthority", {}).values()), "tester feedback rubric must retain zero production authority")
+    require('id="tester-feedback-boundary"' in html and "No name, email, account, prompt, output, URL, credential, or free text is requested" in html, "tester feedback identity boundary missing")
+    require("no feedback transport" in html.lower() and "no staffed support inbox is configured" in html.lower(), "tester feedback transport or triage boundary missing")
+    require("createTesterFeedbackDraft" in adapter and "verifyTesterFeedbackDraft" in adapter and "loadTesterFeedbackRubric" in adapter, "tester feedback draft adapter contract missing")
+    require('draftStatus: "LOCAL_DRAFT_NOT_COLLECTED"' in adapter and 'storageMode: "browser_memory_only"' in adapter and 'transportStatus: "not_configured"' in adapter and 'submissionStatus: "not_submitted"' in adapter, "tester feedback draft boundary drift")
+    require("renderTesterFeedbackWorksheet" in js and "prepareTesterFeedbackDraft" in js and "resetTesterFeedbackWorksheet" in js, "tester feedback worksheet lifecycle missing")
+    require("data-tester-feedback-generate" in html and "data-tester-feedback-reset" in html and 'readonly spellcheck="false"' in html, "tester feedback worksheet controls missing")
+    require("localStorage" not in "\n".join(line for line in js.splitlines() if "TesterFeedback" in line), "tester feedback lifecycle must not use browser storage")
+    require("navigator.clipboard" not in combined and "FileReader" not in combined, "tester feedback flow must not request clipboard or file authority")
+    checks += 13
     require("buildQualificationPreview" in adapter and 'qualificationStatus: "not_run"' in adapter, "deterministic qualification preview missing")
     require('executionStatus: "disabled"' in adapter and "computeAllowed: false" in adapter and "networkAllowed: false" in adapter, "qualification execution boundary missing")
     require("formatArenaRoute" in js and "parseArenaRoute" in js and "/receipt/" in js, "receipt-addressable route contract missing")
@@ -323,6 +352,7 @@ def main() -> int:
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
         "./data/arena-read-model.v1.json",
+        "./data/tester-feedback-rubric.v1.json",
     ):
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
@@ -333,6 +363,36 @@ def main() -> int:
     require(addressed_versions == {EXPECTED_SHELL_VERSION}, "only the current shell generation may remain addressable")
     checks += 3
     checks += 7
+
+    tester_feedback_check = subprocess.run(
+        [
+            node,
+            "-e",
+            (
+                "const fs=require('fs');const a=require(" + json.dumps(str(MOBILE / "data-adapter.js")) + ");"
+                "const r=JSON.parse(fs.readFileSync(" + json.dumps(str(MOBILE / "data" / "tester-feedback-rubric.v1.json")) + ",'utf8'));"
+                "(async()=>{await a.validateTesterFeedbackRubric(r);"
+                "const ratings=Object.fromEntries(r.categories.map((c,i)=>[c.categoryId,(i%5)+1]));"
+                "const out=await a.createTesterFeedbackDraft(r,ratings,'provider_boundary','truth_overclaim');"
+                "const verified=await a.verifyTesterFeedbackDraft(out.serialized,r);"
+                "if(verified.draftStatus!=='LOCAL_DRAFT_NOT_COLLECTED'||verified.ratings.length!==8||verified.identityFieldsAllowed.length!==0||verified.freeTextIncluded!==false||verified.storageMode!=='browser_memory_only'||verified.transportStatus!=='not_configured'||verified.humanFeedbackCollected!==false)process.exit(2);"
+                "if(Object.values(verified.productionAuthority).some(Boolean))process.exit(3);"
+                "let refused=0;try{await a.createTesterFeedbackDraft(r,{...ratings,orientation_clarity:0},'none','none')}catch{refused++}"
+                "try{await a.verifyTesterFeedbackDraft(out.serialized.replace('not_submitted','submitted'),r)}catch{refused++}"
+                "if(refused!==2)process.exit(4);console.log('PASS');})().catch(e=>{console.error(e);process.exit(1)})"
+            ),
+        ],
+        cwd=MOBILE,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(tester_feedback_check.returncode == 0, f"tester feedback adapter check failed: {tester_feedback_check.stderr.strip()}")
+    require("PASS" in tester_feedback_check.stdout, "tester feedback adapter check did not report PASS")
+    checks += 2
 
     adapter_check = subprocess.run(
         [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_read_adapter.py")],

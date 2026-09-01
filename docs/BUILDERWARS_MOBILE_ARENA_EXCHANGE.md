@@ -254,6 +254,16 @@ requires two presses, resets the visible form to tracked defaults, and states
 that reviewed receipts and tracked source files remain untouched. When browser
 storage cannot be inspected, the session reports that uncertainty and disables
 the removal control instead of guessing or falling back to a remote service.
+The same dialog now opens an identity-free tester worksheet sourced from the
+canonical launch rubric. All eight ratings, one blocker class, and one
+severe-issue class are required. The resulting canonical JSON is digest-bound
+and labeled `LOCAL_DRAFT_NOT_COLLECTED`; it has no identity fields, free text,
+clipboard or file authority, persistence, transport, submission, human-feedback
+evidence, or production authority. Reload and Reset clear it. If the rubric is
+missing, malformed, or digest-invalid, the worksheet is disabled while the
+reviewed Arena remains available. The stop path directs severe issues to the
+agreed facilitator channel and states that this local shell has no staffed
+support inbox.
 Its Learn controls explicitly reset native button presentation, expose the
 current step semantically, and retain readable progress at mobile widths.
 Versioned shell assets, the installed manifest start URL, and the service-worker
@@ -273,17 +283,18 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 175
-assertions across 15 isolated journeys: first-run starter selection, returning
+It starts an ephemeral loopback server and runs managed Chromium through 203
+assertions across 17 isolated journeys: first-run starter selection, returning
 state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
 fixture qualification; local blueprint persistence; local-session inspection,
-two-step browser-only cleanup, and starter restart; denied storage; semantic
+the eight-category memory-only tester worksheet, reload cleanup, invalid-rubric
+refusal, two-step browser-only cleanup, and starter restart; denied storage; semantic
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v27 HTML requests; and a v27-only installed
+cross-origin requests; coherent v28 HTML requests; and a v28-only installed
 offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
@@ -701,7 +712,7 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 283 checks across this contract and every preceding Arena
+mobile checker runs 307 checks across this contract and every preceding Arena
 Exchange layer.
 
 ### Deterministic private guard-completion review
@@ -737,7 +748,7 @@ adversarial assertions across every allowed decision/reason pair, candidate
 suppression for defer and reject, exact completed-blueprint and provenance
 preservation, full ancestry reconstruction, all-false authority, nested and
 resealed tampering, dangerous keys, excessive depth or nodes, and oversized
-input. The integrated mobile checker runs 283 checks across this contract and
+input. The integrated mobile checker runs 307 checks across this contract and
 every preceding Arena Exchange layer.
 
 ### Deterministic local operator-review packet
@@ -768,7 +779,7 @@ review-only creation; full lineage reconstruction; exact diff and digest parity;
 deterministic export; zero authority; all-unrun validation; discard rollback;
 operator-decision suppression; nested and fully resealed tampering; dangerous
 keys; excessive depth or nodes; and oversized input. The integrated mobile
-checker runs 283 checks across this contract and every preceding Arena Exchange
+checker runs 307 checks across this contract and every preceding Arena Exchange
 layer. A refused operator-packet import preserves the verified upstream
 completion review while retaining no operator decision or packet authority.
 
