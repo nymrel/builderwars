@@ -241,7 +241,11 @@ loaded local demo from the browser's connectivity signal and never implies a
 provider link.
 Its Learn controls explicitly reset native button presentation, expose the
 current step semantically, and retain readable progress at mobile widths.
-Versioned shell assets and a reload-mode service-worker install keep the offline
+Versioned shell assets, the installed manifest start URL, and the service-worker
+precache now share one pinned generation. The deterministic exchange checker
+rejects cross-file version drift, and real-browser acceptance proves that the
+HTML requests only the current resources and that the freshly installed cache
+contains no retired generation. Reload-mode installation keeps the offline
 fallback on the current bounded fixture instead of an older cached shell. A
 narrow-screen header guard preserves the required 320px layout while retaining
 the demo and notification boundaries. The deterministic checker binds these
@@ -254,15 +258,16 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 115
+It starts an ephemeral loopback server and runs managed Chromium through 125
 assertions across 13 isolated journeys: five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
 fixture qualification; local blueprint persistence; denied storage; semantic
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
-1040px layouts; zero console/page errors; no document overflow; and zero
-cross-origin requests. The gate found and fixed a history-backed proof-dialog
+1040px layouts; zero console/page errors; no document overflow; zero
+cross-origin requests; coherent v25 HTML requests; and a v25-only installed
+offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
 The result remains local browser evidence only and leaves hosting, auth,

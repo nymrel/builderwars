@@ -97,6 +97,7 @@ def install_observers(page: Any, origin: str, label: str) -> dict[str, list[str]
         "console": [],
         "page_errors": [],
         "external_requests": [],
+        "same_origin_requests": [],
     }
 
     def on_console(message: Any) -> None:
@@ -104,8 +105,12 @@ def install_observers(page: Any, origin: str, label: str) -> dict[str, list[str]
             observed["console"].append(f"{label}:{message.type}:{message.text}")
 
     def on_request(request: Any) -> None:
-        if urlparse(request.url).scheme in {"http", "https"} and urlparse(request.url).netloc != urlparse(origin).netloc:
+        request_url = urlparse(request.url)
+        if request_url.scheme in {"http", "https"} and request_url.netloc != urlparse(origin).netloc:
             observed["external_requests"].append(f"{label}:{request.method}:{request.url}")
+        elif request_url.scheme in {"http", "https"}:
+            query = f"?{request_url.query}" if request_url.query else ""
+            observed["same_origin_requests"].append(f"{request_url.path}{query}")
 
     page.on("console", on_console)
     page.on("pageerror", lambda error: observed["page_errors"].append(f"{label}:{error}"))
@@ -136,6 +141,10 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         response = page.goto(base_url, wait_until="domcontentloaded")
         evidence.require(response is not None and response.ok, "normal: loopback shell returns HTTP success")
         wait_for_source(page, "verified_corpus")
+        requested_resources = set(observed["same_origin_requests"])
+        for resource in ("/styles.css?v=25", "/data-adapter.js?v=25", "/app.js?v=25"):
+            evidence.require(resource in requested_resources, f"normal: installed HTML requests current shell resource {resource}")
+        evidence.require(not any("?v=24" in resource for resource in requested_resources), "normal: retired v24 shell URLs are not requested")
         evidence.require(page.locator("#source-badge").inner_text() == "LOCAL CORPUS", "normal: reviewed local corpus is explicitly labeled")
         evidence.require("verified corpus ready" in page.locator("#connection-copy").inner_text().lower(), "normal: connection rail names the verified corpus")
         evidence.require("No provider is connected" in (page.locator("#connection-status").get_attribute("aria-label") or ""), "normal: connection rail denies provider linkage")
@@ -325,6 +334,21 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         page.goto(base_url, wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
         page.evaluate("navigator.serviceWorker.ready")
+        cache_state = page.evaluate(
+            """async () => {
+              const keys = (await caches.keys()).sort();
+              const cache = await caches.open('builderwars-mobile-arena-v25');
+              const urls = (await cache.keys()).map((request) => {
+                const url = new URL(request.url);
+                return `${url.pathname}${url.search}`;
+              }).sort();
+              return { keys, urls };
+            }"""
+        )
+        evidence.require(cache_state["keys"] == ["builderwars-mobile-arena-v25"], f"offline: exactly the current shell cache is installed ({cache_state['keys']!r})")
+        for resource in ("/index.html?v=25", "/styles.css?v=25", "/data-adapter.js?v=25", "/app.js?v=25"):
+            evidence.require(resource in cache_state["urls"], f"offline: current shell cache contains {resource}")
+        evidence.require(not any("?v=24" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v24 URLs")
         page.reload(wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
         evidence.require(page.evaluate("navigator.serviceWorker.controller !== null") is True, "offline: service worker controls the warmed shell")

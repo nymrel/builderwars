@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
+EXPECTED_SHELL_VERSION = "25"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -257,12 +258,35 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=24", "web manifest start URL drift")
+    html_asset_version_pairs = re.findall(
+        r'(?:href|src)="(styles\.css|data-adapter\.js|app\.js)\?v=(\d+)"', html
+    )
+    require(
+        sorted(name for name, _version in html_asset_version_pairs) == ["app.js", "data-adapter.js", "styles.css"],
+        "HTML must address every versioned executable shell asset exactly once",
+    )
+    html_asset_versions = dict(html_asset_version_pairs)
+    require(
+        set(html_asset_versions.values()) == {EXPECTED_SHELL_VERSION},
+        "HTML executable shell assets must share the current cache generation",
+    )
+    require(
+        webmanifest.get("start_url") == f"./index.html?v={EXPECTED_SHELL_VERSION}",
+        "web manifest start URL must share the current cache generation",
+    )
+    cache_name_match = re.search(r'CACHE_NAME = "builderwars-mobile-arena-v(\d+)"', sw)
+    navigation_match = re.search(r'NAVIGATION_FALLBACK = "\./index\.html\?v=(\d+)"', sw)
+    require(cache_name_match is not None, "service-worker cache generation declaration missing")
+    require(navigation_match is not None, "service-worker navigation generation declaration missing")
+    require(
+        {cache_name_match.group(1), navigation_match.group(1), *html_asset_versions.values()} == {EXPECTED_SHELL_VERSION},
+        "HTML, manifest, cache, and navigation generations must remain coherent",
+    )
     for offline_asset in (
-        "./index.html?v=25",
-        "./styles.css?v=25",
-        "./data-adapter.js?v=25",
-        "./app.js?v=25",
+        f"./index.html?v={EXPECTED_SHELL_VERSION}",
+        f"./styles.css?v={EXPECTED_SHELL_VERSION}",
+        f"./data-adapter.js?v={EXPECTED_SHELL_VERSION}",
+        f"./app.js?v={EXPECTED_SHELL_VERSION}",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -271,12 +295,11 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('CACHE_NAME = "builderwars-mobile-arena-v25"' in sw, "service-worker cache generation must be pinned")
-    require('NAVIGATION_FALLBACK = "./index.html?v=25"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
-    checks += 5
-    checks += 2
+    require("?v=24" not in html and "?v=24" not in sw and "?v=24" not in json.dumps(webmanifest), "retired shell generation must not remain addressable")
+    checks += 3
+    checks += 7
 
     adapter_check = subprocess.run(
         [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_read_adapter.py")],
