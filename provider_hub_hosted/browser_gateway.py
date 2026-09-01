@@ -19,15 +19,24 @@ import datetime as dt
 import hashlib
 import hmac
 import json
+import os
 import re
 import threading
 import urllib.parse
 from collections.abc import Callable, Mapping
 from typing import Protocol, runtime_checkable
 
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from provider_hub.local_runner import RunnerClientError, validate_challenge_id, validate_runner_id
 from provider_hub_hosted.handlers import HandlerResponse, HostedControlPlane
-from provider_hub_hosted.store import HostedStoreError, validate_owner_id
+from provider_hub_hosted.store import (
+    BROWSER_IDEMPOTENCY_TTL_SECONDS,
+    HostedStoreError,
+    validate_idempotency_key,
+    validate_owner_id,
+)
 
 
 BROWSER_GATEWAY_SCHEMA = "agentwars.browser_authorization_gateway/1"
@@ -37,6 +46,8 @@ MAX_BROWSER_BODY_BYTES = 16_384
 MAX_PRINCIPAL_AGE_SECONDS = 300
 MAX_PRINCIPAL_FUTURE_SECONDS = 30
 CSRF_TOKEN_BYTES = 32
+IDEMPOTENCY_RESPONSE_KEY_BYTES = 32
+IDEMPOTENCY_NONCE_BYTES = 12
 
 PRODUCTION_AUTHORITY = {
     "clerkTokenVerificationActive": False,
@@ -45,6 +56,7 @@ PRODUCTION_AUTHORITY = {
     "durableEdgeRateLimitsActive": False,
     "durableAccountRateLimitsActive": False,
     "productionOwnerPepperProvisioned": False,
+    "productionIdempotencyResponseKeyProvisioned": False,
     "productionStoreIntegrated": False,
     "productionSecurityApproved": False,
     "publicLaunch": False,
@@ -86,6 +98,7 @@ class BrowserRequest:
     content_type: str | None
     csrf_cookie: str
     csrf_header: str
+    idempotency_key: str = dataclasses.field(repr=False)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -197,6 +210,7 @@ class BrowserAuthorizationGateway:
         allowed_origin: str,
         expected_issuer: str,
         owner_pepper: bytes,
+        idempotency_response_key: bytes,
         rate_limiter: AccountRateLimiter,
     ):
         if not isinstance(control_plane, HostedControlPlane):
@@ -205,10 +219,16 @@ class BrowserAuthorizationGateway:
             raise TypeError("rate_limiter must implement AccountRateLimiter")
         if type(owner_pepper) is not bytes or len(owner_pepper) < 32:
             raise ValueError("owner pepper must contain at least 32 bytes")
+        if (
+            type(idempotency_response_key) is not bytes
+            or len(idempotency_response_key) != IDEMPOTENCY_RESPONSE_KEY_BYTES
+        ):
+            raise ValueError("idempotency response key must contain exactly 32 bytes")
         self.control_plane = control_plane
         self.allowed_origin = _canonical_https_origin(allowed_origin, "browser origin")
         self.expected_issuer = _canonical_https_origin(expected_issuer, "principal issuer")
         self._owner_pepper = bytes(owner_pepper)
+        self._idempotency_aead = AESGCM(bytes(idempotency_response_key))
         self._rate_limiter = rate_limiter
 
     def dispatch(
@@ -254,19 +274,48 @@ class BrowserAuthorizationGateway:
                 headers={**rate_headers, "Retry-After": str(decision.reset_after_seconds)},
             )
 
+        request_digest = _browser_request_digest(request, operation)
         try:
-            response = self._invoke(
+            record = self.control_plane.store.run_browser_mutation_idempotent(
+                owner_id,
+                request.idempotency_key,
                 operation,
-                owner_id=owner_id,
-                parameters=parameters,
-                payload=payload,
+                request_digest,
+                execute=lambda: self._invoke_and_seal(
+                    operation,
+                    owner_id=owner_id,
+                    idempotency_key=request.idempotency_key,
+                    request_sha256=request_digest,
+                    parameters=parameters,
+                    payload=payload,
+                    now=current,
+                ),
                 now=current,
             )
         except HostedStoreError as error:
             return self._store_error(error, headers=rate_headers)
         except Exception:
-            return _error_response(500, "internal_error", headers=rate_headers)
-        return BrowserGatewayResponse(response.status_code, dict(response.payload), rate_headers)
+            return _error_response(503, "idempotency_unavailable", headers=rate_headers)
+        try:
+            response = self._unseal_response(
+                record.status_code,
+                record.sealed_response,
+                owner_id=owner_id,
+                idempotency_key=request.idempotency_key,
+                operation=operation,
+                request_sha256=request_digest,
+            )
+        except (InvalidTag, TypeError, ValueError, UnicodeDecodeError, json.JSONDecodeError):
+            return _error_response(503, "idempotency_unavailable", headers=rate_headers)
+        return BrowserGatewayResponse(
+            response.status_code,
+            dict(response.payload),
+            {
+                **rate_headers,
+                "Idempotency-Replayed": "true" if record.duplicate else "false",
+                "Idempotency-Expires-At": record.expires_at,
+            },
+        )
 
     def owner_id_for(
         self,
@@ -317,6 +366,10 @@ class BrowserAuthorizationGateway:
             "principalMaxAgeSeconds": MAX_PRINCIPAL_AGE_SECONDS,
             "principalMaxFutureSeconds": MAX_PRINCIPAL_FUTURE_SECONDS,
             "csrfTokenBytes": CSRF_TOKEN_BYTES,
+            "idempotencyKeyBytes": 16,
+            "idempotencyTtlSeconds": BROWSER_IDEMPOTENCY_TTL_SECONDS,
+            "idempotencyResponseProtection": "aes256gcm_authenticated_encryption",
+            "idempotencyAtomicity": "same_sqlite_transaction_local_reference",
             "requestCarriesAuthenticationMaterial": False,
             "requestAcceptsOwnerId": False,
             "rateLimiterBoundary": "injected_owner_scoped_fail_closed",
@@ -344,6 +397,10 @@ class BrowserAuthorizationGateway:
             raise _BrowserRefusal(403, "forbidden")
         if not _valid_csrf_pair(request.csrf_cookie, request.csrf_header):
             raise _BrowserRefusal(403, "forbidden")
+        try:
+            validate_idempotency_key(request.idempotency_key)
+        except (HostedStoreError, TypeError, ValueError):
+            raise _BrowserRefusal(400, "invalid_request") from None
         if request.method == "POST" and request.content_type != "application/json":
             raise _BrowserRefusal(415, "unsupported_media_type")
         if request.method == "DELETE" and request.content_type not in (None, "application/json"):
@@ -416,6 +473,74 @@ class BrowserAuthorizationGateway:
             return self.control_plane.delete_owner(owner_id)
         raise RuntimeError("unsupported browser operation")
 
+    def _invoke_and_seal(
+        self,
+        operation: str,
+        *,
+        owner_id: str,
+        idempotency_key: str,
+        request_sha256: str,
+        parameters: Mapping[str, str],
+        payload: Mapping[str, object],
+        now: dt.datetime,
+    ) -> tuple[int, bytes]:
+        response = self._invoke(
+            operation,
+            owner_id=owner_id,
+            parameters=parameters,
+            payload=payload,
+            now=now,
+        )
+        if type(response) is not HandlerResponse or not 200 <= response.status_code <= 299:
+            raise HostedStoreError(
+                "invalid_idempotency_response",
+                "browser operation returned an invalid success response",
+            )
+        encoded = _canonical_response_bytes(response.status_code, response.payload)
+        nonce = os.urandom(IDEMPOTENCY_NONCE_BYTES)
+        aad = _idempotency_aad(
+            owner_id,
+            idempotency_key,
+            operation,
+            request_sha256,
+            response.status_code,
+        )
+        return response.status_code, nonce + self._idempotency_aead.encrypt(nonce, encoded, aad)
+
+    def _unseal_response(
+        self,
+        status_code: int,
+        sealed: bytes,
+        *,
+        owner_id: str,
+        idempotency_key: str,
+        operation: str,
+        request_sha256: str,
+    ) -> HandlerResponse:
+        if type(sealed) is not bytes or len(sealed) <= IDEMPOTENCY_NONCE_BYTES + 16:
+            raise ValueError("sealed idempotency response is invalid")
+        nonce = sealed[:IDEMPOTENCY_NONCE_BYTES]
+        ciphertext = sealed[IDEMPOTENCY_NONCE_BYTES:]
+        aad = _idempotency_aad(
+            owner_id,
+            idempotency_key,
+            operation,
+            request_sha256,
+            status_code,
+        )
+        raw = self._idempotency_aead.decrypt(nonce, ciphertext, aad)
+        value = json.loads(raw.decode("utf-8"))
+        if (
+            type(value) is not dict
+            or set(value) != {"payload", "statusCode"}
+            or type(value["statusCode"]) is not int
+            or value["statusCode"] != status_code
+            or type(value["payload"]) is not dict
+            or _canonical_response_bytes(status_code, value["payload"]) != raw
+        ):
+            raise ValueError("sealed idempotency response is invalid")
+        return HandlerResponse(status_code, value["payload"])
+
     @staticmethod
     def _store_error(
         error: HostedStoreError,
@@ -424,6 +549,13 @@ class BrowserAuthorizationGateway:
     ) -> BrowserGatewayResponse:
         if error.code in _NOT_FOUND_CODES:
             return _error_response(404, "not_found", headers=headers)
+        if error.code == "idempotency_conflict":
+            return _error_response(409, "idempotency_conflict", headers=headers)
+        if error.code in {
+            "idempotency_in_progress", "idempotency_corrupt",
+            "invalid_idempotency_response",
+        }:
+            return _error_response(503, "idempotency_unavailable", headers=headers)
         if error.code in _CONFLICT_CODES:
             return _error_response(409, "conflict", headers=headers)
         if error.code.startswith("invalid_"):
@@ -493,6 +625,54 @@ def _valid_csrf_pair(cookie: str, header: str) -> bool:
     except ValueError:
         return False
     return hmac.compare_digest(cookie, header)
+
+
+def _browser_request_digest(request: BrowserRequest, operation: str) -> str:
+    material = (
+        BROWSER_GATEWAY_SCHEMA.encode("ascii")
+        + b"\x00request\x00"
+        + operation.encode("ascii")
+        + b"\x00"
+        + request.method.encode("ascii")
+        + b"\x00"
+        + request.path.encode("ascii")
+        + b"\x00"
+        + request.body
+    )
+    return hashlib.sha256(material).hexdigest()
+
+
+def _idempotency_aad(
+    owner_id: str,
+    idempotency_key: str,
+    operation: str,
+    request_sha256: str,
+    status_code: int,
+) -> bytes:
+    return b"\x00".join((
+        BROWSER_GATEWAY_SCHEMA.encode("ascii"),
+        b"idempotency-response",
+        owner_id.encode("ascii"),
+        idempotency_key.encode("ascii"),
+        operation.encode("ascii"),
+        request_sha256.encode("ascii"),
+        str(status_code).encode("ascii"),
+    ))
+
+
+def _canonical_response_bytes(status_code: int, payload: Mapping[str, object]) -> bytes:
+    if type(status_code) is not int or not 200 <= status_code <= 299 or type(payload) is not dict:
+        raise ValueError("browser response is invalid")
+    try:
+        return json.dumps(
+            {"payload": payload, "statusCode": status_code},
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        ).encode("ascii")
+    except (TypeError, ValueError, UnicodeEncodeError, RecursionError) as error:
+        raise ValueError("browser response is invalid") from error
 
 
 def _decode_exact_object(body: bytes, expected: set[str], label: str) -> dict[str, object]:

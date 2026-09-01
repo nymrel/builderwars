@@ -83,7 +83,7 @@ COMPONENTS = (
     _component("C-001", "Mobile Arena", "static local-first reader and builder shell", "implemented_local", ("EA-015",)),
     _component("C-002", "Browser authorization gateway", "maps an injected verified browser principal to an opaque owner id and exact owner command", "local_reference_production_integration_held", ("EA-001", "EA-017")),
     _component("C-003", "Hosted control plane", "framework-neutral pairing, runner, job, deletion, and replay handlers", "reference_implemented", ("EA-001", "EA-002")),
-    _component("C-004", "Hosted state store", "transactional tenant, runner, nonce, lease, result, and projection state", "sqlite_reference_only", ("EA-003", "EA-004", "EA-006")),
+    _component("C-004", "Hosted state store", "transactional tenant, browser-idempotency, runner, nonce, lease, result, and projection state", "sqlite_reference_only", ("EA-003", "EA-004", "EA-006")),
     _component("C-005", "Runner verifier", "origin-bound Ed25519 request verification and durable nonce consumption", "implemented_local", ("EA-005", "EA-006")),
     _component("C-006", "Customer-local runner", "holds provider authority and invokes reviewed local provider adapters", "implemented_local", ("EA-007", "EA-008")),
     _component("C-007", "Arena referee", "deterministic game state, transcript, replay, and scoring", "implemented_local", ("EA-009",)),
@@ -107,10 +107,10 @@ def _boundary(boundary_id: str, source: str, destination: str, data: str, channe
 
 
 BOUNDARIES = (
-    _boundary("B-001", "internet_browser", "browser_authorization_gateway", "session_and_customer_actions", "https_future", ("exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies", "injected_verified_principal", "owner_scoped_local_rate_limit_reference"), ("production_clerk_cookie_session_verifier_and_edge_limits_unproven", "durable_account_limits_owner_pepper_and_idempotency_unproven"), ("EA-001", "EA-017")),
+    _boundary("B-001", "internet_browser", "browser_authorization_gateway", "session_and_customer_actions", "https_future", ("exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies", "injected_verified_principal", "owner_scoped_local_rate_limit_reference", "owner_scoped_local_idempotency_reference", "aes256gcm_sealed_replay_response"), ("production_clerk_cookie_session_verifier_and_edge_limits_unproven", "durable_account_limits_owner_pepper_idempotency_key_custody_and_store_parity_unproven"), ("EA-001", "EA-004", "EA-017")),
     _boundary("B-002", "browser_authorization_gateway", "hosted_control_plane", "opaque_owner_id_and_bounded_commands", "in_process_reference", ("hmac_derived_opaque_owner_id", "no_request_owner_id", "canonical_owner_id_validation", "uniform_foreign_object_errors"), ("live_clerk_subject_to_gateway_binding_and_direct_handler_non_exposure_unproven",), ("EA-001", "EA-002", "EA-017")),
     _boundary("B-003", "customer_local_runner", "runner_verifier", "signed_exact_method_path_body_timestamp_nonce", "https_future", ("ed25519_signature", "origin_binding", "timestamp_window", "durable_nonce_consumption"), ("tls_edge_and_perimeter_rate_limits_unproven",), ("EA-005", "EA-006", "EA-007")),
-    _boundary("B-004", "hosted_control_plane", "hosted_state_store", "tenant_runner_nonce_lease_job_and_result_state", "sqlite_reference", ("exact_identifiers", "parameterized_queries", "foreign_keys", "begin_immediate_transactions"), ("production_store_adapter_backup_and_capacity_unproven",), ("EA-003", "EA-004", "EA-006")),
+    _boundary("B-004", "hosted_control_plane", "hosted_state_store", "tenant_browser_idempotency_runner_nonce_lease_job_and_result_state", "sqlite_reference", ("exact_identifiers", "parameterized_queries", "foreign_keys", "begin_immediate_transactions", "nested_savepoint_atomicity", "browser_mutation_and_replay_record_same_transaction"), ("production_store_adapter_idempotency_parity_backup_and_capacity_unproven",), ("EA-003", "EA-004", "EA-006")),
     _boundary("B-005", "customer_local_runner", "provider_cli_or_pkce", "customer_owned_prompt_and_provider_authority", "local_subprocess_or_pinned_https", ("explicit_local_intent", "bounded_output", "redacted_secret_wrapper", "pinned_origin"), ("customer_machine_and_claude_environment_not_isolated", "provider_identity_and_billing_unattested"), ("EA-007", "EA-008")),
     _boundary("B-006", "arena_referee", "entrant_process", "arena_1_jsonl_moves_and_bounded_environment", "stdin_stdout_subprocess", ("scratch_cwd", "environment_allowlist", "timeouts", "output_caps", "process_tree_cleanup"), ("network_filesystem_cpu_and_memory_not_confined",), ("EA-009", "EA-010", "EA-011")),
     _boundary("B-007", "private_result", "public_projection", "receipt_replay_digests_labels_and_review_decision", "offline_files_and_reviewed_source", ("exact_schemas", "replay_verification", "false_attestations", "separate_source_decision"), ("production_reviewer_identity_registry_and_signing_unproven",), ("EA-012", "EA-013")),
@@ -136,7 +136,7 @@ def _entry(entry_id: str, surface: str, reached: str, boundary: str, notes: str,
 
 
 ENTRY_POINTS = (
-    _entry("EP-001", "owner_authenticated_hosted_commands", "verified_browser_principal_reference", "B-001", "create confirm revoke delete and fixture operations pass the local gateway but still require production Clerk verification", ("EA-001", "EA-002", "EA-017")),
+    _entry("EP-001", "owner_authenticated_hosted_commands", "verified_browser_principal_reference", "B-001", "create confirm revoke delete and fixture operations pass the local gateway with local atomic retry replay but still require production Clerk and store parity", ("EA-001", "EA-002", "EA-004", "EA-017")),
     _entry("EP-002", "pairing_claim", "one_time_pairing_secret", "B-002", "exact JSON claim with TTL and attempt lock", ("EA-002", "EA-003")),
     _entry("EP-003", "signed_runner_commands", "runner_https_request", "B-003", "probe poll renew abandon and result paths use exact signed bytes", ("EA-005", "EA-006")),
     _entry("EP-004", "public_replay_projection", "public_job_identifier", "B-004", "returns a bounded result projection or not found", ("EA-002", "EA-012")),
@@ -216,11 +216,11 @@ THREATS = (
         "Forge or confuse the authenticated-principal to owner-id mapping, then call pairing, job, revocation, or deletion methods as another tenant.",
         "Cross-tenant runner control, state deletion, unauthorized jobs, and privacy breach.",
         ("A-001", "A-002", "A-004", "A-009"), ("B-001", "B-002"), ("EP-001", "EP-002"),
-        ("EA-001", "EA-002", "EA-017"),
-        ("production_clerk_token_cookie_session_and_adapter_wiring_unproven", "durable_edge_account_limits_owner_pepper_custody_and_idempotency_unproven", "direct_handler_non_exposure_unproven"),
-        ("Wire one deny-by-default production adapter that verifies Clerk and constructs the reviewed principal input.", "Provision the owner pepper and durable edge/account limits through protected secret and state custody.", "Expose only the gateway for owner commands and keep uniform not-found responses for foreign tenant objects."),
+        ("EA-001", "EA-002", "EA-004", "EA-017"),
+        ("production_clerk_token_cookie_session_and_adapter_wiring_unproven", "durable_edge_account_limits_owner_pepper_idempotency_key_custody_and_store_parity_unproven", "direct_handler_non_exposure_unproven"),
+        ("Wire one deny-by-default production adapter that verifies Clerk and constructs the reviewed principal input.", "Provision the owner pepper idempotency-response key and durable edge/account limits through protected secret and state custody.", "Port the same-owner same-key same-request replay and mismatch-refusal transaction contract to the production store.", "Expose only the gateway for owner commands and keep uniform not-found responses for foreign tenant objects."),
         ("Alert on owner-mapping failures foreign-object probes and destructive-action spikes.", "Audit redacted subject-to-owner decisions with source and deployment digest."),
-        "medium", "A local gateway reference now rejects request owner ids, bad origin, CSRF, stale principals, schema drift, and limiter failure; likelihood becomes high if production bypasses it or trusts unverified principal data.",
+        "medium", "A local gateway reference now rejects request owner ids, bad origin, CSRF, stale principals, schema drift, limiter failure, and idempotency mismatch or replay corruption; likelihood becomes high if production bypasses it or trusts unverified principal data.",
         "high", "A single bypass can cross tenant boundaries and delete or control security-sensitive state.", "critical",
     ),
     _threat(
@@ -320,11 +320,11 @@ THREATS = (
         "Flood JSON parsing pairing job polling result submission or public replay lookups within individually valid bounds.",
         "Service unavailability queue starvation elevated cost or delayed cleanup.",
         ("A-004", "A-008", "A-009"), ("B-001", "B-003", "B-004"), ("EP-001", "EP-002", "EP-003", "EP-004"),
-        ("EA-003", "EA-005", "EA-006"),
+        ("EA-003", "EA-005", "EA-006", "EA-017"),
         ("production_capacity_concurrency_backpressure_and_rate_limits_unproven",),
         ("Set body header concurrency queue and tenant quotas at the edge and service.", "Use bounded public cache semantics and fail-closed backpressure.", "Load test authenticated and public routes at the named beta target."),
         ("Measure request class saturation lock time queue age rejection and error budgets.", "Alert before capacity or cost budgets are exceeded."),
-        "medium", "Local bodies attempts leases and timestamps are bounded, but aggregate public abuse controls do not exist.",
+        "medium", "Local bodies attempts leases timestamps and browser-mutation retries are bounded, but aggregate public abuse controls do not exist.",
         "medium", "Likely impact is bounded outage or cost rather than tenant compromise.", "medium",
     ),
     _threat(
@@ -350,9 +350,9 @@ CRITICALITY_CALIBRATION = {
 }
 
 FOCUS_PATHS = (
-    {"path": "provider_hub_hosted/browser_gateway.py", "reason": "origin CSRF verified-principal owner derivation exact routes safe errors and injected rate-limit boundary", "threatIds": ["TM-001", "TM-002", "TM-004", "TM-009"]},
+    {"path": "provider_hub_hosted/browser_gateway.py", "reason": "origin CSRF verified-principal owner derivation exact routes safe errors rate limits and sealed idempotent replay", "threatIds": ["TM-001", "TM-002", "TM-004", "TM-009"]},
     {"path": "provider_hub_hosted/handlers.py", "reason": "external browser-auth boundary and destructive owner-scoped methods", "threatIds": ["TM-001", "TM-002", "TM-009"]},
-    {"path": "provider_hub_hosted/store.py", "reason": "tenant predicates transactional state nonces leases results and deletion", "threatIds": ["TM-002", "TM-003", "TM-004", "TM-008", "TM-009"]},
+    {"path": "provider_hub_hosted/store.py", "reason": "tenant predicates nested transactions idempotency nonces leases results and deletion", "threatIds": ["TM-001", "TM-002", "TM-003", "TM-004", "TM-008", "TM-009"]},
     {"path": "provider_hub_hosted/verify.py", "reason": "runner signature origin timestamp owner and nonce verification", "threatIds": ["TM-003"]},
     {"path": "provider_hub/local_runner.py", "reason": "pinned transport signed bodies and customer-local credential boundary", "threatIds": ["TM-003", "TM-006"]},
     {"path": "provider_hub/secrets.py", "reason": "secret redaction serialization refusal and explicit reveal sites", "threatIds": ["TM-006"]},
@@ -363,11 +363,12 @@ FOCUS_PATHS = (
     {"path": "publishing/retention_recovery.py", "reason": "deletion suppression recovery and rollback truth boundary", "threatIds": ["TM-008", "TM-010"]},
     {"path": "bin/build_agentwars_local_launch_evidence.py", "reason": "source custody bounded child environment and protected launch holds", "threatIds": ["TM-008", "TM-010"]},
     {"path": "provider_hub_hosted/tests/test_control_plane.py", "reason": "reference conformance for tenant replay race rollback and cleanup behavior", "threatIds": ["TM-001", "TM-002", "TM-003", "TM-004", "TM-008", "TM-009"]},
+    {"path": "provider_hub_hosted/tests/test_browser_idempotency.py", "reason": "same-request replay owner isolation concurrency rollback restart ciphertext tamper and expiry conformance", "threatIds": ["TM-001", "TM-008", "TM-009"]},
 )
 
 RESIDUAL_PROTECTED_GATES = (
-    "production_browser_authentication_owner_mapping_pepper_and_adapter_wiring",
-    "production_store_tenant_and_nonce_conformance",
+    "production_browser_authentication_owner_mapping_pepper_idempotency_key_custody_and_adapter_wiring",
+    "production_store_tenant_nonce_and_browser_idempotency_conformance",
     "durable_edge_service_and_tenant_rate_limits",
     "production_secret_and_provider_consent_boundary",
     "os_level_untrusted_code_isolation_or_continued_disablement",

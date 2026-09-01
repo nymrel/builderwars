@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 
 from publishing import threat_model as tm
 from provider_hub_hosted import browser_gateway as bg
+from provider_hub_hosted import store as hosted_store
 
 
 CHECKS = 0
@@ -91,7 +92,7 @@ def main() -> int:
     check(len(model["entryPoints"]) == 8, "eight concrete entry points are modeled")
     check(len(model["evidenceAnchors"]) == 17, "seventeen source anchors ground the model")
     check(len(model["threats"]) == 10, "ten concrete threats are prioritized")
-    check(len(model["focusPaths"]) == 13, "thirteen manual-review focus paths are named")
+    check(len(model["focusPaths"]) == 14, "fourteen manual-review focus paths are named")
     check(len(model["assumptions"]) == 5 and len(model["openQuestions"]) == 3, "assumptions and open questions are bounded")
     check(model["context"] == tm.CONTEXT, "service context is exact")
     check("beta_scale_unknown" in model["context"]["riskQualifier"], "unknown scale remains an explicit qualifier")
@@ -180,10 +181,12 @@ def main() -> int:
     check(boundary_b001["guarantees"] == [
         "exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies",
         "injected_verified_principal", "owner_scoped_local_rate_limit_reference",
+        "owner_scoped_local_idempotency_reference",
+        "aes256gcm_sealed_replay_response",
     ], "browser boundary guarantees are exact")
     check(boundary_b001["gaps"] == [
         "production_clerk_cookie_session_verifier_and_edge_limits_unproven",
-        "durable_account_limits_owner_pepper_and_idempotency_unproven",
+        "durable_account_limits_owner_pepper_idempotency_key_custody_and_store_parity_unproven",
     ], "browser boundary keeps production gaps explicit")
     check(boundary_b002["guarantees"] == [
         "hmac_derived_opaque_owner_id", "no_request_owner_id",
@@ -198,8 +201,11 @@ def main() -> int:
     check(bg.BROWSER_GATEWAY_SCHEMA == "agentwars.browser_authorization_gateway/1", "browser gateway schema is pinned")
     check(bg.BROWSER_GATEWAY_EVIDENCE_CLASS == "local_browser_authorization_reference", "gateway evidence class is local")
     check(all(type(flag) is bool and flag is False for flag in bg.PRODUCTION_AUTHORITY.values()), "gateway has zero production authority")
+    check(bg.IDEMPOTENCY_RESPONSE_KEY_BYTES == 32, "gateway requires an AES-256 response key")
+    check(hosted_store.BROWSER_IDEMPOTENCY_TTL_SECONDS == 86_400, "browser replay window is exactly 24 hours")
     check(list(bg.BrowserRequest.__dataclass_fields__) == [
         "method", "path", "body", "origin", "content_type", "csrf_cookie", "csrf_header",
+        "idempotency_key",
     ], "browser request admits only sanitized request facts")
     check(not ({"owner_id", "authorization", "session_cookie", "bearer_token"} & set(bg.BrowserRequest.__dataclass_fields__)), "browser request excludes owner and authentication material")
     check(list(bg.VerifiedBrowserPrincipal.__dataclass_fields__) == [
@@ -312,7 +318,8 @@ def main() -> int:
         "## Status and authority boundary", "## Exact browser request contract",
         "## Verified principal contract", "## Owner derivation and tenant isolation",
         "## Route and body allowlist", "## Origin and CSRF rules",
-        "## Rate-limit boundary", "## Error and enumeration boundary",
+        "## Rate-limit boundary", "## Idempotency and encrypted replay boundary",
+        "## Error and enumeration boundary",
         "## Production adapter checklist", "## Validation and rollback",
     )
     check(all(heading in boundary_markdown for heading in required_boundary_headings), "browser boundary document has the required section contract")
@@ -321,7 +328,7 @@ def main() -> int:
     check("BuilderWars.com apex and www remain untouched" in boundary_markdown, "browser boundary preserves the protected domain boundary")
 
     print(f"BuilderWars threat model: PASS ({CHECKS} checks)")
-    print("10 threats / 8 boundaries / 17 source anchors / production auth integration and OS-isolation gaps held / zero production security authority")
+    print("10 threats / 8 boundaries / 17 source anchors / local atomic idempotency proven / production auth-store parity and OS-isolation gaps held / zero production security authority")
     return 0
 
 

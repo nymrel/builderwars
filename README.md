@@ -236,8 +236,12 @@ receipts, OS-level isolation or continued disablement, monitoring, the data map,
 served-byte parity, and independent security acceptance remain protected. Model:
 [`docs/BUILDERWARS_THREAT_MODEL.md`](docs/BUILDERWARS_THREAT_MODEL.md).
 The exact sanitized request, verified-principal, opaque-owner, CSRF, route,
-error, rate-limit, production-adapter, and rollback contract is documented in
+error, rate-limit, atomic idempotency, encrypted replay, production-adapter,
+and rollback contract is documented in
 [`docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md`](docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md).
+The local SQLite reference commits each browser mutation and its AES-256-GCM
+sealed retry response together, while production key custody, datastore parity,
+rotation, multi-instance behavior, and live authentication remain protected.
 
 ## Tester ceremony — synthetic rehearsal only
 

@@ -18,7 +18,12 @@ from provider_hub_hosted.browser_gateway import (
     VerifiedBrowserPrincipal,
 )
 from provider_hub_hosted.handlers import HostedControlPlane
-from provider_hub_hosted.store import HostedControlPlaneStore, HostedStoreError
+from provider_hub_hosted.store import (
+    BrowserMutationRecord,
+    HostedControlPlaneStore,
+    HostedStoreError,
+    validate_idempotency_key,
+)
 from provider_hub_hosted.verify import (
     IncomingSignedRequest,
     SignedRequestError,
@@ -32,6 +37,7 @@ __all__ = [
     "BrowserAuthorizationGateway",
     "BrowserGatewayResponse",
     "BrowserRequest",
+    "BrowserMutationRecord",
     "HostedControlPlane",
     "HostedControlPlaneStore",
     "HostedStoreError",
@@ -42,4 +48,5 @@ __all__ = [
     "VerifiedBrowserPrincipal",
     "VerifiedRunnerRequest",
     "verify_signed_request",
+    "validate_idempotency_key",
 ]

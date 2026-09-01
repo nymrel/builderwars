@@ -2101,6 +2101,7 @@ _PY_COMPILE_TARGETS = [
     "publishing/threat_model.py",
     "provider_hub_hosted/browser_gateway.py",
     "provider_hub_hosted/tests/test_browser_gateway.py",
+    "provider_hub_hosted/tests/test_browser_idempotency.py",
     "publishing/tester_readiness.py",
     "publishing/product.py",
     "publishing/promotion.py",

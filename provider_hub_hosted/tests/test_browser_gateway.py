@@ -31,6 +31,7 @@ NOW = dt.datetime(2026, 9, 1, 12, 0, 0, tzinfo=UTC)
 BROWSER_ORIGIN = "https://builderwars.example"
 ISSUER = "https://clerk.builderwars.example"
 CSRF = base64url_no_pad(b"c" * 32)
+IDEMPOTENCY_RESPONSE_KEY = b"i" * 32
 
 
 class DeterministicBytes:
@@ -58,6 +59,7 @@ class BrowserGatewayTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="builderwars-browser-auth-")
         self.database = Path(self.temporary.name) / "hosted.sqlite3"
         self.random = DeterministicBytes()
+        self.request_counter = 0
         self.store = HostedControlPlaneStore(self.database, random_bytes=self.random, clock=lambda: NOW)
         self.control = HostedControlPlane(self.store, allowed_origin="https://nymrel.com")
         self.limiter = InMemoryAccountRateLimiter()
@@ -66,6 +68,7 @@ class BrowserGatewayTests(unittest.TestCase):
             allowed_origin=BROWSER_ORIGIN,
             expected_issuer=ISSUER,
             owner_pepper=b"synthetic-owner-pepper-not-a-production-secret-0001",
+            idempotency_response_key=IDEMPOTENCY_RESPONSE_KEY,
             rate_limiter=self.limiter,
         )
 
@@ -83,7 +86,12 @@ class BrowserGatewayTests(unittest.TestCase):
         content_type: str | None = "application/json",
         csrf_cookie: str = CSRF,
         csrf_header: str = CSRF,
+        idempotency_key: str | None = None,
     ) -> BrowserRequest:
+        if idempotency_key is None:
+            self.request_counter += 1
+            material = hashlib.sha256(f"browser-request-{self.request_counter}".encode("ascii")).digest()[:16]
+            idempotency_key = "awi1_" + base64url_no_pad(material)
         return BrowserRequest(
             method=method,
             path=path,
@@ -92,6 +100,7 @@ class BrowserGatewayTests(unittest.TestCase):
             content_type=content_type,
             csrf_cookie=csrf_cookie,
             csrf_header=csrf_header,
+            idempotency_key=idempotency_key,
         )
 
     def dispatch(self, request: BrowserRequest, *, who=None, now=NOW):
@@ -141,6 +150,16 @@ class BrowserGatewayTests(unittest.TestCase):
         self.assertEqual(contract["schemaVersion"], BROWSER_GATEWAY_SCHEMA)
         self.assertEqual(contract["evidenceClass"], BROWSER_GATEWAY_EVIDENCE_CLASS)
         self.assertEqual(contract["maxBodyBytes"], MAX_BROWSER_BODY_BYTES)
+        self.assertEqual(contract["idempotencyKeyBytes"], 16)
+        self.assertEqual(contract["idempotencyTtlSeconds"], 86_400)
+        self.assertEqual(
+            contract["idempotencyResponseProtection"],
+            "aes256gcm_authenticated_encryption",
+        )
+        self.assertEqual(
+            contract["idempotencyAtomicity"],
+            "same_sqlite_transaction_local_reference",
+        )
         self.assertFalse(contract["requestCarriesAuthenticationMaterial"])
         self.assertFalse(contract["requestAcceptsOwnerId"])
         self.assertEqual(contract["productionAuthority"], PRODUCTION_AUTHORITY)
@@ -157,6 +176,7 @@ class BrowserGatewayTests(unittest.TestCase):
             allowed_origin=BROWSER_ORIGIN,
             expected_issuer=ISSUER,
             owner_pepper=b"different-synthetic-owner-pepper-value-0000001",
+            idempotency_response_key=IDEMPOTENCY_RESPONSE_KEY,
             rate_limiter=InMemoryAccountRateLimiter(),
         )
         other_pepper = other_gateway.owner_id_for(principal("user_alpha"), now=NOW)
@@ -399,6 +419,7 @@ class BrowserGatewayTests(unittest.TestCase):
                 allowed_origin=BROWSER_ORIGIN,
                 expected_issuer=ISSUER,
                 owner_pepper=b"synthetic-owner-pepper-not-a-production-secret-0001",
+                idempotency_response_key=IDEMPOTENCY_RESPONSE_KEY,
                 rate_limiter=limiter,
             )
             response = gateway.dispatch(
@@ -417,6 +438,7 @@ class BrowserGatewayTests(unittest.TestCase):
                     allowed_origin=bad_origin,
                     expected_issuer=ISSUER,
                     owner_pepper=b"x" * 32,
+                    idempotency_response_key=IDEMPOTENCY_RESPONSE_KEY,
                     rate_limiter=InMemoryAccountRateLimiter(),
                 )
         with self.assertRaises(ValueError):
@@ -425,6 +447,16 @@ class BrowserGatewayTests(unittest.TestCase):
                 allowed_origin=BROWSER_ORIGIN,
                 expected_issuer=ISSUER,
                 owner_pepper=b"weak",
+                idempotency_response_key=IDEMPOTENCY_RESPONSE_KEY,
+                rate_limiter=InMemoryAccountRateLimiter(),
+            )
+        with self.assertRaises(ValueError):
+            BrowserAuthorizationGateway(
+                self.control,
+                allowed_origin=BROWSER_ORIGIN,
+                expected_issuer=ISSUER,
+                owner_pepper=b"x" * 32,
+                idempotency_response_key=b"weak",
                 rate_limiter=InMemoryAccountRateLimiter(),
             )
         with self.assertRaises(ValueError):

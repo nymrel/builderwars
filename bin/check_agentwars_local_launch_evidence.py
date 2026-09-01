@@ -108,6 +108,17 @@ def main() -> int:
         "docs/BUILDERWARS_THREAT_MODEL.md",
         "docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md",
     ), "stage 9 binds the reviewed threat model and browser-authorization boundary")
+    check(stages[8].not_proven == (
+        "production Clerk session verification",
+        "production owner pepper custody",
+        "production store",
+        "durable edge and account rate limits",
+        "production idempotency store parity and response-key custody",
+        "production deletion",
+        "OS-level untrusted-code isolation",
+        "external penetration review",
+        "production security approval",
+    ), "stage 9 keeps production auth, idempotency, store, isolation, and review gaps exact")
     check(stages[9].stage_id == "launch_contracts_and_rollback_plan" and stages[9].stage_class == "local_executable", "launch contracts are executable stage 10")
     check(
         stages[9].commands == (

@@ -4,13 +4,13 @@ Status: local, framework-neutral security reference. This contract is designed t
 
 ## Status and authority boundary
 
-`provider_hub_hosted/browser_gateway.py` is the only reviewed browser-to-owner-command reference in this repository. It accepts sanitized request facts plus an injected `VerifiedBrowserPrincipal`; it never verifies or stores a Clerk cookie itself. The production adapter, Clerk configuration, owner pepper, durable rate limiter, production store, and public route exposure remain protected work.
+`provider_hub_hosted/browser_gateway.py` is the only reviewed browser-to-owner-command reference in this repository. It accepts sanitized request facts plus an injected `VerifiedBrowserPrincipal`; it never verifies or stores a Clerk cookie itself. The production adapter, Clerk configuration, owner pepper, idempotency-response key custody, durable rate limiter, production-store parity, and public route exposure remain protected work.
 
 All production authority flags remain false. This slice does not accept terms, attest a human action, provision secrets, mutate a customer or production database, change DNS, enable public creator execution, incur paid compute, or promote a deployment. BuilderWars.com apex and www remain untouched.
 
 ## Exact browser request contract
 
-`BrowserRequest` has exactly seven fields:
+`BrowserRequest` has exactly eight fields:
 
 - `method`
 - `path`
@@ -19,8 +19,9 @@ All production authority flags remain false. This slice does not accept terms, a
 - `content_type`
 - `csrf_cookie`
 - `csrf_header`
+- `idempotency_key`
 
-The request carries no session cookie, bearer token, or owner id. It cannot contain a provider credential, Clerk token, client-selected tenant, arbitrary header map, query string, or redirect target. The gateway accepts only `POST` and `DELETE`, rejects bodies larger than 16 KiB, rejects unknown routes before resolving a principal, and parses JSON with duplicate-key, float, non-finite-number, UTF-8, unknown-key, and non-object rejection.
+The request carries no session cookie, bearer token, or owner id. It cannot contain a provider credential, Clerk token, client-selected tenant, arbitrary header map, query string, or redirect target. The idempotency key is public request metadata, not authentication: it is one canonical `awi1_` token carrying exactly 128 bits, and it is hidden from object representations. The gateway accepts only `POST` and `DELETE`, rejects bodies larger than 16 KiB, rejects unknown routes before resolving a principal, and parses JSON with duplicate-key, float, non-finite-number, UTF-8, unknown-key, and non-object rejection.
 
 ## Verified principal contract
 
@@ -67,13 +68,28 @@ Rate limiting is an injected `AccountRateLimiter`, scoped to the derived owner a
 
 The in-memory limiter is not production protection: it is not durable, global, distributed, edge-scoped, or effective before authentication. Production requires edge/IP abuse controls plus a durable atomic account limiter with monitored capacity and a tested failover policy. The current operation ceilings are local reference values, not approved production policy.
 
+## Idempotency and encrypted replay boundary
+
+Every accepted browser mutation requires one canonical 128-bit idempotency key. The local reference binds `(opaque owner id, idempotency key)` to the exact operation and SHA-256 of the schema, method, path, and raw request body for 24 hours:
+
+- the first request inserts a pending record, performs the owner mutation, seals the exact success response, and completes the record in one SQLite transaction;
+- nested domain-store calls use savepoints, so a failure after mutation but before response sealing rolls back both the mutation and retry record;
+- the same owner, key, operation, and request bytes return the original status and response without invoking the mutation again;
+- the same owner and key with a different operation or request digest returns `409 idempotency_conflict` without mutation;
+- a different owner has a separate key namespace; and
+- pending, malformed, oversized, unauthenticated, wrong-key, or tampered replay state fails closed as `503 idempotency_unavailable`.
+
+Replay responses are canonical JSON encrypted and authenticated with AES-256-GCM. Associated data binds schema, owner, key, operation, request digest, and status. This matters because pairing creation returns a one-time secret that must survive a legitimate client retry without being stored in plaintext. The SQLite row stores only the opaque owner id, public idempotency metadata, request digest, timing, status, and sealed response; the key never appears in the database or response.
+
+The local key is constructor-injected and test-only. Production must provision a separate random 32-byte response key through protected secret custody, define rotation and disaster-recovery behavior, and port the same atomic semantics to the production datastore. The replay record intentionally survives account-row deletion during its 24-hour replay-eligibility window so a retried delete returns the same receipt. Expired local rows are purged opportunistically by the next mutation, not by a proven wall-clock deletion worker; production therefore needs scheduled physical expiry and evidence of bounded deletion. This minimal encrypted record and its retention policy require approval. Rate limiting is evaluated before replay, so retry traffic still consumes the configured owner/operation budget.
+
 ## Error and enumeration boundary
 
-Client errors use bounded codes such as `authentication_required`, `forbidden`, `invalid_request`, `not_found`, `conflict`, `rate_limited`, and `internal_error`. They do not include raw exception text, owner IDs, subjects, session IDs, credentials, request bodies, foreign object existence, SQL details, or internal stack information.
+Client errors use bounded codes such as `authentication_required`, `forbidden`, `invalid_request`, `not_found`, `conflict`, `idempotency_conflict`, `idempotency_unavailable`, `rate_limited`, and `internal_error`. They do not include raw exception text, owner IDs, subjects, session IDs, credentials, request bodies, foreign object existence, SQL details, or internal stack information.
 
 Unknown routes are rejected before principal resolution. Foreign and absent tenant objects are indistinguishable. Authentication-provider outage and rate-limiter outage remain explicit safe failures. Production logging must use a separately reviewed redaction schema and must not log the pepper, raw Clerk artifacts, provider credentials, CSRF value, pairing secret, or full request body.
 
-Idempotency is not implemented in this local gateway. The production adapter must supply and persist bounded idempotency semantics for retried destructive or job-creation operations before public exposure.
+The local idempotency implementation proves a transaction and cryptographic response contract only. It is not proof that a multi-instance production adapter, production datastore, backup, failover region, or rotated key preserves those properties.
 
 ## Production adapter checklist
 
@@ -84,7 +100,7 @@ Before any authenticated tester or public traffic, the operator-owned integratio
 3. The production owner pepper is provisioned in server-side secret custody and never appears in source, logs, browser bundles, evidence packs, or test fixtures.
 4. Only the browser gateway can call owner-scoped hosted handlers from the public service.
 5. Edge/IP controls and a durable atomic owner/operation limiter are active, observable, and tested for fail-closed degradation.
-6. Production idempotency, store, backup/restore, deletion, retention, and rollback behavior are tested.
+6. The 32-byte production idempotency-response key has protected custody, rotation, rollback, and restore procedures; the production store passes same-request replay, request-mismatch conflict, concurrency, rollback, restart, tamper, expiry, and account-deletion conformance.
 7. CSRF cookie attributes, trusted proxy/origin normalization, CSP, transport security, and error redaction are independently reviewed.
 8. A consented tester completes the protected journey; test state is then deleted and protected flags return to their intended state.
 
@@ -96,9 +112,10 @@ Run the focused adversarial contract:
 
 ```powershell
 python -m unittest provider_hub_hosted.tests.test_browser_gateway -v
+python -m unittest provider_hub_hosted.tests.test_browser_idempotency -v
 python bin/check_builderwars_threat_model.py
 ```
 
 The full local evidence pack also runs the entire hosted test directory in stage 9. A production rollout must have a separately proven rollback that removes public route exposure, revokes the deployment's secret access, restores the prior deployment digest, invalidates affected sessions if necessary, and verifies that no owner command reaches the hosted control plane. Disabling the local reference or deleting evidence is not a rollback.
 
-Until the production checklist is complete, production browser authentication, owner mapping, durable rate limiting, production store access, public creator execution, and public launch remain held.
+Until the production checklist is complete, production browser authentication, owner mapping, owner-pepper and idempotency-key custody, durable rate limiting, production-store idempotency parity, public creator execution, and public launch remain held.
