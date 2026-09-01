@@ -4,9 +4,9 @@ Status: repository-grounded local security model for the protected public-beta l
 
 ## Executive summary
 
-BuilderWars has a strong local reference foundation: exact schemas, tenant predicates, signed runner requests, durable nonce consumption, transactional lease and deletion behavior, deterministic replay, bounded publication projections, and source-bound local launch evidence. Those controls are real and testable, but their production adapters do not yet exist.
+BuilderWars has a strong local reference foundation: exact schemas, tenant predicates, a fail-closed browser-authorization gateway, signed runner requests, durable nonce consumption, transactional lease and deletion behavior, deterministic replay, bounded publication projections, and source-bound local launch evidence. Those controls are real and testable, but the Clerk verifier, durable perimeter, production store, and deployment adapters do not yet exist.
 
-The launch-critical exposure is the missing browser authentication adapter. The framework-neutral hosted handlers deliberately trust an upstream caller to authenticate the user and supply the correct opaque owner identifier. A public service must derive that identifier from a verified Clerk principal, never from request data. The second major boundary is untrusted execution: the current entrant sandbox is a process-lifecycle boundary, not an operating-system jail. Public arbitrary creator or entrant code must remain disabled until independent isolation evidence exists.
+The launch-critical exposure is production integration of browser authentication. The local gateway rejects request-supplied owner identifiers, requires exact origin and CSRF evidence, accepts only a freshly verified injected principal, derives the owner identifier with a server pepper, enforces strict route/body schemas, and fails closed when its injected account limiter is unavailable. A public service must still cryptographically verify the live Clerk session, provision the pepper, expose only the gateway, and supply durable edge/account controls. The second major boundary is untrusted execution: the current entrant sandbox is a process-lifecycle boundary, not an operating-system jail. Public arbitrary creator or entrant code must remain disabled until independent isolation evidence exists.
 
 Seven high or critical threats remain protected holds: browser owner-mapping bypass, cross-tenant integration drift, entrant isolation escape, provider credential or cost abuse, publication poisoning, incomplete deletion or rollback, and source or verifier substitution. No customer has completed a protected tester journey, no production perimeter or store has been observed, and no public launch claim is made here.
 
@@ -14,7 +14,7 @@ Seven high or critical threats remain protected holds: browser owner-mapping byp
 
 In scope:
 
-- The Mobile Arena, future browser-auth adapter, hosted control-plane reference, transactional state, runner verifier, customer-local provider runner, arena referee and entrant boundary, publication pipeline, and local launch evidence builder.
+- The Mobile Arena, local browser-authorization gateway, future production Clerk adapter, hosted control-plane reference, transactional state, runner verifier, customer-local provider runner, arena referee and entrant boundary, publication pipeline, and local launch evidence builder.
 - Authentication and authorization, tenant isolation, signed request replay resistance, pairing abuse, local provider authority, untrusted process isolation, result integrity, retention and recovery, availability, and release provenance.
 - The transition from the current local reference implementation to a public multi-tenant beta.
 
@@ -28,7 +28,7 @@ Out of scope:
 Assumptions:
 
 1. The first protected release is a public multi-tenant beta rather than an internal-only service.
-2. A future web adapter maps a Clerk-authenticated principal to one opaque owner id before calling framework-neutral handlers.
+2. A production web adapter cryptographically verifies the Clerk session, constructs the reviewed principal input, and routes every owner command through the local gateway contract before calling framework-neutral handlers.
 3. Provider credentials and subscription sessions stay customer-local; the hosted control plane never receives raw provider secrets.
 4. Public arbitrary creator code and untrusted entrant execution remain disabled until an OS isolation profile is independently verified.
 5. Production state is expected to replace the local SQLite reference while preserving its tenant and transaction invariants.
@@ -46,7 +46,7 @@ Open questions:
 | ID | Component | Security role | Current status |
 | --- | --- | --- | --- |
 | C-001 | Mobile Arena | Static local-first reader and builder shell | Implemented locally; demo fallback is not live truth |
-| C-002 | Browser authentication adapter | Maps a verified browser principal to one opaque owner id | Missing protected integration |
+| C-002 | Browser authorization gateway | Maps an injected verified principal to one opaque owner id and one exact owner command | Local reference implemented; production Clerk integration held |
 | C-003 | Hosted control plane | Framework-neutral pairing, runner, job, deletion, and replay handlers | Reference implemented |
 | C-004 | Hosted state store | Tenant, runner, nonce, lease, result, and projection state | Transactional SQLite reference only |
 | C-005 | Runner verifier | Origin-bound Ed25519 verification and durable nonce consumption | Implemented locally |
@@ -60,8 +60,8 @@ Open questions:
 
 | Boundary | Flow | Data and channel | Existing guarantees | Residual gap |
 | --- | --- | --- | --- | --- |
-| B-001 | Internet browser -> browser-auth adapter | Session and customer actions over future HTTPS | None implemented in this repository | Adapter, token verification, origin, CSRF, session, and rate controls unproven |
-| B-002 | Browser-auth adapter -> hosted control plane | Opaque owner id and bounded commands, future in-process call | Canonical owner-id validation | Principal-to-owner mapping unproven |
+| B-001 | Internet browser -> browser-authorization gateway | Session and customer actions over future HTTPS | Exact origin; canonical CSRF pair; strict routes/bodies; injected verified principal; owner-scoped local limiter reference | Production Clerk cookie/session verifier, edge controls, durable account limits, owner pepper, and idempotency unproven |
+| B-002 | Browser-authorization gateway -> hosted control plane | Opaque owner id and bounded commands, in-process reference | HMAC-derived opaque owner id; no request owner id; canonical validation; uniform foreign-object errors | Live Clerk-subject binding and direct-handler non-exposure unproven |
 | B-003 | Customer-local runner -> runner verifier | Signed exact method, path, body, origin, timestamp, and nonce over future HTTPS | Ed25519, origin binding, timestamp window, durable nonce consumption | TLS edge and perimeter limits unproven |
 | B-004 | Hosted control plane -> hosted state | Tenant, runner, nonce, lease, job, and result state | Exact identifiers, parameterized queries, foreign keys, `BEGIN IMMEDIATE` | Production adapter, backup, restore, and capacity unproven |
 | B-005 | Customer-local runner -> provider CLI or PKCE | Customer prompt and provider authority through local subprocess or pinned HTTPS | Explicit local intent, output bounds, redacted secret wrapper, pinned origin | Customer endpoint and broad native environments are not isolated; identity and billing unattested |
@@ -73,7 +73,7 @@ Open questions:
 
 ```mermaid
 flowchart LR
-  U[Internet browser] -->|B-001 session and actions| A[Browser auth adapter - missing]
+  U[Internet browser] -->|B-001 session and actions| A[Browser authorization gateway - local reference]
   A -->|B-002 opaque owner id| H[Hosted control plane]
   R[Customer-local runner] -->|B-003 signed exact request| V[Runner verifier]
   V --> H
@@ -120,7 +120,7 @@ flowchart LR
 
 | ID | Surface | Reached by | Boundary | Security note |
 | --- | --- | --- | --- | --- |
-| EP-001 | Owner-authenticated hosted commands | Future browser adapter | B-001 | Create, confirm, revoke, delete, and fixture operations require external browser authentication |
+| EP-001 | Owner-authenticated hosted commands | Verified browser-principal reference | B-001 | Create, confirm, revoke, delete, and fixture operations pass the local gateway but still require production Clerk verification |
 | EP-002 | Pairing claim | One-time pairing secret | B-002 | Exact JSON claim, 600-second TTL, attempt lock, and one-winner transaction |
 | EP-003 | Signed runner commands | Runner HTTPS request | B-003 | Probe, poll, renew, abandon, and result paths sign exact bytes |
 | EP-004 | Public replay projection | Public job identifier | B-004 | Returns a bounded projection or not found |
@@ -131,7 +131,7 @@ flowchart LR
 
 ## Top abuse paths
 
-1. A future HTTP adapter accepts `owner_id` from the request, allowing an attacker to revoke another tenant's runner, create jobs, or delete state (TM-001).
+1. A production HTTP adapter bypasses the gateway or constructs its principal from unverified data, allowing an attacker to act as another tenant and revoke a runner, create jobs, or delete state (TM-001).
 2. A production store port omits one owner predicate or transaction invariant, enabling cross-tenant reads or mutations despite safe reference behavior (TM-002).
 3. A valid signed runner request is replayed against a deployment whose nonce store, origin binding, or exact-byte verification drifted (TM-003).
 4. A public pairing endpoint is flooded or raced to lock legitimate challenges or bind an attacker-controlled key (TM-004).
@@ -146,7 +146,7 @@ flowchart LR
 
 | ID | Threat source | Prerequisites | Threat action | Impact | Existing controls | Residual gap | Recommended mitigation | Detection | Likelihood | Severity | Priority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TM-001 | Remote unauthenticated attacker | Public HTTP adapter exposes owner-scoped handlers | Forge or confuse principal-to-owner mapping | Cross-tenant control, deletion, jobs, privacy breach | Canonical owner ids; owner-scoped handlers | Browser adapter and Clerk, origin, CSRF, session controls missing | Deny-by-default verified-subject adapter; uniform foreign-object responses; route authorization tests | Owner-mapping failures, foreign probes, destructive spikes | Medium before adapter; high if request data is trusted | High | Critical, protected hold |
+| TM-001 | Remote unauthenticated attacker | Production HTTP adapter exposes owner-scoped handlers and accepts an attacker-influenced owner id | Forge or confuse principal-to-owner mapping | Cross-tenant control, deletion, jobs, privacy breach | Gateway exact origin, canonical CSRF, strict routes/bodies, fresh injected principal, HMAC-derived owner, uniform foreign errors, fail-closed local limiter | Production Clerk/token/cookie wiring, durable edge/account limits, pepper custody, idempotency, and direct-handler non-exposure unproven | Verify Clerk server-side; construct only the reviewed principal; provision protected pepper and durable limits; expose only the gateway | Owner-mapping failures, foreign probes, destructive spikes, and redacted adapter decisions | Medium; high if production bypasses the gateway or trusts unverified principal data | High | Critical, protected hold |
 | TM-002 | Authenticated malicious tenant | Production adapter weakens owner predicates | Enumerate identifiers and exploit an unscoped operation | Cross-tenant disclosure or mutation | SQLite owner predicates, foreign keys, atomic transactions | Production adapter and external multi-tenant test absent | Port invariants as adapter conformance tests; tenant-scoped keys; route fuzzing | Tenant-mismatch denials and destructive-operation anomalies | Low in reference; conditional on integration | High | High, protected hold |
 | TM-003 | Network attacker or malicious runner | Captured signed bytes or verifier drift | Replay or redirect a valid command | Duplicate work, stale result, forged possession | Exact signed bytes, origin, timestamp, durable nonce | Production nonce store, edge, and TLS parity unproven | Preserve atomic nonce and canonical origin/path/body checks; reject redirects | Replay, stale, future, origin, signature, and nonce errors | Low | High | Medium |
 | TM-004 | Remote attacker | Pairing route is public without layered limits | Guess, race, or flood pairing secrets | Enrollment denial or unauthorized binding | High entropy, hash-only storage, TTL, attempt lock, one-winner transaction | Edge, tenant, IP, and global limits absent | Layered durable limits and bounded retry-after | Claim failures, locks, races, distributed guessing | Medium | Medium | Medium |
@@ -168,6 +168,7 @@ flowchart LR
 
 | Path | Review focus | Threats |
 | --- | --- | --- |
+| `provider_hub_hosted/browser_gateway.py` | Exact origin/CSRF, verified-principal contract, opaque owner derivation, strict routes, fail-closed limiter and errors | TM-001, TM-002, TM-004, TM-009 |
 | `provider_hub_hosted/handlers.py` | External authentication boundary and destructive owner-scoped methods | TM-001, TM-002, TM-009 |
 | `provider_hub_hosted/store.py` | Tenant predicates, transactions, nonces, leases, results, deletion | TM-002, TM-003, TM-004, TM-008, TM-009 |
 | `provider_hub_hosted/verify.py` | Signature, origin, timestamp, owner, and nonce verification | TM-003 |
@@ -187,7 +188,7 @@ The executable model in `publishing/threat_model.py` and checker in `bin/check_b
 
 The following remain protected gates:
 
-1. Production browser authentication and principal-to-owner mapping.
+1. Production Clerk verification, principal-to-owner mapping, owner pepper custody, durable browser rate limits, idempotency, and adapter-only gateway wiring.
 2. Production store tenant, transaction, lease, deletion, and nonce conformance.
 3. Durable edge, service, and tenant rate limits with a named capacity target.
 4. Production secret boundary, customer provider consent, route identity, and cost receipts.
@@ -208,3 +209,5 @@ Local work has no authority to accept provider terms, attest human action, chang
 - Secret custody, tenant isolation, arbitrary execution, public ranking, deletion, availability, and supply-chain risks are represented.
 - Assumptions and unanswered production questions are explicit.
 - The threat model is useful for launch review but intentionally refuses to claim customers, traffic, security acceptance, or production readiness.
+
+The browser boundary, adapter checklist, focused adversarial command, and rollback expectations are specified in [`AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md`](AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md). The executable model binds 17 exact source anchors; all production authority remains false.

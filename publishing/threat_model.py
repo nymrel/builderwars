@@ -62,7 +62,7 @@ CONTEXT = {
 
 ASSUMPTIONS = (
     "The first protected release is a public multi-tenant beta rather than an internal-only service.",
-    "A future web adapter maps a Clerk-authenticated principal to one opaque owner id before calling framework-neutral handlers.",
+    "A production web adapter verifies a Clerk session, constructs the reviewed principal input, and routes every owner command through the local authorization-gateway contract.",
     "Provider credentials and subscription sessions stay customer-local; the hosted control plane never receives raw provider secrets.",
     "Public arbitrary creator code and untrusted entrant execution remain disabled until an OS isolation profile is independently verified.",
     "Production state is expected to replace the local SQLite reference while preserving its tenant and transaction invariants.",
@@ -81,7 +81,7 @@ def _component(component_id: str, label: str, role: str, status: str, anchors: t
 
 COMPONENTS = (
     _component("C-001", "Mobile Arena", "static local-first reader and builder shell", "implemented_local", ("EA-015",)),
-    _component("C-002", "Browser authentication adapter", "maps authenticated browser principal to opaque owner id", "missing_protected", ("EA-001",)),
+    _component("C-002", "Browser authorization gateway", "maps an injected verified browser principal to an opaque owner id and exact owner command", "local_reference_production_integration_held", ("EA-001", "EA-017")),
     _component("C-003", "Hosted control plane", "framework-neutral pairing, runner, job, deletion, and replay handlers", "reference_implemented", ("EA-001", "EA-002")),
     _component("C-004", "Hosted state store", "transactional tenant, runner, nonce, lease, result, and projection state", "sqlite_reference_only", ("EA-003", "EA-004", "EA-006")),
     _component("C-005", "Runner verifier", "origin-bound Ed25519 request verification and durable nonce consumption", "implemented_local", ("EA-005", "EA-006")),
@@ -107,8 +107,8 @@ def _boundary(boundary_id: str, source: str, destination: str, data: str, channe
 
 
 BOUNDARIES = (
-    _boundary("B-001", "internet_browser", "browser_authentication_adapter", "session_and_customer_actions", "https_future", (), ("adapter_not_implemented", "origin_csrf_session_and_rate_limit_controls_unproven"), ("EA-001",)),
-    _boundary("B-002", "browser_authentication_adapter", "hosted_control_plane", "opaque_owner_id_and_bounded_commands", "in_process_future", ("canonical_owner_id_validation",), ("principal_to_owner_mapping_unproven",), ("EA-001", "EA-002")),
+    _boundary("B-001", "internet_browser", "browser_authorization_gateway", "session_and_customer_actions", "https_future", ("exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies", "injected_verified_principal", "owner_scoped_local_rate_limit_reference"), ("production_clerk_cookie_session_verifier_and_edge_limits_unproven", "durable_account_limits_owner_pepper_and_idempotency_unproven"), ("EA-001", "EA-017")),
+    _boundary("B-002", "browser_authorization_gateway", "hosted_control_plane", "opaque_owner_id_and_bounded_commands", "in_process_reference", ("hmac_derived_opaque_owner_id", "no_request_owner_id", "canonical_owner_id_validation", "uniform_foreign_object_errors"), ("live_clerk_subject_to_gateway_binding_and_direct_handler_non_exposure_unproven",), ("EA-001", "EA-002", "EA-017")),
     _boundary("B-003", "customer_local_runner", "runner_verifier", "signed_exact_method_path_body_timestamp_nonce", "https_future", ("ed25519_signature", "origin_binding", "timestamp_window", "durable_nonce_consumption"), ("tls_edge_and_perimeter_rate_limits_unproven",), ("EA-005", "EA-006", "EA-007")),
     _boundary("B-004", "hosted_control_plane", "hosted_state_store", "tenant_runner_nonce_lease_job_and_result_state", "sqlite_reference", ("exact_identifiers", "parameterized_queries", "foreign_keys", "begin_immediate_transactions"), ("production_store_adapter_backup_and_capacity_unproven",), ("EA-003", "EA-004", "EA-006")),
     _boundary("B-005", "customer_local_runner", "provider_cli_or_pkce", "customer_owned_prompt_and_provider_authority", "local_subprocess_or_pinned_https", ("explicit_local_intent", "bounded_output", "redacted_secret_wrapper", "pinned_origin"), ("customer_machine_and_claude_environment_not_isolated", "provider_identity_and_billing_unattested"), ("EA-007", "EA-008")),
@@ -136,7 +136,7 @@ def _entry(entry_id: str, surface: str, reached: str, boundary: str, notes: str,
 
 
 ENTRY_POINTS = (
-    _entry("EP-001", "owner_authenticated_hosted_commands", "future_browser_adapter", "B-001", "create confirm revoke delete and fixture operations require external browser authentication", ("EA-001", "EA-002")),
+    _entry("EP-001", "owner_authenticated_hosted_commands", "verified_browser_principal_reference", "B-001", "create confirm revoke delete and fixture operations pass the local gateway but still require production Clerk verification", ("EA-001", "EA-002", "EA-017")),
     _entry("EP-002", "pairing_claim", "one_time_pairing_secret", "B-002", "exact JSON claim with TTL and attempt lock", ("EA-002", "EA-003")),
     _entry("EP-003", "signed_runner_commands", "runner_https_request", "B-003", "probe poll renew abandon and result paths use exact signed bytes", ("EA-005", "EA-006")),
     _entry("EP-004", "public_replay_projection", "public_job_identifier", "B-004", "returns a bounded result projection or not found", ("EA-002", "EA-012")),
@@ -164,6 +164,7 @@ EVIDENCE_ANCHORS = (
     {"anchorId": "EA-014", "path": "publishing/retention_recovery.py", "symbol": "PRODUCTION_AUTHORITY"},
     {"anchorId": "EA-015", "path": "mobile-arena/data-adapter.js", "symbol": "DEMO FALLBACK"},
     {"anchorId": "EA-016", "path": "bin/build_agentwars_local_launch_evidence.py", "symbol": "PROTECTED_STATUS = \"HELD_PROTECTED\""},
+    {"anchorId": "EA-017", "path": "provider_hub_hosted/browser_gateway.py", "symbol": "class BrowserAuthorizationGateway"},
 )
 
 
@@ -215,11 +216,11 @@ THREATS = (
         "Forge or confuse the authenticated-principal to owner-id mapping, then call pairing, job, revocation, or deletion methods as another tenant.",
         "Cross-tenant runner control, state deletion, unauthorized jobs, and privacy breach.",
         ("A-001", "A-002", "A-004", "A-009"), ("B-001", "B-002"), ("EP-001", "EP-002"),
-        ("EA-001", "EA-002"),
-        ("browser_adapter_missing", "clerk_token_verification_origin_csrf_session_and_owner_mapping_unproven"),
-        ("Implement one deny-by-default adapter that derives owner id only from verified Clerk subject and tenant.", "Require exact method route origin CSRF and authorization tests before stage 11.", "Return uniform not-found responses for foreign tenant objects."),
+        ("EA-001", "EA-002", "EA-017"),
+        ("production_clerk_token_cookie_session_and_adapter_wiring_unproven", "durable_edge_account_limits_owner_pepper_custody_and_idempotency_unproven", "direct_handler_non_exposure_unproven"),
+        ("Wire one deny-by-default production adapter that verifies Clerk and constructs the reviewed principal input.", "Provision the owner pepper and durable edge/account limits through protected secret and state custody.", "Expose only the gateway for owner commands and keep uniform not-found responses for foreign tenant objects."),
         ("Alert on owner-mapping failures foreign-object probes and destructive-action spikes.", "Audit redacted subject-to-owner decisions with source and deployment digest."),
-        "medium", "The adapter is not implemented, so current local code is not remotely exploitable; likelihood becomes high if an adapter trusts request data.",
+        "medium", "A local gateway reference now rejects request owner ids, bad origin, CSRF, stale principals, schema drift, and limiter failure; likelihood becomes high if production bypasses it or trusts unverified principal data.",
         "high", "A single bypass can cross tenant boundaries and delete or control security-sensitive state.", "critical",
     ),
     _threat(
@@ -228,7 +229,7 @@ THREATS = (
         "Enumerate runner or job identifiers and exploit an unscoped read, update, revoke, or delete path.",
         "Disclosure or mutation of another tenant's runner, job, result, or cleanup state.",
         ("A-001", "A-002", "A-004", "A-009"), ("B-002", "B-004"), ("EP-001", "EP-003", "EP-004"),
-        ("EA-002", "EA-004", "EA-006"),
+        ("EA-002", "EA-004", "EA-006", "EA-017"),
         ("production_store_adapter_unimplemented", "external_multi_tenant_penetration_test_missing"),
         ("Port owner predicates and foreign-key semantics as conformance tests for the production adapter.", "Use tenant-scoped keys plus authorization at both adapter and store layers.", "Run cross-tenant fuzzing against every production route."),
         ("Count foreign-object denials by route without logging identifiers.", "Alert on unusual tenant-mismatch and destructive-operation rates."),
@@ -254,7 +255,7 @@ THREATS = (
         "Guess, race, or repeatedly submit pairing secrets to lock a legitimate challenge or enroll an attacker key.",
         "Runner enrollment denial or unauthorized runner binding.",
         ("A-002", "A-004", "A-008"), ("B-002", "B-004"), ("EP-002",),
-        ("EA-003", "EA-004"),
+        ("EA-003", "EA-004", "EA-017"),
         ("durable_per_ip_per_tenant_and_global_rate_limits_unproven",),
         ("Add layered per-IP per-challenge per-owner and global rate limits with bounded retry-after.", "Keep 600-second TTL hash-only storage one-winner transaction and attempt lock."),
         ("Track claim failures locks races and challenge creation volume.", "Alert on distributed low-rate guessing and lockout bursts."),
@@ -349,6 +350,7 @@ CRITICALITY_CALIBRATION = {
 }
 
 FOCUS_PATHS = (
+    {"path": "provider_hub_hosted/browser_gateway.py", "reason": "origin CSRF verified-principal owner derivation exact routes safe errors and injected rate-limit boundary", "threatIds": ["TM-001", "TM-002", "TM-004", "TM-009"]},
     {"path": "provider_hub_hosted/handlers.py", "reason": "external browser-auth boundary and destructive owner-scoped methods", "threatIds": ["TM-001", "TM-002", "TM-009"]},
     {"path": "provider_hub_hosted/store.py", "reason": "tenant predicates transactional state nonces leases results and deletion", "threatIds": ["TM-002", "TM-003", "TM-004", "TM-008", "TM-009"]},
     {"path": "provider_hub_hosted/verify.py", "reason": "runner signature origin timestamp owner and nonce verification", "threatIds": ["TM-003"]},
@@ -364,7 +366,7 @@ FOCUS_PATHS = (
 )
 
 RESIDUAL_PROTECTED_GATES = (
-    "production_browser_authentication_and_owner_mapping",
+    "production_browser_authentication_owner_mapping_pepper_and_adapter_wiring",
     "production_store_tenant_and_nonce_conformance",
     "durable_edge_service_and_tenant_rate_limits",
     "production_secret_and_provider_consent_boundary",

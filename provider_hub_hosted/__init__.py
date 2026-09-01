@@ -7,6 +7,16 @@ transport, durable fixture-job state, and an allow-list deterministic result
 projection.
 """
 
+from provider_hub_hosted.browser_gateway import (
+    AccountRateLimiter,
+    BrowserAuthenticationError,
+    BrowserAuthorizationGateway,
+    BrowserGatewayResponse,
+    BrowserRequest,
+    InMemoryAccountRateLimiter,
+    RateLimitDecision,
+    VerifiedBrowserPrincipal,
+)
 from provider_hub_hosted.handlers import HostedControlPlane
 from provider_hub_hosted.store import HostedControlPlaneStore, HostedStoreError
 from provider_hub_hosted.verify import (
@@ -17,11 +27,19 @@ from provider_hub_hosted.verify import (
 )
 
 __all__ = [
+    "AccountRateLimiter",
+    "BrowserAuthenticationError",
+    "BrowserAuthorizationGateway",
+    "BrowserGatewayResponse",
+    "BrowserRequest",
     "HostedControlPlane",
     "HostedControlPlaneStore",
     "HostedStoreError",
+    "InMemoryAccountRateLimiter",
     "IncomingSignedRequest",
+    "RateLimitDecision",
     "SignedRequestError",
+    "VerifiedBrowserPrincipal",
     "VerifiedRunnerRequest",
     "verify_signed_request",
 ]

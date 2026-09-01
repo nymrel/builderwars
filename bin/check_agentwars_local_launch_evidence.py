@@ -102,9 +102,12 @@ def main() -> int:
             (evidence_builder.PYTHON, "-m", "unittest", "discover", "-s", "provider_hub_hosted/tests", "-p", "test_*.py"),
             (evidence_builder.PYTHON, "bin/check_builderwars_threat_model.py"),
         ),
-        "stage 9 runs hosted abuse tests and the repository-grounded threat model",
+        "stage 9 runs hosted abuse, browser-authorization, and repository-grounded threat-model tests",
     )
-    check(stages[8].evidence_files == ("docs/BUILDERWARS_THREAT_MODEL.md",), "stage 9 binds the reviewed threat-model document")
+    check(stages[8].evidence_files == (
+        "docs/BUILDERWARS_THREAT_MODEL.md",
+        "docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md",
+    ), "stage 9 binds the reviewed threat model and browser-authorization boundary")
     check(stages[9].stage_id == "launch_contracts_and_rollback_plan" and stages[9].stage_class == "local_executable", "launch contracts are executable stage 10")
     check(
         stages[9].commands == (

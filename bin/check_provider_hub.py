@@ -2099,6 +2099,8 @@ _PY_COMPILE_TARGETS = [
     "publishing/observability.py",
     "publishing/retention_recovery.py",
     "publishing/threat_model.py",
+    "provider_hub_hosted/browser_gateway.py",
+    "provider_hub_hosted/tests/test_browser_gateway.py",
     "publishing/tester_readiness.py",
     "publishing/product.py",
     "publishing/promotion.py",

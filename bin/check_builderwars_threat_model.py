@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from publishing import threat_model as tm
+from provider_hub_hosted import browser_gateway as bg
 
 
 CHECKS = 0
@@ -88,9 +89,9 @@ def main() -> int:
     check(len(model["boundaries"]) == 8, "eight trust boundaries are modeled")
     check(len(model["assets"]) == 9, "nine security-driving assets are modeled")
     check(len(model["entryPoints"]) == 8, "eight concrete entry points are modeled")
-    check(len(model["evidenceAnchors"]) == 16, "sixteen source anchors ground the model")
+    check(len(model["evidenceAnchors"]) == 17, "seventeen source anchors ground the model")
     check(len(model["threats"]) == 10, "ten concrete threats are prioritized")
-    check(len(model["focusPaths"]) == 12, "twelve manual-review focus paths are named")
+    check(len(model["focusPaths"]) == 13, "thirteen manual-review focus paths are named")
     check(len(model["assumptions"]) == 5 and len(model["openQuestions"]) == 3, "assumptions and open questions are bounded")
     check(model["context"] == tm.CONTEXT, "service context is exact")
     check("beta_scale_unknown" in model["context"]["riskQualifier"], "unknown scale remains an explicit qualifier")
@@ -109,7 +110,7 @@ def main() -> int:
     check(boundary_ids == [f"B-{index:03d}" for index in range(1, 9)], "boundary ids are stable and contiguous")
     check(asset_ids == [f"A-{index:03d}" for index in range(1, 10)], "asset ids are stable and contiguous")
     check(entry_ids == [f"EP-{index:03d}" for index in range(1, 9)], "entry-point ids are stable and contiguous")
-    check(anchor_ids == [f"EA-{index:03d}" for index in range(1, 17)], "anchor ids are stable and contiguous")
+    check(anchor_ids == [f"EA-{index:03d}" for index in range(1, 18)], "anchor ids are stable and contiguous")
     check(threat_ids == [f"TM-{index:03d}" for index in range(1, 11)], "threat ids are stable and contiguous")
     for ids, label in ((component_ids, "component"), (boundary_ids, "boundary"), (asset_ids, "asset"), (entry_ids, "entry"), (anchor_ids, "anchor"), (threat_ids, "threat")):
         check(len(ids) == len(set(ids)), f"{label} ids are unique")
@@ -152,7 +153,7 @@ def main() -> int:
     check(covered_assets == known_assets, "every asset appears in a threat")
     check(covered_entries == known_entries, "every entry point appears in a threat")
     check(high_critical == ["TM-001", "TM-002", "TM-005", "TM-006", "TM-007", "TM-008", "TM-010"], "high and critical threat set is exact")
-    check(model["threats"][0]["priority"] == "critical", "missing browser auth is launch-critical")
+    check(model["threats"][0]["priority"] == "critical", "production browser auth integration remains launch-critical")
     check(model["threats"][4]["priority"] == "high", "unenforced OS isolation remains high priority")
     check(model["threats"][4]["likelihood"]["rating"] == "low", "disabled public arbitrary execution reduces current reachability")
     check("customer-local" in model["threats"][5]["likelihood"]["reason"], "provider risk remains customer-endpoint aware")
@@ -171,16 +172,50 @@ def main() -> int:
         check((ROOT / focus["path"]).exists(), f"focus path {focus['path']} exists")
         check(set(focus["threatIds"]) <= set(threat_ids) and bool(focus["threatIds"]), f"focus path {focus['path']} references threats")
 
+    component_c002 = next(row for row in model["components"] if row["componentId"] == "C-002")
+    boundary_b001 = next(row for row in model["boundaries"] if row["boundaryId"] == "B-001")
+    boundary_b002 = next(row for row in model["boundaries"] if row["boundaryId"] == "B-002")
+    check(component_c002["status"] == "local_reference_production_integration_held", "browser gateway is local reference with production held")
+    check(component_c002["evidenceAnchorIds"] == ["EA-001", "EA-017"], "browser component binds the gateway source anchor")
+    check(boundary_b001["guarantees"] == [
+        "exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies",
+        "injected_verified_principal", "owner_scoped_local_rate_limit_reference",
+    ], "browser boundary guarantees are exact")
+    check(boundary_b001["gaps"] == [
+        "production_clerk_cookie_session_verifier_and_edge_limits_unproven",
+        "durable_account_limits_owner_pepper_and_idempotency_unproven",
+    ], "browser boundary keeps production gaps explicit")
+    check(boundary_b002["guarantees"] == [
+        "hmac_derived_opaque_owner_id", "no_request_owner_id",
+        "canonical_owner_id_validation", "uniform_foreign_object_errors",
+    ], "owner boundary guarantees are exact")
+    check(model["evidenceAnchors"][-1] == {
+        "anchorId": "EA-017",
+        "path": "provider_hub_hosted/browser_gateway.py",
+        "symbol": "class BrowserAuthorizationGateway",
+    }, "gateway source anchor is exact")
+
+    check(bg.BROWSER_GATEWAY_SCHEMA == "agentwars.browser_authorization_gateway/1", "browser gateway schema is pinned")
+    check(bg.BROWSER_GATEWAY_EVIDENCE_CLASS == "local_browser_authorization_reference", "gateway evidence class is local")
+    check(all(type(flag) is bool and flag is False for flag in bg.PRODUCTION_AUTHORITY.values()), "gateway has zero production authority")
+    check(list(bg.BrowserRequest.__dataclass_fields__) == [
+        "method", "path", "body", "origin", "content_type", "csrf_cookie", "csrf_header",
+    ], "browser request admits only sanitized request facts")
+    check(not ({"owner_id", "authorization", "session_cookie", "bearer_token"} & set(bg.BrowserRequest.__dataclass_fields__)), "browser request excludes owner and authentication material")
+    check(list(bg.VerifiedBrowserPrincipal.__dataclass_fields__) == [
+        "issuer", "subject", "session_id", "verified_at", "authentication_class",
+    ], "verified principal contract is exact")
+
     observations = evidence_observations()
-    check(len(observations) == 16, "all source observations are constructed")
+    check(len(observations) == 17, "all source observations are constructed")
     check(all(row["anchorFound"] is True for row in observations), "every source anchor is present")
     check(all(row["productionObserved"] is False for row in observations), "source observations make no production claim")
-    check(len({row["fileSha256"] for row in observations}) >= 10, "source observations bind distinct files")
+    check(len({row["fileSha256"] for row in observations}) >= 11, "source observations bind distinct files")
     assessment = tm.build_local_security_assessment(source_commit=COMMIT, source_tree=TREE, observations=observations)
     check(assessment["schemaVersion"] == tm.ASSESSMENT_SCHEMA, "assessment schema is pinned")
     check(assessment["sourceCommit"] == COMMIT and assessment["sourceTree"] == TREE, "assessment binds the checked source identity")
     check(assessment["status"] == "LOCAL_THREAT_MODEL_PASS_PROTECTED_HELD", "assessment status keeps protected hold")
-    check(assessment["evidenceObservationCount"] == 16, "assessment records all evidence anchors")
+    check(assessment["evidenceObservationCount"] == 17, "assessment records all evidence anchors")
     check(assessment["highCriticalThreatIds"] == high_critical, "assessment binds high and critical threats")
     check(assessment["protectedThreatIds"] == high_critical, "assessment holds every high and critical threat")
     check(assessment["residualProtectedGates"] == list(tm.RESIDUAL_PROTECTED_GATES), "assessment binds residual gates")
@@ -271,8 +306,22 @@ def main() -> int:
     check("BuilderWars.com apex" in markdown, "Markdown keeps apex outside local authority")
     check(all(question in markdown for question in tm.OPEN_QUESTIONS), "Markdown carries every open service question")
 
+    boundary_path = ROOT / "docs" / "AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md"
+    boundary_markdown = boundary_path.read_text(encoding="utf-8")
+    required_boundary_headings = (
+        "## Status and authority boundary", "## Exact browser request contract",
+        "## Verified principal contract", "## Owner derivation and tenant isolation",
+        "## Route and body allowlist", "## Origin and CSRF rules",
+        "## Rate-limit boundary", "## Error and enumeration boundary",
+        "## Production adapter checklist", "## Validation and rollback",
+    )
+    check(all(heading in boundary_markdown for heading in required_boundary_headings), "browser boundary document has the required section contract")
+    check("request carries no session cookie, bearer token, or owner id" in boundary_markdown.lower(), "browser boundary excludes authentication material and owner injection")
+    check("all production authority flags remain false" in boundary_markdown.lower(), "browser boundary holds production authority false")
+    check("BuilderWars.com apex and www remain untouched" in boundary_markdown, "browser boundary preserves the protected domain boundary")
+
     print(f"BuilderWars threat model: PASS ({CHECKS} checks)")
-    print("10 threats / 8 boundaries / 16 source anchors / auth and OS-isolation gaps held / zero production security authority")
+    print("10 threats / 8 boundaries / 17 source anchors / production auth integration and OS-isolation gaps held / zero production security authority")
     return 0
 
 

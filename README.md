@@ -218,10 +218,11 @@ The exact evidence boundary and protected activation ceremony are documented in
 ## Launch threat model — repository-grounded, protected gaps held
 
 BuilderWars now carries an executable public-beta threat model covering the
-future browser-auth adapter, multi-tenant hosted reference, signed runner
+local browser-authorization gateway, future production Clerk adapter,
+multi-tenant hosted reference, signed runner
 protocol, customer-local provider authority, entrant process boundary,
 publication lineage, deletion/recovery, availability, and release provenance.
-It binds ten threats to eight trust boundaries and sixteen exact source anchors.
+It binds ten threats to eight trust boundaries and seventeen exact source anchors.
 
 ```powershell
 python bin\check_builderwars_threat_model.py
@@ -234,6 +235,9 @@ owner mapping, production-store conformance, rate limits, secret/consent
 receipts, OS-level isolation or continued disablement, monitoring, the data map,
 served-byte parity, and independent security acceptance remain protected. Model:
 [`docs/BUILDERWARS_THREAT_MODEL.md`](docs/BUILDERWARS_THREAT_MODEL.md).
+The exact sanitized request, verified-principal, opaque-owner, CSRF, route,
+error, rate-limit, production-adapter, and rollback contract is documented in
+[`docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md`](docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md).
 
 ## Tester ceremony — synthetic rehearsal only
 
