@@ -148,6 +148,28 @@ Product direction and explicit non-goals:
 Current category research and long-term evidence gates:
 [`docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md`](docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md).
 
+## Local launch evidence pack
+
+One source-bound command assembles the current 13-stage local launch candidate.
+Ten stages run or inspect credential-free local evidence; protected runtime,
+source-bound production deployment, and consented-tester/review/launch authority
+remain explicit held stages. Local success can never set `launchable: true`.
+
+```powershell
+python bin\check_agentwars_local_launch_evidence.py
+python bin\build_agentwars_local_launch_evidence.py --list-stages
+python bin\build_agentwars_local_launch_evidence.py --output output/launch-evidence/<full-source-sha>/pack.json
+```
+
+The builder requires a clean committed worktree, executes no deploy, DNS, auth,
+provider-account, publication, billing, or customer mutation, and writes a new
+pack only under `output/launch-evidence/`. Existing evidence paths are never
+overwritten. The JSON binds the exact commit/tree/branch, command output digests,
+file digests, cleanup state, false production claims, next protected gate, and a
+canonical pack digest. It is not the detached-signed production pack required
+for public cutover. Contract and field details:
+[`docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md`](docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md).
+
 ---
 
 ## Check a result without trusting us
