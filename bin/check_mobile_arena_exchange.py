@@ -193,7 +193,18 @@ def main() -> int:
     require("requires_operator_commit_review" in adapter and "operator review" in js and "Commit nothing." in js, "private guard-completion operator hold missing")
     require("The verified upstream completion remains available" in js, "private guard-completion review refusal must preserve upstream completion")
     require("exactly one immutable private local review" in adapter and "immutable private decision" in js, "private guard-completion review immutability boundary missing")
-    checks += 106
+    require("createPortablePrivateBlueprintOperatorReviewPacket" in adapter and "verifyPortablePrivateBlueprintOperatorReviewPacket" in adapter, "private operator-review packet verifier missing")
+    require('PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_SCHEMA = "builderwars.mobile-private-blueprint-operator-review-packet.v1"' in adapter, "private operator-review packet schema drift")
+    require("PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH = 8388608" in adapter and 'maxlength="8388608"' in js, "private operator-review packet length boundary missing")
+    require("data-private-blueprint-operator-review-packet-create" in js and "data-private-blueprint-operator-review-packet-verify" in js, "private operator-review packet controls missing")
+    require("accepted completion review required" in adapter and "Defer and reject fail closed" in js, "private operator-review packet accepted-review gate missing")
+    require("original-to-candidate guard diff" in adapter and "exact original-to-candidate guard diff" in js, "private operator-review packet exact-diff boundary missing")
+    require('status: "not_run"' in adapter and "all evidence not run" in js, "private operator-review packet validation boundary missing")
+    require("discard_only_uncommitted_state" in adapter and "rollback discard-only" in js, "private operator-review packet rollback boundary missing")
+    require("Operator packet verified · decision not run" in js and 'operatorReviewStatus: "not_run"' in adapter, "private operator-review packet decision hold missing")
+    require("The verified upstream completion review remains available" in js, "private operator-review packet refusal must preserve upstream review")
+    require("Preparation is not an operator review" in adapter and "Prepare one packet. Decide nothing." in js, "private operator-review packet authority boundary missing")
+    checks += 117
 
     print("[5] accessibility, offline, and reduced-motion contracts")
     for marker in (
@@ -246,12 +257,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=23", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=24", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=23",
-        "./styles.css?v=23",
-        "./data-adapter.js?v=23",
-        "./app.js?v=23",
+        "./index.html?v=24",
+        "./styles.css?v=24",
+        "./data-adapter.js?v=24",
+        "./app.js?v=24",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -260,7 +271,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=23"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=24"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -474,6 +485,20 @@ def main() -> int:
     )
     require(private_blueprint_guard_completion_review_check.returncode == 0, f"private guard-completion review regression failed: {private_blueprint_guard_completion_review_check.stderr.strip()}")
     require("PASS" in private_blueprint_guard_completion_review_check.stdout, "private guard-completion review regression did not report PASS")
+    checks += 2
+
+    private_blueprint_operator_review_packet_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_private_blueprint_operator_review_packet.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=240,
+        check=False,
+    )
+    require(private_blueprint_operator_review_packet_check.returncode == 0, f"private operator-review packet regression failed: {private_blueprint_operator_review_packet_check.stderr.strip()}")
+    require("PASS" in private_blueprint_operator_review_packet_check.stdout, "private operator-review packet regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

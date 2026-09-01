@@ -83,8 +83,14 @@ Only acceptance derives a local candidate for a later operator decision, and
 that candidate still forces `commitReady: false`,
 `requires_operator_commit_review`, and operator review `not_run`. Defer and
 reject derive no candidate. Reviewer identity and guard-value provenance remain
-unattested. The shell performs no provider call, inference, account action,
-publication, or deployment.
+unattested. An accepted completion review can now produce one deterministic
+local operator-review packet. The packet binds the exact candidate digest,
+reconstructs the original-to-candidate three-guard diff, carries four bounded
+validation commands with every evidence status `not_run`, and exposes a
+discard-only rollback plus the smallest later operator decision. It does not
+record that decision, run validation, mark the candidate commit-ready, commit,
+or adopt anything. The shell performs no provider call, inference, account
+action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -104,6 +110,7 @@ python bin\check_mobile_arena_private_blueprint_revision.py
 python bin\check_mobile_arena_private_blueprint_draft_review.py
 python bin\check_mobile_arena_private_blueprint_guard_completion.py
 python bin\check_mobile_arena_private_blueprint_guard_completion_review.py
+python bin\check_mobile_arena_private_blueprint_operator_review_packet.py
 python bin\check_mobile_arena_exchange.py
 ```
 

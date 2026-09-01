@@ -69,6 +69,9 @@ const state = {
   privateBlueprintGuardCompletionReviewReviewerLabel: "",
   privateBlueprintGuardCompletionReviewDecision: "accept_for_commit_review",
   privateBlueprintGuardCompletionReviewReason: "completion_lineage_verified",
+  privateBlueprintOperatorReviewPacketReceipt: null,
+  privateBlueprintOperatorReviewPacketImportText: "",
+  privateBlueprintOperatorReviewPacketVerification: null,
   lastFocus: null,
 };
 
@@ -330,6 +333,13 @@ function resetPrivateBlueprintGuardCompletionReviewState({ keepImportText = fals
   if (!keepImportText) state.privateBlueprintGuardCompletionReviewImportText = "";
   state.privateBlueprintGuardCompletionReviewVerification = null;
   if (!keepReviewerLabel) state.privateBlueprintGuardCompletionReviewReviewerLabel = "";
+  resetPrivateBlueprintOperatorReviewPacketState();
+}
+
+function resetPrivateBlueprintOperatorReviewPacketState({ keepImportText = false } = {}) {
+  state.privateBlueprintOperatorReviewPacketReceipt = null;
+  if (!keepImportText) state.privateBlueprintOperatorReviewPacketImportText = "";
+  state.privateBlueprintOperatorReviewPacketVerification = null;
 }
 
 function resetPrivateBlueprintGuardCompletionState({ keepImportText = false, keepReviewerLabel = false, keepSelections = false } = {}) {
@@ -707,11 +717,37 @@ function privateBlueprintGuardCompletionReviewStatusMarkup() {
   return `<div class="portable-status neutral private-blueprint-guard-completion-review-status" role="status" tabindex="-1"><strong>No guard-completion review verified</strong><span>Review one verified complete proposal or paste one canonical review receipt. Accept only prepares a local candidate for a later operator decision.</span></div>`;
 }
 
+function privateBlueprintOperatorReviewPacketStatusMarkup() {
+  const verification = state.privateBlueprintOperatorReviewPacketVerification;
+  if (verification?.status === "verified") {
+    const result = verification.result;
+    const packet = result.operatorReviewPacket;
+    const diff = packet.exactDiff.fields.map((field) => {
+      const before = field.beforeValue === null ? "unknown" : String(field.beforeValue);
+      return `${PRIVATE_BLUEPRINT_GUARD_LABELS[field.guardKey] || field.guardKey}: ${before} → ${field.afterValue} (${field.changeStatus.replaceAll("_", " ")})`;
+    }).join("; ");
+    return `<div class="portable-status verified private-blueprint-operator-review-packet-status" role="status" tabindex="-1"><strong>Operator packet verified · decision not run</strong><span>SHA-256 ${escapeHTML(result.packetDigest)}</span><span>Candidate ${escapeHTML(packet.candidateBinding.candidateDigest)}</span><span>${escapeHTML(diff)}</span><span>${packet.validationPlan.steps.length} validation steps · all evidence not run · rollback discard-only</span><span>Packet and candidate remain local, uncommitted, unadopted, not commit-ready, unqualified, unplayed, unexecuted, unregistered, and unpublished.</span></div>`;
+  }
+  if (verification?.status === "invalid") {
+    return `<div class="portable-status invalid private-blueprint-operator-review-packet-status" role="alert" tabindex="-1"><strong>Operator packet refused</strong><span>${escapeHTML(verification.message)}</span><span>The verified upstream completion review remains available. No operator decision, validation, commitment, adoption, readiness, execution, or authority state was retained.</span></div>`;
+  }
+  return `<div class="portable-status neutral private-blueprint-operator-review-packet-status" role="status" tabindex="-1"><strong>No operator packet verified</strong><span>Prepare one only from an accepted completion review, or paste one canonical packet. Preparation decides nothing and runs no validation.</span></div>`;
+}
+
+function privateBlueprintOperatorReviewPacketMarkup() {
+  const prepared = state.privateBlueprintOperatorReviewPacketReceipt;
+  const review = state.privateBlueprintGuardCompletionReviewVerification?.status === "verified"
+    ? state.privateBlueprintGuardCompletionReviewVerification.result.review
+    : null;
+  const canPrepare = review?.decision === "accept_for_commit_review" && Boolean(review.localCommitReviewCandidate);
+  return `<section class="portable-review-exchange private-blueprint-operator-review-packet" aria-labelledby="private-blueprint-operator-review-packet-title"><div><p class="eyebrow">Local operator handoff</p><h4 id="private-blueprint-operator-review-packet-title">Prepare one packet. Decide nothing.</h4><p>Reverify the accepted completion review, expose the exact original-to-candidate guard diff, list every validation as not run, and keep rollback discard-only.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-private-blueprint-operator-review-packet-create>Prepare local operator packet</button>` : `<p class="portable-digest">An accepted completion review with a local candidate is required. Defer and reject fail closed.</p>`}${prepared ? `<label for="private-blueprint-operator-review-packet-export">Canonical operator-review packet · read only</label><textarea id="private-blueprint-operator-review-packet-export" class="portable-textarea" rows="20" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Operator packet SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-operator-review-packet-import">Paste canonical operator-review packet JSON</label><textarea id="private-blueprint-operator-review-packet-import" class="portable-textarea" rows="20" maxlength="8388608" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-operator-review-packet.v1 JSON">${escapeHTML(state.privateBlueprintOperatorReviewPacketImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-operator-review-packet-verify>Verify operator packet</button>${privateBlueprintOperatorReviewPacketStatusMarkup()}<div class="learning-boundary">This packet is a local review aid only. It cannot attest an operator or reviewer, run validation, approve a change, make a candidate commit-ready, commit or adopt a blueprint, bind rules, qualify, activate, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+}
+
 function privateBlueprintGuardCompletionReviewMarkup() {
   const prepared = state.privateBlueprintGuardCompletionReviewReceipt;
   const canReview = state.privateBlueprintGuardCompletionVerification?.status === "verified";
   const decisionOptions = Object.entries(PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_DECISION_LABELS).map(([decision, label]) => `<option value="${escapeHTML(decision)}" ${decision === state.privateBlueprintGuardCompletionReviewDecision ? "selected" : ""}>${escapeHTML(label)}</option>`).join("");
-  return `<section class="portable-review private-blueprint-guard-completion-review" aria-labelledby="private-blueprint-guard-completion-review-title"><div><p class="eyebrow">Private completion review</p><h4 id="private-blueprint-guard-completion-review-title">Review one completion. Commit nothing.</h4><p>Accept may prepare only a local candidate for a later operator commit decision. Defer and reject prepare no candidate. Every outcome preserves unattested identity and provenance.</p></div>${canReview ? `<div class="portable-review-form" role="group" aria-describedby="private-blueprint-guard-completion-review-boundary"><label for="private-blueprint-guard-completion-review-reviewer-label">Unattested reviewer label</label><input id="private-blueprint-guard-completion-review-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.privateBlueprintGuardCompletionReviewReviewerLabel)}" placeholder="Example: local referee"><label for="private-blueprint-guard-completion-review-decision">Private decision</label><select id="private-blueprint-guard-completion-review-decision" data-private-blueprint-guard-completion-review-decision>${decisionOptions}</select><label for="private-blueprint-guard-completion-review-reason">Bounded reason</label><select id="private-blueprint-guard-completion-review-reason" data-private-blueprint-guard-completion-review-reason>${privateBlueprintGuardCompletionReviewReasonOptions(state.privateBlueprintGuardCompletionReviewDecision)}</select><button class="secondary-button" type="button" data-private-blueprint-guard-completion-review-create>Record immutable completion review</button></div>` : `<p class="portable-digest">Verify one complete guard-completion proposal before recording a review.</p>`}${prepared ? `<label for="private-blueprint-guard-completion-review-export">Canonical completion-review receipt · read only</label><textarea id="private-blueprint-guard-completion-review-export" class="portable-textarea" rows="18" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Completion-review SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-guard-completion-review-import">Paste canonical completion-review receipt JSON</label><textarea id="private-blueprint-guard-completion-review-import" class="portable-textarea" rows="18" maxlength="7340032" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-guard-completion-review.v1 JSON">${escapeHTML(state.privateBlueprintGuardCompletionReviewImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-guard-completion-review-verify>Verify completion review</button>${privateBlueprintGuardCompletionReviewStatusMarkup()}<div class="learning-boundary" id="private-blueprint-guard-completion-review-boundary">This immutable local review cannot attest identity or provenance, make a candidate commit-ready, commit or adopt a blueprint, declare correctness, create consensus or approval, award progress, mutate lineage, bind rules, qualify, activate, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+  return `<section class="portable-review private-blueprint-guard-completion-review" aria-labelledby="private-blueprint-guard-completion-review-title"><div><p class="eyebrow">Private completion review</p><h4 id="private-blueprint-guard-completion-review-title">Review one completion. Commit nothing.</h4><p>Accept may prepare only a local candidate for a later operator commit decision. Defer and reject prepare no candidate. Every outcome preserves unattested identity and provenance.</p></div>${canReview ? `<div class="portable-review-form" role="group" aria-describedby="private-blueprint-guard-completion-review-boundary"><label for="private-blueprint-guard-completion-review-reviewer-label">Unattested reviewer label</label><input id="private-blueprint-guard-completion-review-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.privateBlueprintGuardCompletionReviewReviewerLabel)}" placeholder="Example: local referee"><label for="private-blueprint-guard-completion-review-decision">Private decision</label><select id="private-blueprint-guard-completion-review-decision" data-private-blueprint-guard-completion-review-decision>${decisionOptions}</select><label for="private-blueprint-guard-completion-review-reason">Bounded reason</label><select id="private-blueprint-guard-completion-review-reason" data-private-blueprint-guard-completion-review-reason>${privateBlueprintGuardCompletionReviewReasonOptions(state.privateBlueprintGuardCompletionReviewDecision)}</select><button class="secondary-button" type="button" data-private-blueprint-guard-completion-review-create>Record immutable completion review</button></div>` : `<p class="portable-digest">Verify one complete guard-completion proposal before recording a review.</p>`}${prepared ? `<label for="private-blueprint-guard-completion-review-export">Canonical completion-review receipt · read only</label><textarea id="private-blueprint-guard-completion-review-export" class="portable-textarea" rows="18" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Completion-review SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-guard-completion-review-import">Paste canonical completion-review receipt JSON</label><textarea id="private-blueprint-guard-completion-review-import" class="portable-textarea" rows="18" maxlength="7340032" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-guard-completion-review.v1 JSON">${escapeHTML(state.privateBlueprintGuardCompletionReviewImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-guard-completion-review-verify>Verify completion review</button>${privateBlueprintGuardCompletionReviewStatusMarkup()}${privateBlueprintOperatorReviewPacketMarkup()}<div class="learning-boundary" id="private-blueprint-guard-completion-review-boundary">This immutable local review cannot attest identity or provenance, make a candidate commit-ready, commit or adopt a blueprint, declare correctness, create consensus or approval, award progress, mutate lineage, bind rules, qualify, activate, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
 }
 
 function privateBlueprintGuardCompletionMarkup() {
@@ -1655,6 +1691,7 @@ async function verifyPrivateBlueprintGuardCompletion(serializedInput) {
 
 async function createPrivateBlueprintGuardCompletionReview() {
   if (!dataAdapter?.createPortablePrivateBlueprintGuardCompletionReview || !dataAdapter?.verifyPortablePrivateBlueprintGuardCompletionReview) return false;
+  resetPrivateBlueprintOperatorReviewPacketState();
   const completionSerialized = state.privateBlueprintGuardCompletionVerification?.status === "verified"
     ? state.privateBlueprintGuardCompletionImportText
     : "";
@@ -1681,6 +1718,7 @@ async function createPrivateBlueprintGuardCompletionReview() {
 
 async function verifyPrivateBlueprintGuardCompletionReview(serializedInput) {
   const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_MAX_LENGTH || 7340032);
+  resetPrivateBlueprintOperatorReviewPacketState();
   try {
     const result = await dataAdapter.verifyPortablePrivateBlueprintGuardCompletionReview(serializedInput);
     applyPrivateBlueprintGuardCompletionVerification(result.guardCompletionVerification, result.guardCompletionSerialized);
@@ -1696,6 +1734,54 @@ async function verifyPrivateBlueprintGuardCompletionReview(serializedInput) {
     state.privateBlueprintGuardCompletionReviewReceipt = null;
     state.privateBlueprintGuardCompletionReviewImportText = importedText;
     state.privateBlueprintGuardCompletionReviewVerification = { status: "invalid", message: error?.message || "Private guard-completion review validation failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function createPrivateBlueprintOperatorReviewPacket() {
+  if (!dataAdapter?.createPortablePrivateBlueprintOperatorReviewPacket || !dataAdapter?.verifyPortablePrivateBlueprintOperatorReviewPacket) return false;
+  const reviewSerialized = state.privateBlueprintGuardCompletionReviewVerification?.status === "verified"
+    ? state.privateBlueprintGuardCompletionReviewImportText
+    : "";
+  try {
+    const receipt = await dataAdapter.createPortablePrivateBlueprintOperatorReviewPacket(reviewSerialized);
+    const result = await dataAdapter.verifyPortablePrivateBlueprintOperatorReviewPacket(receipt.serialized);
+    state.privateBlueprintOperatorReviewPacketReceipt = receipt;
+    state.privateBlueprintOperatorReviewPacketImportText = receipt.serialized;
+    state.privateBlueprintOperatorReviewPacketVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintOperatorReviewPacketReceipt = null;
+    state.privateBlueprintOperatorReviewPacketImportText = "";
+    state.privateBlueprintOperatorReviewPacketVerification = { status: "invalid", message: error?.message || "Private blueprint operator packet failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function verifyPrivateBlueprintOperatorReviewPacket(serializedInput) {
+  const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH || 8388608);
+  try {
+    const result = await dataAdapter.verifyPortablePrivateBlueprintOperatorReviewPacket(serializedInput);
+    const reviewVerification = result.acceptedReviewVerification;
+    applyPrivateBlueprintGuardCompletionVerification(reviewVerification.guardCompletionVerification, reviewVerification.guardCompletionSerialized);
+    state.privateBlueprintGuardCompletionReviewReceipt = null;
+    state.privateBlueprintGuardCompletionReviewImportText = result.acceptedReviewSerialized;
+    state.privateBlueprintGuardCompletionReviewVerification = { status: "verified", result: reviewVerification };
+    state.privateBlueprintGuardCompletionReviewReviewerLabel = reviewVerification.review.reviewer.label;
+    state.privateBlueprintGuardCompletionReviewDecision = reviewVerification.review.decision;
+    state.privateBlueprintGuardCompletionReviewReason = reviewVerification.review.reasonCode;
+    state.privateBlueprintOperatorReviewPacketReceipt = null;
+    state.privateBlueprintOperatorReviewPacketImportText = importedText;
+    state.privateBlueprintOperatorReviewPacketVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintOperatorReviewPacketReceipt = null;
+    state.privateBlueprintOperatorReviewPacketImportText = importedText;
+    state.privateBlueprintOperatorReviewPacketVerification = { status: "invalid", message: error?.message || "Private blueprint operator packet validation failed." };
     renderReceiptLearning();
     return false;
   }
@@ -2075,6 +2161,23 @@ function bindEvents() {
         : "Completion review refused. The verified upstream completion remains available and no review or candidate state was retained.");
       return;
     }
+    if (event.target.closest("[data-private-blueprint-operator-review-packet-create]")) {
+      const created = await createPrivateBlueprintOperatorReviewPacket();
+      $(created ? ".private-blueprint-operator-review-packet-status.verified" : ".private-blueprint-operator-review-packet-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(created
+        ? "Local operator packet prepared. Exact diff is visible; validation and operator decision remain not run."
+        : "Operator packet refused. The verified upstream completion review remains available and no decision or authority state was retained.");
+      return;
+    }
+    if (event.target.closest("[data-private-blueprint-operator-review-packet-verify]")) {
+      const input = $("#private-blueprint-operator-review-packet-import");
+      const verified = await verifyPrivateBlueprintOperatorReviewPacket(input?.value || "");
+      $(verified ? ".private-blueprint-operator-review-packet-status.verified" : ".private-blueprint-operator-review-packet-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Operator packet and full ancestry verified locally. Validation and operator decision remain not run."
+        : "Operator packet refused. The verified upstream completion review remains available and no decision or candidate authority was retained.");
+      return;
+    }
     if (event.target.closest("[data-runback-blueprint]")) {
       showView("build");
       $("#agent-name").focus();
@@ -2201,11 +2304,18 @@ function bindEvents() {
       state.privateBlueprintGuardCompletionReviewReviewerLabel = event.target.value.slice(0, 36);
       state.privateBlueprintGuardCompletionReviewReceipt = null;
       state.privateBlueprintGuardCompletionReviewVerification = null;
+      resetPrivateBlueprintOperatorReviewPacketState();
     }
     if (event.target.matches("#private-blueprint-guard-completion-review-import")) {
       state.privateBlueprintGuardCompletionReviewImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_MAX_LENGTH || 7340032);
       state.privateBlueprintGuardCompletionReviewReceipt = null;
       state.privateBlueprintGuardCompletionReviewVerification = null;
+      resetPrivateBlueprintOperatorReviewPacketState();
+    }
+    if (event.target.matches("#private-blueprint-operator-review-packet-import")) {
+      state.privateBlueprintOperatorReviewPacketImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH || 8388608);
+      state.privateBlueprintOperatorReviewPacketReceipt = null;
+      state.privateBlueprintOperatorReviewPacketVerification = null;
     }
   });
   document.addEventListener("change", (event) => {
@@ -2320,6 +2430,7 @@ function bindEvents() {
       state.privateBlueprintGuardCompletionReviewReason = reasons[0] || "";
       state.privateBlueprintGuardCompletionReviewReceipt = null;
       state.privateBlueprintGuardCompletionReviewVerification = null;
+      resetPrivateBlueprintOperatorReviewPacketState();
       const reasonSelect = $("[data-private-blueprint-guard-completion-review-reason]");
       if (reasonSelect) reasonSelect.innerHTML = privateBlueprintGuardCompletionReviewReasonOptions(decision);
       return;
@@ -2328,6 +2439,7 @@ function bindEvents() {
       state.privateBlueprintGuardCompletionReviewReason = event.target.value;
       state.privateBlueprintGuardCompletionReviewReceipt = null;
       state.privateBlueprintGuardCompletionReviewVerification = null;
+      resetPrivateBlueprintOperatorReviewPacketState();
     }
   });
 

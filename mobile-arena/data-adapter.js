@@ -24,6 +24,7 @@
   const PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-revision-draft-review.v1";
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_SCHEMA = "builderwars.mobile-private-blueprint-guard-completion-proposal.v1";
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-guard-completion-review.v1";
+  const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_SCHEMA = "builderwars.mobile-private-blueprint-operator-review-packet.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
@@ -40,6 +41,7 @@
   const PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH = 5242880;
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH = 6291456;
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_MAX_LENGTH = 7340032;
+  const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH = 8388608;
   const SAFE_JSON_NODE_LIMIT = 16384;
   const PORTABLE_REVIEW_COMPARISON_NODE_LIMIT = 49152;
   const PRIVATE_REVIEW_LEARNING_NODE_LIMIT = 65536;
@@ -49,6 +51,7 @@
   const PRIVATE_BLUEPRINT_DRAFT_REVIEW_NODE_LIMIT = 131072;
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_NODE_LIMIT = 163840;
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_NODE_LIMIT = 196608;
+  const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_NODE_LIMIT = 229376;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -73,6 +76,7 @@
   const PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one versioned local blueprint-revision draft and records exactly one immutable private local review. Accept-for-commit-candidate may derive only an uncommitted, unadopted local candidate. Explicit unknown guard values remain unknown and force commit readiness blocked; no decision authenticates identity, declares correctness, creates consensus, grants approval or progress, mutates the draft or parent, binds rules, qualifies, plays, executes, registers, ranks, publishes, spends, or calls a provider.";
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY = "This canonical proposal independently reverifies one accepted private blueprint-draft review candidate and supplies boolean values only for that candidate's exact explicitly unknown guard keys. Every supplied value carries bounded local identity-unattested provenance. The proposal preserves all known and applied guard values and remains uncommitted, unadopted, not commit-ready, unqualified, unplayed, unexecuted, unregistered, and unpublished; it cannot attest provenance or identity, declare correctness, create consensus, grant approval or progress, mutate source lineage, bind rules, execute, spend, or call a provider.";
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one complete private guard-completion proposal and records exactly one immutable private local review. Accept-for-commit-review may derive only a local candidate for a later operator commit decision. It does not attest reviewer identity or guard-value provenance, make the candidate commit-ready, commit or adopt a blueprint, declare correctness, create consensus, grant approval or progress, mutate source lineage, bind rules, qualify, activate, play, execute, register, rank, publish, spend, or call a provider.";
+  const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BOUNDARY = "This canonical packet independently reverifies one accepted private guard-completion review and prepares its exact local candidate, original-to-candidate guard diff, unrun validation plan, discard-only rollback, and smallest later operator decision. Preparation is not an operator review, identity or provenance attestation, approval, commit, adoption, qualification, activation, play, execution, registry request, ranking, publication, spending authorization, or provider call.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
@@ -213,6 +217,27 @@
     "sanctioned_runner_not_bound",
     "registry_not_requested",
     "publication_not_requested",
+  ]);
+  const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BLOCKERS = Object.freeze([
+    "operator_identity_unattested",
+    "operator_decision_not_recorded",
+    "reviewer_identity_unattested",
+    "guard_value_provenance_unattested",
+    "candidate_validation_not_run",
+    "local_blueprint_not_committed",
+    "local_blueprint_not_adopted",
+    "explicit_rules_digest_not_bound",
+    "qualification_not_run",
+    "fixture_not_activated",
+    "sanctioned_runner_not_bound",
+    "registry_not_requested",
+    "publication_not_requested",
+  ]);
+  const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_VALIDATION_STEPS = Object.freeze([
+    Object.freeze({ id: "focused_operator_packet", command: "python bin/check_mobile_arena_private_blueprint_operator_review_packet.py" }),
+    Object.freeze({ id: "integrated_mobile_exchange", command: "python bin/check_mobile_arena_exchange.py" }),
+    Object.freeze({ id: "replay_verifier_parity", command: "python bin/build_verifier.py --check" }),
+    Object.freeze({ id: "provider_boundary", command: "python bin/check_provider_hub.py" }),
   ]);
   const PORTABLE_REVIEW_BLOCKERS = Object.freeze([
     "reviewer_identity_unattested",
@@ -2784,6 +2809,275 @@
     };
   }
 
+  async function buildPortablePrivateBlueprintOperatorReviewPacketRecord(reviewVerification) {
+    requireValue(
+      isObject(reviewVerification)
+        && reviewVerification.schemaVersion === PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_SCHEMA
+        && reviewVerification.verificationStatus === "verified_private_local_blueprint_guard_completion_review",
+      "unsafe private blueprint operator review packet: verified guard completion review required",
+    );
+    const review = reviewVerification.review;
+    requireValue(
+      review.decision === "accept_for_commit_review"
+        && review.state.operatorReviewStatus === "not_run"
+        && isObject(review.localCommitReviewCandidate)
+        && review.localCommitReviewCandidate.status === "proposed_local_blueprint_candidate_for_operator_commit_review",
+      "unsafe private blueprint operator review packet: accepted completion review required",
+    );
+    const candidate = review.localCommitReviewCandidate;
+    requireValue(
+      candidate.localOnly === true
+        && candidate.commitReady === false
+        && candidate.committed === false
+        && candidate.adopted === false
+        && candidate.operatorReviewStatus === "not_run"
+        && candidate.qualificationStatus === "not_run"
+        && candidate.played === false
+        && candidate.executionStatus === "disabled"
+        && candidate.registryStatus === "not_requested"
+        && candidate.publicationStatus === "not_requested",
+      "unsafe private blueprint operator review packet: local candidate state drift",
+    );
+
+    const completionVerification = reviewVerification.guardCompletionVerification;
+    const completion = completionVerification.completionProposal;
+    const draft = completionVerification.draftReviewVerification.draftVerification.draft;
+    const sourceBlueprint = {
+      agentName: draft.parentBlueprint.agentName,
+      declaredBase: draft.parentBlueprint.declaredBase,
+      harnessStyle: draft.parentBlueprint.harnessStyle,
+      localOnly: true,
+      guardValues: clone(draft.parentGuardValues),
+    };
+    const candidateBlueprint = clone(candidate.blueprint);
+    requireValue(
+      sourceBlueprint.agentName === candidateBlueprint.agentName
+        && sourceBlueprint.declaredBase === candidateBlueprint.declaredBase
+        && sourceBlueprint.harnessStyle === candidateBlueprint.harnessStyle
+        && sourceBlueprint.localOnly === true
+        && candidateBlueprint.localOnly === true,
+      "unsafe private blueprint operator review packet: blueprint identity drift",
+    );
+    requireValue(
+      Object.keys(candidateBlueprint.guardValues).sort().join("|") === RUNBACK_DELTAS.map((guard) => guard.guardKey).sort().join("|")
+        && Object.values(candidateBlueprint.guardValues).every((value) => typeof value === "boolean"),
+      "unsafe private blueprint operator review packet: complete boolean guard set required",
+    );
+
+    const completionByGuard = new Map(completion.guardCompletions.map((entry) => [entry.guardKey, entry]));
+    const fields = RUNBACK_DELTAS.map((guard) => {
+      const beforeValue = sourceBlueprint.guardValues[guard.guardKey];
+      const afterValue = candidateBlueprint.guardValues[guard.guardKey];
+      const changed = beforeValue !== afterValue;
+      const sourceStage = guard.guardKey === draft.appliedGuard.guardKey
+        ? "accepted_guard_revision"
+        : completionByGuard.has(guard.guardKey)
+          ? "reviewed_guard_completion"
+          : "preserved_source_value";
+      return {
+        fieldPath: `guardValues.${guard.guardKey}`,
+        guardKey: guard.guardKey,
+        label: guard.label,
+        beforeValue,
+        afterValue,
+        changeStatus: changed ? "proposed_change" : "preserved_value",
+        sourceStage,
+      };
+    });
+    const sourceBlueprintDigest = await sha256Hex(canonicalJSON(sourceBlueprint));
+    const candidateBlueprintDigest = await sha256Hex(canonicalJSON(candidateBlueprint));
+    const exactDiff = {
+      sourceBlueprintDigest,
+      candidateBlueprintDigest,
+      fields,
+      changedFieldPaths: fields.filter((field) => field.changeStatus === "proposed_change").map((field) => field.fieldPath),
+      unchangedFieldPaths: [
+        "agentName",
+        "declaredBase",
+        "harnessStyle",
+        "localOnly",
+        ...fields.filter((field) => field.changeStatus === "preserved_value").map((field) => field.fieldPath),
+      ],
+      changeCount: fields.filter((field) => field.changeStatus === "proposed_change").length,
+    };
+    const exactDiffDigest = await sha256Hex(canonicalJSON(exactDiff));
+    const completionBinding = review.completionBinding;
+    const candidateBinding = {
+      completionReviewPacketDigest: reviewVerification.packetDigest,
+      completionReviewDigest: review.reviewDigest,
+      candidateDigest: candidate.candidateDigest,
+      candidateKey: candidate.candidateKey,
+      completionPacketDigest: completionBinding.completionPacketDigest,
+      completionDigest: completionBinding.completionDigest,
+      draftReviewPacketDigest: completionBinding.draftReviewPacketDigest,
+      commitCandidateDigest: completionBinding.commitCandidateDigest,
+      draftPacketDigest: completionBinding.draftPacketDigest,
+      acceptedReviewPacketDigest: completionBinding.acceptedReviewPacketDigest,
+      guardProposalPacketDigest: completionBinding.guardProposalPacketDigest,
+      parentProposalPayloadDigest: completionBinding.parentProposalPayloadDigest,
+      selectedReviewDigest: completionBinding.selectedReviewDigest,
+    };
+    const record = {
+      packetStatus: "prepared_local_operator_review_packet",
+      packetKey: [
+        "private-blueprint-operator-review-packet-v1",
+        reviewVerification.packetDigest,
+        candidate.candidateDigest,
+        exactDiffDigest,
+      ].join(":"),
+      candidateBinding,
+      sourceBlueprint,
+      candidateBlueprint,
+      exactDiff,
+      verifierEvidence: {
+        verificationStatus: "verified_local_portable_lineage",
+        nestedLineageReverified: true,
+        acceptedDecisionVerified: true,
+        candidateProjectionRecomputed: true,
+        exactDiffRecomputed: true,
+        canonicalPacketRequired: true,
+        sourceBlueprintDigest,
+        candidateBlueprintDigest,
+        exactDiffDigest,
+      },
+      validationPlan: {
+        status: "not_run",
+        steps: PRIVATE_BLUEPRINT_OPERATOR_REVIEW_VALIDATION_STEPS.map((step) => ({
+          id: step.id,
+          command: step.command,
+          evidenceStatus: "not_run",
+        })),
+      },
+      rollbackPlan: {
+        status: "discard_only_uncommitted_state",
+        action: "Discard this packet and its local candidate. No repository, fixture, runtime, registry, or publication state was changed.",
+        repositoryMutationStatus: "none",
+        runtimeMutationStatus: "none",
+      },
+      operatorAction: {
+        status: "not_run",
+        requestedDecision: "review_exact_candidate_diff_validation_and_rollback",
+        allowedOutcomes: ["approve_for_separate_commit_preparation", "defer", "reject"],
+        identityAttested: false,
+        approvalAttested: false,
+      },
+      state: {
+        localOnly: true,
+        operatorPacketPrepared: true,
+        candidateValidationStatus: "not_run",
+        operatorReviewStatus: "not_run",
+        committed: false,
+        adopted: false,
+        commitReady: false,
+        qualificationStatus: "not_run",
+        played: false,
+        executionStatus: "disabled",
+        registryStatus: "not_requested",
+        publicationStatus: "not_requested",
+      },
+      blockers: clone(PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BLOCKERS),
+      authority: privateBlueprintDeltaAuthority(),
+      boundary: PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BOUNDARY,
+    };
+    const operatorPacketDigest = await sha256Hex(canonicalJSON(record));
+    return { ...record, operatorPacketDigest };
+  }
+
+  async function createPortablePrivateBlueprintOperatorReviewPacket(serializedReviewInput) {
+    const acceptedReviewVerification = await verifyPortablePrivateBlueprintGuardCompletionReview(serializedReviewInput);
+    const operatorReviewPacket = await buildPortablePrivateBlueprintOperatorReviewPacketRecord(acceptedReviewVerification);
+    const payload = {
+      acceptedGuardCompletionReviewReceipt: JSON.parse(serializedReviewInput),
+      operatorReviewPacket,
+    };
+    const payloadDigest = await sha256Hex(canonicalJSON(payload));
+    const binding = operatorReviewPacket.candidateBinding;
+    const evidence = operatorReviewPacket.verifierEvidence;
+    const packet = {
+      schemaVersion: PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_SCHEMA,
+      packetVersion: 1,
+      payload,
+      integrity: {
+        algorithm: "sha256",
+        payloadDigest,
+        completionReviewPacketDigest: binding.completionReviewPacketDigest,
+        completionReviewDigest: binding.completionReviewDigest,
+        candidateDigest: binding.candidateDigest,
+        sourceBlueprintDigest: evidence.sourceBlueprintDigest,
+        candidateBlueprintDigest: evidence.candidateBlueprintDigest,
+        exactDiffDigest: evidence.exactDiffDigest,
+        operatorPacketDigest: operatorReviewPacket.operatorPacketDigest,
+      },
+      boundary: PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BOUNDARY,
+    };
+    const serialized = canonicalJSON(packet);
+    requireValue(serialized.length <= PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH, "unsafe private blueprint operator review packet: packet length rejected");
+    return { packet: clone(packet), serialized };
+  }
+
+  async function verifyPortablePrivateBlueprintOperatorReviewPacket(serializedInput) {
+    requireValue(
+      typeof serializedInput === "string"
+        && serializedInput.length > 0
+        && serializedInput.length <= PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH,
+      "unsafe private blueprint operator review packet: input length rejected",
+    );
+    let packet;
+    try {
+      packet = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe private blueprint operator review packet: invalid JSON");
+    }
+    assertSafeKeys(packet, "private blueprint operator review packet", 0, { nodes: 0 }, PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_NODE_LIMIT);
+    requireExactKeys(packet, ["schemaVersion", "packetVersion", "payload", "integrity", "boundary"], "private blueprint operator review packet");
+    requireValue(packet.schemaVersion === PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_SCHEMA && packet.packetVersion === 1, "unsafe private blueprint operator review packet: schema drift");
+    requireValue(packet.boundary === PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BOUNDARY, "unsafe private blueprint operator review packet: boundary drift");
+    requireValue(serializedInput === canonicalJSON(packet), "unsafe private blueprint operator review packet: packet must use canonical JSON");
+    requireExactKeys(packet.payload, ["acceptedGuardCompletionReviewReceipt", "operatorReviewPacket"], "private blueprint operator review packet payload");
+    requireExactKeys(packet.integrity, [
+      "algorithm", "payloadDigest", "completionReviewPacketDigest", "completionReviewDigest", "candidateDigest",
+      "sourceBlueprintDigest", "candidateBlueprintDigest", "exactDiffDigest", "operatorPacketDigest",
+    ], "private blueprint operator review packet integrity");
+    requireValue(packet.integrity.algorithm === "sha256", "unsafe private blueprint operator review packet: integrity algorithm drift");
+    for (const key of [
+      "payloadDigest", "completionReviewPacketDigest", "completionReviewDigest", "candidateDigest",
+      "sourceBlueprintDigest", "candidateBlueprintDigest", "exactDiffDigest", "operatorPacketDigest",
+    ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint operator review packet: ${key} drift`);
+    requireValue(isObject(packet.payload.operatorReviewPacket), "unsafe private blueprint operator review packet: packet record drift");
+    requireExactKeys(packet.payload.operatorReviewPacket, [
+      "packetStatus", "packetKey", "candidateBinding", "sourceBlueprint", "candidateBlueprint", "exactDiff",
+      "verifierEvidence", "validationPlan", "rollbackPlan", "operatorAction", "state", "blockers", "authority",
+      "boundary", "operatorPacketDigest",
+    ], "private blueprint operator review packet record");
+
+    const reviewSerialized = canonicalJSON(packet.payload.acceptedGuardCompletionReviewReceipt);
+    const acceptedReviewVerification = await verifyPortablePrivateBlueprintGuardCompletionReview(reviewSerialized);
+    const expectedOperatorPacket = await buildPortablePrivateBlueprintOperatorReviewPacketRecord(acceptedReviewVerification);
+    requireValue(canonicalJSON(packet.payload.operatorReviewPacket) === canonicalJSON(expectedOperatorPacket), "unsafe private blueprint operator review packet: packet projection mismatch");
+    const binding = expectedOperatorPacket.candidateBinding;
+    const evidence = expectedOperatorPacket.verifierEvidence;
+    for (const [integrityKey, expectedValue, message] of [
+      ["completionReviewPacketDigest", binding.completionReviewPacketDigest, "completion review packet digest binding mismatch"],
+      ["completionReviewDigest", binding.completionReviewDigest, "completion review digest binding mismatch"],
+      ["candidateDigest", binding.candidateDigest, "candidate digest binding mismatch"],
+      ["sourceBlueprintDigest", evidence.sourceBlueprintDigest, "source blueprint digest binding mismatch"],
+      ["candidateBlueprintDigest", evidence.candidateBlueprintDigest, "candidate blueprint digest binding mismatch"],
+      ["exactDiffDigest", evidence.exactDiffDigest, "exact diff digest binding mismatch"],
+      ["operatorPacketDigest", expectedOperatorPacket.operatorPacketDigest, "operator packet digest binding mismatch"],
+    ]) requireValue(equalHex(expectedValue, packet.integrity[integrityKey]), `unsafe private blueprint operator review packet: ${message}`);
+    const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
+    requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe private blueprint operator review packet: payload digest mismatch");
+    return {
+      schemaVersion: PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_SCHEMA,
+      verificationStatus: "verified_private_local_blueprint_operator_review_packet",
+      packetDigest: computedPayloadDigest,
+      acceptedReviewSerialized: reviewSerialized,
+      acceptedReviewVerification,
+      operatorReviewPacket: clone(expectedOperatorPacket),
+      boundary: PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BOUNDARY,
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -2937,6 +3231,8 @@
     PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_REASONS,
     PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_SCHEMA,
     PRIVATE_BLUEPRINT_GUARD_COMPLETION_SCHEMA,
+    PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH,
+    PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_SCHEMA,
     PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH,
     PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASONS,
     PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA,
@@ -2965,6 +3261,7 @@
     createPortablePrivateBlueprintDeltaReview,
     createPortablePrivateBlueprintGuardCompletion,
     createPortablePrivateBlueprintGuardCompletionReview,
+    createPortablePrivateBlueprintOperatorReviewPacket,
     createPortablePrivateBlueprintDraftReview,
     createPortablePrivateBlueprintRevisionDraft,
     createPortablePrivateReviewComparison,
@@ -2986,6 +3283,7 @@
     verifyPortablePrivateBlueprintDeltaReview,
     verifyPortablePrivateBlueprintGuardCompletion,
     verifyPortablePrivateBlueprintGuardCompletionReview,
+    verifyPortablePrivateBlueprintOperatorReviewPacket,
     verifyPortablePrivateBlueprintDraftReview,
     verifyPortablePrivateBlueprintRevisionDraft,
     verifyPortablePrivateReviewComparison,

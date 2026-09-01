@@ -650,7 +650,7 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 237 checks across this contract and every preceding Arena
+mobile checker runs 250 checks across this contract and every preceding Arena
 Exchange layer.
 
 ### Deterministic private guard-completion review
@@ -686,19 +686,48 @@ adversarial assertions across every allowed decision/reason pair, candidate
 suppression for defer and reject, exact completed-blueprint and provenance
 preservation, full ancestry reconstruction, all-false authority, nested and
 resealed tampering, dangerous keys, excessive depth or nodes, and oversized
-input. The integrated mobile checker runs 237 checks across this contract and
+input. The integrated mobile checker runs 250 checks across this contract and
 every preceding Arena Exchange layer.
 
-### Exact next bounded campaign
+### Deterministic local operator-review packet
 
-Add one deterministic local operator-review packet for an exact accepted
-guard-completion review. It may prepare only the candidate digest, exact diff,
-validation evidence, remaining blockers, rollback steps, and the smallest later
-operator action. It must not record approval, make a commit decision, commit or
-adopt a blueprint, bind rules, qualify, activate, play, execute, register, rank,
-publish, spend, or call a provider. Auth, network writes, creator code execution,
-provider use, operator commit approval, public activation, and the protected
-private-alpha API binding remain separate operator-gated campaigns.
+`builderwars.mobile-private-blueprint-operator-review-packet.v1` embeds one
+canonical accepted guard-completion review and independently reverifies its full
+ancestry. Defer and reject reviews fail closed. The packet binds the exact local
+candidate, completion review, completion proposal, draft review, revision draft,
+accepted guard review, guard proposal, parent proposal, and selected private
+review digests.
+
+The packet reconstructs the original local blueprint from the bound draft and
+compares all three allowlisted guard values with the completed candidate. It
+records every field as a deterministic proposed change or preserved value and
+binds the source blueprint, candidate blueprint, and exact diff with independent
+SHA-256 digests. Identity fields cannot drift. The candidate must have a complete
+boolean guard set.
+
+Its four local validation commands are a plan only: every evidence status and the
+aggregate validation status remain `not_run`. Rollback is discard-only because
+the packet changes no repository, fixture, runtime, registry, or publication
+state. The only later human surface is one bounded outcome:
+`approve_for_separate_commit_preparation`, `defer`, or `reject`; the action,
+identity, and approval fields remain unattested and `not_run`.
+
+The dedicated checker exercises 176 adversarial assertions covering accepted-
+review-only creation; full lineage reconstruction; exact diff and digest parity;
+deterministic export; zero authority; all-unrun validation; discard rollback;
+operator-decision suppression; nested and fully resealed tampering; dangerous
+keys; excessive depth or nodes; and oversized input. The integrated mobile
+checker runs 250 checks across this contract and every preceding Arena Exchange
+layer. A refused operator-packet import preserves the verified upstream
+completion review while retaining no operator decision or packet authority.
+
+### Remaining protected boundary
+
+This local packet does not approve, make a commit decision, commit or adopt a
+blueprint, bind rules, qualify, activate, play, execute, register, rank, publish,
+spend, or call a provider. Auth, network writes, creator code execution, provider
+use, operator commit approval, public activation, and the protected private-alpha
+API binding remain separate operator-gated campaigns.
 
 ## Review status
 
