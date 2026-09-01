@@ -156,6 +156,7 @@ STAGES: tuple[StageDefinition, ...] = (
             (PYTHON, "bin/check_agentwars_measurement.py"),
             (PYTHON, "bin/check_mobile_arena_performance_budget.py"),
             (PYTHON, "bin/check_agentwars_observability.py"),
+            (PYTHON, "bin/check_agentwars_retention_recovery.py"),
         ),
         evidence_files=(
             "docs/BUILDERWARS_COM_DOMAIN_CUTOVER_CONTRACT.md",
@@ -164,9 +165,10 @@ STAGES: tuple[StageDefinition, ...] = (
             "docs/AGENTWARS_MEASUREMENT_CONTRACT.md",
             "docs/AGENTWARS_PERFORMANCE_BUDGET.md",
             "docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md",
+            "docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md",
             "docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md",
         ),
-        not_proven=("production rollback rehearsal", "production telemetry and alert delivery", "production performance", "staffed support response", "legal approval"),
+        not_proven=("production deletion and backup/restore", "production rollback rehearsal", "production telemetry and alert delivery", "production performance", "staffed support response", "legal approval"),
     ),
     StageDefinition(
         11,

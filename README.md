@@ -198,6 +198,23 @@ production threshold, protected flag, or rollback is configured or claimed.
 Contract and production activation boundary:
 [`docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md`](docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md).
 
+## Retention, deletion, rollback, and recovery — local drills
+
+AgentWars now classifies eight digest-only resource classes, separates simulated
+physical deletion from append-only logical suppression, atomically holds
+unapproved policy classes, binds rollback to five last-known-good release
+dimensions, and injects deletion plus recovery failures. Every request is an
+explicit synthetic fixture rather than an identity or consent attestation.
+
+```powershell
+python bin\check_agentwars_retention_recovery.py
+```
+
+The drills perform no I/O and prove no production data access, deletion,
+backup, restore, rollback, deployment, feature-flag change, or operator action.
+The exact evidence boundary and protected activation ceremony are documented in
+[`docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md`](docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md).
+
 ## Local launch evidence pack
 
 One source-bound command assembles the current 13-stage local launch candidate.
