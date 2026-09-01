@@ -25,7 +25,7 @@ sys.path.insert(0, ROOT)
 
 from arena.canonical import GENESIS, chain  # noqa: E402
 from arena.games import load as load_game  # noqa: E402
-from arena.match import run_match  # noqa: E402
+from arena.match import run_reference_match as run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.scoring import NotAProjection, referee_projection, score  # noqa: E402
 from arena.transcript import load  # noqa: E402

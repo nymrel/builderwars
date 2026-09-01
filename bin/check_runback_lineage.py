@@ -22,7 +22,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from arena.canonical import digest
-from arena.match import run_match
+from arena.match import run_reference_match as run_match
 from entrants.backends import execution_claim_for_backend
 from publishing.product import _runback as public_runback
 from publishing.projection import project_receipt

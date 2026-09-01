@@ -29,7 +29,7 @@ from arena import match as match_module  # noqa: E402
 from arena.canonical import GENESIS, chain, digest  # noqa: E402
 from arena.games import load as load_game  # noqa: E402
 from arena.integrity import engine_digest, engine_files  # noqa: E402
-from arena.match import _Sidecar, match_id_for, run_match  # noqa: E402
+from arena.match import _Sidecar, match_id_for, run_reference_match as run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.sandbox import POLICY, Entrant, EntrantFailure  # noqa: E402
 from arena.scoring import referee_projection, score  # noqa: E402

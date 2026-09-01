@@ -14,7 +14,7 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "bin"))
 
 from arena.canonical import GENESIS, chain, digest  # noqa: E402
-from arena.match import run_match  # noqa: E402
+from arena.match import run_reference_match as run_match  # noqa: E402
 from arena.transcript import load  # noqa: E402
 from build_share_bundle import (  # noqa: E402
     BundleError,

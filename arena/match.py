@@ -29,6 +29,11 @@ import time
 from .canonical import digest
 from .games import load as load_game
 from .integrity import engine_digest, engine_files, script_digest
+from .admission import (
+    CUSTOMER_CONTROLLED_LOCAL_V1,
+    REFERENCE_REVIEWED_LOCAL_V1,
+    require_execution_scope,
+)
 from .sandbox import POLICY, Entrant, EntrantFailure
 from .scoring import referee_projection, score
 from .transcript import TranscriptWriter
@@ -219,12 +224,17 @@ def run_match(
     game_name,
     seed,
     entrants,
+    execution_scope,
     out_dir,
     move_timeout_s=15.0,
     match_id=None,
     keep_scratch=False,
     provisioned_envs=None,
 ):
+    # This must remain the first operation: an unsupported hosted-untrusted
+    # request is refused before manifest/passport reads, output directories,
+    # scratch state, transcript files, or entrant processes can be created.
+    entrant_admission = require_execution_scope(execution_scope)
     if len(entrants) != 2:
         raise ValueError("this runner plays two-seat games; got %d entrants" % len(entrants))
     if not isinstance(seed, int) or isinstance(seed, bool):
@@ -320,6 +330,7 @@ def run_match(
                     }
                     for i, e in enumerate(entrants)
                 ],
+                "entrant_admission": entrant_admission,
                 "sandbox_policy": POLICY,
                 "attestation": {
                     "model_attested": False,
@@ -606,6 +617,22 @@ def run_match(
                 )
                 raise cleanup_error from active_exception
             raise cleanup_error
+
+
+def run_reference_match(**kwargs):
+    """Run a repository-reviewed reference entrant pair on a local host."""
+
+    if "execution_scope" in kwargs:
+        raise TypeError("run_reference_match fixes execution_scope")
+    return run_match(execution_scope=REFERENCE_REVIEWED_LOCAL_V1, **kwargs)
+
+
+def run_customer_local_match(**kwargs):
+    """Run customer-controlled entrants only on the customer's local host."""
+
+    if "execution_scope" in kwargs:
+        raise TypeError("run_customer_local_match fixes execution_scope")
+    return run_match(execution_scope=CUSTOMER_CONTROLLED_LOCAL_V1, **kwargs)
 
 
 def _encodable(value):

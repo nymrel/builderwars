@@ -197,6 +197,12 @@ Acceptance:
 - every unenforced control is visible in the match policy and receipt;
 - unsupported untrusted execution fails before side effects.
 
+Local implementation status: `builderwars/entrant-admission/1` now requires an
+exact scope, binds admitted local execution into the transcript, and refuses
+`external_untrusted_hosted_v1` before output or process creation. The
+adversarial checker proves that disablement. The host-control matrix and OS jail
+remain open; this does not change hosted external code from exhibition-only.
+
 ### D2. Host acceptance
 
 Validate supported Windows, Linux, and macOS targets separately. Do not infer host parity from configuration coverage.

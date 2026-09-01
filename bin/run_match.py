@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from arena.match import run_match  # noqa: E402
+from arena.match import run_customer_local_match as run_match  # noqa: E402
 from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 

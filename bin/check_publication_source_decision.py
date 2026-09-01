@@ -22,7 +22,7 @@ if GIT_EXECUTABLE is None:
     raise RuntimeError("Git is required for the source-decision checker")
 GIT_EXECUTABLE = os.path.realpath(GIT_EXECUTABLE)
 
-from arena.match import run_match  # noqa: E402
+from arena.match import run_reference_match as run_match  # noqa: E402
 from publishing.projection import project_receipt  # noqa: E402
 from publishing.promotion import (  # noqa: E402
     ENGINE_SHA256,

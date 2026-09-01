@@ -2099,6 +2099,7 @@ _PY_COMPILE_TARGETS = [
     "publishing/observability.py",
     "publishing/retention_recovery.py",
     "publishing/threat_model.py",
+    "arena/admission.py",
     "provider_hub_hosted/browser_gateway.py",
     "provider_hub_hosted/tests/test_browser_gateway.py",
     "provider_hub_hosted/tests/test_browser_idempotency.py",
@@ -2117,6 +2118,7 @@ _PY_COMPILE_TARGETS = [
     "bin/build_share_bundle.py",
     "bin/buildwars_provider.py",
     "bin/check_provider_hub.py",
+    "bin/check_entrant_admission.py",
     "bin/check_agentwars_runner.py",
     "bin/check_competition_evidence_job.py",
     "bin/check_competition_prepared_match.py",
@@ -2137,6 +2139,7 @@ _PY_COMPILE_TARGETS = [
     "bin/check_agentwars_retention_recovery.py",
     "bin/check_builderwars_threat_model.py",
     "bin/check_agentwars_tester_readiness.py",
+    "bin/check_agentwars_local_launch_evidence.py",
     "bin/check_mobile_arena_performance_budget.py",
     "bin/check_runback_lineage.py",
     "bin/check_runback_surface_admission.py",
@@ -2150,6 +2153,7 @@ _PY_COMPILE_TARGETS = [
 ]
 
 _LADDER = [
+    [sys.executable, "-B", "bin/check_entrant_admission.py"],
     [sys.executable, "bin/check_competition_evidence_job.py"],
     [sys.executable, "bin/check_competition_source_match.py"],
     [sys.executable, "bin/check_competition_prepared_match.py"],
@@ -2170,6 +2174,7 @@ _LADDER = [
     [sys.executable, "bin/check_agentwars_observability.py"],
     [sys.executable, "bin/check_agentwars_retention_recovery.py"],
     [sys.executable, "bin/check_builderwars_threat_model.py"],
+    [sys.executable, "-B", "bin/check_agentwars_local_launch_evidence.py"],
     [sys.executable, "bin/check_agentwars_tester_readiness.py"],
     [sys.executable, "bin/check_agentwars_product.py"],
     # NOTE: the release packet names bin/check_ten_fronts_contract.py; the repo

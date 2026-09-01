@@ -24,7 +24,7 @@ if BIN not in sys.path:
     sys.path.insert(0, BIN)
 
 from arena.canonical import digest  # noqa: E402
-from arena.match import run_match  # noqa: E402
+from arena.match import run_reference_match as run_match  # noqa: E402
 from build_share_bundle import BundleError, build_manifest, write_bundle  # noqa: E402
 from build_agentwars_runner_bundle import (  # noqa: E402
     _TEST_SOURCE_POLICY,

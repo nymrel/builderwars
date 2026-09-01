@@ -88,6 +88,7 @@ EXPECTED_BUNDLE_PATHS = (
     "agent_identity/lineage.py",
     "agent_identity/passport.py",
     "arena/__init__.py",
+    "arena/admission.py",
     "arena/canonical.py",
     "arena/games/__init__.py",
     "arena/games/fantasy_core.py",

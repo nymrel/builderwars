@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(ROOT, "bin"))
 from arena import match as match_module  # noqa: E402
 from arena import passport as passport_module  # noqa: E402
 from arena.canonical import GENESIS, chain, digest  # noqa: E402
-from arena.match import run_match  # noqa: E402
+from arena.match import run_reference_match as run_match  # noqa: E402
 from build_share_bundle import build_manifest  # noqa: E402
 from export_site import install_artifact  # noqa: E402
 from publishing import projection as projection_module  # noqa: E402
