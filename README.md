@@ -46,8 +46,13 @@ authority. Two correction packets for the exact same proposal can now be
 reverified and carried inside one deterministic private comparison receipt. Its
 digest-sorted projection reports shared changed state and one-sided immutable
 reviews without choosing a winner, merging histories, resolving a dispute, or
-granting any authority. The shell performs no provider call, inference, account
-action, publication, or deployment.
+granting any authority. A verified comparison can now be embedded in one
+deterministic inspection-learning receipt. Its fixed mapping sends identical
+state to rules-binding inspection, changed state to correction-lineage
+inspection, and one-sided state to visible-evidence inspection while preserving
+Packet A, Packet B, every source digest, and zero correctness, consensus,
+approval, progress, blueprint-adoption, or execution authority. The shell
+performs no provider call, inference, account action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -60,6 +65,7 @@ python bin\check_mobile_arena_portable_review.py
 python bin\check_mobile_arena_portable_review_exchange.py
 python bin\check_mobile_arena_portable_review_correction.py
 python bin\check_mobile_arena_private_review_comparison.py
+python bin\check_mobile_arena_private_review_learning.py
 python bin\check_mobile_arena_exchange.py
 ```
 

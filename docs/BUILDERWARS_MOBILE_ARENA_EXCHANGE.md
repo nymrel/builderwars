@@ -477,15 +477,42 @@ receipt import, compact factual difference rendering, and exact refusal states
 without clipboard, file, account, provider, network, merge, or resolution
 authority.
 
+### Deterministic comparison-linked inspection learning
+
+`builderwars.mobile-private-review-learning.v1` accepts exactly one canonical
+private comparison receipt, embeds it unchanged, and independently reverifies
+the comparison plus both source correction packets. It then maps each
+digest-sorted comparison entry to one fixed inspection-only lesson:
+
+- `identical_effective_state` -> `inspect_rules_binding`;
+- `changed_effective_state` -> `inspect_correction_lineage`;
+- `left_only_review` and `right_only_review` -> `inspect_evidence`.
+
+The receipt preserves the comparison, proposal, Packet A, Packet B, review-head,
+correction-head, per-entry review, and latest-correction digests. Packet A and
+Packet B remain neutral input roles. The mapping never declares either packet
+correct, and it accepts no user-supplied lesson, outcome, recommendation, or
+authority field.
+
+The authority projection keeps consensus, approval, progress, blueprint
+adoption, identity, merge, resolution, rules, qualification, execution,
+registry, ranking, publication, spending, and provider authority false. Import
+is atomic and memory-only. Noncanonical JSON, forged learning counts or lessons,
+changed nested comparisons or histories, dangerous keys, excessive depth or
+nodes, and oversized input fail closed. The dedicated checker exercises 100
+adversarial assertions. The Receipt Lab prepares, imports, independently
+verifies, and renders the bounded lessons without storing progress or adopting
+a blueprint.
+
 ### Exact next bounded campaign
 
-Add a deterministic comparison-to-learning receipt that accepts one verified
-private comparison and selects only a bounded inspection lesson for each factual
-difference class: inspect evidence, inspect rules binding, or inspect correction
-lineage. It must preserve both packet roles and every source digest, avoid
-declaring either state correct, and create no consensus, approval, blueprint
-adoption, merge, resolution, qualification, execution, registry, ranking,
-publication, or spending authority.
+Add a deterministic inspection-to-blueprint-delta proposal that accepts one
+verified comparison-linked learning receipt and proposes only an allowlisted,
+guard-only harness delta. It must bind the exact lesson and parent proposal,
+remain uncommitted and unplayed, preserve all source digests and packet roles,
+and create no correctness, consensus, approval, progress, blueprint adoption,
+merge, resolution, rules, qualification, execution, registry, ranking,
+publication, spending, or provider authority.
 Auth, network writes, creator code execution, provider use, public activation,
 and the protected private-alpha API binding remain operator-gated campaigns.
 

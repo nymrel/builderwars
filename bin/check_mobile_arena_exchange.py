@@ -137,7 +137,15 @@ def main() -> int:
     require("portable-review-comparison-left" in js and "portable-review-comparison-right" in js, "private review comparison source inputs missing")
     require("without choosing a winner" in adapter and "No packet won" in js, "private review comparison winner boundary missing")
     require("merging histories" in adapter and "no histories merged" in js, "private review comparison merge boundary missing")
-    checks += 50
+    require("createPortablePrivateReviewLearning" in adapter and "verifyPortablePrivateReviewLearning" in adapter, "private review inspection learning verifier missing")
+    require('PRIVATE_REVIEW_LEARNING_SCHEMA = "builderwars.mobile-private-review-learning.v1"' in adapter, "private review inspection learning schema drift")
+    require("PRIVATE_REVIEW_LEARNING_MAX_ENTRIES = PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES" in adapter, "private review inspection learning entry cap missing")
+    require("PRIVATE_REVIEW_LEARNING_MAX_LENGTH = 2097152" in adapter and 'maxlength="2097152"' in js, "private review inspection learning length boundary missing")
+    require("data-private-review-learning-create" in js and "data-private-review-learning-verify" in js, "private review inspection learning controls missing")
+    require("inspect_evidence" in adapter and "inspect_rules_binding" in adapter and "inspect_correction_lineage" in adapter, "bounded inspection lesson allowlist missing")
+    require("without declaring either state correct" in adapter and "Neither packet was declared correct" in js, "private review inspection correctness boundary missing")
+    require("granting approval or progress" in adapter and "no progress awarded" in js, "private review inspection progress boundary missing")
+    checks += 58
 
     print("[5] accessibility, offline, and reduced-motion contracts")
     for marker in (
@@ -190,12 +198,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=16", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=17", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=16",
-        "./styles.css?v=16",
-        "./data-adapter.js?v=16",
-        "./app.js?v=16",
+        "./index.html?v=17",
+        "./styles.css?v=17",
+        "./data-adapter.js?v=17",
+        "./app.js?v=17",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -204,7 +212,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=16"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=17"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -320,6 +328,20 @@ def main() -> int:
     )
     require(private_review_comparison_check.returncode == 0, f"private review comparison regression failed: {private_review_comparison_check.stderr.strip()}")
     require("PASS" in private_review_comparison_check.stdout, "private review comparison regression did not report PASS")
+    checks += 2
+
+    private_review_learning_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_private_review_learning.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    require(private_review_learning_check.returncode == 0, f"private review inspection learning regression failed: {private_review_learning_check.stderr.strip()}")
+    require("PASS" in private_review_learning_check.stdout, "private review inspection learning regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

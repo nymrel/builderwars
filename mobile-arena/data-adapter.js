@@ -17,6 +17,7 @@
   const PORTABLE_REVIEW_CORRECTION_SCHEMA = "builderwars.mobile-runback-review-correction.v1";
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_SCHEMA = "builderwars.mobile-runback-review-correction-exchange.v1";
   const PORTABLE_REVIEW_COMPARISON_SCHEMA = "builderwars.mobile-private-review-comparison.v1";
+  const PRIVATE_REVIEW_LEARNING_SCHEMA = "builderwars.mobile-private-review-learning.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
@@ -25,8 +26,11 @@
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH = 524288;
   const PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES = PORTABLE_REVIEW_MAX_RECORDS * 2;
   const PORTABLE_REVIEW_COMPARISON_MAX_LENGTH = 1572864;
+  const PRIVATE_REVIEW_LEARNING_MAX_ENTRIES = PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES;
+  const PRIVATE_REVIEW_LEARNING_MAX_LENGTH = 2097152;
   const SAFE_JSON_NODE_LIMIT = 16384;
   const PORTABLE_REVIEW_COMPARISON_NODE_LIMIT = 49152;
+  const PRIVATE_REVIEW_LEARNING_NODE_LIMIT = 65536;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -44,6 +48,7 @@
   const PORTABLE_REVIEW_CORRECTION_BOUNDARY = "This append-only private correction record preserves its immutable target review and proposal lineage while recording one corrected private decision or withdrawal. Its SHA-256 links are integrity evidence, not signatures, reviewer identity, approval, or authority. It cannot rewrite history, apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_BOUNDARY = "This canonical packet supports independent local inspection of one still-unplayed proposal, its immutable private reviews, and their append-only correction history. Its SHA-256 digests are not signatures or identity claims. Import is memory-only and cannot rewrite a review, apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
   const PORTABLE_REVIEW_COMPARISON_BOUNDARY = "This canonical receipt independently reverifies and compares two private correction packets for the exact same still-unplayed proposal. It reports digest-bound review-state differences without choosing a winner, merging histories, resolving a dispute, authenticating identity, applying a blueprint, binding rules, qualifying, executing, registering, ranking, publishing, spending, or calling a provider.";
+  const PRIVATE_REVIEW_LEARNING_BOUNDARY = "This canonical receipt independently reverifies one private comparison and maps each digest-bound comparison class to one fixed inspection-only lesson. It preserves Packet A, Packet B, and every source digest without declaring either state correct, creating consensus, granting approval or progress, adopting a blueprint, merging histories, resolving a dispute, authenticating identity, binding rules, qualifying, executing, registering, ranking, publishing, spending, or calling a provider.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
@@ -59,6 +64,26 @@
   const PORTABLE_REVIEW_CORRECTION_REASONS = Object.freeze({
     correct_decision: Object.freeze(["clerical_decision_error", "new_private_evidence", "unsafe_scope_discovered"]),
     withdraw_review: Object.freeze(["duplicate_review", "reviewer_requested_withdrawal", "unsafe_scope_discovered"]),
+  });
+  const PRIVATE_REVIEW_INSPECTION_LESSONS = Object.freeze({
+    inspect_evidence: Object.freeze({
+      label: "Inspect visible evidence",
+      guidance: "Compare only evidence carried by Packet A and Packet B. Do not infer missing evidence, author identity, or correctness.",
+    }),
+    inspect_rules_binding: Object.freeze({
+      label: "Inspect rules binding",
+      guidance: "Confirm whether an explicit rules digest is bound before qualification. Matching private states do not bind rules or create authority.",
+    }),
+    inspect_correction_lineage: Object.freeze({
+      label: "Inspect correction lineage",
+      guidance: "Trace each immutable review and append-only correction head. Do not choose a correct branch or merge the histories.",
+    }),
+  });
+  const PRIVATE_REVIEW_CLASS_LESSON = Object.freeze({
+    identical_effective_state: "inspect_rules_binding",
+    changed_effective_state: "inspect_correction_lineage",
+    left_only_review: "inspect_evidence",
+    right_only_review: "inspect_evidence",
   });
   const PORTABLE_REVIEW_BLOCKERS = Object.freeze([
     "reviewer_identity_unattested",
@@ -1272,6 +1297,161 @@
     };
   }
 
+  function privateReviewLearningSide(packetRole, state) {
+    if (!state) return null;
+    return {
+      packetRole,
+      originalDecision: state.originalDecision,
+      effectiveStatus: state.effectiveStatus,
+      effectiveDecision: state.effectiveDecision,
+      latestCorrectionDigest: state.latestCorrectionDigest,
+      correctionCount: state.correctionCount,
+    };
+  }
+
+  function privateReviewLearningPacketSource(packetRole, packetSummary) {
+    return {
+      packetRole,
+      correctionExchangePacketDigest: packetSummary.packetDigest,
+      reviewHeadDigest: packetSummary.reviewHeadDigest,
+      correctionHeadDigest: packetSummary.correctionHeadDigest,
+      reviewCount: packetSummary.reviewCount,
+      correctionCount: packetSummary.correctionCount,
+    };
+  }
+
+  function buildPortablePrivateReviewLearning(comparisonVerification) {
+    requireValue(
+      isObject(comparisonVerification)
+        && comparisonVerification.schemaVersion === PORTABLE_REVIEW_COMPARISON_SCHEMA
+        && comparisonVerification.verificationStatus === "verified_private_local_review_comparison",
+      "unsafe private review learning: verified comparison required",
+    );
+    const comparison = comparisonVerification.comparison;
+    requireValue(comparison.entries.length <= PRIVATE_REVIEW_LEARNING_MAX_ENTRIES, "unsafe private review learning: entry count rejected");
+    const lessons = comparison.entries.map((entry) => {
+      const lessonId = PRIVATE_REVIEW_CLASS_LESSON[entry.classification];
+      const lesson = PRIVATE_REVIEW_INSPECTION_LESSONS[lessonId];
+      requireValue(lesson, "unsafe private review learning: unsupported comparison class");
+      return {
+        reviewDigest: entry.reviewDigest,
+        presence: entry.presence,
+        classification: entry.classification,
+        lessonId,
+        lessonLabel: lesson.label,
+        inspectionGuidance: lesson.guidance,
+        left: privateReviewLearningSide("packet_a", entry.left),
+        right: privateReviewLearningSide("packet_b", entry.right),
+      };
+    });
+    const lessonCount = (lessonId) => lessons.filter((entry) => entry.lessonId === lessonId).length;
+    return {
+      sourceDigests: {
+        comparisonPacketDigest: comparisonVerification.packetDigest,
+        proposalPayloadDigest: comparison.proposalPayloadDigest,
+        left: privateReviewLearningPacketSource("packet_a", comparison.left),
+        right: privateReviewLearningPacketSource("packet_b", comparison.right),
+      },
+      lessons,
+      summary: {
+        entryCount: lessons.length,
+        inspectEvidenceCount: lessonCount("inspect_evidence"),
+        inspectRulesBindingCount: lessonCount("inspect_rules_binding"),
+        inspectCorrectionLineageCount: lessonCount("inspect_correction_lineage"),
+      },
+      authority: {
+        consensus: false,
+        approval: false,
+        progress: false,
+        blueprintAdoption: false,
+        identity: false,
+        merge: false,
+        resolution: false,
+        rules: false,
+        qualification: false,
+        execution: false,
+        registry: false,
+        ranking: false,
+        publication: false,
+        spending: false,
+        provider: false,
+      },
+    };
+  }
+
+  async function createPortablePrivateReviewLearning(serializedComparisonInput) {
+    const comparisonVerification = await verifyPortablePrivateReviewComparison(serializedComparisonInput);
+    const learning = buildPortablePrivateReviewLearning(comparisonVerification);
+    const payload = {
+      comparisonReceipt: JSON.parse(serializedComparisonInput),
+      learning,
+    };
+    const payloadDigest = await sha256Hex(canonicalJSON(payload));
+    const packet = {
+      schemaVersion: PRIVATE_REVIEW_LEARNING_SCHEMA,
+      learningVersion: 1,
+      payload,
+      integrity: {
+        algorithm: "sha256",
+        payloadDigest,
+        comparisonPacketDigest: comparisonVerification.packetDigest,
+        leftPacketDigest: learning.sourceDigests.left.correctionExchangePacketDigest,
+        rightPacketDigest: learning.sourceDigests.right.correctionExchangePacketDigest,
+        proposalPayloadDigest: learning.sourceDigests.proposalPayloadDigest,
+      },
+      boundary: PRIVATE_REVIEW_LEARNING_BOUNDARY,
+    };
+    const serialized = canonicalJSON(packet);
+    requireValue(serialized.length <= PRIVATE_REVIEW_LEARNING_MAX_LENGTH, "unsafe private review learning: packet length rejected");
+    return { packet: clone(packet), serialized };
+  }
+
+  async function verifyPortablePrivateReviewLearning(serializedInput) {
+    requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PRIVATE_REVIEW_LEARNING_MAX_LENGTH, "unsafe private review learning: input length rejected");
+    let packet;
+    try {
+      packet = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe private review learning: invalid JSON");
+    }
+    assertSafeKeys(packet, "private review learning", 0, { nodes: 0 }, PRIVATE_REVIEW_LEARNING_NODE_LIMIT);
+    requireExactKeys(packet, ["schemaVersion", "learningVersion", "payload", "integrity", "boundary"], "private review learning");
+    requireValue(packet.schemaVersion === PRIVATE_REVIEW_LEARNING_SCHEMA && packet.learningVersion === 1, "unsafe private review learning: schema drift");
+    requireValue(packet.boundary === PRIVATE_REVIEW_LEARNING_BOUNDARY, "unsafe private review learning: boundary drift");
+    requireValue(serializedInput === canonicalJSON(packet), "unsafe private review learning: packet must use canonical JSON");
+    requireExactKeys(packet.payload, ["comparisonReceipt", "learning"], "private review learning payload");
+    requireExactKeys(packet.integrity, ["algorithm", "payloadDigest", "comparisonPacketDigest", "leftPacketDigest", "rightPacketDigest", "proposalPayloadDigest"], "private review learning integrity");
+    requireValue(packet.integrity.algorithm === "sha256", "unsafe private review learning: integrity algorithm drift");
+    requireValue(
+      HEX64.test(packet.integrity.payloadDigest)
+        && HEX64.test(packet.integrity.comparisonPacketDigest)
+        && HEX64.test(packet.integrity.leftPacketDigest)
+        && HEX64.test(packet.integrity.rightPacketDigest)
+        && HEX64.test(packet.integrity.proposalPayloadDigest),
+      "unsafe private review learning: integrity digest drift",
+    );
+
+    const comparisonSerialized = canonicalJSON(packet.payload.comparisonReceipt);
+    const comparisonVerification = await verifyPortablePrivateReviewComparison(comparisonSerialized);
+    const expectedLearning = buildPortablePrivateReviewLearning(comparisonVerification);
+    requireValue(canonicalJSON(packet.payload.learning) === canonicalJSON(expectedLearning), "unsafe private review learning: learning projection mismatch");
+    requireValue(equalHex(comparisonVerification.packetDigest, packet.integrity.comparisonPacketDigest), "unsafe private review learning: comparison packet digest binding mismatch");
+    requireValue(equalHex(expectedLearning.sourceDigests.left.correctionExchangePacketDigest, packet.integrity.leftPacketDigest), "unsafe private review learning: left packet digest binding mismatch");
+    requireValue(equalHex(expectedLearning.sourceDigests.right.correctionExchangePacketDigest, packet.integrity.rightPacketDigest), "unsafe private review learning: right packet digest binding mismatch");
+    requireValue(equalHex(expectedLearning.sourceDigests.proposalPayloadDigest, packet.integrity.proposalPayloadDigest), "unsafe private review learning: proposal digest binding mismatch");
+    const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
+    requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe private review learning: payload digest mismatch");
+    return {
+      schemaVersion: PRIVATE_REVIEW_LEARNING_SCHEMA,
+      verificationStatus: "verified_private_local_review_learning",
+      packetDigest: computedPayloadDigest,
+      comparisonSerialized,
+      comparisonVerification,
+      learning: clone(expectedLearning),
+      boundary: PRIVATE_REVIEW_LEARNING_BOUNDARY,
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -1413,6 +1593,10 @@
     PORTABLE_REVIEW_COMPARISON_MAX_ENTRIES,
     PORTABLE_REVIEW_COMPARISON_MAX_LENGTH,
     PORTABLE_REVIEW_COMPARISON_SCHEMA,
+    PRIVATE_REVIEW_INSPECTION_LESSONS,
+    PRIVATE_REVIEW_LEARNING_MAX_ENTRIES,
+    PRIVATE_REVIEW_LEARNING_MAX_LENGTH,
+    PRIVATE_REVIEW_LEARNING_SCHEMA,
     PORTABLE_REVIEW_MAX_RECORDS,
     PORTABLE_REVIEW_REASONS,
     PORTABLE_REVIEW_SCHEMA,
@@ -1428,6 +1612,7 @@
     buildReceiptLearningAction,
     buildRunbackProposal,
     createPortablePrivateReviewComparison,
+    createPortablePrivateReviewLearning,
     createPortableRunbackEnvelope,
     createPortableRunbackReviewExchange,
     createPortableRunbackReviewCorrectionExchange,
@@ -1442,5 +1627,6 @@
     verifyPortableRunbackReviewExchange,
     verifyPortableRunbackReviewJournal,
     verifyPortablePrivateReviewComparison,
+    verifyPortablePrivateReviewLearning,
   };
 }));
