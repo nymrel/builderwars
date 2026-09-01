@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import os
@@ -22,6 +23,8 @@ from qualify_agentwars_starter import (  # noqa: E402
     AUTHORITY,
     BLUEPRINT_SCHEMA_VERSION,
     GAME,
+    LEGALITY_SCHEMA_VERSION,
+    LEGALITY_STATUS,
     LEARNING_SCHEMA_VERSION,
     RESOURCE_CLASS,
     RUNBACK_SCHEMA_VERSION,
@@ -31,6 +34,7 @@ from qualify_agentwars_starter import (  # noqa: E402
     TRUTH,
     StarterQualificationError,
     build_qualification,
+    guarantee_starter_blueprint,
 )
 
 
@@ -68,6 +72,23 @@ def canonical(value: object) -> bytes:
 
 def sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def reseal_blueprint(value: dict[str, object]) -> dict[str, object]:
+    candidate = copy.deepcopy(value)
+    candidate.pop("blueprintDigest", None)
+    candidate["blueprintDigest"] = sha256(canonical(candidate))
+    return candidate
+
+
+def refuses_legality(value: dict[str, object], name: str) -> None:
+    candidate = reseal_blueprint(value)
+    try:
+        guarantee_starter_blueprint(candidate, canonical(candidate))
+    except StarterQualificationError as error:
+        check("starter legality refused" in str(error), name)
+    else:
+        raise AssertionError(name)
 
 
 def safe_child_env() -> dict[str, str]:
@@ -174,6 +195,68 @@ def main() -> int:
             ),
             "blueprint binds both fixed entrant source files",
         )
+        legality = json.loads((first / "legality-guarantor.json").read_text(encoding="utf-8"))
+        legality_unsigned = dict(legality)
+        legality_digest = legality_unsigned.pop("legalityDigest")
+        check(
+            legality["schemaVersion"] == LEGALITY_SCHEMA_VERSION
+            and legality["policyVersion"] == 1
+            and legality["status"] == LEGALITY_STATUS
+            and legality_digest == sha256(canonical(legality_unsigned)),
+            "pre-execution legality guarantor has a valid canonical decision",
+        )
+        check(
+            first_receipt["legalityFile"] == "legality-guarantor.json"
+            and first_receipt["legalitySha256"]
+            == sha256((first / "legality-guarantor.json").read_bytes())
+            and first_receipt["legalityDigest"] == legality["legalityDigest"]
+            and first_receipt["legalityStatus"] == LEGALITY_STATUS
+            and legality["blueprintDigest"] == blueprint["blueprintDigest"]
+            and legality["blueprintSha256"] == first_receipt["blueprintSha256"],
+            "qualification binds the exact pre-execution legality decision",
+        )
+        check(
+            legality["scope"] == "competition_format_eligibility_only"
+            and legality["truth"]["competitionFormatEligible"] is True
+            and all(
+                legality["truth"][key] is False
+                for key in (
+                    "customerExecutionAuthorized",
+                    "jurisdictionalComplianceAttested",
+                    "legalAdviceProvided",
+                    "paidComputeAuthorized",
+                    "providerTermsComplianceAttested",
+                    "publicationAuthorized",
+                    "rankingAuthorized",
+                )
+            )
+            and legality["authority"] == AUTHORITY,
+            "legality decision is format-only and grants no legal, provider, or launch authority",
+        )
+        changed = copy.deepcopy(blueprint)
+        changed["gameBinding"]["rulesDigest"] = "0" * 64
+        refuses_legality(changed, "legality guarantor refuses resealed rule drift")
+        changed = copy.deepcopy(blueprint)
+        changed["resourceClass"]["providerRouteConfigured"] = True
+        refuses_legality(changed, "legality guarantor refuses resealed provider routing")
+        changed = copy.deepcopy(blueprint)
+        changed["harnessFiles"][0]["sha256"] = "1" * 64
+        refuses_legality(changed, "legality guarantor refuses resealed source drift")
+        changed = copy.deepcopy(blueprint)
+        changed["entrants"][0]["modelClaimed"] = True
+        refuses_legality(changed, "legality guarantor refuses resealed model claims")
+        changed = copy.deepcopy(blueprint)
+        changed["authority"]["publication"] = True
+        refuses_legality(changed, "legality guarantor refuses resealed authority escalation")
+        changed = copy.deepcopy(blueprint)
+        changed["unexpected"] = "field"
+        refuses_legality(changed, "legality guarantor refuses unknown blueprint fields")
+        try:
+            guarantee_starter_blueprint(blueprint, json.dumps(blueprint).encode("ascii"))
+        except StarterQualificationError as error:
+            check("not canonical" in str(error), "legality guarantor refuses noncanonical blueprint bytes")
+        else:
+            raise AssertionError("legality guarantor accepted noncanonical bytes")
         learning = json.loads((first / "learning-action.json").read_text(encoding="utf-8"))
         learning_unsigned = dict(learning)
         learning_digest = learning_unsigned.pop("learningDigest")
@@ -181,6 +264,7 @@ def main() -> int:
             learning["schemaVersion"] == LEARNING_SCHEMA_VERSION
             and learning["status"] == "observation_only"
             and learning_digest == sha256(canonical(learning_unsigned))
+            and learning["proofBinding"]["legalityDigest"] == legality["legalityDigest"]
             and learning["proofBinding"]["qualificationReceiptDigest"]
             == first_receipt["receiptDigest"],
             "learning action is canonical and proof-linked to the exact qualification",
@@ -208,6 +292,7 @@ def main() -> int:
             runback["lineage"] == {
                 "parentBlueprintDigest": blueprint["blueprintDigest"],
                 "parentBlueprintVersion": 1,
+                "parentLegalityDigest": legality["legalityDigest"],
                 "parentLearningDigest": learning["learningDigest"],
                 "parentQualificationReceiptDigest": first_receipt["receiptDigest"],
             }
@@ -293,6 +378,25 @@ def main() -> int:
             check(not failed.exists(), "failed qualification removes its partial output")
         else:
             raise AssertionError("injected starter failure was not raised")
+        legality_failed = work / "legality-failed"
+        try:
+            with mock.patch(
+                "qualify_agentwars_starter.guarantee_starter_blueprint",
+                side_effect=StarterQualificationError("starter legality refused: injected"),
+            ):
+                with mock.patch("qualify_agentwars_starter.run_league") as league_runner:
+                    build_qualification(legality_failed)
+        except StarterQualificationError:
+            check(
+                league_runner.call_count == 0,
+                "legality refusal occurs before the league runner is invoked",
+            )
+            check(
+                not legality_failed.exists(),
+                "pre-execution legality refusal removes partial output",
+            )
+        else:
+            raise AssertionError("injected legality refusal was not raised")
 
         cli_out = work / "cli"
         result = subprocess.run(

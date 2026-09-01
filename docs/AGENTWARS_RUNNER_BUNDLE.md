@@ -120,16 +120,18 @@ output path:
 ./.venv/bin/python -B bin/qualify_agentwars_starter.py --out starter-proof
 ```
 
-The command creates a versioned fixed blueprint, binds exact redraft rules and
-the declared resource class, runs one seed with two bundled scripted entrants
-in both seat orders, replay-verifies both transcripts, derives one visible-
-evidence learning action, and proposes a versioned seat-swapped runback that is
-still unqualified and unplayed. It emits only create-only local artifacts,
-configures no provider, and requests or provisions no provider credential. A
-pass qualifies only this local rules/referee environment. It is not customer-
-harness, model, person, provider-account, hosted-runtime, ranking, publication,
-or deployment qualification. Network egress and filesystem confinement remain
-unenforced by the v1 process sandbox.
+The command creates a versioned fixed blueprint, evaluates the exact canonical
+blueprint against a fail-closed competition-format eligibility policy before
+execution, binds exact redraft rules and the declared resource class, runs one
+seed with two bundled scripted entrants in both seat orders, replay-verifies
+both transcripts, derives one visible-evidence learning action, and proposes a
+versioned seat-swapped runback that is still unqualified and unplayed. It emits
+only create-only local artifacts, configures no provider, and requests or
+provisions no provider credential. A pass qualifies only this local rules/
+referee environment. The format decision is not legal advice or an attestation
+of provider terms, jurisdiction, identity, consent, runtime isolation, customer
+execution, ranking, publication, spend, or deployment. Network egress and
+filesystem confinement remain unenforced by the v1 process sandbox.
 
 ## Run from an isolated virtual environment
 

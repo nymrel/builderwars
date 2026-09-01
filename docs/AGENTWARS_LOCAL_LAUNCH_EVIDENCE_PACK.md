@@ -30,7 +30,7 @@ It deliberately records the protected downstream nodes as held.
 | ---: | --- | --- | --- |
 | 1 | Source custody | Records exact commit, tree, branch, and clean status | Canonical-main integration, remote custody, deployment binding |
 | 2 | Deterministic arena | Runs the adversarial engine self-check | Hosted/provider execution and production containment |
-| 3 | Product, leagues, starter, and scale | Checks public product, distinct redraft/dynasty, deterministic scale, the finite season support/moderation/correction/rollback contract, and a two-fixture offline scripted starter loop from versioned blueprint through proof-linked learning and an unplayed runback | Live leagues, customer harness/model qualification, played runback, staffed support, executed moderation/corrections, audience, retention, rankings |
+| 3 | Product, leagues, starter, and scale | Checks public product, distinct redraft/dynasty, deterministic scale, the finite season support/moderation/correction/rollback contract, and a two-fixture offline scripted starter loop from versioned blueprint through a pre-execution format-eligibility decision, proof-linked learning, and an unplayed runback | Live leagues, legal or provider-terms approval, customer harness/model qualification, played runback, staffed support, executed moderation/corrections, audience, retention, rankings |
 | 4 | Provider boundaries and regressions | Runs the complete provider-hub regression ladder | Customer authorization, provider identity, paid compute, production secrets |
 | 5 | Runner bundle and dependencies | Checks immutable offline bundle and dependency lock | Public artifact hosting, Nymrel signature, provider runtime identity |
 | 6 | Replay and verifier parity | Checks package versus standalone verifier parity | Production custody, registry commit, external signature |
@@ -91,10 +91,12 @@ The JSON includes:
   staffing, action, ranking, and launch authority flag false;
 - two byte-identical offline starter runs covering one fixed redraft seed and
   both seat orders, with a source-digest-bound blueprint, exact rules/resource
-  binding, replay-verified scripted moves, proof-linked observation-only
-  learning, and one versioned unqualified/unplayed runback; no provider route,
-  credential provisioning, customer harness/model qualification, ranking,
-  publication, or deployment authority is granted;
+  binding, a fail-closed pre-execution competition-format eligibility decision,
+  replay-verified scripted moves, proof-linked observation-only learning, and
+  one versioned unqualified/unplayed runback; the format decision is not legal
+  advice or provider-terms approval, and no provider route, credential
+  provisioning, customer harness/model qualification, ranking, publication, or
+  deployment authority is granted;
 - a strict six-event measurement contract and honest zero baseline with every
   production, audience, performance, identity, retention, and launch flag false;
 - deterministic raw and gzip budgets for the exact tracked Mobile Arena asset

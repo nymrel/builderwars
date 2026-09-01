@@ -30,9 +30,11 @@ from entrants.fantasy_model_harness import fallback_move  # noqa: E402
 
 SCHEMA_VERSION = "agentwars.starter_qualification.v1"
 BLUEPRINT_SCHEMA_VERSION = "agentwars.starter_blueprint.v1"
+LEGALITY_SCHEMA_VERSION = "agentwars.starter_legality_guarantor.v1"
 LEARNING_SCHEMA_VERSION = "agentwars.starter_learning_action.v1"
 RUNBACK_SCHEMA_VERSION = "agentwars.starter_runback_proposal.v1"
 STATUS = "pass_local_scripted_environment"
+LEGALITY_STATUS = "eligible_local_scripted_reference_only"
 SEED = 9100
 GAME = "fantasy_redraft"
 SCRIPTED_BACKEND = "scripted:starter-v1"
@@ -170,6 +172,84 @@ def _starter_blueprint() -> dict[str, Any]:
     )
 
 
+def guarantee_starter_blueprint(
+    blueprint: dict[str, Any], blueprint_raw: bytes
+) -> dict[str, Any]:
+    """Return a format-eligibility decision before starter execution.
+
+    This is deliberately not legal advice or an attestation of provider terms,
+    jurisdictional compliance, customer identity, consent, or runtime safety.
+    """
+
+    if not isinstance(blueprint, dict):
+        raise StarterQualificationError("starter legality refused: blueprint must be an object")
+    expected = _starter_blueprint()
+    if set(blueprint) != set(expected):
+        raise StarterQualificationError("starter legality refused: blueprint keys changed")
+    unsigned = dict(blueprint)
+    supplied_digest = unsigned.pop("blueprintDigest", None)
+    if supplied_digest != _sha256(_canonical_bytes(unsigned)):
+        raise StarterQualificationError("starter legality refused: blueprint digest is invalid")
+    if blueprint_raw != _canonical_bytes(blueprint):
+        raise StarterQualificationError("starter legality refused: blueprint bytes are not canonical")
+    if blueprint["schemaVersion"] != BLUEPRINT_SCHEMA_VERSION or blueprint["blueprintVersion"] != 1:
+        raise StarterQualificationError("starter legality refused: blueprint version changed")
+    if blueprint["status"] != "local_scripted_reference_only":
+        raise StarterQualificationError("starter legality refused: blueprint scope changed")
+    if blueprint["gameBinding"] != expected["gameBinding"]:
+        raise StarterQualificationError("starter legality refused: game or rules binding changed")
+    if blueprint["resourceClass"] != RESOURCE_CLASS:
+        raise StarterQualificationError("starter legality refused: resource class changed")
+    if blueprint["harnessFiles"] != expected["harnessFiles"]:
+        raise StarterQualificationError("starter legality refused: bundled source binding changed")
+    if blueprint["entrants"] != expected["entrants"]:
+        raise StarterQualificationError("starter legality refused: fixed entrant contract changed")
+    if blueprint["authority"] != AUTHORITY:
+        raise StarterQualificationError("starter legality refused: authority changed")
+    if blueprint["boundary"] != expected["boundary"]:
+        raise StarterQualificationError("starter legality refused: evidence boundary changed")
+
+    return _sealed(
+        {
+            "schemaVersion": LEGALITY_SCHEMA_VERSION,
+            "policyVersion": 1,
+            "status": LEGALITY_STATUS,
+            "scope": "competition_format_eligibility_only",
+            "blueprintDigest": blueprint["blueprintDigest"],
+            "blueprintSha256": _sha256(blueprint_raw),
+            "gameBinding": blueprint["gameBinding"],
+            "resourceClass": dict(RESOURCE_CLASS),
+            "passedCheckIds": [
+                "canonical_blueprint_digest",
+                "exact_blueprint_version",
+                "exact_rules_binding",
+                "exact_resource_class",
+                "fixed_bundled_source_digests",
+                "fixed_scripted_entrants",
+                "zero_authority",
+            ],
+            "truth": {
+                "competitionFormatEligible": True,
+                "customerExecutionAuthorized": False,
+                "jurisdictionalComplianceAttested": False,
+                "legalAdviceProvided": False,
+                "paidComputeAuthorized": False,
+                "providerTermsComplianceAttested": False,
+                "publicationAuthorized": False,
+                "rankingAuthorized": False,
+            },
+            "authority": dict(AUTHORITY),
+            "boundary": (
+                "This decision proves only that the exact bundled scripted starter blueprint "
+                "matches its local competition-format policy. It is not legal advice and does "
+                "not attest provider terms, jurisdiction, identity, consent, runtime isolation, "
+                "customer execution, ranking, publication, spend, or deployment."
+            ),
+        },
+        "legalityDigest",
+    )
+
+
 def _move_source_totals(summary: dict[str, Any]) -> dict[str, int]:
     totals = {name: 0 for name in ("model", "scripted", "fallback", "other")}
     for match in summary["formats"][0]["matches"]:
@@ -186,6 +266,7 @@ def _learning_action(receipt: dict[str, Any], summary: dict[str, Any]) -> dict[s
             "schemaVersion": LEARNING_SCHEMA_VERSION,
             "status": "observation_only",
             "proofBinding": {
+                "legalityDigest": receipt["legalityDigest"],
                 "qualificationReceiptDigest": receipt["receiptDigest"],
                 "summarySha256": receipt["summarySha256"],
                 "transcripts": receipt["transcripts"],
@@ -229,6 +310,7 @@ def _runback_proposal(
             "lineage": {
                 "parentBlueprintDigest": blueprint["blueprintDigest"],
                 "parentBlueprintVersion": blueprint["blueprintVersion"],
+                "parentLegalityDigest": receipt["legalityDigest"],
                 "parentLearningDigest": learning["learningDigest"],
                 "parentQualificationReceiptDigest": receipt["receiptDigest"],
             },
@@ -369,7 +451,10 @@ def build_qualification(destination: Path) -> dict[str, Any]:
     try:
         blueprint = _starter_blueprint()
         blueprint_raw = _canonical_bytes(blueprint)
+        legality = guarantee_starter_blueprint(blueprint, blueprint_raw)
+        legality_raw = _canonical_bytes(legality)
         (destination / "blueprint.json").write_bytes(blueprint_raw)
+        (destination / "legality-guarantor.json").write_bytes(legality_raw)
         config = {
             "league": "AgentWars offline starter",
             "description": "Fixed scripted redraft environment qualification; not a model evaluation.",
@@ -428,6 +513,10 @@ def build_qualification(destination: Path) -> dict[str, Any]:
             "blueprintFile": "blueprint.json",
             "blueprintSha256": _sha256(blueprint_raw),
             "blueprintDigest": blueprint["blueprintDigest"],
+            "legalityFile": "legality-guarantor.json",
+            "legalitySha256": _sha256(legality_raw),
+            "legalityDigest": legality["legalityDigest"],
+            "legalityStatus": legality["status"],
             "rulesBinding": blueprint["gameBinding"],
             "resourceClass": dict(RESOURCE_CLASS),
             "summaryFile": "league-summary.json",

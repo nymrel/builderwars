@@ -302,6 +302,7 @@ def main() -> int:
         )
         starter_receipt = json.loads((starter_out / "qualification.json").read_text(encoding="utf-8"))
         starter_blueprint = json.loads((starter_out / "blueprint.json").read_text(encoding="utf-8"))
+        starter_legality = json.loads((starter_out / "legality-guarantor.json").read_text(encoding="utf-8"))
         starter_learning = json.loads((starter_out / "learning-action.json").read_text(encoding="utf-8"))
         starter_runback = json.loads((starter_out / "runback-proposal.json").read_text(encoding="utf-8"))
         check(
@@ -328,8 +329,20 @@ def main() -> int:
             "extracted starter binds a versioned blueprint to exact rules and resource class",
         )
         check(
+            starter_legality["schemaVersion"] == "agentwars.starter_legality_guarantor.v1"
+            and starter_legality["status"] == "eligible_local_scripted_reference_only"
+            and starter_legality["blueprintDigest"] == starter_blueprint["blueprintDigest"]
+            and starter_receipt["legalityDigest"] == starter_legality["legalityDigest"]
+            and starter_legality["truth"]["legalAdviceProvided"] is False
+            and starter_legality["truth"]["providerTermsComplianceAttested"] is False
+            and starter_legality["truth"]["customerExecutionAuthorized"] is False,
+            "extracted starter proves format eligibility before execution without legal or provider authority",
+        )
+        check(
             starter_learning["schemaVersion"] == "agentwars.starter_learning_action.v1"
             and starter_learning["status"] == "observation_only"
+            and starter_learning["proofBinding"]["legalityDigest"]
+            == starter_legality["legalityDigest"]
             and starter_learning["proofBinding"]["qualificationReceiptDigest"]
             == starter_receipt["receiptDigest"]
             and starter_learning["recommendedAction"]["status"] == "not_started",
@@ -339,6 +352,8 @@ def main() -> int:
             starter_runback["schemaVersion"] == "agentwars.starter_runback_proposal.v1"
             and starter_runback["lineage"]["parentLearningDigest"]
             == starter_learning["learningDigest"]
+            and starter_runback["lineage"]["parentLegalityDigest"]
+            == starter_legality["legalityDigest"]
             and starter_runback["lineage"]["parentQualificationReceiptDigest"]
             == starter_receipt["receiptDigest"]
             and starter_runback["status"] == "unplayed_proposal"

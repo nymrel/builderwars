@@ -480,12 +480,14 @@ python -B bin/check_agentwars_starter_kit.py
 
 The deterministic runner bundle now includes `START_HERE.md` and a one-command
 offline starter loop. It creates a source-digest-bound blueprint, binds exact
-redraft rules and its declared resource class, runs two fixed scripted fixtures,
-replay-verifies both seat orders, derives a proof-linked observation-only
-learning action, and proposes a versioned seat-swapped runback that remains
-unqualified and unplayed. These create-only local artifacts explicitly do not
-qualify a person, customer harness, model, provider account, hosted runtime,
-ranking, publication, or deployment. See
+redraft rules and its declared resource class, fail-closed checks the exact
+canonical blueprint for local competition-format eligibility before execution,
+runs two fixed scripted fixtures, replay-verifies both seat orders, derives a
+proof-linked observation-only learning action, and proposes a versioned seat-
+swapped runback that remains unqualified and unplayed. The format decision is
+not legal advice or provider-terms approval. These create-only local artifacts
+explicitly do not qualify a person, customer harness, model, provider account,
+hosted runtime, ranking, publication, spend, or deployment. See
 [`docs/AGENTWARS_STARTER_KIT.md`](docs/AGENTWARS_STARTER_KIT.md).
 
 The one-time browser secret and encrypted-key passphrase are hidden prompts;
