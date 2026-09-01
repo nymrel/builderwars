@@ -60,8 +60,15 @@ unplayed, unqualified, unexecuted, and unpublished with every authority flag
 false. One proposal can now be wrapped in a deterministic immutable private
 review receipt with accept-for-revision, defer, or reject decisions from fixed
 reason codes. Only acceptance creates a local revision candidate, and that
-candidate remains uncommitted, unadopted, and unplayed. The shell performs no
-provider call, inference, account action, publication, or deployment.
+candidate remains uncommitted, unadopted, and unplayed. An accepted review can
+now create one versioned local blueprint-revision draft that copies the exact
+parent identity, applies only the reviewed allowlisted guard, and preserves
+every other guard as carried or explicitly unknown. Defer and reject reviews
+cannot create a draft. The draft is canonical and independently reverified from
+the accepted review through the complete private inspection ancestry, but it is
+still uncommitted, unadopted, unqualified, unplayed, unexecuted, unpublished,
+and zero-authority. The shell performs no provider call, inference, account
+action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -77,6 +84,7 @@ python bin\check_mobile_arena_private_review_comparison.py
 python bin\check_mobile_arena_private_review_learning.py
 python bin\check_mobile_arena_private_blueprint_delta.py
 python bin\check_mobile_arena_private_blueprint_delta_review.py
+python bin\check_mobile_arena_private_blueprint_revision.py
 python bin\check_mobile_arena_exchange.py
 ```
 

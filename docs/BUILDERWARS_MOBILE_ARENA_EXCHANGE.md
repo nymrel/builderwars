@@ -570,15 +570,43 @@ bindings, all-false authority, nested proposal tampering, outer and review
 digest resealing attacks, dangerous keys, excessive depth or nodes, and
 oversized input.
 
+### Deterministic private blueprint-revision draft
+
+`builderwars.mobile-private-blueprint-revision-draft.v1` embeds one canonical
+accepted guard-proposal review and derives one versioned local blueprint draft.
+Import independently reverifies the accepted review, guard proposal, inspection
+lesson, comparison, both correction packets, both review journals, and the
+bound parent proposal before accepting the draft.
+
+The draft copies the exact parent blueprint identity and its guard values. It
+then applies only the single allowlisted guard bound by the accepted review.
+Every other guard is preserved exactly as the parent carried it; absent parent
+values remain explicit `null` unknowns and cannot be invented. Unknown guard
+keys also remain explicit and deterministically sorted. A defer or reject
+review fails closed and creates no draft.
+
+The receipt is canonical, SHA-256 addressed, atomic, and memory-only. Its state
+forces `localOnly: true`, `committed: false`, `adopted: false`, `played: false`,
+qualification `not_run`, execution `disabled`, registry and publication
+`not_requested`, and all authority flags false. It cannot authenticate a
+reviewer, declare correctness, create consensus or approval, award progress,
+mutate the parent, bind rules, qualify, play, execute, register, rank, publish,
+spend, or call a provider. The dedicated checker exercises 149 adversarial
+assertions covering all three lesson-to-guard mappings, accepted-review gating,
+defer and reject refusal, exact identity and guard application, unknown-value
+preservation, complete nested ancestry reconstruction, digest resealing attacks,
+dangerous keys, excessive depth or nodes, and oversized input.
+
 ### Exact next bounded campaign
 
-Add a deterministic versioned local blueprint-revision draft receipt that
-accepts only a verified `accept_for_revision` review. It may copy the bound
-parent blueprint and apply exactly the reviewed allowlisted guard into a new
-local draft, but must remain uncommitted, unadopted, unqualified, and unplayed.
-Defer or reject reviews must fail closed, and no review or draft may mutate the
-parent, award progress, bind rules, execute, register, rank, publish, spend, or
-call a provider.
+Add a deterministic private blueprint-draft review receipt that accepts one
+verified revision draft and records exactly one immutable local decision:
+`accept_for_commit_candidate`, `defer`, or `reject`. Acceptance may derive only
+an uncommitted commit candidate. It must preserve explicit unknown guard values
+and must refuse qualification or commit readiness while any required guard is
+unknown. Defer and reject create no candidate. No decision may mutate the
+parent or draft, award progress, bind rules, qualify, play, execute, register,
+rank, publish, spend, or call a provider.
 Auth, network writes, creator code execution, provider use, public activation,
 and the protected private-alpha API binding remain operator-gated campaigns.
 

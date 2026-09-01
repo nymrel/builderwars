@@ -47,6 +47,9 @@ const state = {
   privateBlueprintDeltaReviewerLabel: "",
   privateBlueprintDeltaReviewDecision: "accept_for_revision",
   privateBlueprintDeltaReviewReason: "guard_matches_verified_lesson",
+  privateBlueprintRevisionDraftReceipt: null,
+  privateBlueprintRevisionDraftImportText: "",
+  privateBlueprintRevisionDraftVerification: null,
   lastFocus: null,
 };
 
@@ -258,11 +261,18 @@ function resetPortableReviewCorrectionExchangeState({ keepImportText = false } =
   state.portableReviewCorrectionExchangeVerification = null;
 }
 
+function resetPrivateBlueprintRevisionDraftState({ keepImportText = false } = {}) {
+  state.privateBlueprintRevisionDraftReceipt = null;
+  if (!keepImportText) state.privateBlueprintRevisionDraftImportText = "";
+  state.privateBlueprintRevisionDraftVerification = null;
+}
+
 function resetPrivateBlueprintDeltaReviewState({ keepImportText = false, keepReviewerLabel = false } = {}) {
   state.privateBlueprintDeltaReviewReceipt = null;
   if (!keepImportText) state.privateBlueprintDeltaReviewImportText = "";
   state.privateBlueprintDeltaReviewVerification = null;
   if (!keepReviewerLabel) state.privateBlueprintDeltaReviewerLabel = "";
+  resetPrivateBlueprintRevisionDraftState();
 }
 
 function resetPrivateBlueprintDeltaState({ keepImportText = false } = {}) {
@@ -507,11 +517,38 @@ function privateBlueprintDeltaReviewStatusMarkup() {
   return `<div class="portable-status neutral private-blueprint-delta-review-status" role="status" tabindex="-1"><strong>No guard review verified</strong><span>Review one verified proposal or paste one canonical review receipt. The proposal and its complete ancestry are independently rechecked.</span></div>`;
 }
 
+function privateBlueprintRevisionDraftStatusMarkup() {
+  const verification = state.privateBlueprintRevisionDraftVerification;
+  if (verification?.status === "verified") {
+    const result = verification.result;
+    const draft = result.draft;
+    const guard = draft.appliedGuard;
+    const unknown = draft.unknownGuardKeys.length ? draft.unknownGuardKeys.join(", ") : "none";
+    return `<div class="portable-status verified private-blueprint-revision-draft-status" role="status" tabindex="-1"><strong>Local blueprint revision draft verified · never adopted</strong><span>SHA-256 ${escapeHTML(result.packetDigest)}</span><span>${escapeHTML(guard.label)} applied as true · exact accepted review ${escapeHTML(draft.lineage.acceptedReviewDigest)}</span><span>Unknown guard values preserved: ${escapeHTML(unknown)} · no values invented</span><span>Draft remains local, uncommitted, unadopted, unqualified, unplayed, unexecuted, unregistered, and unpublished.</span></div>`;
+  }
+  if (verification?.status === "invalid") {
+    return `<div class="portable-status invalid private-blueprint-revision-draft-status" role="alert" tabindex="-1"><strong>Blueprint revision draft refused</strong><span>${escapeHTML(verification.message)}</span><span>No draft, adoption, progress, qualification, execution, registry, publication, or authority state was retained.</span></div>`;
+  }
+  return `<div class="portable-status neutral private-blueprint-revision-draft-status" role="status" tabindex="-1"><strong>No blueprint revision draft verified</strong><span>Create one only from an accepted guard review, or paste one canonical draft receipt. Defer and reject reviews fail closed.</span></div>`;
+}
+
+function privateBlueprintRevisionDraftMarkup() {
+  const prepared = state.privateBlueprintRevisionDraftReceipt;
+  const review = state.privateBlueprintDeltaReviewVerification?.status === "verified"
+    ? state.privateBlueprintDeltaReviewVerification.result.review
+    : null;
+  const canCreate = review?.decision === "accept_for_revision" && review.localRevisionCandidate;
+  const blockedByDecision = review && !canCreate
+    ? `<p class="portable-digest">This ${escapeHTML(PRIVATE_BLUEPRINT_DELTA_REVIEW_DECISION_LABELS[review.decision] || review.decision)} review cannot create a draft.</p>`
+    : "";
+  return `<section class="portable-review-exchange private-blueprint-revision-draft" aria-labelledby="private-blueprint-revision-draft-title"><div><p class="eyebrow">Versioned local blueprint draft</p><h4 id="private-blueprint-revision-draft-title">Apply one reviewed guard. Invent nothing else.</h4><p>The draft copies the bound parent blueprint and changes only the accepted allowlisted guard. Missing guard values stay explicitly unknown.</p></div>${canCreate ? `<button class="secondary-button" type="button" data-private-blueprint-revision-draft-create>${prepared ? "Refresh local revision draft" : "Create local revision draft"}</button>` : blockedByDecision}${prepared ? `<label for="private-blueprint-revision-draft-export">Canonical blueprint revision draft · read only</label><textarea id="private-blueprint-revision-draft-export" class="portable-textarea" rows="14" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Blueprint revision draft SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-revision-draft-import">Paste canonical blueprint revision draft JSON</label><textarea id="private-blueprint-revision-draft-import" class="portable-textarea" rows="14" maxlength="4194304" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-revision-draft.v1 JSON">${escapeHTML(state.privateBlueprintRevisionDraftImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-revision-draft-verify>Verify blueprint revision draft</button>${privateBlueprintRevisionDraftStatusMarkup()}<div class="learning-boundary">This local draft cannot authenticate identity, declare correctness, create consensus or approval, award progress, mutate its parent, commit or adopt a blueprint, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+}
+
 function privateBlueprintDeltaReviewMarkup() {
   const prepared = state.privateBlueprintDeltaReviewReceipt;
   const canReview = state.privateBlueprintDeltaVerification?.status === "verified";
   const decisionOptions = Object.entries(PRIVATE_BLUEPRINT_DELTA_REVIEW_DECISION_LABELS).map(([decision, label]) => `<option value="${escapeHTML(decision)}" ${decision === state.privateBlueprintDeltaReviewDecision ? "selected" : ""}>${escapeHTML(label)}</option>`).join("");
-  return `<section class="portable-review private-blueprint-delta-review" aria-labelledby="private-blueprint-delta-review-title"><div><p class="eyebrow">Private guard-proposal review</p><h4 id="private-blueprint-delta-review-title">Record one decision. Adopt nothing.</h4><p>Accept-for-revision can create only an uncommitted local candidate. Defer and reject create no candidate. Every decision stays private and identity-unattested.</p></div>${canReview ? `<div class="portable-review-form" role="group" aria-describedby="private-blueprint-delta-review-boundary"><label for="private-blueprint-delta-reviewer-label">Unattested reviewer label</label><input id="private-blueprint-delta-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.privateBlueprintDeltaReviewerLabel)}" placeholder="Example: local reviewer"><label for="private-blueprint-delta-review-decision">Private decision</label><select id="private-blueprint-delta-review-decision" data-private-blueprint-delta-review-decision>${decisionOptions}</select><label for="private-blueprint-delta-review-reason">Bounded reason</label><select id="private-blueprint-delta-review-reason" data-private-blueprint-delta-review-reason>${privateBlueprintDeltaReviewReasonOptions(state.privateBlueprintDeltaReviewDecision)}</select><button class="secondary-button" type="button" data-private-blueprint-delta-review-create>Record immutable guard review</button></div>` : ""}${prepared ? `<label for="private-blueprint-delta-review-export">Canonical guard review receipt · read only</label><textarea id="private-blueprint-delta-review-export" class="portable-textarea" rows="12" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Guard review SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-delta-review-import">Paste canonical guard review receipt JSON</label><textarea id="private-blueprint-delta-review-import" class="portable-textarea" rows="12" maxlength="3145728" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-inspection-blueprint-delta-review.v1 JSON">${escapeHTML(state.privateBlueprintDeltaReviewImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-delta-review-verify>Verify guard review receipt</button>${privateBlueprintDeltaReviewStatusMarkup()}<div class="learning-boundary" id="private-blueprint-delta-review-boundary">This immutable private review cannot authenticate a reviewer, declare correctness, create consensus or approval, award progress, adopt or commit a guard, edit the parent, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+  return `<section class="portable-review private-blueprint-delta-review" aria-labelledby="private-blueprint-delta-review-title"><div><p class="eyebrow">Private guard-proposal review</p><h4 id="private-blueprint-delta-review-title">Record one decision. Adopt nothing.</h4><p>Accept-for-revision can create only an uncommitted local candidate. Defer and reject create no candidate. Every decision stays private and identity-unattested.</p></div>${canReview ? `<div class="portable-review-form" role="group" aria-describedby="private-blueprint-delta-review-boundary"><label for="private-blueprint-delta-reviewer-label">Unattested reviewer label</label><input id="private-blueprint-delta-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.privateBlueprintDeltaReviewerLabel)}" placeholder="Example: local reviewer"><label for="private-blueprint-delta-review-decision">Private decision</label><select id="private-blueprint-delta-review-decision" data-private-blueprint-delta-review-decision>${decisionOptions}</select><label for="private-blueprint-delta-review-reason">Bounded reason</label><select id="private-blueprint-delta-review-reason" data-private-blueprint-delta-review-reason>${privateBlueprintDeltaReviewReasonOptions(state.privateBlueprintDeltaReviewDecision)}</select><button class="secondary-button" type="button" data-private-blueprint-delta-review-create>Record immutable guard review</button></div>` : ""}${prepared ? `<label for="private-blueprint-delta-review-export">Canonical guard review receipt · read only</label><textarea id="private-blueprint-delta-review-export" class="portable-textarea" rows="12" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Guard review SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-delta-review-import">Paste canonical guard review receipt JSON</label><textarea id="private-blueprint-delta-review-import" class="portable-textarea" rows="12" maxlength="3145728" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-inspection-blueprint-delta-review.v1 JSON">${escapeHTML(state.privateBlueprintDeltaReviewImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-delta-review-verify>Verify guard review receipt</button>${privateBlueprintDeltaReviewStatusMarkup()}${privateBlueprintRevisionDraftMarkup()}<div class="learning-boundary" id="private-blueprint-delta-review-boundary">This immutable private review cannot authenticate a reviewer, declare correctness, create consensus or approval, award progress, adopt or commit a guard, edit the parent, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
 }
 
 function privateBlueprintDeltaMarkup() {
@@ -1125,6 +1162,7 @@ async function createPrivateBlueprintDeltaReview() {
   const proposalSerialized = state.privateBlueprintDeltaVerification?.status === "verified"
     ? state.privateBlueprintDeltaImportText
     : "";
+  resetPrivateBlueprintRevisionDraftState();
   try {
     const receipt = await dataAdapter.createPortablePrivateBlueprintDeltaReview(proposalSerialized, {
       reviewerLabel: state.privateBlueprintDeltaReviewerLabel,
@@ -1148,6 +1186,7 @@ async function createPrivateBlueprintDeltaReview() {
 
 async function verifyPrivateBlueprintDeltaReview(serializedInput) {
   const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH || 3145728);
+  resetPrivateBlueprintRevisionDraftState();
   try {
     const result = await dataAdapter.verifyPortablePrivateBlueprintDeltaReview(serializedInput);
     const deltaVerification = result.blueprintDeltaVerification;
@@ -1175,6 +1214,66 @@ async function verifyPrivateBlueprintDeltaReview(serializedInput) {
     state.privateBlueprintDeltaReviewReceipt = null;
     state.privateBlueprintDeltaReviewImportText = importedText;
     state.privateBlueprintDeltaReviewVerification = { status: "invalid", message: error?.message || "Private guard review validation failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function createPrivateBlueprintRevisionDraft() {
+  if (!dataAdapter?.createPortablePrivateBlueprintRevisionDraft || !dataAdapter?.verifyPortablePrivateBlueprintRevisionDraft) return false;
+  const reviewSerialized = state.privateBlueprintDeltaReviewVerification?.status === "verified"
+    ? state.privateBlueprintDeltaReviewImportText
+    : "";
+  try {
+    const receipt = await dataAdapter.createPortablePrivateBlueprintRevisionDraft(reviewSerialized);
+    const result = await dataAdapter.verifyPortablePrivateBlueprintRevisionDraft(receipt.serialized);
+    state.privateBlueprintRevisionDraftReceipt = receipt;
+    state.privateBlueprintRevisionDraftImportText = receipt.serialized;
+    state.privateBlueprintRevisionDraftVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintRevisionDraftReceipt = null;
+    state.privateBlueprintRevisionDraftImportText = "";
+    state.privateBlueprintRevisionDraftVerification = { status: "invalid", message: error?.message || "Private blueprint revision draft failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function verifyPrivateBlueprintRevisionDraft(serializedInput) {
+  const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH || 4194304);
+  try {
+    const result = await dataAdapter.verifyPortablePrivateBlueprintRevisionDraft(serializedInput);
+    const reviewVerification = result.acceptedReviewVerification;
+    const deltaVerification = reviewVerification.blueprintDeltaVerification;
+    const learningVerification = deltaVerification.learningVerification;
+    state.privateBlueprintRevisionDraftReceipt = null;
+    state.privateBlueprintRevisionDraftImportText = importedText;
+    state.privateBlueprintRevisionDraftVerification = { status: "verified", result };
+    state.privateBlueprintDeltaReviewReceipt = null;
+    state.privateBlueprintDeltaReviewImportText = result.acceptedReviewSerialized;
+    state.privateBlueprintDeltaReviewVerification = { status: "verified", result: reviewVerification };
+    state.privateBlueprintDeltaReviewerLabel = reviewVerification.review.reviewer.label;
+    state.privateBlueprintDeltaReviewDecision = reviewVerification.review.decision;
+    state.privateBlueprintDeltaReviewReason = reviewVerification.review.reasonCode;
+    state.privateBlueprintDeltaReceipt = null;
+    state.privateBlueprintDeltaImportText = reviewVerification.blueprintDeltaSerialized;
+    state.privateBlueprintDeltaVerification = { status: "verified", result: deltaVerification };
+    state.privateReviewLearningReceipt = null;
+    state.privateReviewLearningImportText = deltaVerification.learningSerialized;
+    state.privateReviewLearningVerification = { status: "verified", result: learningVerification };
+    state.portableReviewComparisonReceipt = null;
+    state.portableReviewComparisonImportText = learningVerification.comparisonSerialized;
+    state.portableReviewComparisonVerification = { status: "verified", result: learningVerification.comparisonVerification };
+    state.portableReviewComparisonLeftText = learningVerification.comparisonVerification.leftSerialized;
+    state.portableReviewComparisonRightText = learningVerification.comparisonVerification.rightSerialized;
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintRevisionDraftReceipt = null;
+    state.privateBlueprintRevisionDraftImportText = importedText;
+    state.privateBlueprintRevisionDraftVerification = { status: "invalid", message: error?.message || "Private blueprint revision draft validation failed." };
     renderReceiptLearning();
     return false;
   }
@@ -1486,6 +1585,23 @@ function bindEvents() {
         : "Guard review refused. No verified review or authority state was retained.");
       return;
     }
+    if (event.target.closest("[data-private-blueprint-revision-draft-create]")) {
+      const created = await createPrivateBlueprintRevisionDraft();
+      $(created ? ".private-blueprint-revision-draft-status.verified" : ".private-blueprint-revision-draft-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(created
+        ? "Accepted review and full ancestry reverified. One local blueprint draft was derived without commitment, adoption, qualification, play, or authority."
+        : "Blueprint revision draft refused. No draft, adoption, progress, execution, or authority state was retained.");
+      return;
+    }
+    if (event.target.closest("[data-private-blueprint-revision-draft-verify]")) {
+      const input = $("#private-blueprint-revision-draft-import");
+      const verified = await verifyPrivateBlueprintRevisionDraft(input?.value || "");
+      $(verified ? ".private-blueprint-revision-draft-status.verified" : ".private-blueprint-revision-draft-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Blueprint draft, accepted review, guard proposal, and full ancestry verified locally. Nothing was committed, adopted, qualified, played, or executed."
+        : "Blueprint revision draft refused. No verified draft or authority state was retained.");
+      return;
+    }
     if (event.target.closest("[data-runback-blueprint]")) {
       showView("build");
       $("#agent-name").focus();
@@ -1570,11 +1686,18 @@ function bindEvents() {
       state.privateBlueprintDeltaReviewerLabel = event.target.value.slice(0, 36);
       state.privateBlueprintDeltaReviewReceipt = null;
       state.privateBlueprintDeltaReviewVerification = null;
+      resetPrivateBlueprintRevisionDraftState();
     }
     if (event.target.matches("#private-blueprint-delta-review-import")) {
       state.privateBlueprintDeltaReviewImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH || 3145728);
       state.privateBlueprintDeltaReviewReceipt = null;
       state.privateBlueprintDeltaReviewVerification = null;
+      resetPrivateBlueprintRevisionDraftState();
+    }
+    if (event.target.matches("#private-blueprint-revision-draft-import")) {
+      state.privateBlueprintRevisionDraftImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH || 4194304);
+      state.privateBlueprintRevisionDraftReceipt = null;
+      state.privateBlueprintRevisionDraftVerification = null;
     }
   });
   document.addEventListener("change", (event) => {
@@ -1628,6 +1751,7 @@ function bindEvents() {
       state.privateBlueprintDeltaReviewReason = reasons[0] || "";
       state.privateBlueprintDeltaReviewReceipt = null;
       state.privateBlueprintDeltaReviewVerification = null;
+      resetPrivateBlueprintRevisionDraftState();
       const reasonSelect = $("[data-private-blueprint-delta-review-reason]");
       if (reasonSelect) reasonSelect.innerHTML = privateBlueprintDeltaReviewReasonOptions(decision);
       return;
@@ -1636,6 +1760,7 @@ function bindEvents() {
       state.privateBlueprintDeltaReviewReason = event.target.value;
       state.privateBlueprintDeltaReviewReceipt = null;
       state.privateBlueprintDeltaReviewVerification = null;
+      resetPrivateBlueprintRevisionDraftState();
     }
   });
 
