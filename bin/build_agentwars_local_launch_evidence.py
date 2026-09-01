@@ -150,17 +150,21 @@ STAGES: tuple[StageDefinition, ...] = (
     StageDefinition(
         10,
         "launch_contracts_and_rollback_plan",
-        "Launch, measurement baseline, rollback, retention, and truth-boundary contracts",
+        "Launch, measurement baseline, performance budget, rollback, retention, and truth-boundary contracts",
         "local_executable",
-        commands=((PYTHON, "bin/check_agentwars_measurement.py"),),
+        commands=(
+            (PYTHON, "bin/check_agentwars_measurement.py"),
+            (PYTHON, "bin/check_mobile_arena_performance_budget.py"),
+        ),
         evidence_files=(
             "docs/BUILDERWARS_COM_DOMAIN_CUTOVER_CONTRACT.md",
             "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_DECISIONS.md",
             "docs/AGENTWARS_NORTH_STAR.v1.json",
             "docs/AGENTWARS_MEASUREMENT_CONTRACT.md",
+            "docs/AGENTWARS_PERFORMANCE_BUDGET.md",
             "docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md",
         ),
-        not_proven=("rollback rehearsal", "observability baseline", "performance budget", "support drill", "legal approval"),
+        not_proven=("production rollback rehearsal", "production observability baseline", "production performance", "support drill", "legal approval"),
     ),
     StageDefinition(
         11,

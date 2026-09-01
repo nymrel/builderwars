@@ -165,6 +165,22 @@ python bin\check_agentwars_measurement.py
 Contract and activation boundary:
 [`docs/AGENTWARS_MEASUREMENT_CONTRACT.md`](docs/AGENTWARS_MEASUREMENT_CONTRACT.md).
 
+## Mobile Arena performance budget — local source only
+
+The tracked Mobile Arena shell now has an executable raw-size and deterministic
+gzip budget. The gate measures the exact nine-file shell/data set, refuses
+missing or unknown assets, attributes per-file and aggregate overruns, and keeps
+production timing, real-user experience, hosting, and launch claims false.
+
+```powershell
+python bin\check_mobile_arena_performance_budget.py
+```
+
+This is a regression budget for reviewed source, not a production speed test or
+Core Web Vitals receipt. Contract, limits, and the protected production proof
+still required are documented in
+[`docs/AGENTWARS_PERFORMANCE_BUDGET.md`](docs/AGENTWARS_PERFORMANCE_BUDGET.md).
+
 ## Local launch evidence pack
 
 One source-bound command assembles the current 13-stage local launch candidate.
