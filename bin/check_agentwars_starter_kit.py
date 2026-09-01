@@ -19,7 +19,12 @@ if str(BIN) not in sys.path:
     sys.path.insert(0, str(BIN))
 
 from qualify_agentwars_starter import (  # noqa: E402
+    AUTHORITY,
+    BLUEPRINT_SCHEMA_VERSION,
     GAME,
+    LEARNING_SCHEMA_VERSION,
+    RESOURCE_CLASS,
+    RUNBACK_SCHEMA_VERSION,
     SCHEMA_VERSION,
     SEED,
     STATUS,
@@ -131,6 +136,94 @@ def main() -> int:
                 for row in first_receipt["transcripts"]
             ),
             "receipt digest binds the summary and both transcript bytes",
+        )
+        blueprint = json.loads((first / "blueprint.json").read_text(encoding="utf-8"))
+        blueprint_unsigned = dict(blueprint)
+        blueprint_digest = blueprint_unsigned.pop("blueprintDigest")
+        check(
+            blueprint["schemaVersion"] == BLUEPRINT_SCHEMA_VERSION
+            and blueprint["blueprintVersion"] == 1
+            and blueprint_digest == sha256(canonical(blueprint_unsigned)),
+            "versioned starter blueprint has a valid canonical digest",
+        )
+        check(
+            first_receipt["blueprintDigest"] == blueprint["blueprintDigest"]
+            and first_receipt["blueprintSha256"] == sha256((first / "blueprint.json").read_bytes())
+            and first_receipt["rulesBinding"] == blueprint["gameBinding"]
+            and first_receipt["resourceClass"] == RESOURCE_CLASS,
+            "qualification binds the exact blueprint, rules, and resource class",
+        )
+        check(
+            blueprint["gameBinding"]["status"] == "bound_to_executed_starter_rules"
+            and len(blueprint["gameBinding"]["rulesDigest"]) == 64
+            and blueprint["resourceClass"]["networkEgressBlocked"] is False
+            and blueprint["resourceClass"]["filesystemConfinementEnforced"] is False
+            and blueprint["resourceClass"]["fixedBundledCodeOnly"] is True,
+            "blueprint binds rules while preserving exact containment limits",
+        )
+        check(
+            len(blueprint["harnessFiles"]) == 2
+            and {row["path"] for row in blueprint["harnessFiles"]}
+            == {
+                "bin/qualify_agentwars_starter.py",
+                "entrants/fantasy_model_harness.py",
+            }
+            and all(
+                row["sha256"] == sha256((ROOT / row["path"]).read_bytes())
+                for row in blueprint["harnessFiles"]
+            ),
+            "blueprint binds both fixed entrant source files",
+        )
+        learning = json.loads((first / "learning-action.json").read_text(encoding="utf-8"))
+        learning_unsigned = dict(learning)
+        learning_digest = learning_unsigned.pop("learningDigest")
+        check(
+            learning["schemaVersion"] == LEARNING_SCHEMA_VERSION
+            and learning["status"] == "observation_only"
+            and learning_digest == sha256(canonical(learning_unsigned))
+            and learning["proofBinding"]["qualificationReceiptDigest"]
+            == first_receipt["receiptDigest"],
+            "learning action is canonical and proof-linked to the exact qualification",
+        )
+        check(
+            learning["observation"]["moveSourceCounts"]["scripted"] > 0
+            and all(
+                learning["observation"]["moveSourceCounts"][name] == 0
+                for name in ("model", "fallback", "other")
+            )
+            and learning["recommendedAction"]["status"] == "not_started"
+            and learning["authority"] == AUTHORITY,
+            "learning uses visible scripted evidence and executes no recommendation",
+        )
+        runback = json.loads((first / "runback-proposal.json").read_text(encoding="utf-8"))
+        runback_unsigned = dict(runback)
+        runback_digest = runback_unsigned.pop("runbackDigest")
+        check(
+            runback["schemaVersion"] == RUNBACK_SCHEMA_VERSION
+            and runback["proposalVersion"] == 1
+            and runback_digest == sha256(canonical(runback_unsigned)),
+            "versioned runback proposal has a valid canonical digest",
+        )
+        check(
+            runback["lineage"] == {
+                "parentBlueprintDigest": blueprint["blueprintDigest"],
+                "parentBlueprintVersion": 1,
+                "parentLearningDigest": learning["learningDigest"],
+                "parentQualificationReceiptDigest": first_receipt["receiptDigest"],
+            }
+            and runback["gameBinding"] == first_receipt["rulesBinding"]
+            and runback["resourceClass"] == RESOURCE_CLASS,
+            "runback preserves blueprint, qualification, learning, rules, and resource lineage",
+        )
+        check(
+            runback["status"] == "unplayed_proposal"
+            and runback["qualificationStatus"] == "not_run"
+            and runback["executionStatus"] == "disabled"
+            and runback["publicationStatus"] == "not_requested"
+            and runback["proposedBlueprint"]["version"] == 2
+            and runback["proposedBlueprint"]["change"] == "seat_swap_only"
+            and runback["authority"] == AUTHORITY,
+            "runback is seat-swapped, unqualified, unplayed, disabled, and zero-authority",
         )
         check(
             all(

@@ -301,6 +301,9 @@ def main() -> int:
             bundle_root,
         )
         starter_receipt = json.loads((starter_out / "qualification.json").read_text(encoding="utf-8"))
+        starter_blueprint = json.loads((starter_out / "blueprint.json").read_text(encoding="utf-8"))
+        starter_learning = json.loads((starter_out / "learning-action.json").read_text(encoding="utf-8"))
+        starter_runback = json.loads((starter_out / "runback-proposal.json").read_text(encoding="utf-8"))
         check(
             starter_result.returncode == 0
             and starter_receipt["status"] == "pass_local_scripted_environment"
@@ -316,6 +319,32 @@ def main() -> int:
             and starter_receipt["truth"]["rankingAuthorized"] is False
             and starter_receipt["truth"]["publicationAuthorized"] is False,
             "bundled starter proof remains provider-free, harness-unqualified, unranked, and unpublished",
+        )
+        check(
+            starter_blueprint["schemaVersion"] == "agentwars.starter_blueprint.v1"
+            and starter_receipt["blueprintDigest"] == starter_blueprint["blueprintDigest"]
+            and starter_receipt["rulesBinding"] == starter_blueprint["gameBinding"]
+            and starter_receipt["resourceClass"] == starter_blueprint["resourceClass"],
+            "extracted starter binds a versioned blueprint to exact rules and resource class",
+        )
+        check(
+            starter_learning["schemaVersion"] == "agentwars.starter_learning_action.v1"
+            and starter_learning["status"] == "observation_only"
+            and starter_learning["proofBinding"]["qualificationReceiptDigest"]
+            == starter_receipt["receiptDigest"]
+            and starter_learning["recommendedAction"]["status"] == "not_started",
+            "extracted starter derives a proof-linked learning action without executing it",
+        )
+        check(
+            starter_runback["schemaVersion"] == "agentwars.starter_runback_proposal.v1"
+            and starter_runback["lineage"]["parentLearningDigest"]
+            == starter_learning["learningDigest"]
+            and starter_runback["lineage"]["parentQualificationReceiptDigest"]
+            == starter_receipt["receiptDigest"]
+            and starter_runback["status"] == "unplayed_proposal"
+            and starter_runback["qualificationStatus"] == "not_run"
+            and starter_runback["executionStatus"] == "disabled",
+            "extracted starter derives one versioned, unqualified, unplayed runback",
         )
 
         dependency_result = run_isolated(

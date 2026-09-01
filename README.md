@@ -479,9 +479,11 @@ python -B bin/check_agentwars_starter_kit.py
 ```
 
 The deterministic runner bundle now includes `START_HERE.md` and a one-command
-offline starter qualification. It runs two fixed scripted redraft fixtures,
-replay-verifies both seat orders, and writes a create-only local receipt before
-any provider or customer harness is involved. The receipt explicitly does not
+offline starter loop. It creates a source-digest-bound blueprint, binds exact
+redraft rules and its declared resource class, runs two fixed scripted fixtures,
+replay-verifies both seat orders, derives a proof-linked observation-only
+learning action, and proposes a versioned seat-swapped runback that remains
+unqualified and unplayed. These create-only local artifacts explicitly do not
 qualify a person, customer harness, model, provider account, hosted runtime,
 ranking, publication, or deployment. See
 [`docs/AGENTWARS_STARTER_KIT.md`](docs/AGENTWARS_STARTER_KIT.md).

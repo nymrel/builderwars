@@ -29,10 +29,33 @@ from entrants.fantasy_model_harness import fallback_move  # noqa: E402
 
 
 SCHEMA_VERSION = "agentwars.starter_qualification.v1"
+BLUEPRINT_SCHEMA_VERSION = "agentwars.starter_blueprint.v1"
+LEARNING_SCHEMA_VERSION = "agentwars.starter_learning_action.v1"
+RUNBACK_SCHEMA_VERSION = "agentwars.starter_runback_proposal.v1"
 STATUS = "pass_local_scripted_environment"
 SEED = 9100
 GAME = "fantasy_redraft"
 SCRIPTED_BACKEND = "scripted:starter-v1"
+RESOURCE_CLASS = {
+    "computeClass": "bounded_local_python_subprocess",
+    "credentialsProvisioned": False,
+    "filesystemConfinementEnforced": False,
+    "fixedBundledCodeOnly": True,
+    "id": "agentwars_customer_local_scripted_python_v1",
+    "networkEgressBlocked": False,
+    "providerRouteConfigured": False,
+    "untrustedCodeAllowed": False,
+}
+AUTHORITY = {
+    "customerHarness": False,
+    "customerModel": False,
+    "deployment": False,
+    "identity": False,
+    "provider": False,
+    "publication": False,
+    "ranking": False,
+    "runtimeAttestation": False,
+}
 PROVIDER_CREDENTIAL_ENV_NAMES = frozenset(
     {
         "ANTHROPIC_API_KEY",
@@ -82,6 +105,157 @@ def _canonical_bytes(value: Any) -> bytes:
 
 def _sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _sealed(value: dict[str, Any], field: str) -> dict[str, Any]:
+    sealed = dict(value)
+    sealed[field] = _sha256(_canonical_bytes(sealed))
+    return sealed
+
+
+def _rules_binding() -> dict[str, Any]:
+    rules = {
+        "game": GAME,
+        "gameVersion": fantasy_redraft.VERSION,
+        "rules": fantasy_redraft.RULES,
+    }
+    return {
+        "game": GAME,
+        "gameVersion": fantasy_redraft.VERSION,
+        "rulesDigest": _sha256(_canonical_bytes(rules)),
+        "status": "bound_to_executed_starter_rules",
+    }
+
+
+def _source_binding(relative_path: str) -> dict[str, str]:
+    raw = (ROOT / relative_path).read_bytes()
+    return {"path": relative_path, "sha256": _sha256(raw)}
+
+
+def _starter_blueprint() -> dict[str, Any]:
+    return _sealed(
+        {
+            "schemaVersion": BLUEPRINT_SCHEMA_VERSION,
+            "blueprintVersion": 1,
+            "status": "local_scripted_reference_only",
+            "gameBinding": _rules_binding(),
+            "resourceClass": dict(RESOURCE_CLASS),
+            "harnessFiles": [
+                _source_binding("bin/qualify_agentwars_starter.py"),
+                _source_binding("entrants/fantasy_model_harness.py"),
+            ],
+            "entrants": [
+                {
+                    "name": "Starter Win Now",
+                    "seat": 0,
+                    "strategy": "win-now",
+                    "executionClaim": "scripted",
+                    "modelClaimed": False,
+                },
+                {
+                    "name": "Starter Long Game",
+                    "seat": 1,
+                    "strategy": "long-game",
+                    "executionClaim": "scripted",
+                    "modelClaimed": False,
+                },
+            ],
+            "authority": dict(AUTHORITY),
+            "boundary": (
+                "This blueprint binds only the bundled scripted starter code, exact rules, "
+                "and declared local resource class. It is not a customer harness or model."
+            ),
+        },
+        "blueprintDigest",
+    )
+
+
+def _move_source_totals(summary: dict[str, Any]) -> dict[str, int]:
+    totals = {name: 0 for name in ("model", "scripted", "fallback", "other")}
+    for match in summary["formats"][0]["matches"]:
+        for counts in match["moveSourceClaims"].values():
+            for name in totals:
+                totals[name] += counts[name]
+    return totals
+
+
+def _learning_action(receipt: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
+    totals = _move_source_totals(summary)
+    return _sealed(
+        {
+            "schemaVersion": LEARNING_SCHEMA_VERSION,
+            "status": "observation_only",
+            "proofBinding": {
+                "qualificationReceiptDigest": receipt["receiptDigest"],
+                "summarySha256": receipt["summarySha256"],
+                "transcripts": receipt["transcripts"],
+            },
+            "observation": {
+                "moveSourceCounts": totals,
+                "statement": (
+                    f"{totals['scripted']} scripted moves formed a replay-verified local "
+                    "reference. They are not customer harness or model evidence."
+                ),
+            },
+            "recommendedAction": {
+                "id": "bind_customer_harness_before_sanctioned_run",
+                "status": "not_started",
+                "requires": [
+                    "customer_owned_harness",
+                    "agent_passport",
+                    "explicit_customer_local_execution_consent",
+                    "sanctioned_runner",
+                    "new_create_only_output",
+                ],
+            },
+            "authority": dict(AUTHORITY),
+            "boundary": (
+                "This action is derived only from visible receipt evidence. It awards no "
+                "progress and does not configure, qualify, execute, rank, publish, or spend."
+            ),
+        },
+        "learningDigest",
+    )
+
+
+def _runback_proposal(
+    receipt: dict[str, Any], blueprint: dict[str, Any], learning: dict[str, Any]
+) -> dict[str, Any]:
+    return _sealed(
+        {
+            "schemaVersion": RUNBACK_SCHEMA_VERSION,
+            "proposalVersion": 1,
+            "status": "unplayed_proposal",
+            "lineage": {
+                "parentBlueprintDigest": blueprint["blueprintDigest"],
+                "parentBlueprintVersion": blueprint["blueprintVersion"],
+                "parentLearningDigest": learning["learningDigest"],
+                "parentQualificationReceiptDigest": receipt["receiptDigest"],
+            },
+            "gameBinding": receipt["rulesBinding"],
+            "resourceClass": dict(RESOURCE_CLASS),
+            "proposedBlueprint": {
+                "version": 2,
+                "change": "seat_swap_only",
+                "seed": SEED + 1,
+                "seatOrder": ["Starter Long Game", "Starter Win Now"],
+            },
+            "qualificationStatus": "not_run",
+            "executionStatus": "disabled",
+            "publicationStatus": "not_requested",
+            "executionBlockers": [
+                "runback_qualification_not_run",
+                "explicit_local_execution_action_not_taken",
+                "new_create_only_output_not_selected",
+            ],
+            "authority": dict(AUTHORITY),
+            "boundary": (
+                "This versioned seat-swapped runback is unplayed. It grants no customer, "
+                "model, provider, runtime, ranking, publication, or deployment authority."
+            ),
+        },
+        "runbackDigest",
+    )
 
 
 def _is_reparse(path: Path) -> bool:
@@ -193,6 +367,9 @@ def build_qualification(destination: Path) -> dict[str, Any]:
     except FileExistsError as error:
         raise StarterQualificationError("starter output already exists") from error
     try:
+        blueprint = _starter_blueprint()
+        blueprint_raw = _canonical_bytes(blueprint)
+        (destination / "blueprint.json").write_bytes(blueprint_raw)
         config = {
             "league": "AgentWars offline starter",
             "description": "Fixed scripted redraft environment qualification; not a model evaluation.",
@@ -248,12 +425,21 @@ def build_qualification(destination: Path) -> dict[str, Any]:
             "seatOrders": 2,
             "allReplaysVerified": True,
             "allMovesScripted": True,
+            "blueprintFile": "blueprint.json",
+            "blueprintSha256": _sha256(blueprint_raw),
+            "blueprintDigest": blueprint["blueprintDigest"],
+            "rulesBinding": blueprint["gameBinding"],
+            "resourceClass": dict(RESOURCE_CLASS),
             "summaryFile": "league-summary.json",
             "summarySha256": _sha256(summary_raw),
             "transcripts": transcript_rows,
             "truth": dict(TRUTH),
         }
         receipt["receiptDigest"] = _sha256(_canonical_bytes(receipt))
+        learning = _learning_action(receipt, summary)
+        runback = _runback_proposal(receipt, blueprint, learning)
+        (destination / "learning-action.json").write_bytes(_canonical_bytes(learning))
+        (destination / "runback-proposal.json").write_bytes(_canonical_bytes(runback))
         # Written last: its presence means every bound file above was complete.
         (destination / "qualification.json").write_bytes(_canonical_bytes(receipt))
         return receipt
