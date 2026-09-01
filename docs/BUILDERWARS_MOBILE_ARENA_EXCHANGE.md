@@ -318,14 +318,19 @@ python bin\check_mobile_arena_read_model.py
 The compiler verifies dataset and source-manifest digests, exact allowlist
 parity, receipt IDs, PASS replay/engine/snapshot predicates, proof paths,
 move-source evidence classes, rivalry receipt references, and proposed-only
-future-fixture status. The generated payload has its own canonical digest and
-keeps `live`, `hosted`, `authenticated`, model-attested, provider-attested, and
-runtime-attested state false.
+future-fixture status. It also rejects inconsistent entrant names or seats,
+duplicate fixture or rules identifiers, unknown fixture entrants, non-UTC
+close times, and fixture-to-rules game, version, week, or digest drift. The
+generated payload has its own canonical digest and keeps `live`, `hosted`,
+`authenticated`, model-attested, provider-attested, and runtime-attested state
+false.
 
 The checker mutates source digests, proof verdicts, allowlists, evidence labels,
-and generated output to prove the compiler fails closed. This remains local
-read-path evidence only and does not prove a live API, hosted service,
-authenticated user journey, or activated competition.
+fixture participants, seats, rules bindings, close times, and generated output
+to prove the compiler fails closed even when inconsistent source data is
+rehashed correctly. This remains local read-path evidence only and does not
+prove a live API, hosted service, authenticated user journey, or activated
+competition.
 
 ### Verified-corpus client adapter
 
@@ -336,7 +341,9 @@ identity claim. The adapter:
 
 1. validates the read-model schema, digest shape, source policy, receipt count,
    PASS replay/engine/snapshot predicates, allowlist status, content-derived
-   harness versions, evidence counts, and false attestation flags;
+   harness versions, evidence counts, false attestation flags, channel-to-
+   receipt counts, rules-week relationships, rivalry and fixture summaries,
+   receipt-backed fixture entrants, unique seats, and proposed close times;
 2. pins the reviewed digest in executable source and asynchronously recomputes
    canonical SHA-256 before every projection, refusing both stale-content drift
    and a self-consistent but unreviewed replacement digest;
@@ -345,10 +352,12 @@ identity claim. The adapter:
 4. omits invented viewers, rating deltas, live credits, stream clocks, and
    enabled queues;
 5. keeps every proposed future fixture disabled and visibly unactivated;
-6. falls back to the bounded demo when the verified corpus is missing, invalid,
-   digest-mismatched, digest-unreviewed, or cannot be checked because browser
-   SHA-256 is unavailable; the fallback discloses only a bounded reason code and
-   fails closed if the demo cannot load; and
+6. falls back to the bounded demo when the verified corpus is missing,
+   semantically inconsistent, digest-mismatched, digest-unreviewed, or cannot
+   be checked because browser SHA-256 is unavailable; real Chromium proves an
+   inconsistent channel count loses the verified label, and the fallback
+   discloses only a bounded reason code and fails closed if the demo cannot
+   load; and
 7. caches both bounded local sources for offline inspection without adding any
    cross-origin capability.
 

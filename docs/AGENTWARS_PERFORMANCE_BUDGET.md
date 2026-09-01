@@ -21,7 +21,7 @@ opens no browser, socket, provider, account, deployment, or analytics source.
 | --- | --- | ---: | ---: |
 | `index.html` | HTML | 20,000 B | 8,000 B |
 | `styles.css` | Style | 45,000 B | 12,000 B |
-| `data-adapter.js` | Script | 250,000 B | 40,000 B |
+| `data-adapter.js` | Script | 262,144 B | 40,000 B |
 | `app.js` | Script | 225,000 B | 40,000 B |
 | `sw.js` | Worker | 8,000 B | 4,000 B |
 | `manifest.webmanifest` | Manifest | 4,096 B | 2,048 B |
@@ -40,9 +40,9 @@ manifest, icon, reviewed corpus, demo fallback, and service worker.
 | Tracked assets | 9 |
 | Total raw bytes | 625,000 B |
 | Total deterministic gzip bytes | 125,000 B |
-| Core shell raw bytes | 525,000 B |
+| Core shell raw bytes | 540,000 B |
 | Core shell deterministic gzip bytes | 90,000 B |
-| Script raw bytes | 475,000 B |
+| Script raw bytes | 485,000 B |
 | Script deterministic gzip bytes | 80,000 B |
 | Data raw bytes | 100,000 B |
 | Data deterministic gzip bytes | 20,000 B |
@@ -50,6 +50,15 @@ manifest, icon, reviewed corpus, demo fallback, and service worker.
 The core shell is `index.html`, `styles.css`, `data-adapter.js`, and `app.js`.
 The limits intentionally leave bounded headroom; raising one requires a reviewed
 contract change rather than silently normalizing growth.
+
+The 2026-09-01 semantic read-model hardening intentionally widened only the
+readable raw-source ceilings. The accepted local receipt is 258,653 raw / 39,017
+gzip bytes for `data-adapter.js`, 533,622 / 86,043 for the core shell, and
+478,647 / 74,158 for scripts. All transfer-oriented gzip ceilings and the total
+raw/gzip ceilings remain unchanged. The added source validates channel,
+rules-week, rivalry, fixture, participant, seat, timestamp, and summary
+relationships before rendering; the budget change does not waive compressed
+size or production-performance proof.
 
 ## Receipt and adversarial gate
 

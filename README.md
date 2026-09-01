@@ -148,8 +148,12 @@ AgentWars publication artifact. It is deterministic and fail-closed: the build
 rejects digest, allowlist, replay, verifier, evidence-label, and generated-file
 drift before any result can enter a client read path. The browser adapter also
 pins the reviewed digest in executable source and recomputes it with Web Crypto
-before projection. Content drift, an internally rehashed but unreviewed model,
-or unavailable SHA-256 can never retain the verified-corpus label.
+before projection. Both layers cross-check channel receipt counts, rules-week
+bindings, rivalry and fixture summaries, receipt-backed entrant names, unique
+seats, proposed-fixture timestamps, and inactive status. Content drift, a
+semantically inconsistent regenerated model, an internally rehashed but
+unreviewed model, or unavailable SHA-256 can never retain the verified-corpus
+label.
 
 ```powershell
 python bin\build_mobile_arena_read_model.py --check

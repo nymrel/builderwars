@@ -48,6 +48,13 @@ def rehash_manifest(manifest: dict) -> None:
     manifest["manifestDigest"] = digest({key: value for key, value in manifest.items() if key != "manifestDigest"})
 
 
+def manifest_for_dataset(manifest: dict, dataset: dict) -> dict:
+    changed = copy.deepcopy(manifest)
+    changed["datasetDigest"] = dataset["datasetDigest"]
+    rehash_manifest(changed)
+    return changed
+
+
 def main() -> int:
     checks = 0
     dataset = json.loads(DEFAULT_DATASET.read_text(encoding="utf-8"))
@@ -127,7 +134,50 @@ def main() -> int:
     expect_rejected(mutated_dataset, mutated_manifest, "disagrees with move-source evidence")
     checks += 1
 
-    print("[6] check mode detects a stale or missing output")
+    print("[6] projection relationships fail closed after valid source rehashing")
+    mutated_dataset = copy.deepcopy(dataset)
+    mutated_dataset["futureFixtures"][0]["rulesDigest"] = "0" * 64
+    rehash_dataset(mutated_dataset)
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "rules binding drift")
+    checks += 1
+
+    mutated_dataset = copy.deepcopy(dataset)
+    mutated_dataset["futureFixtures"][0]["matchup"][0]["entrantId"] = "0" * 64
+    rehash_dataset(mutated_dataset)
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "entrant is not receipt-backed")
+    checks += 1
+
+    mutated_dataset = copy.deepcopy(dataset)
+    mutated_dataset["futureFixtures"][0]["matchup"][1]["seat"] = 0
+    rehash_dataset(mutated_dataset)
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "seats drift")
+    checks += 1
+
+    mutated_dataset = copy.deepcopy(dataset)
+    mutated_dataset["futureFixtures"][0]["closeAt"] = "not-a-time"
+    rehash_dataset(mutated_dataset)
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "UTC second timestamp")
+    checks += 1
+
+    mutated_dataset = copy.deepcopy(dataset)
+    mutated_dataset["rulesWeeks"][0]["rulesDigest"] = "0" * 64
+    rehash_dataset(mutated_dataset)
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "rules binding drift")
+    checks += 1
+
+    mutated_dataset = copy.deepcopy(dataset)
+    mutated_dataset["futureFixtures"].append(copy.deepcopy(mutated_dataset["futureFixtures"][0]))
+    rehash_dataset(mutated_dataset)
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "duplicate future fixture")
+    checks += 1
+
+    mutated_dataset = copy.deepcopy(dataset)
+    mutated_dataset["receipts"][0]["entrants"][1]["seat"] = 0
+    rehash_dataset(mutated_dataset)
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "entrant seats must be contiguous and unique")
+    checks += 1
+
+    print("[7] check mode detects a stale or missing output")
     with tempfile.TemporaryDirectory(prefix="builderwars-read-model-") as temp_dir:
         stale = Path(temp_dir) / "stale.json"
         stale.write_text("{}\n", encoding="utf-8")

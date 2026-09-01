@@ -452,6 +452,32 @@ def fallback_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         context.close()
 
 
+def semantic_drift_fallback_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
+    context = browser.new_context(viewport=VIEWPORTS[0], service_workers="allow")
+    page = context.new_page()
+    observed = install_observers(page, base_url, "semantic-drift")
+    model = json.loads((MOBILE_ARENA / "data" / "arena-read-model.v1.json").read_text(encoding="utf-8"))
+    model["channels"][0]["publishedReceiptCount"] += 1
+    try:
+        page.route(
+            READ_MODEL_PATH,
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(model, sort_keys=True),
+            ),
+        )
+        page.goto(base_url, wait_until="domcontentloaded")
+        wait_for_source(page, "demo_fixture_fallback")
+        evidence.require(page.locator("#source-badge").inner_text() == "DEMO FALLBACK", "semantic drift: inconsistent channel evidence loses the verified label")
+        evidence.require("demo fallback ready" in page.locator("#connection-copy").inner_text().lower(), "semantic drift: bounded fallback remains explicit")
+        evidence.require(page.locator("#standings-title").inner_text() == "Harness board", "semantic drift: receipt board is not rendered from inconsistent evidence")
+        assert_observers_clean(evidence, observed, "semantic-drift")
+        evidence.journey("semantically inconsistent read model fails closed")
+    finally:
+        context.close()
+
+
 def fatal_source_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
     context = browser.new_context(viewport=VIEWPORTS[0], service_workers="allow")
     page = context.new_page()
@@ -630,6 +656,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         try:
             normal_journey(browser, base_url, evidence, args.headed)
             fallback_journey(browser, base_url, evidence)
+            semantic_drift_fallback_journey(browser, base_url, evidence)
             fatal_source_journey(browser, base_url, evidence)
             tester_rubric_failure_journey(browser, base_url, evidence)
             storage_denial_journey(browser, base_url, evidence)

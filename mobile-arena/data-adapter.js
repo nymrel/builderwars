@@ -81,7 +81,9 @@
   const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_NODE_LIMIT = 196608;
   const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_NODE_LIMIT = 229376;
   const HEX64 = /^[0-9a-f]{64}$/;
+  const GIT_COMMIT = /^[0-9a-f]{40,64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
+  const UTC_SECOND = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
   const TESTER_FEEDBACK_CATEGORIES = Object.freeze([
     Object.freeze({ categoryId: "orientation_clarity", prompt: "I knew what to do next." }),
@@ -392,6 +394,9 @@
     requireValue(isObject(model.source), "unsafe arena read model: source missing");
     requireValue(model.source.status === "tracked_local_publication_artifact_not_hosted", "unsafe arena read model: source status drift");
     requireValue(model.source.publicationPolicy === "explicit_reviewed_allowlist_only", "unsafe arena read model: publication policy drift");
+    requireValue(HEX64.test(model.source.datasetDigest), "unsafe arena read model: source dataset digest drift");
+    requireValue(HEX64.test(model.source.sourceManifestDigest), "unsafe arena read model: source manifest digest drift");
+    requireValue(GIT_COMMIT.test(model.source.sourceCommit), "unsafe arena read model: source commit drift");
     requireValue(isObject(model.truthBoundary), "unsafe arena read model: truth boundary missing");
     for (const field of ["live", "hosted", "authenticated", "modelAttested", "providerAttested", "runtimeAttested"]) {
       requireValue(model.truthBoundary[field] === false, `unsafe arena read model: ${field} must stay false`);
@@ -403,20 +408,48 @@
     requireValue(model.summary.modelAttestedReceiptCount === 0, "unsafe arena read model: model attestation count drift");
 
     const receiptIds = new Set();
+    const receiptFixtureIds = new Set();
     const receiptById = new Map();
+    const receiptGameCounts = new Map();
+    const receiptEntrantNames = new Map();
+    const evidenceClassCounts = new Map([
+      ["model_influenced_unattested", 0],
+      ["scripted_reference", 0],
+      ["fallback_only_reference", 0],
+      ["other_unattested_reference", 0],
+    ]);
     for (const receipt of model.receipts) {
       requireValue(isObject(receipt) && HEX64.test(receipt.receiptId), "unsafe arena read model: invalid receipt id");
       requireValue(HEX64.test(receipt.fixtureId), `unsafe arena read model: invalid fixture for ${receipt.receiptId}`);
       requireValue(!receiptIds.has(receipt.receiptId), `unsafe arena read model: duplicate receipt ${receipt.receiptId}`);
+      requireValue(!receiptFixtureIds.has(receipt.fixtureId), `unsafe arena read model: duplicate receipt fixture ${receipt.fixtureId}`);
       receiptIds.add(receipt.receiptId);
+      receiptFixtureIds.add(receipt.fixtureId);
       receiptById.set(receipt.receiptId, receipt);
+      requireValue(isObject(receipt.game) && typeof receipt.game.name === "string" && receipt.game.name.length > 0 && receipt.game.version === "1", `unsafe arena read model: receipt game drift for ${receipt.receiptId}`);
+      receiptGameCounts.set(receipt.game.name, (receiptGameCounts.get(receipt.game.name) || 0) + 1);
       requireValue(Array.isArray(receipt.entrants) && receipt.entrants.length >= 2, `unsafe arena read model: entrants missing for ${receipt.receiptId}`);
+      const entrantIds = new Set();
+      const entrantSeats = new Set();
+      for (const entrant of receipt.entrants) {
+        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `unsafe arena read model: entrant binding drift for ${receipt.receiptId}`);
+        requireValue(nonNegativeInteger(entrant.seat) && !entrantSeats.has(entrant.seat), `unsafe arena read model: entrant seat drift for ${receipt.receiptId}`);
+        requireValue(!entrantIds.has(entrant.entrantId), `unsafe arena read model: duplicate entrant for ${receipt.receiptId}`);
+        entrantIds.add(entrant.entrantId);
+        entrantSeats.add(entrant.seat);
+        const knownEntrantName = receiptEntrantNames.get(entrant.entrantId);
+        requireValue(knownEntrantName === undefined || knownEntrantName === entrant.name, `unsafe arena read model: entrant name drift for ${entrant.entrantId}`);
+        receiptEntrantNames.set(entrant.entrantId, entrant.name);
+      }
+      requireValue([...entrantSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `unsafe arena read model: entrant seats are not contiguous for ${receipt.receiptId}`);
       requireValue(isObject(receipt.proof), `unsafe arena read model: proof missing for ${receipt.receiptId}`);
       requireValue(receipt.proof.publicationApproved === true, `unsafe arena read model: unpublished receipt ${receipt.receiptId}`);
       requireValue(receipt.proof.replayVerdict === "PASS", `unsafe arena read model: replay failed for ${receipt.receiptId}`);
       requireValue(receipt.proof.engineDigestMatch === true, `unsafe arena read model: engine mismatch for ${receipt.receiptId}`);
       requireValue(receipt.proof.verifierSnapshotMatch === true, `unsafe arena read model: verifier mismatch for ${receipt.receiptId}`);
       requireValue(isObject(receipt.evidence), `unsafe arena read model: evidence missing for ${receipt.receiptId}`);
+      requireValue(evidenceClassCounts.has(receipt.evidence.class), `unsafe arena read model: evidence class drift for ${receipt.receiptId}`);
+      evidenceClassCounts.set(receipt.evidence.class, evidenceClassCounts.get(receipt.evidence.class) + 1);
       for (const field of ["modelAttested", "providerAttested", "runtimeAttested"]) {
         requireValue(receipt.evidence[field] === false, `unsafe arena read model: ${field} drift for ${receipt.receiptId}`);
       }
@@ -429,12 +462,42 @@
       requireValue(receipt.entrants.every((entrant) => entrant.harnessVersionContentDerived === true && HEX64.test(entrant.harnessVersionId)), `unsafe arena read model: harness version drift for ${receipt.receiptId}`);
     }
 
+    requireValue(model.source.approvedReceiptCount === receiptIds.size, "unsafe arena read model: source receipt count mismatch");
+    requireValue(model.summary.modelInfluencedUnattestedReceiptCount === evidenceClassCounts.get("model_influenced_unattested"), "unsafe arena read model: model-influenced summary drift");
+    requireValue(model.summary.scriptedReferenceReceiptCount === evidenceClassCounts.get("scripted_reference"), "unsafe arena read model: scripted summary drift");
+    requireValue(model.summary.fallbackOnlyReferenceReceiptCount === evidenceClassCounts.get("fallback_only_reference"), "unsafe arena read model: fallback summary drift");
+
     requireValue(Array.isArray(model.channels), "unsafe arena read model: channels missing");
     requireValue(Array.isArray(model.rivalries), "unsafe arena read model: rivalries missing");
     requireValue(Array.isArray(model.futureFixtures), "unsafe arena read model: future fixtures missing");
+    requireValue(Array.isArray(model.rulesWeeks), "unsafe arena read model: rules weeks missing");
+    const rulesById = new Map();
+    for (const rule of model.rulesWeeks) {
+      requireValue(isObject(rule) && typeof rule.rulesWeekId === "string" && rule.rulesWeekId.length > 0, "unsafe arena read model: invalid rules week id");
+      requireValue(!rulesById.has(rule.rulesWeekId), `unsafe arena read model: duplicate rules week ${rule.rulesWeekId}`);
+      requireValue(typeof rule.game === "string" && rule.game.length > 0 && rule.gameVersion === "1", `unsafe arena read model: rules week game drift for ${rule.rulesWeekId}`);
+      requireValue(typeof rule.label === "string" && rule.label.length > 0 && HEX64.test(rule.rulesDigest), `unsafe arena read model: rules week evidence drift for ${rule.rulesWeekId}`);
+      requireValue(rule.status === "playable" && nonNegativeInteger(rule.week) && rule.week > 0, `unsafe arena read model: rules week status drift for ${rule.rulesWeekId}`);
+      rulesById.set(rule.rulesWeekId, rule);
+    }
+    const channelGames = new Set();
+    for (const channel of model.channels) {
+      requireValue(isObject(channel) && typeof channel.game === "string" && channel.game.length > 0, "unsafe arena read model: invalid channel game");
+      requireValue(!channelGames.has(channel.game), `unsafe arena read model: duplicate channel ${channel.game}`);
+      channelGames.add(channel.game);
+      requireValue(channel.status === "tracked_publication_read_only", `unsafe arena read model: channel status drift for ${channel.game}`);
+      requireValue(nonNegativeInteger(channel.publishedReceiptCount) && channel.publishedReceiptCount === receiptGameCounts.get(channel.game), `unsafe arena read model: channel receipt count drift for ${channel.game}`);
+      requireValue(Array.isArray(channel.rulesWeekIds) && new Set(channel.rulesWeekIds).size === channel.rulesWeekIds.length, `unsafe arena read model: channel rules drift for ${channel.game}`);
+      const expectedRules = model.rulesWeeks.filter((rule) => rule.game === channel.game).map((rule) => rule.rulesWeekId);
+      requireValue(channel.rulesWeekIds.length === expectedRules.length && channel.rulesWeekIds.every((ruleId, index) => ruleId === expectedRules[index]), `unsafe arena read model: channel rules binding drift for ${channel.game}`);
+    }
+    requireValue(channelGames.size === receiptGameCounts.size && [...receiptGameCounts.keys()].every((game) => channelGames.has(game)), "unsafe arena read model: channel coverage drift");
     const rivalryReceiptIds = new Set();
+    const rivalryIds = new Set();
     for (const rivalry of model.rivalries) {
       requireValue(HEX64.test(rivalry.rivalryId), "unsafe arena read model: invalid rivalry id");
+      requireValue(!rivalryIds.has(rivalry.rivalryId), `unsafe arena read model: duplicate rivalry ${rivalry.rivalryId}`);
+      rivalryIds.add(rivalry.rivalryId);
       requireValue(Array.isArray(rivalry.entrantIds) && rivalry.entrantIds.length === 2, `unsafe arena read model: rivalry entrants missing for ${rivalry.rivalryId}`);
       requireValue(rivalry.entrantIds.every((entrantId) => HEX64.test(entrantId)), `unsafe arena read model: invalid rivalry entrant for ${rivalry.rivalryId}`);
       requireValue(Array.isArray(rivalry.meetings) && rivalry.meetingCount === rivalry.meetings.length && rivalry.meetingCount > 0, `unsafe arena read model: rivalry meeting count drift for ${rivalry.rivalryId}`);
@@ -456,14 +519,35 @@
       }
     }
     requireValue(rivalryReceiptIds.size === receiptIds.size, "unsafe arena read model: receipt missing rivalry runback lineage");
+    requireValue(model.summary.rivalryCount === rivalryIds.size, "unsafe arena read model: rivalry summary drift");
+    const futureFixtureIds = new Set();
     for (const fixture of model.futureFixtures) {
       requireValue(HEX64.test(fixture.fixtureId), "unsafe arena read model: invalid future fixture id");
+      requireValue(!futureFixtureIds.has(fixture.fixtureId), `unsafe arena read model: duplicate future fixture ${fixture.fixtureId}`);
+      futureFixtureIds.add(fixture.fixtureId);
       requireValue(isObject(fixture.game) && typeof fixture.game.name === "string" && fixture.game.version === "1", `unsafe arena read model: future fixture game drift for ${fixture.fixtureId}`);
       requireValue(typeof fixture.rulesWeekId === "string" && fixture.rulesWeekId.length > 0, `unsafe arena read model: future fixture rules missing for ${fixture.fixtureId}`);
       requireValue(HEX64.test(fixture.rulesDigest), `unsafe arena read model: future fixture rules digest missing for ${fixture.fixtureId}`);
       requireValue(fixture.activationStatus === "proposed_not_activated", "unsafe arena read model: activated future fixture");
       requireValue(fixture.status === "unplayed", "unsafe arena read model: future fixture status drift");
+      requireValue(typeof fixture.format === "string" && fixture.format.length > 0 && nonNegativeInteger(fixture.week) && fixture.week > 0, `unsafe arena read model: future fixture metadata drift for ${fixture.fixtureId}`);
+      requireValue(typeof fixture.closeAt === "string" && UTC_SECOND.test(fixture.closeAt) && Number.isFinite(Date.parse(fixture.closeAt)), `unsafe arena read model: future fixture close time drift for ${fixture.fixtureId}`);
+      requireValue(Array.isArray(fixture.matchup) && fixture.matchup.length === 2, `unsafe arena read model: future fixture matchup drift for ${fixture.fixtureId}`);
+      const fixtureEntrantIds = new Set();
+      const fixtureSeats = new Set();
+      for (const entrant of fixture.matchup) {
+        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `unsafe arena read model: future fixture entrant drift for ${fixture.fixtureId}`);
+        requireValue(receiptEntrantNames.get(entrant.entrantId) === entrant.name, `unsafe arena read model: future fixture entrant is not receipt-backed for ${fixture.fixtureId}`);
+        requireValue(!fixtureEntrantIds.has(entrant.entrantId) && nonNegativeInteger(entrant.seat) && !fixtureSeats.has(entrant.seat), `unsafe arena read model: future fixture seat drift for ${fixture.fixtureId}`);
+        fixtureEntrantIds.add(entrant.entrantId);
+        fixtureSeats.add(entrant.seat);
+      }
+      requireValue([...fixtureSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `unsafe arena read model: future fixture seats are not contiguous for ${fixture.fixtureId}`);
+      const rule = rulesById.get(fixture.rulesWeekId);
+      requireValue(rule, `unsafe arena read model: unknown future fixture rules week ${fixture.rulesWeekId}`);
+      requireValue(rule.game === fixture.game.name && rule.gameVersion === fixture.game.version && rule.rulesDigest === fixture.rulesDigest && rule.week === fixture.week, `unsafe arena read model: future fixture rules binding drift for ${fixture.fixtureId}`);
     }
+    requireValue(model.summary.unplayedFixtureCount === futureFixtureIds.size, "unsafe arena read model: future fixture summary drift");
     return model;
   }
 

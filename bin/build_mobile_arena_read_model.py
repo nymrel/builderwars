@@ -38,6 +38,7 @@ DEFAULT_SOURCE_MANIFEST = (
 DEFAULT_OUTPUT = ROOT / "mobile-arena" / "data" / "arena-read-model.v1.json"
 HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40,64}$")
+UTC_SECOND_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_RECEIPTS = 10_000
 MAX_RIVALRIES = 10_000
@@ -301,6 +302,65 @@ def _fixture_card(raw: Any, index: int) -> dict[str, Any]:
     }
 
 
+def _validate_projection_relationships(
+    receipts: list[dict[str, Any]],
+    fixtures: list[dict[str, Any]],
+    rules: list[dict[str, Any]],
+) -> None:
+    """Reject cross-card drift before the mobile projection is digest-bound."""
+
+    known_entrants: dict[str, str] = {}
+    for receipt in receipts:
+        seats = [entrant["seat"] for entrant in receipt["entrants"]]
+        _require(
+            sorted(seats) == list(range(len(seats))) and len(seats) == len(set(seats)),
+            f"receipt {receipt['receiptId']} entrant seats must be contiguous and unique",
+        )
+        for entrant in receipt["entrants"]:
+            known_name = known_entrants.get(entrant["entrantId"])
+            _require(
+                known_name is None or known_name == entrant["name"],
+                f"entrant {entrant['entrantId']} has inconsistent names",
+            )
+            known_entrants[entrant["entrantId"]] = entrant["name"]
+
+    rules_by_id: dict[str, dict[str, Any]] = {}
+    for rule in rules:
+        rules_week_id = rule["rulesWeekId"]
+        _require(rules_week_id not in rules_by_id, f"duplicate rules week {rules_week_id}")
+        rules_by_id[rules_week_id] = rule
+
+    fixture_ids: set[str] = set()
+    for fixture in fixtures:
+        fixture_id = fixture["fixtureId"]
+        _require(fixture_id not in fixture_ids, f"duplicate future fixture {fixture_id}")
+        fixture_ids.add(fixture_id)
+        _require(
+            UTC_SECOND_RE.fullmatch(fixture["closeAt"]) is not None,
+            f"future fixture {fixture_id} closeAt must be a UTC second timestamp",
+        )
+        matchup = fixture["matchup"]
+        _require(len(matchup) == 2, f"future fixture {fixture_id} must remain two-seat")
+        seats = [entrant["seat"] for entrant in matchup]
+        entrant_ids = [entrant["entrantId"] for entrant in matchup]
+        _require(sorted(seats) == [0, 1] and len(set(seats)) == 2, f"future fixture {fixture_id} seats drift")
+        _require(len(set(entrant_ids)) == 2, f"future fixture {fixture_id} repeats an entrant")
+        for entrant in matchup:
+            _require(
+                known_entrants.get(entrant["entrantId"]) == entrant["name"],
+                f"future fixture {fixture_id} entrant is not receipt-backed",
+            )
+        rule = rules_by_id.get(fixture["rulesWeekId"])
+        _require(rule is not None, f"future fixture {fixture_id} references unknown rules week")
+        _require(
+            rule["game"] == fixture["game"]["name"]
+            and rule["gameVersion"] == fixture["game"]["version"]
+            and rule["rulesDigest"] == fixture["rulesDigest"]
+            and rule["week"] == fixture["week"],
+            f"future fixture {fixture_id} rules binding drift",
+        )
+
+
 def _validate_source_entries(
     raw_receipts: list[Any], source_manifest: dict[str, Any], approved_ids: set[str]
 ) -> None:
@@ -392,6 +452,8 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
                 "week": _integer(rule.get("week"), f"rulesWeeks[{index}].week"),
             }
         )
+
+    _validate_projection_relationships(receipts, fixtures, rules)
 
     evidence_counts = Counter(row["evidence"]["class"] for row in receipts)
     game_counts = Counter(row["game"]["name"] for row in receipts)

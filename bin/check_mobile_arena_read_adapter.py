@@ -100,6 +100,23 @@ function response(body, ok = true) {
   await rejects((changed) => { changed.rivalries[0].meetings[0].runback.status = "played"; }, "rivalry runback activated");
   await rejects((changed) => { changed.rivalries[1].meetings[0].receiptId = changed.rivalries[0].meetings[0].receiptId; }, "duplicate rivalry receipt");
   await rejects((changed) => { changed.rivalries[0].meetings.pop(); changed.rivalries[0].meetingCount -= 1; }, "receipt missing rivalry runback lineage");
+  await rejects((changed) => { changed.source.approvedReceiptCount += 1; }, "source receipt count mismatch");
+  await rejects((changed) => { changed.summary.modelInfluencedUnattestedReceiptCount += 1; }, "model-influenced summary drift");
+  await rejects((changed) => { changed.summary.rivalryCount += 1; }, "rivalry summary drift");
+  await rejects((changed) => { changed.summary.unplayedFixtureCount += 1; }, "future fixture summary drift");
+  await rejects((changed) => { changed.channels[0].publishedReceiptCount += 1; }, "channel receipt count drift");
+  await rejects((changed) => { changed.channels.push(copy(changed.channels[0])); }, "duplicate channel");
+  await rejects((changed) => { changed.channels[0].status = "live"; }, "channel status drift");
+  await rejects((changed) => { changed.channels[0].rulesWeekIds = []; }, "channel rules binding drift");
+  await rejects((changed) => { changed.rivalries.push(copy(changed.rivalries[0])); }, "duplicate rivalry");
+  await rejects((changed) => { changed.futureFixtures.push(copy(changed.futureFixtures[0])); }, "duplicate future fixture");
+  await rejects((changed) => { changed.futureFixtures[0].closeAt = "not-a-time"; }, "future fixture close time drift");
+  await rejects((changed) => { changed.futureFixtures[0].matchup.pop(); }, "future fixture matchup drift");
+  await rejects((changed) => { changed.futureFixtures[0].matchup[1].seat = 0; }, "future fixture seat drift");
+  await rejects((changed) => { changed.futureFixtures[0].matchup[0].entrantId = "0".repeat(64); }, "future fixture entrant is not receipt-backed");
+  await rejects((changed) => { changed.futureFixtures[0].rulesWeekId = "missing-rules-week"; }, "unknown future fixture rules week");
+  await rejects((changed) => { changed.futureFixtures[0].rulesDigest = "0".repeat(64); }, "future fixture rules binding drift");
+  await rejects((changed) => { changed.receipts[0].entrants[1].seat = 0; }, "entrant seat drift");
 
   await rejects((changed) => { changed.receipts[0].headline += " altered"; }, "digest mismatch");
   const rehashedMutation = copy(model);
@@ -171,7 +188,7 @@ function response(body, ok = true) {
     require(result.returncode == 0, f"Arena read-adapter check failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
     require(payload.get("status") == "PASS", "Arena read adapter did not report PASS")
-    require(payload.get("checks", 0) >= 49, "Arena read adapter coverage unexpectedly shrank")
+    require(payload.get("checks", 0) >= 66, "Arena read adapter coverage unexpectedly shrank")
     print(f"BuilderWars mobile Arena read adapter: PASS ({payload['checks']} checks)")
     print("verified corpus / disclosed demo fallback / fail-closed local source boundary")
     return 0
