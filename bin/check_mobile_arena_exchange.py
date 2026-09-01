@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "26"
+EXPECTED_SHELL_VERSION = "27"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -79,7 +79,7 @@ def main() -> int:
         require(f'id="view-{destination}"' in html, f"missing {destination} view")
         require(f'data-nav="{destination}"' in html, f"missing {destination} navigation")
         checks += 2
-    for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "builder-form", "featured-match", "quick-matches", "rivalries", "receipt-learning", "proof-learning-button"):
+    for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "session-sheet", "builder-form", "featured-match", "quick-matches", "rivalries", "receipt-learning", "proof-learning-button"):
         require(f'id="{required}"' in html, f"missing interactive surface: {required}")
         checks += 1
     for required in ("starter-panel", "starter-title", "starter-boundary", "starter-guide-button", "starter-persistence"):
@@ -89,6 +89,14 @@ def main() -> int:
     require("No account · no provider · no live match · no publication" in html, "starter path truth boundary missing")
     require('aria-controls="starter-panel"' in html and 'aria-describedby="starter-boundary"' in html, "starter path accessible relationships missing")
     checks += 3
+    for required in ("session-boundary", "session-source-status", "session-account-status", "session-provider-status", "session-blueprint-status", "session-starter-status", "session-storage-status"):
+        require(f'id="{required}"' in html, f"missing local-session surface: {required}")
+        checks += 1
+    require('id="profile-button"' in html and 'aria-controls="session-sheet"' in html and 'aria-haspopup="dialog"' in html, "local-session trigger semantics missing")
+    require("No identity, provider subscription, credential, remote profile, or live activity is connected." in html, "local-session protected boundary missing")
+    require("data-session-restart-starter" in html and "data-session-remove-blueprint" in html, "local-session lifecycle controls missing")
+    require("requires two presses" in html and "only this browser origin" in html and "never deleted" in html, "browser-only deletion boundary missing")
+    checks += 4
 
     print("[4] local-only network and execution boundary")
     combined = "\n".join((html, css, js, adapter, sw, json.dumps(fixture), json.dumps(read_model), json.dumps(webmanifest)))
@@ -109,6 +117,12 @@ def main() -> int:
     require("starterGuidePersistenceAvailable = false" in js and "dismissal lasts only until refresh" in js, "starter guide storage-denial disclosure missing")
     require("No account or remote preference was created" in js and "nothing was uploaded" in js, "starter guide persistence truth boundary missing")
     checks += 4
+    require("renderSessionSheet" in js and "restartStarterGuideFromSession" in js and "armOrRemoveLocalBlueprint" in js, "local-session lifecycle implementation missing")
+    require('"Confirm remove blueprint"' in js and "blueprintRemovalArmed" in js, "two-step local blueprint removal is not enforced")
+    require("localStorage.removeItem(BLUEPRINT_STORAGE_KEY)" in js and '$("#builder-form").reset()' in js, "browser-only blueprint cleanup implementation missing")
+    require("Unavailable to inspect" in js and "Unavailable · page session only" in js, "storage-denial session disclosure missing")
+    require("Nothing remote was changed" in js and "tracked source files were not deleted" in js, "local cleanup truth boundary missing")
+    checks += 5
     require("buildQualificationPreview" in adapter and 'qualificationStatus: "not_run"' in adapter, "deterministic qualification preview missing")
     require('executionStatus: "disabled"' in adapter and "computeAllowed: false" in adapter and "networkAllowed: false" in adapter, "qualification execution boundary missing")
     require("formatArenaRoute" in js and "parseArenaRoute" in js and "/receipt/" in js, "receipt-addressable route contract missing")
@@ -240,7 +254,13 @@ def main() -> int:
     require('window.addEventListener("hashchange"' in js and "syncViewFromLocation" in js, "same-document hash routing missing")
     require('.lesson-copy' in css and 'background: transparent' in css, "lesson controls must reset native button presentation")
     require('aria-current="step"' in js, "active learning step semantics missing")
-    require('@media (max-width: 359px)' in css and '.avatar-button { display: none; }' in css, "320px header overflow guard missing")
+    require(
+        '@media (max-width: 359px)' in css
+        and '.demo-badge { display: none; }' in css
+        and '.topbar-actions { gap: 4px; }' in css
+        and '.avatar-button { display: none; }' not in css,
+        "320px header must preserve both local action controls without overflow",
+    )
     checks += 10
 
     node = shutil.which("node")

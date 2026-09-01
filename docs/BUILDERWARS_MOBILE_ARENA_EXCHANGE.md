@@ -246,6 +246,14 @@ boundaries before any action. Completion uses a dedicated local-storage key;
 returning browsers can reopen the guide, and denied storage remains usable while
 disclosing that dismissal lasts only until refresh. No onboarding action creates
 an identity, account, remote preference, queue, execution, or publication state.
+The header's local-session control now exposes the exact bounded source,
+account/provider absence, blueprint retention, starter state, and browser
+storage availability in one focus-contained dialog. A tester can restart the
+starter without an account. Saved-blueprint removal is browser-origin only,
+requires two presses, resets the visible form to tracked defaults, and states
+that reviewed receipts and tracked source files remain untouched. When browser
+storage cannot be inspected, the session reports that uncertainty and disables
+the removal control instead of guessing or falling back to a remote service.
 Its Learn controls explicitly reset native button presentation, expose the
 current step semantically, and retain readable progress at mobile widths.
 Versioned shell assets, the installed manifest start URL, and the service-worker
@@ -255,9 +263,9 @@ HTML requests only the current resources and that the freshly installed cache
 contains no retired generation. Reload-mode installation keeps the offline
 fallback on the current bounded fixture instead of an older cached shell. A
 narrow-screen header guard preserves the required 320px layout while retaining
-the demo and notification boundaries. The deterministic checker binds these
-contracts; they remain local usability proof, not evidence of a hosted service,
-live competition, or provider activation.
+both local action controls and the adjacent source-status rail. The deterministic
+checker binds these contracts; they remain local usability proof, not evidence
+of a hosted service, live competition, or provider activation.
 
 The browser acceptance gate is now durable and self-cleaning:
 
@@ -265,16 +273,17 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 149
-assertions across 14 isolated journeys: first-run starter selection, returning
+It starts an ephemeral loopback server and runs managed Chromium through 175
+assertions across 15 isolated journeys: first-run starter selection, returning
 state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
-fixture qualification; local blueprint persistence; denied storage; semantic
+fixture qualification; local blueprint persistence; local-session inspection,
+two-step browser-only cleanup, and starter restart; denied storage; semantic
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v26 HTML requests; and a v26-only installed
+cross-origin requests; coherent v27 HTML requests; and a v27-only installed
 offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
@@ -692,7 +701,7 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 250 checks across this contract and every preceding Arena
+mobile checker runs 283 checks across this contract and every preceding Arena
 Exchange layer.
 
 ### Deterministic private guard-completion review
@@ -728,7 +737,7 @@ adversarial assertions across every allowed decision/reason pair, candidate
 suppression for defer and reject, exact completed-blueprint and provenance
 preservation, full ancestry reconstruction, all-false authority, nested and
 resealed tampering, dangerous keys, excessive depth or nodes, and oversized
-input. The integrated mobile checker runs 250 checks across this contract and
+input. The integrated mobile checker runs 283 checks across this contract and
 every preceding Arena Exchange layer.
 
 ### Deterministic local operator-review packet
@@ -759,7 +768,7 @@ review-only creation; full lineage reconstruction; exact diff and digest parity;
 deterministic export; zero authority; all-unrun validation; discard rollback;
 operator-decision suppression; nested and fully resealed tampering; dangerous
 keys; excessive depth or nodes; and oversized input. The integrated mobile
-checker runs 250 checks across this contract and every preceding Arena Exchange
+checker runs 283 checks across this contract and every preceding Arena Exchange
 layer. A refused operator-packet import preserves the verified upstream
 completion review while retaining no operator decision or packet authority.
 

@@ -8,6 +8,9 @@ const state = {
   selectedProofId: null,
   starterGuideVisible: true,
   starterGuidePersistenceAvailable: true,
+  blueprintStored: false,
+  blueprintPersistenceAvailable: true,
+  blueprintRemovalArmed: false,
   qualificationPreview: null,
   learningAction: null,
   runbackProposal: null,
@@ -917,6 +920,8 @@ function showStarterGuide() {
 }
 
 function hydrateLocalBlueprint() {
+  state.blueprintStored = false;
+  state.blueprintPersistenceAvailable = true;
   try {
     const raw = localStorage.getItem(BLUEPRINT_STORAGE_KEY);
     if (!raw) return;
@@ -929,6 +934,7 @@ function hydrateLocalBlueprint() {
       localStorage.removeItem(BLUEPRINT_STORAGE_KEY);
       return;
     }
+    state.blueprintStored = true;
     const name = blueprint.agentName.trim().slice(0, 36);
     if (name) $("#agent-name").value = name;
     const baseOptions = [...$("#base-model").options].map((option) => option.value);
@@ -939,7 +945,87 @@ function hydrateLocalBlueprint() {
       if (typeof blueprint[key] === "boolean") $(`[name="${key}"]`).checked = blueprint[key];
     }
   } catch {
+    state.blueprintStored = false;
+    state.blueprintPersistenceAvailable = false;
     try { localStorage.removeItem(BLUEPRINT_STORAGE_KEY); } catch {}
+  }
+}
+
+let blueprintRemovalTimer;
+
+function renderSessionSheet() {
+  const sourceStatus = $("#session-source-status");
+  const blueprintStatus = $("#session-blueprint-status");
+  const starterStatus = $("#session-starter-status");
+  const storageStatus = $("#session-storage-status");
+  const removeButton = $("[data-session-remove-blueprint]");
+  if (!sourceStatus || !blueprintStatus || !starterStatus || !storageStatus || !removeButton) return;
+
+  sourceStatus.textContent = state.data?.sourceMode === "verified_corpus"
+    ? "Reviewed local corpus"
+    : "Bounded demo fixture";
+  blueprintStatus.textContent = state.blueprintPersistenceAvailable
+    ? (state.blueprintStored ? "Saved in this browser" : "Not saved")
+    : "Unavailable to inspect";
+  starterStatus.textContent = state.starterGuideVisible ? "Open locally" : "Completed locally";
+  storageStatus.textContent = state.blueprintPersistenceAvailable && state.starterGuidePersistenceAvailable
+    ? "Available · browser only"
+    : "Unavailable · page session only";
+
+  removeButton.disabled = !state.blueprintStored || !state.blueprintPersistenceAvailable;
+  removeButton.classList.toggle("is-armed", state.blueprintRemovalArmed);
+  removeButton.textContent = state.blueprintRemovalArmed
+    ? "Confirm remove blueprint"
+    : "Remove saved blueprint";
+}
+
+function disarmBlueprintRemoval({ render = true } = {}) {
+  window.clearTimeout(blueprintRemovalTimer);
+  blueprintRemovalTimer = undefined;
+  state.blueprintRemovalArmed = false;
+  if (render) renderSessionSheet();
+}
+
+function restartStarterGuideFromSession() {
+  disarmBlueprintRemoval({ render: false });
+  try {
+    localStorage.removeItem(STARTER_GUIDE_STORAGE_KEY);
+  } catch {
+    state.starterGuidePersistenceAvailable = false;
+  }
+  closeSheets({ restoreFocus: false });
+  showStarterGuide();
+  showToast(state.starterGuidePersistenceAvailable
+    ? "Starter guide restarted in this browser. No account or remote preference was created."
+    : "Starter guide restarted for this page. Browser storage is unavailable; nothing was uploaded.");
+}
+
+function armOrRemoveLocalBlueprint() {
+  if (!state.blueprintStored || !state.blueprintPersistenceAvailable) return;
+  if (!state.blueprintRemovalArmed) {
+    state.blueprintRemovalArmed = true;
+    renderSessionSheet();
+    $("[data-session-remove-blueprint]")?.focus?.({ preventScroll: true });
+    showToast("Removal armed. Press again to remove this browser-only blueprint. Nothing remote will change.");
+    window.clearTimeout(blueprintRemovalTimer);
+    blueprintRemovalTimer = window.setTimeout(() => disarmBlueprintRemoval(), 8000);
+    return;
+  }
+
+  try {
+    localStorage.removeItem(BLUEPRINT_STORAGE_KEY);
+    if (localStorage.getItem(BLUEPRINT_STORAGE_KEY) !== null) throw new Error("browser storage retained blueprint");
+    state.blueprintStored = false;
+    disarmBlueprintRemoval({ render: false });
+    $("#builder-form").reset();
+    renderBlueprint();
+    renderSessionSheet();
+    showToast("Browser-only blueprint removed. Reviewed receipts and tracked source files were not deleted.");
+  } catch {
+    state.blueprintPersistenceAvailable = false;
+    disarmBlueprintRemoval({ render: false });
+    renderSessionSheet();
+    showToast("Blueprint could not be removed from this browser. Nothing remote was changed.");
   }
 }
 
@@ -1899,6 +1985,7 @@ function closeSheets({ restoreFocus = true } = {}) {
 }
 
 function dismissActiveSheet() {
+  if (!$("#session-sheet")?.hidden) disarmBlueprintRemoval({ render: false });
   const route = parseArenaRoute(location.hash);
   if (!$("#proof-sheet").hidden && route?.receiptId) {
     if (history.state?.overlay === "receipt") {
@@ -1964,6 +2051,14 @@ function bindEvents() {
       showToast(persisted
         ? "Starter guide hidden in this browser. No account or remote preference was created."
         : "Starter guide hidden for this page. Browser storage is unavailable; nothing was uploaded.");
+      return;
+    }
+    if (event.target.closest("[data-session-restart-starter]")) {
+      restartStarterGuideFromSession();
+      return;
+    }
+    if (event.target.closest("[data-session-remove-blueprint]")) {
+      armOrRemoveLocalBlueprint();
       return;
     }
     const starterAction = event.target.closest("[data-starter-action]");
@@ -2520,16 +2615,27 @@ function bindEvents() {
   });
 
   $("#notifications-button").addEventListener("click", () => openSheet($("#automations-sheet")));
-  $("#profile-button").addEventListener("click", () => showToast("Local Builder profile · no account, identity, or provider is connected."));
+  $("#profile-button").addEventListener("click", () => {
+    renderSessionSheet();
+    openSheet($("#session-sheet"));
+  });
   $("#watch-filter").addEventListener("click", () => { state.followingFirst = !state.followingFirst; $("#watch-filter").textContent = state.followingFirst ? "Default order" : "Following first"; renderChannels(); });
   $("#builder-form").addEventListener("input", renderBlueprint);
   $("#builder-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const blueprint = renderBlueprint();
     try {
-      localStorage.setItem(BLUEPRINT_STORAGE_KEY, JSON.stringify(blueprint));
+      const serialized = JSON.stringify(blueprint);
+      localStorage.setItem(BLUEPRINT_STORAGE_KEY, serialized);
+      if (localStorage.getItem(BLUEPRINT_STORAGE_KEY) !== serialized) throw new Error("browser storage did not retain blueprint");
+      state.blueprintStored = true;
+      state.blueprintPersistenceAvailable = true;
+      renderSessionSheet();
       showToast("Blueprint saved locally. Preview a proposed fixture next; no qualification or execution occurred.");
     } catch {
+      state.blueprintStored = false;
+      state.blueprintPersistenceAvailable = false;
+      renderSessionSheet();
       showToast("Blueprint could not be saved in this browser. Nothing was uploaded or executed.");
     }
   });
@@ -2563,6 +2669,7 @@ function renderAll() {
   renderLessons();
   renderReceiptLearning();
   renderBlueprint();
+  renderSessionSheet();
   renderAutomations();
 }
 

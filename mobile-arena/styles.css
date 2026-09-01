@@ -275,6 +275,18 @@ legend { margin-bottom: 8px; }
 .proof-address { margin-top: 16px; display: grid; gap: 7px; color: var(--muted); font-size: 10px; }
 .proof-address code { overflow-wrap: anywhere; color: var(--text); font-size: 10px; }
 .proof-boundary { margin-top: 18px; padding: 14px; background: var(--lime-dark); border-left: 2px solid var(--lime); color: #c7d4b6; font-size: 11px; line-height: 1.5; }
+.session-boundary { margin: 16px 0 0; padding: 12px 14px; border-left: 2px solid var(--lime); background: var(--lime-dark); color: #c7d4b6; font-size: 11px; line-height: 1.5; }
+.session-facts { margin: 18px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.session-facts div { min-width: 0; min-height: 76px; padding: 12px; display: grid; align-content: center; gap: 5px; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+.session-facts div:nth-child(2n) { border-right: 0; }
+.session-facts div:nth-last-child(-n + 2) { border-bottom: 0; }
+.session-facts dt { color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.session-facts dd { margin: 0; overflow-wrap: anywhere; color: var(--text); font-size: 12px; font-weight: 760; line-height: 1.35; }
+.session-actions { margin-top: 18px; display: grid; gap: 10px; }
+.session-actions .secondary-button, .danger-button { width: 100%; }
+.danger-button { min-height: 48px; padding: 0 16px; border: 1px solid #6d4038; border-radius: 9px; background: transparent; color: #ff9b8c; font-weight: 850; cursor: pointer; }
+.danger-button.is-armed { border-color: var(--risk); background: color-mix(in srgb, var(--risk) 12%, transparent); color: #ffd4ce; }
+.danger-button:disabled { border-color: var(--line); color: var(--muted); cursor: not-allowed; opacity: .72; }
 .qualification-status { margin-top: 18px; display: grid; gap: 5px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .qualification-status span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .qualification-status strong { font-size: 14px; }
@@ -293,8 +305,8 @@ legend { margin-bottom: 8px; }
 @media (max-width: 359px) {
   .topbar { padding-inline: 12px; }
   .brand { gap: 7px; font-size: 14px; }
-  .demo-badge { padding-inline: 6px; font-size: 9px; }
-  .avatar-button { display: none; }
+  .demo-badge { display: none; }
+  .topbar-actions { gap: 4px; }
   .starter-heading { grid-template-columns: 1fr; gap: 4px; }
   .starter-dismiss { justify-self: start; }
 }

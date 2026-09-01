@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MOBILE_ARENA = ROOT / "mobile-arena"
 READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
-SHELL_VERSION = "26"
+SHELL_VERSION = "27"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -146,7 +146,7 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         requested_resources = set(observed["same_origin_requests"])
         for resource in (f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
             evidence.require(resource in requested_resources, f"normal: installed HTML requests current shell resource {resource}")
-        evidence.require(not any("?v=25" in resource for resource in requested_resources), "normal: retired v25 shell URLs are not requested")
+        evidence.require(not any("?v=26" in resource for resource in requested_resources), "normal: retired v26 shell URLs are not requested")
         evidence.require(locator_visible(page, "#starter-panel"), "starter: first browser visit exposes the local starter guide")
         evidence.require(page.locator("[data-starter-action]").count() == 3, "starter: exactly three bounded first moves are available")
         starter_boundary = page.locator("#starter-boundary").inner_text().lower()
@@ -244,6 +244,34 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require(page.locator("#agent-name").input_value() == "Browser Proof", "persistence: local blueprint survives reload")
         evidence.journey("local blueprint persistence")
 
+        page.locator("#profile-button").click()
+        evidence.require(locator_visible(page, "#session-sheet"), "local session: header control opens the browser-state dialog")
+        evidence.require(page.locator("#session-sheet").evaluate("node => node.contains(document.activeElement)"), "local session: focus enters the dialog")
+        session_boundary = page.locator("#session-boundary").inner_text().lower()
+        evidence.require(all(term in session_boundary for term in ("no identity", "provider subscription", "credential", "remote profile", "live activity")), "local session: protected identity and provider boundaries are explicit")
+        evidence.require(page.locator("#session-source-status").inner_text() == "Reviewed local corpus", "local session: exact bounded source is visible")
+        evidence.require(page.locator("#session-blueprint-status").inner_text() == "Saved in this browser", "local session: saved browser blueprint is visible")
+        evidence.require(page.locator("#session-starter-status").inner_text() == "Completed locally", "local session: starter completion is described as local")
+        evidence.require(page.locator("#session-storage-status").inner_text() == "Available · browser only", "local session: storage scope is visible")
+        evidence.require(page.locator("#session-account-status").inner_text() == "None" and page.locator("#session-provider-status").inner_text() == "None", "local session: account and provider remain absent")
+        remove_button = page.locator("[data-session-remove-blueprint]")
+        remove_button.click()
+        evidence.require(remove_button.inner_text() == "Confirm remove blueprint", "local cleanup: first press only arms blueprint removal")
+        evidence.require(page.evaluate("localStorage.getItem('builderwars.mobile-arena.blueprint.v1') !== null") is True, "local cleanup: armed removal retains the blueprint")
+        remove_button.click()
+        evidence.require(page.evaluate("localStorage.getItem('builderwars.mobile-arena.blueprint.v1')") is None, "local cleanup: second press removes only the browser-local blueprint")
+        evidence.require(page.locator("#session-blueprint-status").inner_text() == "Not saved", "local cleanup: session status reflects removal")
+        evidence.require(remove_button.is_disabled(), "local cleanup: removal disables when no saved blueprint remains")
+        evidence.require(page.locator("#agent-name").input_value() == "Fourth Quarter", "local cleanup: visible blueprint form returns to tracked defaults")
+        cleanup_toast = page.locator("#toast").inner_text().lower()
+        evidence.require("browser-only blueprint removed" in cleanup_toast and "tracked source files were not deleted" in cleanup_toast, "local cleanup: receipt and source preservation is explicit")
+        page.locator("[data-session-restart-starter]").click()
+        evidence.require(locator_visible(page, "#starter-panel"), "local session: starter guide can be restarted without an account")
+        evidence.require(page.evaluate("document.activeElement?.id") == "starter-panel", "local session: restarted guide receives keyboard focus")
+        evidence.require(page.evaluate("localStorage.getItem('builderwars.mobile-arena.starter-guide.v1')") is None, "local session: restart clears only the browser-local guide completion")
+        page.locator("[data-starter-dismiss]").click()
+        evidence.journey("local session inspection and two-step cleanup")
+
         missing_names = page.evaluate(
             """() => [...document.querySelectorAll('button')]
               .filter((node) => node.offsetParent !== null)
@@ -336,8 +364,18 @@ def storage_denial_journey(browser: Any, base_url: str, evidence: Evidence) -> N
         page.locator("#builder-form button[type=submit]").click()
         evidence.require("could not be saved" in page.locator("#toast").inner_text().lower(), "storage denial: save failure is explicit")
         evidence.require("nothing was uploaded or executed" in page.locator("#toast").inner_text().lower(), "storage denial: failure does not imply remote fallback")
+        page.locator("#profile-button").click()
+        evidence.require(locator_visible(page, "#session-sheet"), "storage denial: local-session dialog remains available")
+        evidence.require(page.locator("#session-storage-status").inner_text() == "Unavailable · page session only", "storage denial: local-session storage limit is explicit")
+        evidence.require(page.locator("#session-blueprint-status").inner_text() == "Unavailable to inspect", "storage denial: blueprint state is not guessed")
+        evidence.require(page.locator("[data-session-remove-blueprint]").is_disabled(), "storage denial: destructive control stays disabled without inspectable local state")
+        evidence.require(page.locator("#session-account-status").inner_text() == "None" and page.locator("#session-provider-status").inner_text() == "None", "storage denial: no account or provider fallback is implied")
+        page.locator("[data-session-restart-starter]").click()
+        evidence.require(locator_visible(page, "#starter-panel"), "storage denial: starter restart remains usable in the page session")
+        evidence.require(page.evaluate("document.activeElement?.id") == "starter-panel", "storage denial: restarted guide receives focus")
+        evidence.require("nothing was uploaded" in page.locator("#toast").inner_text().lower(), "storage denial: starter restart does not imply a remote fallback")
         assert_observers_clean(evidence, observed, "storage-denied")
-        evidence.journey("storage-denied local blueprint")
+        evidence.journey("storage-denied local session and blueprint")
     finally:
         context.close()
 
@@ -374,7 +412,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v26');
+              const cache = await caches.open('builderwars-mobile-arena-v27');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;
@@ -385,7 +423,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         evidence.require(cache_state["keys"] == [SHELL_CACHE_NAME], f"offline: exactly the current shell cache is installed ({cache_state['keys']!r})")
         for resource in (f"/index.html?v={SHELL_VERSION}", f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
             evidence.require(resource in cache_state["urls"], f"offline: current shell cache contains {resource}")
-        evidence.require(not any("?v=25" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v25 URLs")
+        evidence.require(not any("?v=26" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v26 URLs")
         page.reload(wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
         evidence.require(page.evaluate("navigator.serviceWorker.controller !== null") is True, "offline: service worker controls the warmed shell")

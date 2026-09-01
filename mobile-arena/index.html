@@ -8,7 +8,7 @@
   <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=26">
+  <link rel="stylesheet" href="styles.css?v=27">
 </head>
 <body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -23,7 +23,7 @@
         <button class="icon-button" id="notifications-button" type="button" aria-label="Open local automations" aria-controls="automations-sheet">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
         </button>
-        <button class="avatar-button" id="profile-button" type="button" aria-label="Open local builder profile">LB</button>
+        <button class="avatar-button" id="profile-button" type="button" aria-label="Open local session controls" aria-controls="session-sheet" aria-haspopup="dialog">LS</button>
       </div>
     </header>
 
@@ -206,9 +206,27 @@
     <button class="secondary-button qualification-edit" type="button" data-qualification-edit>Review local blueprint</button>
     <p class="fine-print">Preview only. No model, provider, sanctioned runner, queue, inference, registry, or publication is active.</p>
   </aside>
+  <aside class="bottom-sheet" id="session-sheet" aria-labelledby="session-title" aria-describedby="session-boundary" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Local session</p><h2 id="session-title">Your browser state, without an account.</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close local session controls">×</button></div>
+    <p class="session-boundary" id="session-boundary">No identity, provider subscription, credential, remote profile, or live activity is connected.</p>
+    <dl class="session-facts" aria-label="Local session facts">
+      <div><dt>Source</dt><dd id="session-source-status">Loading local source</dd></div>
+      <div><dt>Account</dt><dd id="session-account-status">None</dd></div>
+      <div><dt>Provider</dt><dd id="session-provider-status">None</dd></div>
+      <div><dt>Blueprint</dt><dd id="session-blueprint-status">Not saved</dd></div>
+      <div><dt>Starter</dt><dd id="session-starter-status">Open locally</dd></div>
+      <div><dt>Storage</dt><dd id="session-storage-status">Checking browser storage</dd></div>
+    </dl>
+    <div class="session-actions">
+      <button class="secondary-button" type="button" data-session-restart-starter>Restart starter guide</button>
+      <button class="danger-button" type="button" data-session-remove-blueprint disabled>Remove saved blueprint</button>
+    </div>
+    <p class="fine-print">Blueprint removal requires two presses and affects only this browser origin. Reviewed receipts and tracked source files are never deleted by this control.</p>
+  </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
-  <script src="data-adapter.js?v=26" defer></script>
-  <script src="app.js?v=26" defer></script>
+  <script src="data-adapter.js?v=27" defer></script>
+  <script src="app.js?v=27" defer></script>
 </body>
 </html>
