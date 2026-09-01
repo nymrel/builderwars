@@ -8,7 +8,7 @@
   <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -111,6 +111,10 @@
             <p>A replay can be valid while the model never answered. Learn to read source counts before trusting the story.</p>
             <button class="primary-button" id="learn-proof-button" type="button" data-proof-open="featured">Inspect a local receipt</button>
           </aside>
+          <section class="receipt-learning" aria-labelledby="receipt-learning-title">
+            <div class="panel-heading"><h2 id="receipt-learning-title" tabindex="-1">Receipt lab</h2><span class="source-label">proof linked · local only</span></div>
+            <div id="receipt-learning" aria-live="polite"></div>
+          </section>
         </div>
       </section>
 
@@ -165,6 +169,7 @@
     <div class="sheet-handle" aria-hidden="true"></div>
     <div class="sheet-heading"><div><p class="eyebrow">Proof inspector</p><h2 id="proof-title">What this result proves</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close proof inspector">×</button></div>
     <div id="proof-content"></div>
+    <button class="secondary-button proof-learning-button" id="proof-learning-button" type="button" data-proof-learn hidden>Learn from this receipt</button>
   </aside>
   <aside class="bottom-sheet" id="automations-sheet" aria-labelledby="automations-title" aria-modal="true" role="dialog" hidden>
     <div class="sheet-handle" aria-hidden="true"></div>
@@ -181,7 +186,7 @@
   </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
-  <script src="data-adapter.js?v=8" defer></script>
-  <script src="app.js?v=8" defer></script>
+  <script src="data-adapter.js?v=9" defer></script>
+  <script src="app.js?v=9" defer></script>
 </body>
 </html>

@@ -9,11 +9,18 @@
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
   const VIEW_SCHEMA = "builderwars.mobile-arena-view.v1";
   const QUALIFICATION_SCHEMA = "builderwars.mobile-qualification-preview.v1";
+  const LEARNING_SCHEMA = "builderwars.mobile-receipt-learning.v1";
+  const RUNBACK_PROPOSAL_SCHEMA = "builderwars.mobile-runback-proposal.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
+  const RUNBACK_DELTAS = Object.freeze([
+    { id: "require_strict_validation", guardKey: "strictValidation", label: "Require strict move validation", rationale: "Retain legal-move refusal in the next local blueprint version." },
+    { id: "require_fallback_disclosure", guardKey: "fallbackDisclosure", label: "Require fallback disclosure", rationale: "Make every fallback move visible before any future result is reviewed." },
+    { id: "require_human_checkpoints", guardKey: "humanCheckpoints", label: "Require human checkpoints", rationale: "Declare a bounded review checkpoint before any future execution request." },
+  ]);
 
   function requireValue(predicate, message) {
     if (!predicate) throw new Error(message);
@@ -96,6 +103,7 @@
     requireValue(Array.isArray(model.channels), "unsafe arena read model: channels missing");
     requireValue(Array.isArray(model.rivalries), "unsafe arena read model: rivalries missing");
     requireValue(Array.isArray(model.futureFixtures), "unsafe arena read model: future fixtures missing");
+    const rivalryReceiptIds = new Set();
     for (const rivalry of model.rivalries) {
       requireValue(HEX64.test(rivalry.rivalryId), "unsafe arena read model: invalid rivalry id");
       requireValue(Array.isArray(rivalry.entrantIds) && rivalry.entrantIds.length === 2, `unsafe arena read model: rivalry entrants missing for ${rivalry.rivalryId}`);
@@ -103,6 +111,8 @@
       requireValue(Array.isArray(rivalry.meetings) && rivalry.meetingCount === rivalry.meetings.length && rivalry.meetingCount > 0, `unsafe arena read model: rivalry meeting count drift for ${rivalry.rivalryId}`);
       for (const [meetingIndex, meeting] of rivalry.meetings.entries()) {
         requireValue(receiptIds.has(meeting.receiptId), `unsafe arena read model: unknown rivalry receipt ${meeting.receiptId}`);
+        requireValue(!rivalryReceiptIds.has(meeting.receiptId), `unsafe arena read model: duplicate rivalry receipt ${meeting.receiptId}`);
+        rivalryReceiptIds.add(meeting.receiptId);
         const receipt = receiptById.get(meeting.receiptId);
         requireValue(meeting.meetingNumber === meetingIndex + 1, `unsafe arena read model: rivalry meeting order drift for ${rivalry.rivalryId}`);
         requireValue(receipt.game.name === meeting.game, `unsafe arena read model: rivalry game drift for ${meeting.receiptId}`);
@@ -116,6 +126,7 @@
         requireValue(CHALLENGE_ID.test(meeting.runback.challengeId), `unsafe arena read model: invalid rivalry challenge for ${meeting.receiptId}`);
       }
     }
+    requireValue(rivalryReceiptIds.size === receiptIds.size, "unsafe arena read model: receipt missing rivalry runback lineage");
     for (const fixture of model.futureFixtures) {
       requireValue(HEX64.test(fixture.fixtureId), "unsafe arena read model: invalid future fixture id");
       requireValue(isObject(fixture.game) && typeof fixture.game.name === "string" && fixture.game.version === "1", `unsafe arena read model: future fixture game drift for ${fixture.fixtureId}`);
@@ -145,11 +156,12 @@
     return parts.slice(0, 3).map((part) => part[0]).join("").toUpperCase().padEnd(2, "W");
   }
 
-  function proofFromReceipt(receipt, boundary) {
+  function proofFromReceipt(receipt, boundary, runback) {
     const counts = receipt.evidence.moveSourceCounts;
     return {
       receiptId: receipt.receiptId,
       fixtureId: receipt.fixtureId,
+      game: clone(receipt.game),
       headline: receipt.headline,
       artifactPath: receipt.proof.artifactPath,
       replayVerdict: receipt.proof.replayVerdict,
@@ -164,6 +176,7 @@
       providerAttested: false,
       runtimeAttested: false,
       registryState: "no_authoritative_registry_commit",
+      runback: clone(runback),
       boundary,
     };
   }
@@ -324,11 +337,136 @@
     };
   }
 
+  function validateReceiptProofForLearning(proof, sourceMode) {
+    requireValue(sourceMode === "verified_corpus", "unsafe receipt learning: verified corpus required");
+    requireValue(isObject(proof) && HEX64.test(proof.receiptId), "unsafe receipt learning: reviewed receipt missing");
+    requireValue(proof.replayVerdict === "PASS" && proof.publicationApproved === true, "unsafe receipt learning: reviewed proof required");
+    requireValue(isObject(proof.game) && typeof proof.game.name === "string" && proof.game.version === "1", "unsafe receipt learning: game binding missing");
+    requireValue(isObject(proof.moveSourceCounts), "unsafe receipt learning: evidence counts missing");
+    for (const field of ["model", "scripted", "fallback", "other"]) {
+      requireValue(nonNegativeInteger(proof.moveSourceCounts[field]), `unsafe receipt learning: invalid ${field} count`);
+    }
+    requireValue(isObject(proof.runback), "unsafe receipt learning: runback lineage missing");
+    requireValue(proof.runback.parentReceiptId === proof.receiptId, "unsafe receipt learning: runback parent drift");
+    requireValue(proof.runback.status === "unplayed_challenge", "unsafe receipt learning: runback already activated");
+    requireValue(HEX64.test(proof.runback.fixtureId) && CHALLENGE_ID.test(proof.runback.challengeId), "unsafe receipt learning: runback identifiers missing");
+    return proof;
+  }
+
+  function buildReceiptLearningAction(proofInput, sourceMode) {
+    const proof = validateReceiptProofForLearning(proofInput, sourceMode);
+    const counts = proof.moveSourceCounts;
+    let observation;
+    let recommendedDeltaId;
+    if (counts.fallback > 0) {
+      observation = `${counts.fallback} fallback move${counts.fallback === 1 ? "" : "s"} were disclosed in this reviewed receipt.`;
+      recommendedDeltaId = "require_fallback_disclosure";
+    } else if (counts.model > 0 && proof.modelAttested === false) {
+      observation = `${counts.model} move${counts.model === 1 ? "" : "s"} carried a model-source label, while model identity remained unattested.`;
+      recommendedDeltaId = "require_strict_validation";
+    } else if (counts.scripted > 0) {
+      observation = `${counts.scripted} scripted move${counts.scripted === 1 ? "" : "s"} formed a deterministic reference, not model evidence.`;
+      recommendedDeltaId = "require_human_checkpoints";
+    } else {
+      observation = `${counts.other} move${counts.other === 1 ? "" : "s"} remained in the other/unattested evidence class.`;
+      recommendedDeltaId = "require_fallback_disclosure";
+    }
+    return {
+      schemaVersion: LEARNING_SCHEMA,
+      status: "review_only",
+      receipt: {
+        receiptId: proof.receiptId,
+        fixtureId: proof.fixtureId,
+        headline: proof.headline,
+        game: clone(proof.game),
+        replayVerdict: proof.replayVerdict,
+        evidenceLabel: proof.evidenceLabel,
+        moveSourceCounts: clone(counts),
+      },
+      observation,
+      recommendedDeltaId,
+      allowedDeltas: clone(RUNBACK_DELTAS),
+      runback: clone(proof.runback),
+      boundary: "This learning action summarizes a reviewed receipt and offers local blueprint deltas. It does not infer hidden reasoning, prove model identity, award progress, or activate a runback.",
+    };
+  }
+
+  function buildRunbackProposal(learningInput, blueprintInput, deltaId, sourceMode) {
+    requireValue(sourceMode === "verified_corpus", "unsafe runback proposal: verified corpus required");
+    requireValue(isObject(learningInput) && learningInput.schemaVersion === LEARNING_SCHEMA && learningInput.status === "review_only", "unsafe runback proposal: learning action missing");
+    requireValue(isObject(learningInput.receipt) && HEX64.test(learningInput.receipt.receiptId), "unsafe runback proposal: parent receipt missing");
+    requireValue(isObject(learningInput.runback) && learningInput.runback.parentReceiptId === learningInput.receipt.receiptId, "unsafe runback proposal: parent lineage drift");
+    requireValue(learningInput.runback.status === "unplayed_challenge", "unsafe runback proposal: runback already activated");
+    requireValue(HEX64.test(learningInput.runback.fixtureId) && CHALLENGE_ID.test(learningInput.runback.challengeId), "unsafe runback proposal: runback identifiers missing");
+    const blueprint = validateQualificationBlueprint(blueprintInput);
+    const delta = RUNBACK_DELTAS.find((candidate) => candidate.id === deltaId);
+    requireValue(delta, "unsafe runback proposal: unknown blueprint delta");
+    const currentValue = blueprint[delta.guardKey];
+    const proposalKey = [
+      "local-runback-v1",
+      learningInput.receipt.receiptId,
+      learningInput.runback.fixtureId,
+      learningInput.runback.challengeId,
+      encodeURIComponent(learningInput.receipt.game.name),
+      learningInput.receipt.game.version,
+      delta.id,
+      currentValue ? 1 : 0,
+      encodeURIComponent(blueprint.agentName.trim()),
+      encodeURIComponent(blueprint.baseModel),
+      encodeURIComponent(blueprint.harnessStyle),
+    ].join(":");
+    return {
+      schemaVersion: RUNBACK_PROPOSAL_SCHEMA,
+      proposalVersion: 1,
+      proposalKey,
+      runbackStatus: "unplayed_proposal",
+      qualificationStatus: "not_run",
+      executionStatus: "disabled",
+      publicationStatus: "not_requested",
+      parentReceipt: {
+        receiptId: learningInput.receipt.receiptId,
+        fixtureId: learningInput.receipt.fixtureId,
+        replayVerdict: learningInput.receipt.replayVerdict,
+      },
+      runbackLineage: clone(learningInput.runback),
+      gameBinding: clone(learningInput.receipt.game),
+      rulesBinding: {
+        status: "blocked_missing_explicit_rules_digest",
+        rulesDigest: null,
+        statement: "The bounded mobile read model does not carry an explicit historical rules digest. A sanctioned runback must bind one before qualification.",
+      },
+      blueprint: {
+        agentName: blueprint.agentName.trim(),
+        declaredBase: blueprint.baseModel,
+        harnessStyle: blueprint.harnessStyle,
+        localOnly: true,
+      },
+      blueprintDelta: {
+        id: delta.id,
+        guardKey: delta.guardKey,
+        label: delta.label,
+        rationale: delta.rationale,
+        from: currentValue,
+        to: true,
+        changeStatus: currentValue ? "already_declared" : "proposed_change",
+      },
+      executionBlockers: [
+        "explicit_rules_digest_not_bound",
+        "qualification_not_run",
+        "sanctioned_runner_not_bound",
+        "local_blueprint_version_not_committed",
+      ],
+      attestations: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false },
+      boundary: "This versioned object is a local, still-unplayed proposal. It preserves parent receipt and challenge lineage, but it does not qualify, execute, attest, rank, publish, or spend.",
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
     const boundary = model.truthBoundary.statement;
-    const proofs = model.receipts.map((receipt) => proofFromReceipt(receipt, boundary));
+    const runbackByReceipt = new Map(model.rivalries.flatMap((rivalry) => rivalry.meetings.map((meeting) => [meeting.receiptId, meeting.runback])));
+    const proofs = model.receipts.map((receipt) => proofFromReceipt(receipt, boundary, runbackByReceipt.get(receipt.receiptId)));
     const proofById = new Map(proofs.map((proof) => [proof.receiptId, proof]));
     const featuredReceipt = model.receipts.find((receipt) => receipt.evidence.class === "model_influenced_unattested") || model.receipts[0];
 
@@ -451,12 +589,16 @@
 
   return {
     DEMO_SCHEMA,
+    LEARNING_SCHEMA,
     QUALIFICATION_SCHEMA,
     PREVIEW_RESOURCE_CLASS,
     READ_MODEL_SCHEMA,
+    RUNBACK_PROPOSAL_SCHEMA,
     VIEW_SCHEMA,
     adaptArenaReadModel,
     buildQualificationPreview,
+    buildReceiptLearningAction,
+    buildRunbackProposal,
     demoFallback,
     loadArenaData,
     validateArenaReadModel,

@@ -7,6 +7,8 @@ const state = {
   activeLesson: null,
   selectedProofId: null,
   qualificationPreview: null,
+  learningAction: null,
+  runbackProposal: null,
   lastFocus: null,
 };
 
@@ -157,6 +159,40 @@ function renderLessons() {
     </button>`).join("");
 }
 
+function renderReceiptLearning() {
+  const container = $("#receipt-learning");
+  if (!container) return;
+  const action = state.learningAction;
+  if (!action) {
+    container.innerHTML = `<div class="empty-state receipt-learning-empty"><strong>Open a reviewed receipt to begin.</strong><span>The lab will summarize visible evidence and offer bounded blueprint deltas. It never reads private reasoning.</span></div>`;
+    return;
+  }
+  const counts = action.receipt.moveSourceCounts;
+  const deltaControls = action.allowedDeltas.map((delta) => `
+    <button class="learning-delta ${delta.id === action.recommendedDeltaId ? "recommended" : ""}" type="button" data-runback-delta="${escapeHTML(delta.id)}">
+      <span>${escapeHTML(delta.label)}</span><small>${escapeHTML(delta.rationale)}${delta.id === action.recommendedDeltaId ? " · receipt-guided" : ""}</small>
+    </button>`).join("");
+  const proposal = state.runbackProposal;
+  let proposalMarkup = "";
+  if (proposal) {
+    const rows = [
+      ["Status", "Unplayed proposal", "pending"],
+      ["Parent receipt", proposal.parentReceipt.receiptId, "mono"],
+      ["Challenge", proposal.runbackLineage.challengeId, "mono"],
+      ["Runback fixture", proposal.runbackLineage.fixtureId, "mono"],
+      ["Game", `${proposal.gameBinding.name} v${proposal.gameBinding.version}`, ""],
+      ["Rules", "Blocked · explicit digest missing", "pending"],
+      ["Blueprint delta", proposal.blueprintDelta.label, ""],
+      ["Change", proposal.blueprintDelta.changeStatus === "already_declared" ? "Already declared · retain" : "Proposed false → true", ""],
+      ["Qualification", "Not run", "pending"],
+      ["Execution", "Disabled", "pending"],
+      ["Attestations", "Identity/model/provider/runtime/registry/publication: all false", ""],
+    ];
+    proposalMarkup = `<div class="runback-proposal" id="runback-proposal"><div class="qualification-status"><span>Version 1 · local only</span><strong>Still unplayed</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proposal-blockers"><strong>Execution blockers</strong><span>${escapeHTML(proposal.executionBlockers.join(" · "))}</span></div><div class="proof-boundary"><strong>Proposal boundary:</strong> ${escapeHTML(proposal.boundary)} ${escapeHTML(proposal.rulesBinding.statement)}</div><button class="text-button" type="button" data-runback-blueprint>Review local blueprint</button></div>`;
+  }
+  container.innerHTML = `<div class="learning-receipt"><span class="mode-label">${escapeHTML(action.receipt.game.name)} v${escapeHTML(action.receipt.game.version)}</span><h3>${escapeHTML(action.receipt.headline)}</h3><code>${escapeHTML(action.receipt.receiptId)}</code><p>${escapeHTML(action.observation)}</p><p class="row-detail">Visible sources · model ${counts.model} · scripted ${counts.scripted} · fallback ${counts.fallback} · other ${counts.other}</p><div class="learning-boundary">${escapeHTML(action.boundary)}</div></div><div class="learning-deltas"><p class="eyebrow">Choose one declared blueprint delta</p>${deltaControls}</div>${proposalMarkup}`;
+}
+
 function updateConnectionStatus() {
   const status = $("#connection-status");
   if (!status || !state.data) return;
@@ -283,6 +319,9 @@ function renderProof(proofId = "featured") {
   const boundaryLabel = state.data.sourceMode === "verified_corpus" ? "Verified-corpus boundary" : "Demo boundary";
   const address = formatArenaRoute(state.activeView, proof.receiptId);
   $("#proof-content").innerHTML = `<div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-address"><span>Local proof address</span><code>${escapeHTML(address)}</code></div><div class="proof-boundary"><strong>${boundaryLabel}:</strong> ${escapeHTML(proof.boundary || state.data.truthBoundary.statement)}</div>`;
+  const learningButton = $("#proof-learning-button");
+  learningButton.hidden = !(state.data.sourceMode === "verified_corpus" && proof.runback);
+  learningButton.dataset.proofLearn = proof.receiptId || "";
   return true;
 }
 
@@ -328,6 +367,30 @@ function renderQualificationPreview(fixtureId) {
   const checks = preview.readinessChecks.map((check) => `<li class="qualification-check ${check.ready ? "ready" : "needs-attention"}"><span>${check.ready ? "✓" : "!"}</span><div><strong>${escapeHTML(check.label)}</strong><small>${escapeHTML(check.status)}</small></div></li>`).join("");
   $("#qualification-content").innerHTML = `<div class="qualification-status"><span>Deterministic local preview</span><strong>${preview.readiness === "blueprint_ready_for_future_attempt" ? "Blueprint guards ready" : "Blueprint guards need attention"}</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><ul class="qualification-checks" aria-label="Qualification preview checks">${checks}</ul><div class="proof-boundary"><strong>Preview boundary:</strong> ${escapeHTML(preview.boundary)}</div>`;
   return true;
+}
+
+function prepareReceiptLearning(receiptId) {
+  const proof = resolveProof(receiptId);
+  if (!proof || !dataAdapter?.buildReceiptLearningAction) return false;
+  try {
+    state.learningAction = dataAdapter.buildReceiptLearningAction(proof, state.data.sourceMode);
+    state.runbackProposal = null;
+    renderReceiptLearning();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function prepareRunbackProposal(deltaId) {
+  if (!state.learningAction || !dataAdapter?.buildRunbackProposal) return false;
+  try {
+    state.runbackProposal = dataAdapter.buildRunbackProposal(state.learningAction, blueprintFromForm(), deltaId, state.data.sourceMode);
+    renderReceiptLearning();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function showView(name, updateHistory = true) {
@@ -476,6 +539,33 @@ function bindEvents() {
       else showToast("Qualification preview is unavailable in this bounded source. Nothing was executed.");
       return;
     }
+    const proofLearning = event.target.closest("[data-proof-learn]");
+    if (proofLearning) {
+      const receiptId = proofLearning.dataset.proofLearn || state.selectedProofId;
+      if (!prepareReceiptLearning(receiptId)) {
+        showToast("Receipt learning is unavailable in this bounded source.");
+        return;
+      }
+      closeSheets({ restoreFocus: false });
+      showView("learn");
+      $("#receipt-learning-title").focus({ preventScroll: true });
+      $("#receipt-learning").scrollIntoView({ block: "start", behavior: "smooth" });
+      return;
+    }
+    const runbackDelta = event.target.closest("[data-runback-delta]");
+    if (runbackDelta) {
+      if (prepareRunbackProposal(runbackDelta.dataset.runbackDelta)) {
+        $("#runback-proposal").scrollIntoView({ block: "nearest", behavior: "smooth" });
+      } else {
+        showToast("The runback proposal failed closed. Nothing was executed or saved.");
+      }
+      return;
+    }
+    if (event.target.closest("[data-runback-blueprint]")) {
+      showView("build");
+      $("#agent-name").focus();
+      return;
+    }
     if (event.target.closest("[data-qualification-edit]")) {
       closeSheets({ restoreFocus: false });
       showView("build");
@@ -546,6 +636,7 @@ function renderAll() {
   renderRivalries();
   renderCompete();
   renderLessons();
+  renderReceiptLearning();
   renderBlueprint();
   renderAutomations();
 }

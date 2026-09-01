@@ -20,14 +20,17 @@ destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
 reviewed Arena receipt corpus through a fail-closed client adapter, retains the
 fixed demo fixture as a visibly disclosed fallback, opens receipt-addressable
 proofs and receipt-backed rivalry history, saves blueprints only in the browser,
-and previews deterministic fixture qualification without execution. It performs
-no provider call, inference, account action, publication, or deployment.
+previews deterministic fixture qualification without execution, and turns a
+reviewed proof into a bounded learning action plus a versioned, still-unplayed
+runback proposal. It performs no provider call, inference, account action,
+publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
 # open http://127.0.0.1:4173
 python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_qualification.py
+python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_exchange.py
 ```
 

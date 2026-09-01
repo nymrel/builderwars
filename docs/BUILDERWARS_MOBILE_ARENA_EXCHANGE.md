@@ -291,6 +291,7 @@ source and the original fixture as a visibly disclosed fallback. The adapter:
 ```powershell
 python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_qualification.py
+python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_exchange.py
 ```
 
@@ -318,14 +319,34 @@ not run, the fixture is not activated, and no sanctioned runner is bound. The
 adapter rejects demo fallback, unsafe blueprints, rule drift, fixture activation,
 resource escalation, and broken rivalry lineage before rendering this state.
 
+### Proof-linked learning and still-unplayed runbacks
+
+Every verified proof now carries the exact unplayed challenge lineage projected
+from the reviewed rivalry corpus. `Learn from this receipt` opens a local Receipt
+Lab that summarizes only public evidence counts, game version, replay verdict,
+and attestation status. It never reads private chain-of-thought, assumes why a
+move was chosen, awards course progress, or claims a model identity. The lab
+offers exactly three declarative blueprint deltas: retain strict validation,
+retain fallback disclosure, or require a human checkpoint.
+
+Selecting a delta builds `builderwars.mobile-runback-proposal.v1`. The proposal
+preserves the parent receipt, original challenge ID, original runback fixture ID,
+game version, current local blueprint declaration, and exact false-to-true or
+already-declared guard status. It remains `unplayed_proposal`, qualification
+`not_run`, execution `disabled`, publication `not_requested`, and all
+attestations false. Because the bounded historical read model does not contain
+an explicit rules digest, the proposal records `rulesDigest: null` and the
+blocking status `blocked_missing_explicit_rules_digest`; it never invents the
+missing binding or implies the runback is ready.
+
 ### Exact next bounded campaign
 
-Turn one reviewed receipt into a proof-linked learning action and produce a
-versioned, still-unplayed runback proposal that preserves the parent receipt,
-game/rules binding, local blueprint delta, and all false attestations. Keep the
-action local and declarative: no auth, network writes, creator code execution,
-provider use, public activation, or spend. The protected private-alpha API
-binding remains a later operator-gated campaign.
+Add a deterministic local export/import verifier for the versioned runback
+proposal. It should canonicalize the proposal, reject tampering or unknown
+fields, preserve all blockers, and render an inspectable local verification
+result. Do not add auth, network writes, creator code execution, provider use,
+public activation, or spend. The protected private-alpha API binding remains a
+later operator-gated campaign.
 
 ## Review status
 

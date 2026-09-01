@@ -69,6 +69,9 @@ function response(body, ok = true) {
   check(view.featured.proof.receiptId.length === 64, "binds featured proof receipt");
   check(view.truthBoundary.live === false && view.truthBoundary.hosted === false, "preserves non-live boundary");
   check(view.featured.proof.modelAttested === false && view.featured.proof.providerAttested === false, "preserves unattested boundary");
+  check(view.proofReceipts.every((proof) => proof.runback?.parentReceiptId === proof.receiptId), "projects exact proof-to-runback lineage");
+  check(view.proofReceipts.every((proof) => proof.runback?.status === "unplayed_challenge"), "keeps every proof runback unplayed");
+  check(view.proofReceipts.every((proof) => proof.game?.version === "1"), "projects proof game bindings");
 
   rejects((changed) => { changed.truthBoundary.live = true; }, "live must stay false");
   rejects((changed) => { changed.receipts[0].proof.replayVerdict = "FAIL"; }, "replay failed");
@@ -80,6 +83,8 @@ function response(body, ok = true) {
   rejects((changed) => { changed.rivalries[0].meetings[0].winnerEntrantId = changed.rivalries[0].entrantIds[1]; }, "rivalry outcome drift");
   rejects((changed) => { changed.rivalries[0].meetings[0].meetingNumber = 2; }, "rivalry meeting order drift");
   rejects((changed) => { changed.rivalries[0].meetings[0].runback.status = "played"; }, "rivalry runback activated");
+  rejects((changed) => { changed.rivalries[1].meetings[0].receiptId = changed.rivalries[0].meetings[0].receiptId; }, "duplicate rivalry receipt");
+  rejects((changed) => { changed.rivalries[0].meetings.pop(); changed.rivalries[0].meetingCount -= 1; }, "receipt missing rivalry runback lineage");
 
   const validFetch = async (url) => response(url.includes("arena-read-model") ? model : demo);
   const loaded = await adapter.loadArenaData(validFetch);
@@ -120,7 +125,7 @@ function response(body, ok = true) {
     require(result.returncode == 0, f"Arena read-adapter check failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
     require(payload.get("status") == "PASS", "Arena read adapter did not report PASS")
-    require(payload.get("checks", 0) >= 34, "Arena read adapter coverage unexpectedly shrank")
+    require(payload.get("checks", 0) >= 39, "Arena read adapter coverage unexpectedly shrank")
     print(f"BuilderWars mobile Arena read adapter: PASS ({payload['checks']} checks)")
     print("verified corpus / disclosed demo fallback / fail-closed local source boundary")
     return 0
