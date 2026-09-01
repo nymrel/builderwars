@@ -12,8 +12,10 @@
   const LEARNING_SCHEMA = "builderwars.mobile-receipt-learning.v1";
   const RUNBACK_PROPOSAL_SCHEMA = "builderwars.mobile-runback-proposal.v1";
   const PORTABLE_RUNBACK_SCHEMA = "builderwars.mobile-runback-portable.v1";
+  const PORTABLE_REVIEW_SCHEMA = "builderwars.mobile-runback-review.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
+  const PORTABLE_REVIEW_MAX_RECORDS = 64;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -26,12 +28,27 @@
   const RUNBACK_RULES_STATEMENT = "The bounded mobile read model does not carry an explicit historical rules digest. A sanctioned runback must bind one before qualification.";
   const RUNBACK_PROPOSAL_BOUNDARY = "This versioned object is a local, still-unplayed proposal. It preserves parent receipt and challenge lineage, but it does not qualify, execute, attest, rank, publish, or spend.";
   const PORTABLE_RUNBACK_BOUNDARY = "This canonical envelope carries a local, still-unplayed proposal plus a SHA-256 integrity checksum. The checksum detects accidental or unacknowledged content changes; it is not a signature, does not authenticate an author or provider, and grants no qualification, execution, registry, ranking, publication, or spending authority.";
+  const PORTABLE_REVIEW_BOUNDARY = "This append-only local review record binds one verified portable proposal to an unattested reviewer label and a bounded private decision. Its SHA-256 chain is integrity evidence, not a signature or identity claim. It cannot bind missing rules, qualify, execute, attest, register, rank, publish, or spend.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
     { id: "require_strict_validation", guardKey: "strictValidation", label: "Require strict move validation", rationale: "Retain legal-move refusal in the next local blueprint version." },
     { id: "require_fallback_disclosure", guardKey: "fallbackDisclosure", label: "Require fallback disclosure", rationale: "Make every fallback move visible before any future result is reviewed." },
     { id: "require_human_checkpoints", guardKey: "humanCheckpoints", label: "Require human checkpoints", rationale: "Declare a bounded review checkpoint before any future execution request." },
+  ]);
+  const PORTABLE_REVIEW_REASONS = Object.freeze({
+    accept_for_blueprint_revision: Object.freeze(["receipt_guided_guard_change"]),
+    defer: Object.freeze(["needs_explicit_rules_binding", "insufficient_public_evidence"]),
+    reject: Object.freeze(["duplicate_or_stale_proposal", "unsafe_or_out_of_scope"]),
+  });
+  const PORTABLE_REVIEW_BLOCKERS = Object.freeze([
+    "reviewer_identity_unattested",
+    "explicit_rules_digest_not_bound",
+    "qualification_not_run",
+    "sanctioned_runner_not_bound",
+    "local_blueprint_version_not_committed",
+    "registry_not_requested",
+    "publication_not_requested",
   ]);
 
   function requireValue(predicate, message) {
@@ -618,6 +635,148 @@
     };
   }
 
+  async function validateVerifiedPortableResult(resultInput) {
+    assertSafeKeys(resultInput, "verified portable result");
+    requireExactKeys(resultInput, ["schemaVersion", "verificationStatus", "payloadDigest", "proposal", "boundary"], "verified portable result");
+    requireValue(resultInput.schemaVersion === PORTABLE_RUNBACK_SCHEMA, "unsafe portable review: verified schema drift");
+    requireValue(resultInput.verificationStatus === "verified_local_unplayed_proposal", "unsafe portable review: proposal was not independently verified");
+    requireValue(HEX64.test(resultInput.payloadDigest), "unsafe portable review: envelope digest missing");
+    requireValue(resultInput.boundary === PORTABLE_RUNBACK_BOUNDARY, "unsafe portable review: verification boundary drift");
+    const proposal = clone(validateRunbackProposal(resultInput.proposal));
+    const computedDigest = await sha256Hex(canonicalJSON(proposal));
+    requireValue(equalHex(computedDigest, resultInput.payloadDigest), "unsafe portable review: verified payload digest mismatch");
+    return { proposal, payloadDigest: computedDigest };
+  }
+
+  function reviewProposalBinding(verified) {
+    return {
+      envelopeDigest: verified.payloadDigest,
+      proposalKey: verified.proposal.proposalKey,
+      parentReceiptId: verified.proposal.parentReceipt.receiptId,
+      challengeId: verified.proposal.runbackLineage.challengeId,
+      runbackFixtureId: verified.proposal.runbackLineage.fixtureId,
+    };
+  }
+
+  function proposedBlueprintRevision(verified, binding, sequence) {
+    return {
+      status: "proposed_uncommitted_revision",
+      revisionKey: `local-blueprint-revision-v1:${binding.envelopeDigest}:${sequence}:${encodeURIComponent(verified.proposal.blueprintDelta.id)}`,
+      parentProposalKey: binding.proposalKey,
+      agentName: verified.proposal.blueprint.agentName,
+      declaredBase: verified.proposal.blueprint.declaredBase,
+      harnessStyle: verified.proposal.blueprint.harnessStyle,
+      acceptedDelta: clone(verified.proposal.blueprintDelta),
+      localOnly: true,
+      committed: false,
+    };
+  }
+
+  async function validatePortableRunbackReview(recordInput, verified, previousDigest, expectedSequence) {
+    assertSafeKeys(recordInput, "portable review");
+    requireExactKeys(recordInput, [
+      "schemaVersion", "reviewVersion", "sequence", "reviewStatus", "decision", "reasonCode", "reviewer", "proposalBinding",
+      "previousReviewDigest", "blueprintRevision", "blockers", "attestations", "boundary", "reviewDigest",
+    ], "portable review");
+    requireValue(recordInput.schemaVersion === PORTABLE_REVIEW_SCHEMA && recordInput.reviewVersion === 1, "unsafe portable review: schema drift");
+    requireValue(recordInput.sequence === expectedSequence, "unsafe portable review: sequence drift");
+    requireValue(recordInput.reviewStatus === "private_local_review", "unsafe portable review: private status drift");
+    const allowedReasons = PORTABLE_REVIEW_REASONS[recordInput.decision];
+    requireValue(Array.isArray(allowedReasons), "unsafe portable review: unknown decision");
+    requireValue(allowedReasons.includes(recordInput.reasonCode), "unsafe portable review: decision reason drift");
+
+    requireExactKeys(recordInput.reviewer, ["label", "identityAttested", "localOnly"], "reviewer");
+    requireValue(typeof recordInput.reviewer.label === "string" && recordInput.reviewer.label.trim() === recordInput.reviewer.label && recordInput.reviewer.label.length > 0 && recordInput.reviewer.label.length <= 36, "unsafe portable review: reviewer label drift");
+    requireValue(recordInput.reviewer.identityAttested === false && recordInput.reviewer.localOnly === true, "unsafe portable review: reviewer boundary drift");
+
+    const expectedBinding = reviewProposalBinding(verified);
+    requireExactKeys(recordInput.proposalBinding, ["envelopeDigest", "proposalKey", "parentReceiptId", "challengeId", "runbackFixtureId"], "review proposal binding");
+    for (const key of Object.keys(expectedBinding)) requireValue(recordInput.proposalBinding[key] === expectedBinding[key], `unsafe portable review: ${key} drift`);
+    requireValue(recordInput.previousReviewDigest === previousDigest, "unsafe portable review: append-only chain drift");
+
+    if (recordInput.decision === "accept_for_blueprint_revision") {
+      requireExactKeys(recordInput.blueprintRevision, [
+        "status", "revisionKey", "parentProposalKey", "agentName", "declaredBase", "harnessStyle", "acceptedDelta", "localOnly", "committed",
+      ], "blueprint revision");
+      const expectedRevision = proposedBlueprintRevision(verified, expectedBinding, expectedSequence);
+      requireValue(canonicalJSON(recordInput.blueprintRevision) === canonicalJSON(expectedRevision), "unsafe portable review: proposed blueprint revision drift");
+    } else {
+      requireValue(recordInput.blueprintRevision === null, "unsafe portable review: non-accept decision created a blueprint revision");
+    }
+
+    requireValue(Array.isArray(recordInput.blockers) && recordInput.blockers.length === PORTABLE_REVIEW_BLOCKERS.length, "unsafe portable review: blockers drift");
+    requireValue(recordInput.blockers.every((blocker, index) => blocker === PORTABLE_REVIEW_BLOCKERS[index]), "unsafe portable review: blockers drift");
+    requireExactKeys(recordInput.attestations, [
+      "identity", "model", "provider", "runtime", "rules", "qualification", "execution", "registry", "ranking", "publication", "spending",
+    ], "review attestations");
+    requireValue(Object.values(recordInput.attestations).every((value) => value === false), "unsafe portable review: attestation must remain false");
+    requireValue(recordInput.boundary === PORTABLE_REVIEW_BOUNDARY, "unsafe portable review: boundary drift");
+    requireValue(HEX64.test(recordInput.reviewDigest), "unsafe portable review: review digest missing");
+    const digestPayload = clone(recordInput);
+    delete digestPayload.reviewDigest;
+    const computedDigest = await sha256Hex(canonicalJSON(digestPayload));
+    requireValue(equalHex(computedDigest, recordInput.reviewDigest), "unsafe portable review: review digest mismatch");
+    return clone(recordInput);
+  }
+
+  async function verifyPortableRunbackReviewJournal(reviewInput, verifiedPortableInput) {
+    requireValue(Array.isArray(reviewInput) && reviewInput.length <= PORTABLE_REVIEW_MAX_RECORDS, "unsafe portable review: journal length rejected");
+    assertSafeKeys(reviewInput, "portable review journal");
+    const verified = await validateVerifiedPortableResult(verifiedPortableInput);
+    const reviews = [];
+    let previousDigest = null;
+    for (let index = 0; index < reviewInput.length; index += 1) {
+      const review = await validatePortableRunbackReview(reviewInput[index], verified, previousDigest, index + 1);
+      reviews.push(review);
+      previousDigest = review.reviewDigest;
+    }
+    return {
+      schemaVersion: PORTABLE_REVIEW_SCHEMA,
+      verificationStatus: "verified_private_local_review_journal",
+      envelopeDigest: verified.payloadDigest,
+      reviewCount: reviews.length,
+      latestReviewDigest: previousDigest,
+      reviews,
+      boundary: PORTABLE_REVIEW_BOUNDARY,
+    };
+  }
+
+  async function appendPortableRunbackReview(verifiedPortableInput, reviewInput, existingReviewInput = []) {
+    assertSafeKeys(reviewInput, "portable review input");
+    requireExactKeys(reviewInput, ["reviewerLabel", "decision", "reasonCode"], "portable review input");
+    requireValue(typeof reviewInput.reviewerLabel === "string" && reviewInput.reviewerLabel.trim() === reviewInput.reviewerLabel && reviewInput.reviewerLabel.length > 0 && reviewInput.reviewerLabel.length <= 36, "unsafe portable review: reviewer label drift");
+    const allowedReasons = PORTABLE_REVIEW_REASONS[reviewInput.decision];
+    requireValue(Array.isArray(allowedReasons), "unsafe portable review: unknown decision");
+    requireValue(allowedReasons.includes(reviewInput.reasonCode), "unsafe portable review: decision reason drift");
+    const verified = await validateVerifiedPortableResult(verifiedPortableInput);
+    const journal = await verifyPortableRunbackReviewJournal(existingReviewInput, verifiedPortableInput);
+    requireValue(journal.reviewCount < PORTABLE_REVIEW_MAX_RECORDS, "unsafe portable review: journal length rejected");
+    const sequence = journal.reviewCount + 1;
+    const proposalBinding = reviewProposalBinding(verified);
+    const record = {
+      schemaVersion: PORTABLE_REVIEW_SCHEMA,
+      reviewVersion: 1,
+      sequence,
+      reviewStatus: "private_local_review",
+      decision: reviewInput.decision,
+      reasonCode: reviewInput.reasonCode,
+      reviewer: { label: reviewInput.reviewerLabel, identityAttested: false, localOnly: true },
+      proposalBinding,
+      previousReviewDigest: journal.latestReviewDigest,
+      blueprintRevision: reviewInput.decision === "accept_for_blueprint_revision" ? proposedBlueprintRevision(verified, proposalBinding, sequence) : null,
+      blockers: [...PORTABLE_REVIEW_BLOCKERS],
+      attestations: {
+        identity: false, model: false, provider: false, runtime: false, rules: false, qualification: false,
+        execution: false, registry: false, ranking: false, publication: false, spending: false,
+      },
+      boundary: PORTABLE_REVIEW_BOUNDARY,
+    };
+    const reviewDigest = await sha256Hex(canonicalJSON(record));
+    const sealed = { ...record, reviewDigest };
+    await verifyPortableRunbackReviewJournal([...journal.reviews, sealed], verifiedPortableInput);
+    return clone(sealed);
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -749,12 +908,16 @@
     LEARNING_SCHEMA,
     PORTABLE_RUNBACK_MAX_LENGTH,
     PORTABLE_RUNBACK_SCHEMA,
+    PORTABLE_REVIEW_MAX_RECORDS,
+    PORTABLE_REVIEW_REASONS,
+    PORTABLE_REVIEW_SCHEMA,
     QUALIFICATION_SCHEMA,
     PREVIEW_RESOURCE_CLASS,
     READ_MODEL_SCHEMA,
     RUNBACK_PROPOSAL_SCHEMA,
     VIEW_SCHEMA,
     adaptArenaReadModel,
+    appendPortableRunbackReview,
     buildQualificationPreview,
     buildReceiptLearningAction,
     buildRunbackProposal,
@@ -765,5 +928,6 @@
     validateDemoFixture,
     validateRunbackProposal,
     verifyPortableRunbackEnvelope,
+    verifyPortableRunbackReviewJournal,
   };
 }));

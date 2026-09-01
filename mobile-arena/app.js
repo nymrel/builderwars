@@ -12,6 +12,11 @@ const state = {
   portableRunback: null,
   portableImportText: "",
   portableVerification: null,
+  portableReviews: [],
+  portableReviewerLabel: "",
+  portableReviewDecision: "accept_for_blueprint_revision",
+  portableReviewReason: "receipt_guided_guard_change",
+  portableReviewMessage: null,
   lastFocus: null,
 };
 
@@ -21,6 +26,18 @@ const VIEW_NAMES = ["arena", "watch", "compete", "learn", "build"];
 const BLUEPRINT_STORAGE_KEY = "builderwars.mobile-arena.blueprint.v1";
 const BLUEPRINT_MAX_LENGTH = 2048;
 const BLUEPRINT_GUARD_KEYS = ["strictValidation", "fallbackDisclosure", "humanCheckpoints"];
+const PORTABLE_REVIEW_DECISION_LABELS = {
+  accept_for_blueprint_revision: "Accept for blueprint revision only",
+  defer: "Defer private review",
+  reject: "Reject private proposal",
+};
+const PORTABLE_REVIEW_REASON_LABELS = {
+  receipt_guided_guard_change: "Receipt-guided guard change",
+  needs_explicit_rules_binding: "Needs explicit rules binding",
+  insufficient_public_evidence: "Insufficient public evidence",
+  duplicate_or_stale_proposal: "Duplicate or stale proposal",
+  unsafe_or_out_of_scope: "Unsafe or out of scope",
+};
 const RECEIPT_ROUTE_ID = /^[A-Za-z0-9_-]{1,80}$/;
 const escapeHTML = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
@@ -173,9 +190,35 @@ function portableVerificationMarkup() {
   return `<div class="portable-status neutral" role="status" tabindex="-1"><strong>Nothing imported</strong><span>Paste an exact canonical envelope to verify its local checksum and still-unplayed contract.</span></div>`;
 }
 
+function resetPortableReviewState({ keepReviewerLabel = false } = {}) {
+  state.portableReviews = [];
+  if (!keepReviewerLabel) state.portableReviewerLabel = "";
+  state.portableReviewDecision = "accept_for_blueprint_revision";
+  state.portableReviewReason = "receipt_guided_guard_change";
+  state.portableReviewMessage = null;
+}
+
+function portableReviewReasonOptions(decision) {
+  const reasons = dataAdapter?.PORTABLE_REVIEW_REASONS?.[decision] || [];
+  return reasons.map((reason) => `<option value="${escapeHTML(reason)}" ${reason === state.portableReviewReason ? "selected" : ""}>${escapeHTML(PORTABLE_REVIEW_REASON_LABELS[reason] || reason)}</option>`).join("");
+}
+
+function portableReviewMarkup() {
+  const verification = state.portableVerification;
+  if (verification?.status !== "verified") return "";
+  const decisionOptions = Object.entries(PORTABLE_REVIEW_DECISION_LABELS).map(([decision, label]) => `<option value="${escapeHTML(decision)}" ${decision === state.portableReviewDecision ? "selected" : ""}>${escapeHTML(label)}</option>`).join("");
+  const journal = state.portableReviews.length
+    ? `<ol class="portable-review-journal" aria-label="Private append-only review journal">${state.portableReviews.map((review) => `<li class="portable-review-record" data-portable-review-record="${review.sequence}" tabindex="-1"><div><span class="mode-label">Review ${review.sequence} · private</span><strong>${escapeHTML(PORTABLE_REVIEW_DECISION_LABELS[review.decision] || review.decision)}</strong><small>${escapeHTML(PORTABLE_REVIEW_REASON_LABELS[review.reasonCode] || review.reasonCode)} · reviewer ${escapeHTML(review.reviewer.label)} (unattested)</small></div><code>${escapeHTML(review.reviewDigest)}</code><span>${review.blueprintRevision ? "Proposed uncommitted blueprint revision · no execution authority" : "No blueprint revision created"}</span></li>`).join("")}</ol>`
+    : `<div class="portable-review-empty"><strong>No private reviews appended.</strong><span>The verified proposal remains unchanged and still unplayed.</span></div>`;
+  const message = state.portableReviewMessage
+    ? `<div class="portable-review-status ${state.portableReviewMessage.status}" role="${state.portableReviewMessage.status === "invalid" ? "alert" : "status"}" tabindex="-1"><strong>${escapeHTML(state.portableReviewMessage.title)}</strong><span>${escapeHTML(state.portableReviewMessage.detail)}</span></div>`
+    : "";
+  return `<section class="portable-review" aria-labelledby="portable-review-title"><div><p class="eyebrow">Private review journal</p><h4 id="portable-review-title">Append a bounded local decision.</h4><p>The reviewer label is not authenticated. Acceptance proposes a local blueprint revision only; it does not approve a runback.</p></div><div class="portable-review-form" role="group" aria-describedby="portable-review-boundary"><label for="portable-reviewer-label">Unattested local reviewer label</label><input id="portable-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.portableReviewerLabel)}" placeholder="Example: local reviewer"><label for="portable-review-decision">Decision</label><select id="portable-review-decision" data-portable-review-decision>${decisionOptions}</select><label for="portable-review-reason">Bounded reason</label><select id="portable-review-reason" data-portable-review-reason>${portableReviewReasonOptions(state.portableReviewDecision)}</select><button class="secondary-button" type="button" data-portable-review-submit>Append private review</button></div>${message}${journal}<div class="learning-boundary" id="portable-review-boundary">Append-only means prior local records are hash-linked and cannot be edited in place. The chain is not a signature and grants no rules, qualification, runner, registry, ranking, publication, or spending authority.</div></section>`;
+}
+
 function portableRunbackMarkup({ canPrepare = false } = {}) {
   const portable = state.portableRunback;
-  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
+  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}${portableReviewMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
 }
 
 function renderReceiptLearning() {
@@ -397,6 +440,7 @@ function prepareReceiptLearning(receiptId) {
     state.portableRunback = null;
     state.portableImportText = "";
     state.portableVerification = null;
+    resetPortableReviewState();
     renderReceiptLearning();
     return true;
   } catch {
@@ -411,6 +455,7 @@ function prepareRunbackProposal(deltaId) {
     state.portableRunback = null;
     state.portableImportText = "";
     state.portableVerification = null;
+    resetPortableReviewState();
     renderReceiptLearning();
     return true;
   } catch {
@@ -423,11 +468,13 @@ async function preparePortableRunback() {
   try {
     state.portableRunback = await dataAdapter.createPortableRunbackEnvelope(state.runbackProposal);
     state.portableVerification = null;
+    resetPortableReviewState({ keepReviewerLabel: true });
     renderReceiptLearning();
     return true;
   } catch {
     state.portableRunback = null;
     state.portableVerification = { status: "invalid", message: "The current proposal failed strict portable validation." };
+    resetPortableReviewState({ keepReviewerLabel: true });
     renderReceiptLearning();
     return false;
   }
@@ -436,12 +483,46 @@ async function preparePortableRunback() {
 async function verifyPortableRunback(serializedInput) {
   state.portableImportText = String(serializedInput || "").slice(0, dataAdapter?.PORTABLE_RUNBACK_MAX_LENGTH || 32768);
   try {
+    const priorDigest = state.portableVerification?.status === "verified" ? state.portableVerification.result.payloadDigest : null;
     const result = await dataAdapter.verifyPortableRunbackEnvelope(serializedInput);
+    if (priorDigest !== result.payloadDigest) resetPortableReviewState({ keepReviewerLabel: true });
     state.portableVerification = { status: "verified", result };
     renderReceiptLearning();
     return true;
   } catch (error) {
     state.portableVerification = { status: "invalid", message: error?.message || "Portable proposal validation failed." };
+    resetPortableReviewState({ keepReviewerLabel: true });
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function appendPortableReview() {
+  const verification = state.portableVerification;
+  if (verification?.status !== "verified" || !dataAdapter?.appendPortableRunbackReview) return false;
+  try {
+    const review = await dataAdapter.appendPortableRunbackReview(verification.result, {
+      reviewerLabel: state.portableReviewerLabel.trim(),
+      decision: state.portableReviewDecision,
+      reasonCode: state.portableReviewReason,
+    }, state.portableReviews);
+    state.portableReviews = [...state.portableReviews, review];
+    state.portableReviewerLabel = state.portableReviewerLabel.trim();
+    state.portableReviewMessage = {
+      status: "verified",
+      title: `Private review ${review.sequence} appended`,
+      detail: review.blueprintRevision
+        ? "A proposed uncommitted blueprint revision was created. Qualification and execution remain disabled."
+        : "No blueprint revision was created. The proposal remains still unplayed.",
+    };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.portableReviewMessage = {
+      status: "invalid",
+      title: "Private review refused",
+      detail: error?.message || "The review record failed strict local validation.",
+    };
     renderReceiptLearning();
     return false;
   }
@@ -634,6 +715,14 @@ function bindEvents() {
         : "Import refused. No proposal was adopted, executed, or published.");
       return;
     }
+    if (event.target.closest("[data-portable-review-submit]")) {
+      const appended = await appendPortableReview();
+      $(appended ? `[data-portable-review-record="${state.portableReviews.length}"]` : ".portable-review-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(appended
+        ? "Private review appended. Any blueprint revision remains proposed, uncommitted, and unplayed."
+        : "Private review refused. No proposal, blueprint, or authority changed.");
+      return;
+    }
     if (event.target.closest("[data-runback-blueprint]")) {
       showView("build");
       $("#agent-name").focus();
@@ -665,6 +754,29 @@ function bindEvents() {
         $("#lesson-focus h2").textContent = row.title;
         $("#lesson-focus p:not(.eyebrow)").textContent = `${row.level} lab · ${row.duration}. Progress is stored only in this demo fixture.`;
       }
+    }
+  });
+
+  document.addEventListener("input", (event) => {
+    if (event.target.matches("#portable-reviewer-label")) {
+      state.portableReviewerLabel = event.target.value.slice(0, 36);
+      state.portableReviewMessage = null;
+    }
+  });
+  document.addEventListener("change", (event) => {
+    if (event.target.matches("[data-portable-review-decision]")) {
+      const decision = event.target.value;
+      const reasons = dataAdapter?.PORTABLE_REVIEW_REASONS?.[decision] || [];
+      state.portableReviewDecision = decision;
+      state.portableReviewReason = reasons[0] || "";
+      const reasonSelect = $("[data-portable-review-reason]");
+      if (reasonSelect) reasonSelect.innerHTML = portableReviewReasonOptions(decision);
+      state.portableReviewMessage = null;
+      return;
+    }
+    if (event.target.matches("[data-portable-review-reason]")) {
+      state.portableReviewReason = event.target.value;
+      state.portableReviewMessage = null;
     }
   });
 

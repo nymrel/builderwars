@@ -361,16 +361,40 @@ activation. The adversarial checker exercises 100 assertions across valid,
 tampered, malformed, oversized, noncanonical, unknown-field, lineage-drift,
 rules-drift, blocker-drift, and attestation-drift cases.
 
+### Private append-only portable proposal reviews
+
+Only a successfully verified portable proposal can enter the local review
+journal. `builderwars.mobile-runback-review.v1` binds the verified envelope
+digest, proposal key, parent receipt, challenge, and runback fixture to one
+unattested local reviewer label, one bounded decision, and one compatible reason
+code. The only decisions are `accept_for_blueprint_revision`, `defer`, and
+`reject`. Each record carries a deterministic sequence, the prior review digest,
+an independently recomputable SHA-256 digest, seven unchanged blockers, and
+false attestations for identity, model, provider, runtime, rules, qualification,
+execution, registry, ranking, publication, and spending.
+
+Acceptance creates `proposed_uncommitted_revision` with the exact reviewed
+blueprint declaration and exact bounded delta. It remains local, uncommitted,
+unqualified, and unplayed. Defer and reject cannot create any blueprint
+revision. Every append first re-verifies the full existing journal and the
+original verified proposal, so an edited prior record, reordered sequence,
+foreign envelope, decision/reason mismatch, proposal-binding drift, blocker
+drift, false-to-true attestation, or digest mismatch fails closed. The journal
+is capped at 64 records, stored only in page memory, and cleared on a different
+or invalid import. Its hash chain is integrity evidence, not reviewer identity
+or approval authority. The independent checker exercises 132 assertions.
+
 ### Exact next bounded campaign
 
-Add a deterministic local review-receipt candidate for a verified portable
-proposal. It should bind the envelope digest, an unattested local reviewer
-label, one `accept_for_blueprint_revision`, `defer`, or `reject` decision, and a
-bounded reason code into an append-only, still-private object. Acceptance may
-produce a proposed blueprint revision only; it must not bind missing rules,
-qualify, execute, register, rank, publish, or spend. Auth, network writes,
-creator code execution, provider use, public activation, and the protected
-private-alpha API binding remain operator-gated campaigns.
+Add canonical export and independent import verification for the bounded review
+journal. The packet should carry the original verified portable envelope and
+its exact append-only review records under a strict size cap, then independently
+recompute both proposal and review-chain digests from an empty Receipt Lab.
+Import must remain inspection-only: no reviewer identity claim, blueprint
+application, rules binding, qualification, execution, registry mutation,
+ranking, publication, or spending. Auth, network writes, creator code execution,
+provider use, public activation, and the protected private-alpha API binding
+remain operator-gated campaigns.
 
 ## Review status
 

@@ -26,8 +26,13 @@ runback proposal. The proposal can be exported as canonical JSON and imported
 independently from an empty Receipt Lab for strict local schema and SHA-256
 integrity verification. That checksum is
 not a signature or origin claim, and import never adopts, qualifies, executes,
-ranks, publishes, or spends. The shell performs no provider call, inference,
-account action, publication, or deployment.
+ranks, publishes, or spends. A verified import can receive a bounded,
+append-only private review decision whose reviewer label remains unattested.
+Only `accept_for_blueprint_revision` creates a proposed, uncommitted local
+blueprint revision; defer and reject create none. Every review stays hash-linked
+in memory and leaves rules, qualification, execution, registry, ranking,
+publication, and spending authority absent. The shell performs no provider
+call, inference, account action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -36,6 +41,7 @@ python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_portable_runback.py
+python bin\check_mobile_arena_portable_review.py
 python bin\check_mobile_arena_exchange.py
 ```
 
