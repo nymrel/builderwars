@@ -150,13 +150,14 @@ STAGES: tuple[StageDefinition, ...] = (
     StageDefinition(
         10,
         "launch_contracts_and_rollback_plan",
-        "Launch, measurement, performance, observability, incident, rollback, retention, and truth-boundary contracts",
+        "Launch, measurement, performance, observability, incident, rollback, retention, tester-readiness, and truth-boundary contracts",
         "local_executable",
         commands=(
             (PYTHON, "bin/check_agentwars_measurement.py"),
             (PYTHON, "bin/check_mobile_arena_performance_budget.py"),
             (PYTHON, "bin/check_agentwars_observability.py"),
             (PYTHON, "bin/check_agentwars_retention_recovery.py"),
+            (PYTHON, "bin/check_agentwars_tester_readiness.py"),
         ),
         evidence_files=(
             "docs/BUILDERWARS_COM_DOMAIN_CUTOVER_CONTRACT.md",
@@ -166,9 +167,10 @@ STAGES: tuple[StageDefinition, ...] = (
             "docs/AGENTWARS_PERFORMANCE_BUDGET.md",
             "docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md",
             "docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md",
+            "docs/AGENTWARS_TESTER_CEREMONY.md",
             "docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md",
         ),
-        not_proven=("production deletion and backup/restore", "production rollback rehearsal", "production telemetry and alert delivery", "production performance", "staffed support response", "legal approval"),
+        not_proven=("consented human tester and feedback", "production deletion and backup/restore", "production rollback rehearsal", "production telemetry and alert delivery", "production performance", "staffed support response", "legal approval"),
     ),
     StageDefinition(
         11,

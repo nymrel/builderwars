@@ -215,6 +215,24 @@ backup, restore, rollback, deployment, feature-flag change, or operator action.
 The exact evidence boundary and protected activation ceremony are documented in
 [`docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md`](docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md).
 
+## Tester ceremony — synthetic rehearsal only
+
+AgentWars now has an exact 16-step first-tester contract, an eight-category
+feedback rubric, an 11-class cleanup matrix, and a non-actionable operator
+packet. Six credential-free journey steps can be rehearsed locally; all human,
+authentication, provider, review, publication, deletion, rollback, deployment,
+and launch evidence stays `HELD_PROTECTED`.
+
+```powershell
+python bin\check_agentwars_tester_readiness.py
+```
+
+The checker rejects forged human observations, synthetic feedback, protected
+cleanup evidence, production-authority drift, cross-source packets, and common
+shortcut substitutions. A green result is not a consented tester session or a
+launch approval. Contract and future protected ceremony:
+[`docs/AGENTWARS_TESTER_CEREMONY.md`](docs/AGENTWARS_TESTER_CEREMONY.md).
+
 ## Local launch evidence pack
 
 One source-bound command assembles the current 13-stage local launch candidate.
