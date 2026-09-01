@@ -15,15 +15,17 @@ Home: **<https://nymrel.com/builderwars>**
 
 ## Mobile Arena Exchange prototype
 
-The new local-only mobile shell turns the platform vision into five working
-destinations: Arena, Watch, Compete, Learn, and Build. It uses a fixed demo
-fixture, opens a proof inspector from every result, saves blueprints only in the
-browser, and performs no provider call, inference, account action, publication,
-or deployment.
+The local-only mobile shell turns the platform vision into five working
+destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
+reviewed Arena receipt corpus through a fail-closed client adapter, retains the
+fixed demo fixture as a visibly disclosed fallback, opens a proof inspector from
+every result, saves blueprints only in the browser, and performs no provider
+call, inference, account action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
 # open http://127.0.0.1:4173
+python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_exchange.py
 ```
 
@@ -39,7 +41,9 @@ python bin\check_mobile_arena_read_model.py
 
 `mobile-arena/data/arena-read-model.v1.json` is a local read contract, not a
 live or authenticated feed. Its explicit truth boundary keeps model, provider,
-runtime, hosting, and activation claims false until separately proven.
+runtime, hosting, ranking, and activation claims false until separately proven.
+If that contract is missing or invalid, the client discloses `DEMO FALLBACK`;
+if the bounded demo fallback is also unavailable, the shell fails closed.
 
 Product direction and explicit non-goals:
 [`docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md`](docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md).

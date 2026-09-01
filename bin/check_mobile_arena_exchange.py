@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed local checks for the BuilderWars mobile Arena Exchange demo."""
+"""Fail-closed local checks for the BuilderWars mobile Arena Exchange."""
 
 from __future__ import annotations
 
@@ -16,10 +16,12 @@ EXPECTED = {
     "index.html",
     "styles.css",
     "app.js",
+    "data-adapter.js",
     "manifest.webmanifest",
     "sw.js",
     "assets/arena-mark.svg",
     "data/demo-state.json",
+    "data/arena-read-model.v1.json",
 }
 
 
@@ -45,21 +47,31 @@ def main() -> int:
     html = read("index.html")
     css = read("styles.css")
     js = read("app.js")
+    adapter = read("data-adapter.js")
     sw = read("sw.js")
     webmanifest = json.loads(read("manifest.webmanifest"))
     fixture = json.loads(read("data/demo-state.json"))
+    read_model = json.loads(read("data/arena-read-model.v1.json"))
 
     print("[2] demo truth boundary is explicit and machine-readable")
     require(fixture.get("schemaVersion") == "builderwars.mobile-arena-demo.v1", "fixture schema drift")
     require(fixture.get("demoOnly") is True, "fixture must stay demo-only")
     require(fixture.get("sourceStatus") == "local_fixture_not_live", "fixture cannot imply live state")
-    require('data-demo-only="true"' in html and "LOCAL DEMO" in html, "visible demo boundary missing")
+    require('data-local-only="true"' in html and 'id="source-badge"' in html, "visible local-source boundary missing")
     require("No provider is connected" in html, "provider boundary missing")
     require(fixture["featured"]["proof"]["modelAttested"] is False, "model attestation must stay false")
     require(fixture["featured"]["proof"]["providerAttested"] is False, "provider attestation must stay false")
     require(fixture["featured"]["proof"]["runtimeAttested"] is False, "runtime attestation must stay false")
     require(fixture["featured"]["proof"]["registryState"] == "pending_registry_commit", "registry must remain pending")
     checks += 9
+
+    require(read_model.get("schemaVersion") == "builderwars.arena-read-model.v1", "read-model schema drift")
+    require(read_model.get("source", {}).get("status") == "tracked_local_publication_artifact_not_hosted", "read-model source boundary drift")
+    require(read_model.get("summary", {}).get("receiptCount") == len(read_model.get("receipts", [])) == 8, "reviewed receipt count drift")
+    for boundary in ("live", "hosted", "authenticated", "modelAttested", "providerAttested", "runtimeAttested"):
+        require(read_model.get("truthBoundary", {}).get(boundary) is False, f"read-model {boundary} boundary drift")
+        checks += 1
+    checks += 3
 
     print("[3] five mobile destinations and proof inspector are wired")
     for destination in ("arena", "watch", "compete", "learn", "build"):
@@ -71,18 +83,20 @@ def main() -> int:
         checks += 1
 
     print("[4] local-only network and execution boundary")
-    combined = "\n".join((html, css, js, sw, json.dumps(fixture), json.dumps(webmanifest)))
+    combined = "\n".join((html, css, js, adapter, sw, json.dumps(fixture), json.dumps(read_model), json.dumps(webmanifest)))
     require(re.search(r"https?://", combined, re.IGNORECASE) is None, "mobile shell contains an external URL")
     for forbidden in ("eval(", "new Function", "WebSocket(", "EventSource(", "postMessage(", "document.cookie", "Authorization", "Bearer "):
         require(forbidden not in combined, f"forbidden active capability: {forbidden}")
         checks += 1
-    require('fetch("data/demo-state.json"' in js, "app must load the bounded local fixture")
+    require("dataAdapter.loadArenaData(fetch)" in js, "app must load sources through the fail-closed adapter")
+    require('"data/demo-state.json"' in adapter and '"data/arena-read-model.v1.json"' in adapter, "adapter must load only the two bounded local sources")
+    require('sourceMode = "verified_corpus"' in adapter and 'sourceMode = "demo_fixture_fallback"' in adapter, "adapter source modes must remain explicit")
     require("requestURL.origin !== self.location.origin" in sw, "service worker must reject cross-origin caching")
     require("localStorage.setItem" in js and "localStorage.getItem" in js, "local blueprint persistence missing")
     require("BLUEPRINT_MAX_LENGTH = 2048" in js and "raw.length > BLUEPRINT_MAX_LENGTH" in js and "never executed" in html, "local blueprint boundary missing")
     require("for (const key of BLUEPRINT_GUARD_KEYS)" in js, "saved blueprint guards must hydrate from the bounded key list")
     require("localStorage.removeItem(BLUEPRINT_STORAGE_KEY)" in js, "invalid local blueprint state must be discarded")
-    checks += 5
+    checks += 7
     checks += 2
 
     print("[5] accessibility, offline, and reduced-motion contracts")
@@ -93,7 +107,7 @@ def main() -> int:
         'role="status"',
         "prefers-reduced-motion",
         "serviceWorker",
-        "Demo unavailable",
+        "Arena unavailable",
     ):
         require(marker in combined, f"missing product-quality marker: {marker}")
         checks += 1
@@ -136,22 +150,38 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=6", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=7", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=6",
-        "./styles.css?v=6",
-        "./app.js?v=6",
+        "./index.html?v=7",
+        "./styles.css?v=7",
+        "./data-adapter.js?v=7",
+        "./app.js?v=7",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
+        "./data/arena-read-model.v1.json",
     ):
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=6"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=7"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
+    checks += 2
+
+    adapter_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_read_adapter.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(adapter_check.returncode == 0, f"read-adapter regression failed: {adapter_check.stderr.strip()}")
+    require("PASS" in adapter_check.stdout, "read-adapter regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")
@@ -169,7 +199,7 @@ def main() -> int:
         checks += 1
 
     print(f"BuilderWars mobile Arena Exchange: PASS ({checks} checks)")
-    print("local fixture / five-tab shell / proof inspector / no provider or publication authority")
+    print("verified corpus / disclosed demo fallback / five-tab shell / no provider or publication authority")
     return 0
 
 

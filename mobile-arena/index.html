@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#090b0a">
-  <meta name="description" content="BuilderWars local mobile Arena Exchange demo. No live providers, accounts, inference, rankings, or publication.">
-  <title>BuilderWars — Mobile Arena Demo</title>
+  <meta name="description" content="BuilderWars local mobile Arena Exchange with reviewed competition receipts and a bounded demo fallback. No live providers, accounts, inference, rankings, or publication.">
+  <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
-<body data-demo-only="true">
+<body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
   <div class="app-shell" id="app-shell">
     <header class="topbar" aria-label="BuilderWars header">
@@ -19,7 +19,7 @@
         <span>BuilderWars</span>
       </a>
       <div class="topbar-actions">
-        <span class="demo-badge" title="All activity is a local fixture">LOCAL DEMO</span>
+        <span class="demo-badge" id="source-badge" title="Loading bounded local sources">LOCAL DATA</span>
         <button class="icon-button" id="notifications-button" type="button" aria-label="Open demo automations" aria-controls="automations-sheet">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
         </button>
@@ -32,9 +32,9 @@
       <div class="watch-scroll" id="watchlist" role="list" aria-live="polite"></div>
     </section>
 
-    <div class="connection-strip" id="connection-status" role="status" aria-live="polite" data-state="loading" aria-label="Loading the local demo fixture. No provider is connected.">
+    <div class="connection-strip" id="connection-status" role="status" aria-live="polite" data-state="loading" aria-label="Loading local Arena sources. No provider is connected.">
       <span class="connection-dot" aria-hidden="true"></span>
-      <span id="connection-copy">Loading local fixture</span>
+      <span id="connection-copy">Loading local sources</span>
       <span class="connection-boundary">No provider link</span>
     </div>
 
@@ -52,7 +52,7 @@
           <section class="tape-panel" aria-labelledby="tape-title">
             <div class="panel-heading">
               <h2 id="tape-title">Now</h2>
-              <span class="source-label">simulated fixture</span>
+              <span class="source-label" id="tape-source-label">local source</span>
             </div>
             <div class="tape" id="tape"></div>
           </section>
@@ -66,11 +66,11 @@
         </div>
         <div class="watch-layout">
           <section aria-labelledby="channels-title">
-            <div class="panel-heading"><h2 id="channels-title">Channels</h2><span class="source-label">demo audiences</span></div>
+            <div class="panel-heading"><h2 id="channels-title">Channels</h2><span class="source-label" id="channels-source-label">local source</span></div>
             <div class="channel-list" id="channels"></div>
           </section>
           <section aria-labelledby="standings-title">
-            <div class="panel-heading"><h2 id="standings-title">Harness board</h2><button class="text-button" type="button" data-proof-open="featured">How ranking works</button></div>
+            <div class="panel-heading"><h2 id="standings-title">Harness board</h2><button class="text-button" id="standings-help" type="button" data-proof-open="featured">How ranking works</button></div>
             <div class="leaderboard" id="leaderboard"></div>
           </section>
         </div>
@@ -83,7 +83,7 @@
         </div>
         <div class="compete-layout">
           <section aria-labelledby="quick-title">
-            <div class="panel-heading"><h2 id="quick-title">Quick matches</h2><span class="source-label">unranked demo</span></div>
+            <div class="panel-heading"><h2 id="quick-title">Quick matches</h2><span class="source-label" id="quick-source-label">local source</span></div>
             <div class="quick-list" id="quick-matches"></div>
           </section>
           <section class="lab-console" aria-labelledby="model-lab-title">
@@ -105,7 +105,7 @@
             <p class="eyebrow">Current lab</p>
             <h2>Catch silent fallbacks</h2>
             <p>A replay can be valid while the model never answered. Learn to read source counts before trusting the story.</p>
-            <button class="primary-button" type="button" data-proof-open="featured">Inspect the demo receipt</button>
+            <button class="primary-button" id="learn-proof-button" type="button" data-proof-open="featured">Inspect a local receipt</button>
           </aside>
         </div>
       </section>
@@ -168,7 +168,8 @@
     <p class="fine-print">These toggles update local demo state only. No background job or notification service is active.</p>
   </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-  <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript for this local interactive demo.</p></noscript>
-  <script src="app.js?v=6" defer></script>
+  <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
+  <script src="data-adapter.js?v=7" defer></script>
+  <script src="app.js?v=7" defer></script>
 </body>
 </html>

@@ -266,19 +266,45 @@ keeps `live`, `hosted`, `authenticated`, model-attested, provider-attested, and
 runtime-attested state false.
 
 The checker mutates source digests, proof verdicts, allowlists, evidence labels,
-and generated output to prove the compiler fails closed. This is local read-path
-evidence only; the current mobile shell still renders its fixed demo fixture and
-does not call a live API.
+and generated output to prove the compiler fails closed. This remains local
+read-path evidence only and does not prove a live API, hosted service,
+authenticated user journey, or activated competition.
+
+### Verified-corpus client adapter
+
+The mobile shell now treats the compiled read model as its primary competitive
+source and the original fixture as a visibly disclosed fallback. The adapter:
+
+1. validates the read-model schema, digest shape, source policy, receipt count,
+   PASS replay/engine/snapshot predicates, allowlist status, content-derived
+   harness versions, evidence counts, and false attestation flags;
+2. renders receipt-backed Arena tape, channels, proof inspection, and an
+   alphabetic receipt board that explicitly says it is not a ranking;
+3. omits invented viewers, rating deltas, live credits, stream clocks, and
+   enabled queues;
+4. keeps every proposed future fixture disabled and visibly unactivated;
+5. falls back to the bounded demo only when the verified corpus is missing or
+   invalid, and fails closed if that fallback cannot load; and
+6. caches both bounded local sources for offline inspection without adding any
+   cross-origin capability.
+
+```powershell
+python bin\check_mobile_arena_read_adapter.py
+python bin\check_mobile_arena_exchange.py
+```
+
+These checks and the browser acceptance pass are local product evidence only.
+They do not prove hosting, auth, providers, real users, rankings, competition
+activation, or publication.
 
 ### Exact next bounded campaign
 
-Add a client-side source adapter that can render the compiled read model in
-Arena, Watch, and the proof inspector while retaining the existing demo fixture
-as an explicit offline fallback. The adapter must keep source status visible,
-must not fabricate stream timing or engagement, and must introduce no auth,
-network write, provider use, public activation, or spend. Only after that local
-adapter passes mobile, accessibility, history, persistence, offline, and error
-checks should the protected private-alpha API binding begin.
+Add receipt-addressable navigation and a deterministic local qualification
+preview so a tester can open a specific reviewed receipt, inspect its complete
+proof boundary, choose a proposed fixture, and understand why execution remains
+disabled. Preserve browser history, offline behavior, and local-only state; do
+not add auth, network writes, provider use, public activation, or spend. The
+protected private-alpha API binding remains a later operator-gated campaign.
 
 ## Review status
 

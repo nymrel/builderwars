@@ -1,14 +1,16 @@
 "use strict";
 
-const CACHE_NAME = "builderwars-mobile-arena-demo-v6";
-const NAVIGATION_FALLBACK = "./index.html?v=6";
+const CACHE_NAME = "builderwars-mobile-arena-v7";
+const NAVIGATION_FALLBACK = "./index.html?v=7";
 const LOCAL_ASSETS = [
   NAVIGATION_FALLBACK,
-  "./styles.css?v=6",
-  "./app.js?v=6",
+  "./styles.css?v=7",
+  "./data-adapter.js?v=7",
+  "./app.js?v=7",
   "./manifest.webmanifest",
   "./assets/arena-mark.svg",
-  "./data/demo-state.json"
+  "./data/demo-state.json",
+  "./data/arena-read-model.v1.json"
 ];
 
 self.addEventListener("install", (event) => {
