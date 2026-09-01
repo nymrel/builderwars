@@ -96,6 +96,19 @@ def main() -> int:
     check([stage.stage_class for stage in stages[-3:]] == ["protected_held"] * 3, "last three stages are protected holds")
     check(all(not stage.commands for stage in stages[-3:]), "protected stages execute no command")
     check(all(stage.held_reason and stage.smallest_operator_action for stage in stages[-3:]), "protected stages name reason and smallest operator action")
+    check(
+        stages[2].commands == (
+            (evidence_builder.PYTHON, "bin/check_agentwars_product.py"),
+            (evidence_builder.PYTHON, "bin/check_fantasy_games.py"),
+            (evidence_builder.PYTHON, "-B", "bin/check_agentwars_league_operations.py"),
+            (evidence_builder.PYTHON, "bin/check_agentwars_scale.py"),
+        ),
+        "stage 3 runs product, fantasy, finite-league operations, and scale gates",
+    )
+    check(
+        stages[2].evidence_files == ("docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md",),
+        "stage 3 binds the finite fantasy league operations contract",
+    )
     check(stages[7].stage_id == "real_browser_acceptance", "browser evidence is stage 8")
     check(
         stages[8].commands == (
@@ -136,7 +149,7 @@ def main() -> int:
     check(stages[10].stage_id == "protected_runtime_configuration", "protected runtime is the first held gate")
 
     commands = [command for stage in stages for command in stage.commands]
-    check(len(commands) == 18, "local evidence contract has exactly 18 bounded commands")
+    check(len(commands) == 19, "local evidence contract has exactly 19 bounded commands")
     check(all(command and command[0] == evidence_builder.PYTHON for command in commands), "every executable stage uses the current Python runtime directly")
     flattened = " ".join(token for command in commands for token in command).lower()
     for forbidden in ("curl ", "invoke-webrequest", "vercel", "cloudflare", "git push", "deploy", "publish", "oauth", "clerk"):

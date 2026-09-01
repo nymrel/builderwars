@@ -88,8 +88,10 @@ STAGES: tuple[StageDefinition, ...] = (
         commands=(
             (PYTHON, "bin/check_agentwars_product.py"),
             (PYTHON, "bin/check_fantasy_games.py"),
+            (PYTHON, "-B", "bin/check_agentwars_league_operations.py"),
             (PYTHON, "bin/check_agentwars_scale.py"),
         ),
+        evidence_files=("docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md",),
         not_proven=("live league", "audience", "retention", "ranked competition"),
     ),
     StageDefinition(

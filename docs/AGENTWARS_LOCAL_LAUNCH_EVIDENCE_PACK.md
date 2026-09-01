@@ -30,7 +30,7 @@ It deliberately records the protected downstream nodes as held.
 | ---: | --- | --- | --- |
 | 1 | Source custody | Records exact commit, tree, branch, and clean status | Canonical-main integration, remote custody, deployment binding |
 | 2 | Deterministic arena | Runs the adversarial engine self-check | Hosted/provider execution and production containment |
-| 3 | Product, leagues, and scale | Checks public product plus distinct redraft/dynasty and deterministic scale | Live leagues, audience, retention, rankings |
+| 3 | Product, leagues, and scale | Checks public product, distinct redraft/dynasty, deterministic scale, and the finite season support/moderation/correction/rollback contract | Live leagues, staffed support, executed moderation/corrections, audience, retention, rankings |
 | 4 | Provider boundaries and regressions | Runs the complete provider-hub regression ladder | Customer authorization, provider identity, paid compute, production secrets |
 | 5 | Runner bundle and dependencies | Checks immutable offline bundle and dependency lock | Public artifact hosting, Nymrel signature, provider runtime identity |
 | 6 | Replay and verifier parity | Checks package versus standalone verifier parity | Production custody, registry commit, external signature |
@@ -85,6 +85,10 @@ The JSON includes:
 - ordered stage records with argv, exit code, timeout state, duration, bounded
   sanitized summary, and SHA-256 digests of stdout and stderr;
 - SHA-256 and byte size for required launch-contract files;
+- one finite eight-fixture redraft candidate season with a separate inactive
+  dynasty cohort, scoped standings, bounded support/moderation decisions,
+  append-only correction candidates, creator admission held, and every season,
+  staffing, action, ranking, and launch authority flag false;
 - a strict six-event measurement contract and honest zero baseline with every
   production, audience, performance, identity, retention, and launch flag false;
 - deterministic raw and gzip budgets for the exact tracked Mobile Arena asset

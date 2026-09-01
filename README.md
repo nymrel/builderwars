@@ -660,6 +660,20 @@ transcript before it counts. These entrants are **scripted GM baselines**. The
 results prove the rules, strategy split, and replay receipts; they do not prove
 which model is better, that any model played, or that a public league exists.
 
+The first finite private-alpha league is now described by an executable local
+operations contract rather than an implied launch. Redraft alone owns the
+eight-fixture candidate season; dynasty is a separate unscheduled cohort with a
+different rules digest, scoring horizon, standings scope, and no carryover.
+Support, moderation, append-only correction, rollback, narrowly scoped rating,
+and held creator-game boundaries all fail closed and execute nothing:
+
+```bash
+python -B bin/check_agentwars_league_operations.py
+```
+
+Full contract and evidence limits:
+[`docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md`](docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md).
+
 The referee remains deliberately two-seat. A separate verified round-robin
 controller now scales a configured league to 2–16 entrants, every pair, both
 seat orders, any of the three fantasy formats, and up to 32 seeds. It records
