@@ -539,14 +539,46 @@ assertions, including fixed mappings, all current-value states, swapped packet
 roles, nested ancestry tampering, dangerous keys, excessive depth or nodes, and
 oversized input.
 
+### Deterministic private guard-proposal review
+
+`builderwars.mobile-private-inspection-blueprint-delta-review.v1` embeds one
+canonical guard proposal and exactly one immutable private local review. Import
+independently reverifies the guard proposal and its full learning, comparison,
+correction, review, and parent-proposal ancestry before accepting the review.
+The reviewer label is local and explicitly identity-unattested.
+
+The decision allowlist is closed to `accept_for_revision`, `defer`, and
+`reject`. Each decision has fixed compatible reason codes. Unknown decisions,
+cross-decision reasons, user-supplied candidate fields, or changed source
+bindings fail closed. The review binds the guard proposal packet and key,
+learning and comparison packets, parent proposal, selected lesson review, guard
+identifier, and both correction packets.
+
+Only `accept_for_revision` creates a
+`proposed_uncommitted_local_revision_candidate`. That candidate preserves the
+exact allowlisted guard delta and parent bindings while forcing `localOnly:
+true`, `committed: false`, `adopted: false`, and `played: false`. Defer and
+reject create no candidate. None of the three decisions authenticates a
+reviewer, declares correctness, creates consensus or approval, awards progress,
+adopts or edits a blueprint, binds rules, qualifies, plays, executes, registers,
+ranks, publishes, spends, or calls a provider.
+
+Canonical import is atomic and memory-only. The dedicated checker exercises
+152 adversarial assertions, including every allowed decision/reason pair,
+candidate suppression for defer and reject, exact proposal and ancestry
+bindings, all-false authority, nested proposal tampering, outer and review
+digest resealing attacks, dangerous keys, excessive depth or nodes, and
+oversized input.
+
 ### Exact next bounded campaign
 
-Add a deterministic private guard-proposal review receipt that accepts one
-verified inspection-to-blueprint proposal and appends one immutable
-accept-for-revision, defer, or reject decision from fixed reason codes.
-Acceptance may create only a proposed, uncommitted local revision candidate;
-it must not adopt the guard, mutate the parent, award progress, bind rules,
-qualify, play, execute, register, rank, publish, spend, or call a provider.
+Add a deterministic versioned local blueprint-revision draft receipt that
+accepts only a verified `accept_for_revision` review. It may copy the bound
+parent blueprint and apply exactly the reviewed allowlisted guard into a new
+local draft, but must remain uncommitted, unadopted, unqualified, and unplayed.
+Defer or reject reviews must fail closed, and no review or draft may mutate the
+parent, award progress, bind rules, execute, register, rank, publish, spend, or
+call a provider.
 Auth, network writes, creator code execution, provider use, public activation,
 and the protected private-alpha API binding remain operator-gated campaigns.
 

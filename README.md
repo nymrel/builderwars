@@ -57,8 +57,11 @@ proposal. The fixed mapping offers strict validation, fallback disclosure, or a
 human checkpoint; it binds the parent proposal and every source digest, reports
 whether the parent carried the current guard value, and remains uncommitted,
 unplayed, unqualified, unexecuted, and unpublished with every authority flag
-false. The shell performs no provider call, inference, account action,
-publication, or deployment.
+false. One proposal can now be wrapped in a deterministic immutable private
+review receipt with accept-for-revision, defer, or reject decisions from fixed
+reason codes. Only acceptance creates a local revision candidate, and that
+candidate remains uncommitted, unadopted, and unplayed. The shell performs no
+provider call, inference, account action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -73,6 +76,7 @@ python bin\check_mobile_arena_portable_review_correction.py
 python bin\check_mobile_arena_private_review_comparison.py
 python bin\check_mobile_arena_private_review_learning.py
 python bin\check_mobile_arena_private_blueprint_delta.py
+python bin\check_mobile_arena_private_blueprint_delta_review.py
 python bin\check_mobile_arena_exchange.py
 ```
 
