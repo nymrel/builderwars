@@ -28,7 +28,12 @@ runback, and packages that complete local lineage as a canonical private proof
 share. A fresh browser can resolve the embedded receipt, replay, learning, and
 runback from the share alone; the `builderwars-local-proof://` locator is not a
 public URL, signature, identity, model, provider, registry, ranking, or publication
-claim. Separately, a reviewed proof can become a still-unplayed runback proposal.
+claim. Every reviewed receipt also offers an optional browser-memory spectator
+rehearsal with four explicit states: choose a side or runback, reveal the
+already-existing result, verify the exact receipt binding, then enter the
+receipt-linked learning path toward a still-unplayed runback. Its choice digest
+is not timestamped, collected, graded, counted, ranked, published, or presented
+as a prediction. Separately, a reviewed proof can become a still-unplayed runback proposal.
 That proposal can be exported as canonical JSON and imported
 independently from an empty Receipt Lab for strict local schema and SHA-256
 integrity verification. That checksum is
@@ -105,6 +110,7 @@ python -m http.server 4173 --directory mobile-arena
 python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_local_exhibition.py
+python bin\check_mobile_arena_spectator_rehearsal.py
 python bin\check_mobile_arena_learning_runback.py
 python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_portable_review.py

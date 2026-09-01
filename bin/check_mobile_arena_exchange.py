@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "30"
+EXPECTED_SHELL_VERSION = "31"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -441,6 +441,20 @@ def main() -> int:
     )
     require(local_exhibition_check.returncode == 0, f"local exhibition regression failed: {local_exhibition_check.stderr.strip()}")
     require("PASS" in local_exhibition_check.stdout, "local exhibition regression did not report PASS")
+    checks += 2
+
+    spectator_rehearsal_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_spectator_rehearsal.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(spectator_rehearsal_check.returncode == 0, f"spectator rehearsal regression failed: {spectator_rehearsal_check.stderr.strip()}")
+    require("PASS" in spectator_rehearsal_check.stdout, "spectator rehearsal regression did not report PASS")
     checks += 2
 
     learning_runback_check = subprocess.run(

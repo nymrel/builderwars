@@ -297,7 +297,7 @@ refusal, two-step browser-only cleanup, and starter restart; denied storage; sem
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v30 HTML requests; and a v30-only installed
+cross-origin requests; coherent v31 HTML requests; and a v31-only installed
 offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
@@ -432,17 +432,45 @@ browser storage.
 
 ```powershell
 python bin\check_mobile_arena_local_exhibition.py
+python bin\check_mobile_arena_spectator_rehearsal.py
 python bin\check_mobile_arena_exchange.py
 python bin\check_mobile_arena_browser.py
 ```
 
-The focused adversarial checker runs 87 assertions. The integrated exchange
-checker runs 315 checks, and real-browser acceptance runs 227 assertions across
-18 journeys, including canonical share preparation, same-page verification,
+The focused local-exhibition checker runs 87 assertions. The integrated exchange
+checker runs 317 checks, and real-browser acceptance runs 248 assertions across
+20 journeys, including canonical share preparation, same-page verification,
 tamper refusal, clean-state resolution, discard, reload cleanup, and storage
 invariance. These are local exhibition proofs only; they do not establish
 sanctioned execution, model play, a user identity, an activated competition, a
 registry entry, a ranking, publication, or launch.
+
+### Reviewed-receipt spectator rehearsal
+
+Every verified-corpus proof inspector now offers one optional local rehearsal of
+the product's spectator sequence: `choose -> reveal -> verify -> runback`. The
+choice options are derived from the exact two ordered receipt entrants plus one
+runback-interest option. `builderwars.mobile-spectator-rehearsal.v1` binds the
+selected option to the receipt ID, fixture ID, game, replay verdict, publication
+allowlist fact, and evidence class, then computes one deterministic SHA-256
+choice digest.
+
+This does not pretend to be a pre-result prediction. The result already existed
+before the choice; there is no trusted timestamp, identity, audience, collection,
+or grading claim. The draft remains in browser memory, writes no storage, changes
+no receipt or board, and creates no vote, counter, registry, ranking, publication,
+spending, or production authority. Reveal shows only the stored reviewed outcome.
+Verification independently recreates the choice projection against the exact
+proof. Only after that verification does the UI point to the existing
+receipt-linked learning action, where any runback remains a separate unplayed
+proposal with its original blockers intact.
+
+The focused spectator checker runs 42 adversarial assertions. It rejects demo
+fallback, unreviewed or failed proof, entrant or winner drift, unsupported choices,
+cross-receipt substitution, resealed prediction/collection/audience claims,
+remote-storage claims, ranking or publication changes, authority flips, and
+boundary drift. Chromium covers the full four-state journey plus close and reload
+cleanup while proving browser storage remains unchanged.
 
 ### Proof-linked learning and still-unplayed runbacks
 
@@ -774,7 +802,7 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 315 checks across this contract and every preceding Arena
+mobile checker runs 317 checks across this contract and every preceding Arena
 Exchange layer.
 
 ### Deterministic private guard-completion review
@@ -810,7 +838,7 @@ adversarial assertions across every allowed decision/reason pair, candidate
 suppression for defer and reject, exact completed-blueprint and provenance
 preservation, full ancestry reconstruction, all-false authority, nested and
 resealed tampering, dangerous keys, excessive depth or nodes, and oversized
-input. The integrated mobile checker runs 315 checks across this contract and
+input. The integrated mobile checker runs 317 checks across this contract and
 every preceding Arena Exchange layer.
 
 ### Deterministic local operator-review packet
@@ -841,7 +869,7 @@ review-only creation; full lineage reconstruction; exact diff and digest parity;
 deterministic export; zero authority; all-unrun validation; discard rollback;
 operator-decision suppression; nested and fully resealed tampering; dangerous
 keys; excessive depth or nodes; and oversized input. The integrated mobile
-checker runs 315 checks across this contract and every preceding Arena Exchange
+checker runs 317 checks across this contract and every preceding Arena Exchange
 layer. A refused operator-packet import preserves the verified upstream
 completion review while retaining no operator decision or packet authority.
 

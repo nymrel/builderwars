@@ -6,6 +6,9 @@ const state = {
   followingFirst: false,
   activeLesson: null,
   selectedProofId: null,
+  spectatorRehearsalChoice: null,
+  spectatorRehearsalRevealed: false,
+  spectatorRehearsalVerification: null,
   starterGuideVisible: true,
   starterGuidePersistenceAvailable: true,
   blueprintStored: false,
@@ -1164,9 +1167,46 @@ function resolveProof(proofId) {
   return state.data.proofReceipts?.find((proof) => proof.receiptId === proofId) || null;
 }
 
+function resetSpectatorRehearsal() {
+  state.spectatorRehearsalChoice = null;
+  state.spectatorRehearsalRevealed = false;
+  state.spectatorRehearsalVerification = null;
+}
+
+function spectatorRehearsalMarkup(proof) {
+  if (state.data.sourceMode !== "verified_corpus" || !Array.isArray(proof.entrants) || proof.entrants.length !== 2 || !proof.outcome) return "";
+  const choice = state.spectatorRehearsalChoice;
+  const revealed = state.spectatorRehearsalRevealed;
+  const verification = state.spectatorRehearsalVerification;
+  const verified = verification?.status === "verified";
+  const invalid = verification?.status === "invalid";
+  const options = [
+    { choiceId: "seat0", label: proof.entrants[0].name },
+    { choiceId: "seat1", label: proof.entrants[1].name },
+    { choiceId: "runback", label: "Run it back" },
+  ];
+  let action = `<div class="heading-actions spectator-rehearsal-actions">${options.map((option) => `<button class="secondary-button" type="button" data-spectator-choice="${escapeHTML(option.choiceId)}">${escapeHTML(option.label)}</button>`).join("")}</div>`;
+  let status = `<div class="portable-status neutral spectator-rehearsal-status" role="status"><strong>No local choice</strong><span>Choose a side or a runback. This result already exists; the choice is not a prediction and is not collected.</span></div>`;
+  if (choice) {
+    const label = choice.selectedChoice.seat === null ? "Run it back" : proof.entrants[choice.selectedChoice.seat].name;
+    status = `<div class="portable-status ${invalid ? "invalid" : verified ? "verified" : "neutral"} spectator-rehearsal-status" role="${invalid ? "alert" : "status"}" tabindex="-1"><strong>${invalid ? "Rehearsal refused" : verified ? "Reviewed receipt binding verified" : "Local choice sealed"}</strong><span>${escapeHTML(label)} · SHA-256 ${escapeHTML(choice.choiceDigest)}</span><span>Already-existing result · no trusted timestamp · not collected · identity and audience unattested.</span></div>`;
+    const reveal = revealed
+      ? `<div class="proof-boundary spectator-rehearsal-reveal"><strong>Reviewed result:</strong> ${escapeHTML(proof.outcome.winnerName)} won · ${escapeHTML(proof.outcome.resultLine)}. This reveals stored reviewed evidence; it does not grade the local choice.</div>`
+      : "";
+    const next = !revealed
+      ? `<button class="primary-button" type="button" data-spectator-reveal>Reveal reviewed result</button>`
+      : !verified
+        ? `<button class="primary-button" type="button" data-spectator-verify>Verify exact receipt binding</button>`
+        : `<p class="fine-print">Receipt binding PASS. Available as a separate unplayed proposal through “Learn from this receipt”; no match or registry request starts here.</p>`;
+    action = `${reveal}<div class="heading-actions spectator-rehearsal-actions">${next}</div>`;
+  }
+  return `<section class="portable-runback spectator-rehearsal" aria-labelledby="spectator-rehearsal-title"><div><p class="eyebrow">Spectator rehearsal</p><h4 id="spectator-rehearsal-title">Choose → reveal → verify → runback</h4><p>This browser-memory walkthrough uses one reviewed receipt. Its result already exists. Nothing is a prediction, collected, ranked, or published.</p></div>${status}${action}</section>`;
+}
+
 function renderProof(proofId = "featured") {
   const proof = resolveProof(proofId);
   if (!proof) return false;
+  if (state.selectedProofId && state.selectedProofId !== proof.receiptId) resetSpectatorRehearsal();
   state.selectedProofId = proof.receiptId || null;
   $("#proof-title").textContent = proof.headline || "What this result proves";
   let rows;
@@ -1203,7 +1243,7 @@ function renderProof(proofId = "featured") {
   }
   const boundaryLabel = state.data.sourceMode === "verified_corpus" ? "Verified-corpus boundary" : "Demo boundary";
   const address = formatArenaRoute(state.activeView, proof.receiptId);
-  $("#proof-content").innerHTML = `<div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-address"><span>Local proof address</span><code>${escapeHTML(address)}</code></div><div class="proof-boundary"><strong>${boundaryLabel}:</strong> ${escapeHTML(proof.boundary || state.data.truthBoundary.statement)}</div>`;
+  $("#proof-content").innerHTML = `<div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-address"><span>Local proof address</span><code>${escapeHTML(address)}</code></div><div class="proof-boundary"><strong>${boundaryLabel}:</strong> ${escapeHTML(proof.boundary || state.data.truthBoundary.statement)}</div>${spectatorRehearsalMarkup(proof)}`;
   const learningButton = $("#proof-learning-button");
   learningButton.hidden = !(state.data.sourceMode === "verified_corpus" && proof.runback);
   learningButton.dataset.proofLearn = proof.receiptId || "";
@@ -2219,6 +2259,7 @@ function closeSheets({ restoreFocus = true } = {}) {
   $("#app-shell").inert = false;
   document.body.style.overflow = "";
   state.selectedProofId = null;
+  resetSpectatorRehearsal();
   if (restoreFocus) restoreModalFocus(state.lastFocus);
 }
 
@@ -2384,6 +2425,42 @@ function bindEvents() {
       clearLocalExhibitionResult();
       if (fixtureId) renderQualificationPreview(fixtureId);
       showToast("Memory-only exhibition result discarded. No tracked receipt or remote state was deleted.");
+      return;
+    }
+    const spectatorChoice = event.target.closest("[data-spectator-choice]");
+    if (spectatorChoice) {
+      const proof = resolveProof(state.selectedProofId);
+      try {
+        state.spectatorRehearsalChoice = await dataAdapter.createSpectatorRehearsalChoice(proof, state.data.sourceMode, spectatorChoice.dataset.spectatorChoice);
+        state.spectatorRehearsalRevealed = false;
+        state.spectatorRehearsalVerification = null;
+        renderProof(proof.receiptId);
+        $(".spectator-rehearsal-status")?.focus?.({ preventScroll: true });
+      } catch {
+        resetSpectatorRehearsal();
+        renderProof(proof?.receiptId || state.selectedProofId);
+      }
+      return;
+    }
+    if (event.target.closest("[data-spectator-reveal]")) {
+      if (!state.spectatorRehearsalChoice) return;
+      state.spectatorRehearsalRevealed = true;
+      state.spectatorRehearsalVerification = null;
+      renderProof(state.selectedProofId);
+      return;
+    }
+    if (event.target.closest("[data-spectator-verify]")) {
+      const proof = resolveProof(state.selectedProofId);
+      try {
+        await dataAdapter.verifySpectatorRehearsalChoice(proof, state.data.sourceMode, state.spectatorRehearsalChoice);
+        state.spectatorRehearsalVerification = { status: "verified" };
+        renderProof(proof.receiptId);
+        $(".spectator-rehearsal-status.verified")?.focus?.({ preventScroll: true });
+      } catch {
+        state.spectatorRehearsalVerification = { status: "invalid" };
+        renderProof(proof?.receiptId || state.selectedProofId);
+        $(".spectator-rehearsal-status.invalid")?.focus?.({ preventScroll: true });
+      }
       return;
     }
     const proofLearning = event.target.closest("[data-proof-learn]");

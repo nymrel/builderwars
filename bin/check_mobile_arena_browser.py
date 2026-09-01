@@ -25,7 +25,7 @@ MOBILE_ARENA = ROOT / "mobile-arena"
 READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
-SHELL_VERSION = "30"
+SHELL_VERSION = "31"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -147,7 +147,7 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         requested_resources = set(observed["same_origin_requests"])
         for resource in (f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}", "/data/tester-feedback-rubric.v1.json"):
             evidence.require(resource in requested_resources, f"normal: installed HTML requests current shell resource {resource}")
-        evidence.require(not any("?v=27" in resource for resource in requested_resources), "normal: retired v27 shell URLs are not requested")
+        evidence.require(not any("?v=30" in resource for resource in requested_resources), "normal: retired v30 shell URLs are not requested")
         evidence.require(locator_visible(page, "#starter-panel"), "starter: first browser visit exposes the local starter guide")
         evidence.require(page.locator("[data-starter-action]").count() == 3, "starter: exactly three bounded first moves are available")
         starter_boundary = page.locator("#starter-boundary").inner_text().lower()
@@ -207,6 +207,37 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         proof_text = page.locator("#proof-content").inner_text()
         evidence.require("No authoritative commit" in proof_text, "proof: registry authority remains absent")
         evidence.require("Model attested\nNo" in proof_text and "Provider attested\nNo" in proof_text and "Runtime attested\nNo" in proof_text, "proof: model, provider, and runtime attestations remain false")
+        storage_before_spectator = page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))")
+        evidence.require(page.locator("[data-spectator-choice]").count() == 3, "spectator rehearsal: exactly two receipt entrants and one runback choice are available")
+        rehearsal_boundary = page.locator(".spectator-rehearsal").inner_text().lower()
+        evidence.require(all(term in rehearsal_boundary for term in ("browser-memory", "already exists", "not a prediction", "not collected")), "spectator rehearsal: preexisting-result and non-collection boundaries are visible before choosing")
+        page.locator('[data-spectator-choice="seat0"]').click()
+        sealed_status = page.locator(".spectator-rehearsal-status").inner_text()
+        evidence.require("Local choice sealed" in sealed_status and "no trusted timestamp" in sealed_status and "not collected" in sealed_status, "spectator rehearsal: local choice is sealed without prediction or collection claim")
+        sealed_digest = page.locator(".spectator-rehearsal-status span").first.inner_text().split("SHA-256 ")[-1]
+        evidence.require(len(sealed_digest) == 64 and all(character in "0123456789abcdef" for character in sealed_digest), "spectator rehearsal: local choice exposes a content-shaped digest")
+        evidence.require(page.locator('[data-spectator-reveal]').count() == 1 and page.locator('[data-spectator-verify]').count() == 0, "spectator rehearsal: reveal precedes verification")
+        page.locator("[data-spectator-reveal]").click()
+        reveal_text = page.locator(".spectator-rehearsal-reveal").inner_text().lower()
+        evidence.require("reviewed result" in reveal_text and "does not grade the local choice" in reveal_text, "spectator rehearsal: reveal shows reviewed evidence without grading the choice")
+        evidence.require(page.locator('[data-spectator-verify]').count() == 1, "spectator rehearsal: exact verification becomes available only after reveal")
+        page.locator("[data-spectator-verify]").click()
+        page.wait_for_selector(".spectator-rehearsal-status.verified")
+        verified_rehearsal = page.locator(".spectator-rehearsal").inner_text()
+        evidence.require("Reviewed receipt binding verified" in verified_rehearsal and "Receipt binding PASS" in verified_rehearsal, "spectator rehearsal: exact reviewed receipt binding passes")
+        evidence.require("Available as a separate unplayed proposal" in verified_rehearsal, "spectator rehearsal: runback remains a separate unplayed proposal")
+        evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before_spectator, "spectator rehearsal: choose, reveal, and verify do not touch browser storage")
+        page.locator("#proof-learning-button").click()
+        assert_view(evidence, page, "learn")
+        evidence.require(page.locator("#receipt-learning").is_visible(), "spectator rehearsal: verified proof reaches receipt-linked learning")
+        evidence.require(page.locator("[data-runback-delta]").count() == 3, "spectator rehearsal: learning exposes only the three bounded blueprint deltas")
+        page.locator("[data-runback-delta]").first.click()
+        evidence.require("Still unplayed" in page.locator("#runback-proposal").inner_text(), "spectator rehearsal: runback proposal remains explicitly unplayed")
+        evidence.journey("reviewed receipt spectator rehearsal through choose, reveal, verify, and still-unplayed runback")
+
+        page.locator('.bottom-nav [data-nav="arena"]').click()
+        proof_trigger.click()
+        evidence.require(locator_visible(page, "#proof-sheet"), "proof: inspector reopens after spectator rehearsal")
         page.keyboard.press("Shift+Tab")
         evidence.require(page.locator("#proof-sheet").evaluate("node => node.contains(document.activeElement)"), "proof: reverse tab stays inside dialog")
         page.keyboard.press("Escape")
@@ -214,6 +245,17 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require(page.url.endswith("#arena"), "proof: Escape restores the containing route")
         evidence.require(page.evaluate("document.activeElement?.hasAttribute('data-proof-open')") is True, "proof: close restores trigger focus")
         evidence.journey("receipt proof dialog and focus lifecycle")
+
+        proof_trigger.click()
+        page.locator('[data-spectator-choice="seat1"]').click()
+        evidence.require("Local choice sealed" in page.locator(".spectator-rehearsal-status").inner_text(), "spectator rehearsal cleanup: a second memory-only choice exists before reload")
+        page.reload(wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        page.wait_for_selector("#proof-sheet:not([hidden])")
+        evidence.require("No local choice" in page.locator(".spectator-rehearsal-status").inner_text(), "spectator rehearsal cleanup: reload clears the uncollected choice")
+        evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before_spectator, "spectator rehearsal cleanup: reload leaves browser storage unchanged")
+        page.keyboard.press("Escape")
+        evidence.journey("spectator rehearsal reload cleanup")
 
         unknown_receipt = "f" * 64
         page.goto(f"{base_url}#watch/receipt/{unknown_receipt}", wait_until="domcontentloaded")
@@ -537,7 +579,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v30');
+              const cache = await caches.open('builderwars-mobile-arena-v31');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;
@@ -549,7 +591,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         for resource in (f"/index.html?v={SHELL_VERSION}", f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
             evidence.require(resource in cache_state["urls"], f"offline: current shell cache contains {resource}")
         evidence.require("/data/tester-feedback-rubric.v1.json" in cache_state["urls"], "offline: canonical tester rubric is cached with the current shell")
-        evidence.require(not any("?v=27" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v27 URLs")
+        evidence.require(not any("?v=30" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v30 URLs")
         page.reload(wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
         evidence.require(page.evaluate("navigator.serviceWorker.controller !== null") is True, "offline: service worker controls the warmed shell")

@@ -19,6 +19,7 @@
   const LOCAL_EXHIBITION_LEARNING_SCHEMA = "builderwars.mobile-local-exhibition-learning.v1";
   const LOCAL_EXHIBITION_RUNBACK_SCHEMA = "builderwars.mobile-local-exhibition-runback.v1";
   const LOCAL_EXHIBITION_PROOF_SHARE_SCHEMA = "builderwars.mobile-local-exhibition-proof-share.v1";
+  const SPECTATOR_REHEARSAL_SCHEMA = "builderwars.mobile-spectator-rehearsal.v1";
   const LEARNING_SCHEMA = "builderwars.mobile-receipt-learning.v1";
   const RUNBACK_PROPOSAL_SCHEMA = "builderwars.mobile-runback-proposal.v1";
   const PORTABLE_RUNBACK_SCHEMA = "builderwars.mobile-runback-portable.v1";
@@ -520,6 +521,17 @@
       evidenceClass: receipt.evidence.class,
       evidenceLabel: evidenceLabel(receipt.evidence.class),
       moveSourceCounts: { ...counts },
+      entrants: receipt.entrants.map((entrant) => ({
+        seat: entrant.seat,
+        entrantId: entrant.entrantId,
+        name: entrant.name,
+      })),
+      outcome: {
+        winnerSeat: receipt.outcome.winnerSeat,
+        winnerEntrantId: receipt.outcome.winnerEntrantId,
+        winnerName: receipt.outcome.winnerName,
+        resultLine: receipt.resultLine,
+      },
       harnessVersionBound: receipt.entrants.every((entrant) => entrant.harnessVersionContentDerived === true),
       modelAttested: false,
       providerAttested: false,
@@ -1128,6 +1140,60 @@
       authority: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false, production: false },
       boundary: LOCAL_EXHIBITION_PROOF_SHARE_BOUNDARY,
     };
+  }
+
+  function spectatorRequire(predicate, message) { requireValue(predicate, `unsafe spectator rehearsal: ${message}`); }
+
+  function validateReviewedSpectatorProof(proofInput, sourceMode) {
+    const proof = validateReceiptProofForLearning(proofInput, sourceMode);
+    spectatorRequire(Array.isArray(proof.entrants) && proof.entrants.length === 2, "exactly two entrants required");
+    spectatorRequire(proof.entrants.every((entrant, index) => entrant.seat === index && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0 && entrant.name.length <= 120), "entrant binding drift");
+    spectatorRequire(evidenceLabel(proof.evidenceClass) !== "unattested reference", "evidence class drift");
+    const winner = proof.entrants[proof.outcome?.winnerSeat];
+    spectatorRequire(winner && winner.entrantId === proof.outcome?.winnerEntrantId && winner.name === proof.outcome?.winnerName && typeof proof.outcome?.resultLine === "string" && proof.outcome.resultLine.length > 0, "winner binding drift");
+    return proof;
+  }
+
+  async function createSpectatorRehearsalChoice(proofInput, sourceMode, choiceIdInput) {
+    const proof = validateReviewedSpectatorProof(proofInput, sourceMode);
+    spectatorRequire(["seat0", "seat1", "runback"].includes(choiceIdInput), "unsupported choice");
+    const seat = choiceIdInput === "seat0" ? 0 : choiceIdInput === "seat1" ? 1 : null;
+    const selectedChoice = { choiceId: choiceIdInput, seat };
+    const draft = {
+      schemaVersion: SPECTATOR_REHEARSAL_SCHEMA,
+      proofBinding: {
+        receiptId: proof.receiptId,
+        fixtureId: proof.fixtureId,
+        game: clone(proof.game),
+        replayVerdict: proof.replayVerdict,
+        publicationApproved: proof.publicationApproved,
+        evidenceClass: proof.evidenceClass,
+      },
+      selectedChoice,
+      limitations: ["result_preexisted", "no_trusted_timestamp", "not_a_prediction", "not_collected", "audience_unattested", "identity_unattested", "not_persisted", "ranking_unchanged", "publication_not_requested"],
+    };
+    return { ...draft, choiceDigest: await sha256Hex(canonicalJSON(draft)) };
+  }
+
+  async function verifySpectatorRehearsalChoice(proofInput, sourceMode, draftInput) {
+    const proof = validateReviewedSpectatorProof(proofInput, sourceMode);
+    assertSafeKeys(draftInput, "spectator rehearsal draft");
+    requireExactKeys(draftInput, [
+      "schemaVersion", "proofBinding", "selectedChoice", "limitations", "choiceDigest",
+    ], "spectator rehearsal draft");
+    spectatorRequire(draftInput.schemaVersion === SPECTATOR_REHEARSAL_SCHEMA, "schema drift");
+    spectatorRequire(HEX64.test(draftInput.choiceDigest), "choice digest drift");
+    const unsigned = clone(draftInput);
+    delete unsigned.choiceDigest;
+    spectatorRequire(equalHex(await sha256Hex(canonicalJSON(unsigned)), draftInput.choiceDigest), "choice digest mismatch");
+    const expected = await createSpectatorRehearsalChoice(proof, sourceMode, draftInput.selectedChoice?.choiceId);
+    spectatorRequire(canonicalJSON(expected) === canonicalJSON(draftInput), "proof or choice projection mismatch");
+    const relation = draftInput.selectedChoice.choiceId === "runback"
+      ? "local_runback_interest_only"
+      : draftInput.selectedChoice.seat === proof.outcome.winnerSeat
+        ? "selected_reviewed_winner"
+        : "selected_reviewed_nonwinner";
+    return { verified: true, choiceRelation: relation, authority: false };
   }
 
   function validateReceiptProofForLearning(proof, sourceMode) {
@@ -3905,6 +3971,7 @@
     LOCAL_EXHIBITION_RESOURCE_CLASS,
     LOCAL_EXHIBITION_RULES_DIGEST,
     LOCAL_EXHIBITION_FIXTURE_ID,
+    SPECTATOR_REHEARSAL_SCHEMA,
     READ_MODEL_SCHEMA,
     READ_MODEL_DIGEST_PIN,
     RUNBACK_PROPOSAL_SCHEMA,
@@ -3920,6 +3987,7 @@
     createLocalExhibitionProofShare,
     createLocalExhibitionReceipt,
     createLocalExhibitionRunback,
+    createSpectatorRehearsalChoice,
     createTesterFeedbackDraft,
     createPortablePrivateBlueprintDelta,
     createPortablePrivateBlueprintDeltaReview,
@@ -3942,6 +4010,7 @@
     validateRunbackProposal,
     validateTesterFeedbackRubric,
     verifyPortableRunbackEnvelope,
+    verifySpectatorRehearsalChoice,
     verifyPortableRunbackReviewCorrectionExchange,
     verifyPortableRunbackReviewCorrectionJournal,
     verifyPortableRunbackReviewExchange,
