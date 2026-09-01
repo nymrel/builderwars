@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "29"
+EXPECTED_SHELL_VERSION = "30"
 EXPECTED = {
     "index.html",
     "styles.css",

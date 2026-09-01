@@ -50,6 +50,10 @@ async function rehash(candidate) {
   candidate.candidateDigest = await digest(unsigned);
   return candidate;
 }
+async function rehashShare(candidate) {
+  candidate.integrity.payloadDigest = await digest(candidate.payload);
+  return candidate;
+}
 async function rejects(task, expected) {
   let message = "";
   try { await task(); } catch (error) { message = error.message; }
@@ -157,6 +161,55 @@ async function rejects(task, expected) {
   check(runback.registryStatus === "not_requested" && runback.publicationStatus === "not_requested" && runback.ranked === false, "runback creates no public state");
   check(Object.values(runback.attestations).every((value) => value === false), "runback retains zero attestations");
 
+  const share = await adapter.createLocalExhibitionProofShare(receipt, verification, learning, runback);
+  const repeatedShare = await adapter.createLocalExhibitionProofShare(receipt, verification, learning, runback);
+  check(share.envelope.schemaVersion === adapter.LOCAL_EXHIBITION_PROOF_SHARE_SCHEMA && share.envelope.shareVersion === 1, "uses the versioned local proof-share schema");
+  check(share.envelope.payload.shareStatus === "local_private_proof_share_candidate", "keeps the portable proof a private local candidate");
+  check(share.serialized === repeatedShare.serialized && share.envelope.integrity.payloadDigest === repeatedShare.envelope.integrity.payloadDigest, "proof share is deterministic");
+  check(share.serialized === canonical(share.envelope), "proof share uses canonical JSON");
+  check(share.serialized.length <= adapter.LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH, "proof share is size bounded");
+  check(share.envelope.payload.proofRef.locator === `builderwars-local-proof://receipt-candidate/${receipt.candidateDigest}`, "proof locator resolves the embedded receipt candidate");
+  check(share.envelope.payload.proofRef.resolutionMode === "embedded_canonical_payload_only" && share.envelope.payload.proofRef.publicUrl === null, "proof locator grants no public resolution claim");
+  check(share.envelope.payload.lineage.qualificationDigest === receipt.qualificationDigest && share.envelope.payload.lineage.candidateDigest === receipt.candidateDigest && share.envelope.payload.lineage.learningDigest === learning.learningDigest && share.envelope.payload.lineage.runbackDigest === runback.runbackDigest, "proof share binds the complete local lineage");
+  check(share.envelope.payload.claims.agent.identityAttested === false && share.envelope.payload.claims.builder.identityAttested === false, "builder and agent labels remain identity unattested");
+  check(share.envelope.payload.claims.model.usage === "metadata_only_not_used" && share.envelope.payload.claims.model.attested === false, "declared model remains unused and unattested");
+  check(share.envelope.payload.claims.harness.strategyId === qualification.blueprint.strategyId && share.envelope.payload.claims.rules.digest === adapter.LOCAL_EXHIBITION_RULES_DIGEST && share.envelope.payload.claims.resource.class === adapter.LOCAL_EXHIBITION_RESOURCE_CLASS, "share binds harness, rules, and resource claims");
+  check(share.envelope.payload.storageStatus === "caller_controlled_private_text_not_saved_by_app", "portable text is not persisted by the app");
+  check(share.envelope.payload.registryStatus === "not_requested" && share.envelope.payload.publicationStatus === "not_requested" && share.envelope.payload.ranked === false, "proof share creates no registry, publication, or ranking state");
+  check(Object.values(share.envelope.payload.attestations).every((value) => value === false), "proof share retains zero attestations");
+  const shareVerification = await adapter.verifyLocalExhibitionProofShare(share.serialized);
+  check(shareVerification.verificationStatus === "verified_embedded_local_proof_share" && shareVerification.proofResolution === "PASS", "fresh import independently resolves the embedded proof");
+  check(shareVerification.candidateDigest === receipt.candidateDigest && shareVerification.payloadDigest === share.envelope.integrity.payloadDigest, "proof-share verification returns exact lineage digests");
+  check(shareVerification.receipt.result.winnerSeat === receipt.result.winnerSeat && shareVerification.verification.replayVerdict === "PASS" && shareVerification.runback.runbackStatus === "versioned_local_runback_unplayed", "proof-share verification reconstructs result, replay, and unplayed runback");
+  check(Object.values(shareVerification.authority).every((value) => value === false), "proof-share verification creates no authority");
+
+  await rejects(() => adapter.verifyLocalExhibitionProofShare(` ${share.serialized}`), "envelope must use canonical JSON");
+  await rejects(() => adapter.verifyLocalExhibitionProofShare("x".repeat(adapter.LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH + 1)), "input length rejected");
+  const unknownShareField = copy(share.envelope);
+  unknownShareField.payload.live = true;
+  await rehashShare(unknownShareField);
+  await rejects(() => adapter.verifyLocalExhibitionProofShare(canonical(unknownShareField)), "payload fields drift");
+  const publicUrlTamper = copy(share.envelope);
+  publicUrlTamper.payload.proofRef.publicUrl = "https://example.invalid/proof";
+  await rehashShare(publicUrlTamper);
+  await rejects(() => adapter.verifyLocalExhibitionProofShare(canonical(publicUrlTamper)), "proof projection mismatch");
+  const shareAuthorityTamper = copy(share.envelope);
+  shareAuthorityTamper.payload.claims.model.attested = true;
+  await rehashShare(shareAuthorityTamper);
+  await rejects(() => adapter.verifyLocalExhibitionProofShare(canonical(shareAuthorityTamper)), "proof projection mismatch");
+  const locatorTamper = copy(share.envelope);
+  locatorTamper.payload.proofRef.locator = "builderwars-local-proof://receipt-candidate/" + "0".repeat(64);
+  await rehashShare(locatorTamper);
+  await rejects(() => adapter.verifyLocalExhibitionProofShare(canonical(locatorTamper)), "proof projection mismatch");
+  const embeddedReceiptTamper = copy(share.envelope);
+  embeddedReceiptTamper.payload.proof.receipt.result.moveCount = 99;
+  await rehashShare(embeddedReceiptTamper);
+  await rejects(() => adapter.verifyLocalExhibitionProofShare(canonical(embeddedReceiptTamper)), "candidate digest mismatch");
+  const embeddedRunbackTamper = copy(share.envelope);
+  embeddedRunbackTamper.payload.proof.runback.runbackStatus = "played";
+  await rehashShare(embeddedRunbackTamper);
+  await rejects(() => adapter.verifyLocalExhibitionProofShare(canonical(embeddedRunbackTamper)), "embedded runback drift");
+
   const digestTamper = copy(receipt);
   digestTamper.result.moveCount = 99;
   await rejects(() => adapter.verifyLocalExhibitionReceipt(digestTamper), "candidate digest mismatch");
@@ -199,7 +252,7 @@ async function rejects(task, expected) {
     require(result.returncode == 0, f"local exhibition check failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
     require(payload.get("status") == "PASS", "local exhibition did not report PASS")
-    require(payload.get("checks", 0) >= 61, "local exhibition coverage unexpectedly shrank")
+    require(payload.get("checks", 0) >= 87, "local exhibition coverage unexpectedly shrank")
     print(f"BuilderWars mobile local exhibition: PASS ({payload['checks']} checks)")
     print("qualification / deterministic play / replay / receipt / learning / versioned unplayed runback")
     return 0

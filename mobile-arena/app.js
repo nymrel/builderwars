@@ -16,6 +16,9 @@ const state = {
   localExhibitionVerification: null,
   localExhibitionLearning: null,
   localExhibitionRunback: null,
+  localExhibitionProofShare: null,
+  localExhibitionProofShareImportText: "",
+  localExhibitionProofShareVerification: null,
   learningAction: null,
   runbackProposal: null,
   portableRunback: null,
@@ -1243,11 +1246,67 @@ function localExhibitionResultMarkup() {
   return `<section class="runback-proposal local-exhibition-result" aria-labelledby="local-exhibition-result-title"><div class="qualification-status"><span>Browser-memory result</span><strong id="local-exhibition-result-title">Replay verified</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-boundary"><strong>Visible learning:</strong> ${escapeHTML(learning.guidance)}</div><div class="proof-boundary"><strong>Runback boundary:</strong> ${escapeHTML(runback.boundary)}</div><button class="secondary-button" type="button" data-local-exhibition-discard>Discard memory-only result</button></section>`;
 }
 
+function localExhibitionProofShareMarkup() {
+  const prepared = state.localExhibitionProofShare;
+  const imported = state.localExhibitionProofShareImportText;
+  const verification = state.localExhibitionProofShareVerification;
+  const maxLength = dataAdapter?.LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH || 131072;
+  let status = `<div class="portable-status neutral local-exhibition-proof-share-status" role="status" tabindex="-1"><strong>No imported proof</strong><span>Paste one exact canonical private share to resolve its embedded receipt, replay, learning, and unplayed runback locally.</span></div>`;
+  if (verification?.status === "verified") {
+    const result = verification.result;
+    status = `<div class="portable-status verified local-exhibition-proof-share-status" role="status" tabindex="-1"><strong>Embedded proof resolved</strong><span>${escapeHTML(result.proofLocator)} · replay ${escapeHTML(result.verification.replayVerdict)} · all authority false</span></div>`;
+  } else if (verification?.status === "invalid") {
+    status = `<div class="portable-status invalid local-exhibition-proof-share-status" role="alert" tabindex="-1"><strong>Proof refused</strong><span>${escapeHTML(verification.message)}</span></div>`;
+  }
+  const prepare = state.localExhibitionReceipt
+    ? `<button class="secondary-button" type="button" data-local-exhibition-proof-share-prepare>${prepared ? "Refresh private proof share" : "Prepare private proof share"}</button>`
+    : "";
+  const output = prepared
+    ? `<label for="local-exhibition-proof-share-export">Canonical private proof share</label><textarea class="portable-textarea" id="local-exhibition-proof-share-export" rows="8" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><div class="proof-grid"><div class="proof-row"><span>Proof locator</span><strong class="mono">${escapeHTML(prepared.envelope.payload.proofRef.locator)}</strong></div><div class="proof-row"><span>Public URL / publication</span><strong>None / not requested</strong></div></div>`
+    : "";
+  return `<section class="portable-runback local-exhibition-proof-share" aria-labelledby="local-exhibition-proof-share-title"><div><p class="eyebrow">Private proof share</p><h4 id="local-exhibition-proof-share-title">Carry exact local evidence. Claim no public proof.</h4><p>The locator resolves only the embedded canonical payload. The digest is integrity evidence, not a signature, identity, model, provider, ranking, registry, or publication claim.</p></div>${prepare}${output}<label for="local-exhibition-proof-share-import">Verify a private proof share</label><textarea class="portable-textarea" id="local-exhibition-proof-share-import" rows="8" maxlength="${maxLength}" spellcheck="false" placeholder="Paste canonical proof-share JSON">${escapeHTML(imported)}</textarea><button class="secondary-button" type="button" data-local-exhibition-proof-share-verify>Resolve embedded proof locally</button>${status}</section>`;
+}
+
 function clearLocalExhibitionResult() {
   state.localExhibitionReceipt = null;
   state.localExhibitionVerification = null;
   state.localExhibitionLearning = null;
   state.localExhibitionRunback = null;
+  state.localExhibitionProofShare = null;
+  state.localExhibitionProofShareImportText = "";
+  state.localExhibitionProofShareVerification = null;
+}
+
+async function prepareLocalExhibitionProofShare() {
+  if (!state.localExhibitionReceipt || !state.localExhibitionVerification || !state.localExhibitionLearning || !state.localExhibitionRunback) return false;
+  try {
+    state.localExhibitionProofShare = await dataAdapter.createLocalExhibitionProofShare(
+      state.localExhibitionReceipt,
+      state.localExhibitionVerification,
+      state.localExhibitionLearning,
+      state.localExhibitionRunback,
+    );
+    renderQualificationPreview(state.qualificationPreview.fixture.fixtureId);
+    return true;
+  } catch {
+    state.localExhibitionProofShare = null;
+    renderQualificationPreview(state.qualificationPreview.fixture.fixtureId);
+    return false;
+  }
+}
+
+async function verifyLocalExhibitionProofShare(serializedInput) {
+  state.localExhibitionProofShareImportText = String(serializedInput || "").slice(0, dataAdapter?.LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH || 131072);
+  try {
+    const result = await dataAdapter.verifyLocalExhibitionProofShare(serializedInput);
+    state.localExhibitionProofShareVerification = { status: "verified", result };
+    renderQualificationPreview(state.qualificationPreview.fixture.fixtureId);
+    return true;
+  } catch (error) {
+    state.localExhibitionProofShareVerification = { status: "invalid", message: error?.message || "Local proof share validation failed." };
+    renderQualificationPreview(state.qualificationPreview.fixture.fixtureId);
+    return false;
+  }
 }
 
 async function runLocalExhibition() {
@@ -1284,7 +1343,7 @@ function renderQualificationPreview(fixtureId) {
     return false;
   }
   state.qualificationPreview = preview;
-  if (fixture.exhibitionAllowed && state.localExhibitionReceipt?.qualification?.qualificationKey !== preview.qualificationKey) {
+  if (fixture.exhibitionAllowed && state.localExhibitionReceipt && state.localExhibitionReceipt.qualification.qualificationKey !== preview.qualificationKey) {
     clearLocalExhibitionResult();
   }
   $("#qualification-title").textContent = fixture.title;
@@ -1308,7 +1367,7 @@ function renderQualificationPreview(fixtureId) {
     const action = ready && !state.localExhibitionReceipt
       ? `<button class="primary-button" type="button" data-local-exhibition-run>Run deterministic local exhibition</button>`
       : "";
-    $("#qualification-content").innerHTML = `<div class="qualification-status"><span>Deterministic local practice</span><strong>${ready ? "Ready without a model" : "Blueprint needs a supported safe profile"}</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div>${blockers}<div class="proof-boundary"><strong>Exhibition boundary:</strong> ${escapeHTML(preview.boundary)}</div>${action}${localExhibitionResultMarkup()}`;
+    $("#qualification-content").innerHTML = `<div class="qualification-status"><span>Deterministic local practice</span><strong>${ready ? "Ready without a model" : "Blueprint needs a supported safe profile"}</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div>${blockers}<div class="proof-boundary"><strong>Exhibition boundary:</strong> ${escapeHTML(preview.boundary)}</div>${action}${localExhibitionResultMarkup()}${localExhibitionProofShareMarkup()}`;
   } else {
     const rows = [
       ["Qualification", "Not run", "pending"],
@@ -2303,6 +2362,23 @@ function bindEvents() {
         : "Local exhibition failed closed. No result was retained or published.");
       return;
     }
+    if (event.target.closest("[data-local-exhibition-proof-share-prepare]")) {
+      const prepared = await prepareLocalExhibitionProofShare();
+      $(prepared ? "#local-exhibition-proof-share-export" : ".local-exhibition-proof-share-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(prepared
+        ? "Private proof share prepared in browser memory. No public URL, registry, ranking, or publication was created."
+        : "Private proof share failed closed. No proof or authority state was retained.");
+      return;
+    }
+    if (event.target.closest("[data-local-exhibition-proof-share-verify]")) {
+      const input = $("#local-exhibition-proof-share-import");
+      const verified = await verifyLocalExhibitionProofShare(input?.value || "");
+      $(verified ? ".local-exhibition-proof-share-status.verified" : ".local-exhibition-proof-share-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Embedded local proof resolved independently. Identity, model, provider, registry, ranking, and publication remain false."
+        : "Private proof share refused. No receipt, registry, ranking, publication, or authority state was retained.");
+      return;
+    }
     if (event.target.closest("[data-local-exhibition-discard]")) {
       const fixtureId = state.qualificationPreview?.fixture?.fixtureId;
       clearLocalExhibitionResult();
@@ -2590,6 +2666,10 @@ function bindEvents() {
   });
 
   document.addEventListener("input", (event) => {
+    if (event.target.matches("#local-exhibition-proof-share-import")) {
+      state.localExhibitionProofShareImportText = event.target.value.slice(0, dataAdapter?.LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH || 131072);
+      state.localExhibitionProofShareVerification = null;
+    }
     if (event.target.matches("#portable-reviewer-label")) {
       state.portableReviewerLabel = event.target.value.slice(0, 36);
       state.portableReviewMessage = null;

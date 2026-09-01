@@ -22,9 +22,14 @@ fixed demo fixture as a visibly disclosed fallback, pins and recomputes the
 corpus canonical SHA-256 digest before any `verified_corpus` projection, opens
 receipt-addressable proofs and receipt-backed rivalry history, saves blueprints only in the browser,
 previews future-fixture qualification without execution, separately runs one
-deterministic browser-memory Nim exhibition with no model or provider, and turns a
-reviewed proof into a bounded learning action plus a versioned, still-unplayed
-runback proposal. The proposal can be exported as canonical JSON and imported
+deterministic browser-memory Nim exhibition with no model or provider, turns its
+receipt candidate into a bounded learning action plus a versioned, still-unplayed
+runback, and packages that complete local lineage as a canonical private proof
+share. A fresh browser can resolve the embedded receipt, replay, learning, and
+runback from the share alone; the `builderwars-local-proof://` locator is not a
+public URL, signature, identity, model, provider, registry, ranking, or publication
+claim. Separately, a reviewed proof can become a still-unplayed runback proposal.
+That proposal can be exported as canonical JSON and imported
 independently from an empty Receipt Lab for strict local schema and SHA-256
 integrity verification. That checksum is
 not a signature or origin claim, and import never adopts, qualifies, executes,

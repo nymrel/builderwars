@@ -18,6 +18,7 @@
   const LOCAL_EXHIBITION_VERIFICATION_SCHEMA = "builderwars.mobile-local-exhibition-verification.v1";
   const LOCAL_EXHIBITION_LEARNING_SCHEMA = "builderwars.mobile-local-exhibition-learning.v1";
   const LOCAL_EXHIBITION_RUNBACK_SCHEMA = "builderwars.mobile-local-exhibition-runback.v1";
+  const LOCAL_EXHIBITION_PROOF_SHARE_SCHEMA = "builderwars.mobile-local-exhibition-proof-share.v1";
   const LEARNING_SCHEMA = "builderwars.mobile-receipt-learning.v1";
   const RUNBACK_PROPOSAL_SCHEMA = "builderwars.mobile-runback-proposal.v1";
   const PORTABLE_RUNBACK_SCHEMA = "builderwars.mobile-runback-portable.v1";
@@ -52,6 +53,7 @@
     }),
   });
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
+  const LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH = 131072;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
   const PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH = 262144;
   const PORTABLE_REVIEW_CORRECTION_MAX_RECORDS = 64;
@@ -107,6 +109,7 @@
   ]);
   const TESTER_FEEDBACK_DRAFT_BOUNDARY = "This canonical browser-memory draft contains structured selections only. It is not submitted, stored, consent evidence, human feedback evidence, identity evidence, a support request, an operator action, or launch authority.";
   const LOCAL_EXHIBITION_BOUNDARY = "This receipt candidate proves only deterministic scripted Nim play and independent local replay in this browser memory. The declared demo base was not used. It does not authenticate identity, attest a model, call a provider, spend, register, rank, publish, or authorize production.";
+  const LOCAL_EXHIBITION_PROOF_SHARE_BOUNDARY = "This canonical private share candidate carries one embedded local exhibition receipt, independent replay verification, observation-only learning object, and unplayed runback. Its SHA-256 digest and local proof locator support integrity checking and embedded resolution only; they are not a signature, public URL, identity, model, provider, runtime, registry, ranking, publication, spending, or production authority.";
   const RUNBACK_EXECUTION_BLOCKERS = Object.freeze([
     "explicit_rules_digest_not_bound",
     "qualification_not_run",
@@ -1018,6 +1021,113 @@
       boundary: "This digest-bound version 1 runback preserves the exact parent, rules, resource class, blueprint, and swapped seats. It remains unplayed and grants no provider, model, identity, registry, ranking, publication, spending, or production authority.",
     };
     return { ...payload, runbackDigest: await sha256Hex(canonicalJSON(payload)) };
+  }
+
+  async function createLocalExhibitionProofShare(receiptInput, verificationInput, learningInput, runbackInput) {
+    const verification = await verifyLocalExhibitionReceipt(receiptInput);
+    requireValue(canonicalJSON(verification) === canonicalJSON(verificationInput), "unsafe local exhibition proof share: verification drift");
+    const learning = await createLocalExhibitionLearning(receiptInput, verificationInput);
+    requireValue(canonicalJSON(learning) === canonicalJSON(learningInput), "unsafe local exhibition proof share: learning drift");
+    const runback = await createLocalExhibitionRunback(receiptInput, verificationInput, learningInput);
+    requireValue(canonicalJSON(runback) === canonicalJSON(runbackInput), "unsafe local exhibition proof share: runback drift");
+    const proofLocator = `builderwars-local-proof://receipt-candidate/${receiptInput.candidateDigest}`;
+    const payload = {
+      shareStatus: "local_private_proof_share_candidate",
+      proofRef: {
+        scheme: "builderwars-local-proof-v1",
+        locator: proofLocator,
+        resolutionMode: "embedded_canonical_payload_only",
+        publicUrl: null,
+      },
+      lineage: {
+        qualificationDigest: receiptInput.qualificationDigest,
+        candidateDigest: receiptInput.candidateDigest,
+        learningDigest: learning.learningDigest,
+        runbackDigest: runback.runbackDigest,
+      },
+      claims: {
+        builder: { label: "Browser-local builder", identityAttested: false },
+        agent: { label: receiptInput.entrants[0].label, identityAttested: false },
+        harness: {
+          style: receiptInput.qualification.blueprint.harnessStyle,
+          strategyId: receiptInput.qualification.blueprint.strategyId,
+          claimStatus: "declared_local_deterministic",
+        },
+        model: {
+          declaredBase: receiptInput.qualification.blueprint.declaredBase,
+          usage: "metadata_only_not_used",
+          attested: false,
+        },
+        game: clone(receiptInput.fixtureBinding.game),
+        rules: { digest: receiptInput.fixtureBinding.rulesDigest },
+        resource: { class: receiptInput.fixtureBinding.resourceClass },
+      },
+      proof: {
+        receipt: clone(receiptInput),
+        verification: clone(verification),
+        learning: clone(learning),
+        runback: clone(runback),
+      },
+      storageStatus: "caller_controlled_private_text_not_saved_by_app",
+      registryStatus: "not_requested",
+      publicationStatus: "not_requested",
+      ranked: false,
+      attestations: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false },
+    };
+    const envelope = {
+      schemaVersion: LOCAL_EXHIBITION_PROOF_SHARE_SCHEMA,
+      shareVersion: 1,
+      payload,
+      integrity: { algorithm: "SHA-256", payloadDigest: await sha256Hex(canonicalJSON(payload)) },
+      boundary: LOCAL_EXHIBITION_PROOF_SHARE_BOUNDARY,
+    };
+    const serialized = canonicalJSON(envelope);
+    requireValue(serialized.length <= LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH, "unsafe local exhibition proof share: output length rejected");
+    return { envelope: clone(envelope), serialized };
+  }
+
+  async function verifyLocalExhibitionProofShare(serializedInput) {
+    requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH, "unsafe local exhibition proof share: input length rejected");
+    let envelope;
+    try {
+      envelope = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe local exhibition proof share: invalid JSON");
+    }
+    assertSafeKeys(envelope, "local exhibition proof share");
+    requireExactKeys(envelope, ["schemaVersion", "shareVersion", "payload", "integrity", "boundary"], "local exhibition proof share");
+    requireValue(envelope.schemaVersion === LOCAL_EXHIBITION_PROOF_SHARE_SCHEMA && envelope.shareVersion === 1, "unsafe local exhibition proof share: schema drift");
+    requireValue(envelope.boundary === LOCAL_EXHIBITION_PROOF_SHARE_BOUNDARY, "unsafe local exhibition proof share: boundary drift");
+    requireValue(serializedInput === canonicalJSON(envelope), "unsafe local exhibition proof share: envelope must use canonical JSON");
+    requireExactKeys(envelope.payload, [
+      "shareStatus", "proofRef", "lineage", "claims", "proof", "storageStatus", "registryStatus", "publicationStatus", "ranked", "attestations",
+    ], "local exhibition proof share payload");
+    requireExactKeys(envelope.integrity, ["algorithm", "payloadDigest"], "local exhibition proof share integrity");
+    requireValue(envelope.integrity.algorithm === "SHA-256" && HEX64.test(envelope.integrity.payloadDigest), "unsafe local exhibition proof share: integrity drift");
+    const computedPayloadDigest = await sha256Hex(canonicalJSON(envelope.payload));
+    requireValue(equalHex(computedPayloadDigest, envelope.integrity.payloadDigest), "unsafe local exhibition proof share: payload digest mismatch");
+    requireExactKeys(envelope.payload.proof, ["receipt", "verification", "learning", "runback"], "local exhibition proof share proof");
+    const verification = await verifyLocalExhibitionReceipt(envelope.payload.proof.receipt);
+    const learning = await createLocalExhibitionLearning(envelope.payload.proof.receipt, envelope.payload.proof.verification);
+    const runback = await createLocalExhibitionRunback(envelope.payload.proof.receipt, envelope.payload.proof.verification, envelope.payload.proof.learning);
+    requireValue(canonicalJSON(verification) === canonicalJSON(envelope.payload.proof.verification), "unsafe local exhibition proof share: embedded verification drift");
+    requireValue(canonicalJSON(learning) === canonicalJSON(envelope.payload.proof.learning), "unsafe local exhibition proof share: embedded learning drift");
+    requireValue(canonicalJSON(runback) === canonicalJSON(envelope.payload.proof.runback), "unsafe local exhibition proof share: embedded runback drift");
+    const expected = await createLocalExhibitionProofShare(envelope.payload.proof.receipt, verification, learning, runback);
+    requireValue(canonicalJSON(expected.envelope) === canonicalJSON(envelope), "unsafe local exhibition proof share: proof projection mismatch");
+    return {
+      verificationStatus: "verified_embedded_local_proof_share",
+      proofResolution: "PASS",
+      proofLocator: envelope.payload.proofRef.locator,
+      payloadDigest: envelope.integrity.payloadDigest,
+      candidateDigest: envelope.payload.lineage.candidateDigest,
+      receipt: clone(envelope.payload.proof.receipt),
+      verification: clone(verification),
+      learning: clone(learning),
+      runback: clone(runback),
+      authority: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false, production: false },
+      boundary: LOCAL_EXHIBITION_PROOF_SHARE_BOUNDARY,
+    };
   }
 
   function validateReceiptProofForLearning(proof, sourceMode) {
@@ -3790,6 +3900,8 @@
     LOCAL_EXHIBITION_VERIFICATION_SCHEMA,
     LOCAL_EXHIBITION_LEARNING_SCHEMA,
     LOCAL_EXHIBITION_RUNBACK_SCHEMA,
+    LOCAL_EXHIBITION_PROOF_SHARE_SCHEMA,
+    LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH,
     LOCAL_EXHIBITION_RESOURCE_CLASS,
     LOCAL_EXHIBITION_RULES_DIGEST,
     LOCAL_EXHIBITION_FIXTURE_ID,
@@ -3805,6 +3917,7 @@
     buildReceiptLearningAction,
     buildRunbackProposal,
     createLocalExhibitionLearning,
+    createLocalExhibitionProofShare,
     createLocalExhibitionReceipt,
     createLocalExhibitionRunback,
     createTesterFeedbackDraft,
@@ -3844,5 +3957,6 @@
     verifyPortablePrivateReviewLearning,
     verifyTesterFeedbackDraft,
     verifyLocalExhibitionReceipt,
+    verifyLocalExhibitionProofShare,
   };
 }));

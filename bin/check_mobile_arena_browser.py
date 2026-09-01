@@ -25,7 +25,7 @@ MOBILE_ARENA = ROOT / "mobile-arena"
 READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
-SHELL_VERSION = "29"
+SHELL_VERSION = "30"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -253,6 +253,21 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require("Registry/ranking/publication\nNot requested / false / not requested" in result_text, "local exhibition: registry, ranking, and publication remain absent")
         candidate_digest = page.locator("#qualification-content .proof-row").filter(has_text="Candidate digest").locator("strong").inner_text()
         evidence.require(len(candidate_digest) == 64 and all(character in "0123456789abcdef" for character in candidate_digest), "local exhibition: receipt candidate exposes a content-shaped digest")
+        page.locator("[data-local-exhibition-proof-share-prepare]").click()
+        proof_share = page.locator("#local-exhibition-proof-share-export").input_value()
+        proof_share_json = json.loads(proof_share)
+        evidence.require(proof_share_json["schemaVersion"] == "builderwars.mobile-local-exhibition-proof-share.v1", "local exhibition share: output uses the versioned proof-share schema")
+        evidence.require(proof_share_json["payload"]["proofRef"]["locator"] == f"builderwars-local-proof://receipt-candidate/{candidate_digest}", "local exhibition share: locator binds the exact embedded candidate")
+        evidence.require(proof_share_json["payload"]["proofRef"]["publicUrl"] is None and proof_share_json["payload"]["publicationStatus"] == "not_requested", "local exhibition share: output creates no public URL or publication state")
+        evidence.require(not any(proof_share_json["payload"]["attestations"].values()), "local exhibition share: output retains zero authority attestations")
+        page.locator("#local-exhibition-proof-share-import").fill(proof_share)
+        page.locator("[data-local-exhibition-proof-share-verify]").click()
+        page.wait_for_selector(".local-exhibition-proof-share-status.verified, .local-exhibition-proof-share-status.invalid")
+        imported_status = page.locator(".local-exhibition-proof-share-status").inner_text()
+        evidence.require(page.locator(".local-exhibition-proof-share-status.verified").count() == 1 and "Embedded proof resolved" in imported_status and "all authority false" in imported_status, f"local exhibition share: same-page import independently resolves without authority ({imported_status})")
+        page.locator("#local-exhibition-proof-share-import").fill(proof_share[:-1] + "x")
+        page.locator("[data-local-exhibition-proof-share-verify]").click()
+        evidence.require("Proof refused" in page.locator(".local-exhibition-proof-share-status.invalid").inner_text(), "local exhibition share: changed input fails closed")
         evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before_exhibition, "local exhibition: qualification, play, proof, learning, and runback do not touch browser storage")
         page.locator("[data-local-exhibition-discard]").click()
         evidence.require(page.locator("#local-exhibition-result-title").count() == 0, "local exhibition: explicit discard clears the memory-only result")
@@ -263,9 +278,17 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         wait_for_source(page, "verified_corpus")
         page.locator('.bottom-nav [data-nav="compete"]').click()
         page.locator('[data-qualification-preview]').filter(has_text="Practice").click()
-        evidence.require(page.locator("#local-exhibition-result-title").count() == 0 and page.locator("[data-local-exhibition-run]").is_visible(), "local exhibition: reload clears the browser-memory receipt, learning, and runback")
+        evidence.require(page.locator("#local-exhibition-result-title").count() == 0 and page.locator("[data-local-exhibition-run]").is_visible(), "local exhibition: reload clears the browser-memory receipt, learning, runback, and prepared share")
+        evidence.require(page.locator("#local-exhibition-proof-share-import").input_value() == "", "local exhibition share: reload clears imported private proof text")
+        page.locator("#local-exhibition-proof-share-import").fill(proof_share)
+        page.locator("[data-local-exhibition-proof-share-verify]").click()
+        page.wait_for_selector(".local-exhibition-proof-share-status.verified, .local-exhibition-proof-share-status.invalid")
+        fresh_import_status = page.locator(".local-exhibition-proof-share-status").inner_text()
+        evidence.require(page.locator(".local-exhibition-proof-share-status.verified").count() == 1 and candidate_digest in fresh_import_status and "replay PASS" in fresh_import_status, f"local exhibition share: fresh browser state resolves the embedded candidate and replay ({fresh_import_status})")
+        evidence.require(page.locator("#local-exhibition-result-title").count() == 0, "local exhibition share: import does not promote the candidate into tracked local result state")
+        evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before_exhibition, "local exhibition share: prepare, verify, refusal, fresh import, and resolution remain storage free")
         page.keyboard.press("Escape")
-        evidence.journey("deterministic local exhibition through receipt, learning, runback, discard, and reload cleanup")
+        evidence.journey("deterministic local exhibition through receipt, learning, runback, portable proof resolution, discard, and reload cleanup")
 
         page.locator('.bottom-nav [data-nav="build"]').click()
         page.locator("#agent-name").fill("Browser Proof")
@@ -514,7 +537,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v29');
+              const cache = await caches.open('builderwars-mobile-arena-v30');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;

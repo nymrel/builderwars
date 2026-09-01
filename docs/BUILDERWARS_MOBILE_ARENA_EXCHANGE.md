@@ -297,7 +297,7 @@ refusal, two-step browser-only cleanup, and starter restart; denied storage; sem
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v29 HTML requests; and a v29-only installed
+cross-origin requests; coherent v30 HTML requests; and a v30-only installed
 offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
@@ -410,9 +410,25 @@ The verified candidate produces one observation-only learning object over
 visible heap transitions and one digest-bound version 1 seat-swapped runback.
 The runback remains `versioned_local_runback_unplayed` and `not_run`. Identity,
 model, provider, runtime, registry, publication, ranking, spending, and
-production authority remain false or not requested throughout. The browser can
-discard the complete result chain explicitly, and reload clears it because the
-flow never writes browser storage.
+production authority remain false or not requested throughout.
+
+The browser may package that exact four-part lineage as
+`builderwars.mobile-local-exhibition-proof-share.v1`. Its canonical JSON envelope
+contains the receipt candidate, independent replay verification, observation-only
+learning, and unplayed runback. The locator uses
+`builderwars-local-proof://receipt-candidate/<candidateDigest>` and resolves only
+the embedded canonical payload; it is not a network route or public URL. A fresh
+browser can import and independently reconstruct every digest and replay result
+without recreating the sender's current blueprint or retaining the proof as a
+tracked result. Unknown fields, noncanonical JSON, oversize input, digest drift,
+lineage edits, false-to-true authority changes, and public-URL substitution all
+fail closed. The share remains private browser memory with no signature,
+authenticated identity, model or provider attestation, registry, ranking,
+publication, spending, or production authority.
+
+The browser can discard the complete generated result chain explicitly, and
+reload clears generated and imported private state because the flow never writes
+browser storage.
 
 ```powershell
 python bin\check_mobile_arena_local_exhibition.py
@@ -420,11 +436,13 @@ python bin\check_mobile_arena_exchange.py
 python bin\check_mobile_arena_browser.py
 ```
 
-The focused adversarial checker runs 61 assertions. The integrated exchange
-checker runs 315 checks, and real-browser acceptance covers the complete local
-loop plus discard and reload cleanup. These are local exhibition proofs only;
-they do not establish sanctioned execution, model play, a user identity, an
-activated competition, a registry entry, a ranking, publication, or launch.
+The focused adversarial checker runs 87 assertions. The integrated exchange
+checker runs 315 checks, and real-browser acceptance runs 227 assertions across
+18 journeys, including canonical share preparation, same-page verification,
+tamper refusal, clean-state resolution, discard, reload cleanup, and storage
+invariance. These are local exhibition proofs only; they do not establish
+sanctioned execution, model play, a user identity, an activated competition, a
+registry entry, a ranking, publication, or launch.
 
 ### Proof-linked learning and still-unplayed runbacks
 
