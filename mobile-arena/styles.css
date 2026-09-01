@@ -20,10 +20,10 @@
 * { box-sizing: border-box; }
 html { background: var(--bg); scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); min-width: 0; }
-button, input, select { font: inherit; }
-button, a, input, select { -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; }
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role="status"]:focus-visible, [role="alert"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .skip-link { position: fixed; left: 12px; top: -60px; z-index: 100; padding: 10px 14px; background: var(--lime); color: #0b0d0c; font-weight: 800; border-radius: 6px; }
 .skip-link:focus { top: 10px; }
 .app-shell { min-height: 100svh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
@@ -144,6 +144,20 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.035em; }
 .proposal-blockers { margin-top: 16px; display: grid; gap: 5px; }
 .proposal-blockers strong { font-size: 11px; }
 .proposal-blockers span { overflow-wrap: anywhere; color: var(--muted); font: 9px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.portable-runback { margin-top: 18px; padding: 16px; display: grid; gap: 10px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--surface-2) 72%, transparent); }
+.portable-runback h4 { margin: 2px 0 0; font-size: 14px; }
+.portable-runback > div > p:not(.eyebrow) { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.portable-runback label { color: var(--text-soft); font-size: 10px; font-weight: 800; }
+.portable-textarea { width: 100%; min-height: 118px; resize: vertical; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #050706; color: var(--text-soft); font: 9px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: normal; white-space: pre; }
+.portable-textarea[readonly] { color: #b8c89f; }
+.portable-digest { margin: -3px 0 2px; overflow-wrap: anywhere; color: var(--muted); font: 9px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.portable-status { padding: 11px; display: grid; gap: 4px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.portable-status strong { font-size: 11px; }
+.portable-status span { overflow-wrap: anywhere; color: var(--muted); font-size: 9px; line-height: 1.45; }
+.portable-status.verified { border-color: color-mix(in srgb, var(--lime) 45%, var(--line)); }
+.portable-status.verified strong { color: var(--lime); }
+.portable-status.invalid { border-color: #6d4038; }
+.portable-status.invalid strong { color: #ff9b8c; }
 .proof-learning-button { width: 100%; margin-top: 18px; }
 .model-row { grid-template-columns: 1fr auto; gap: 12px; }
 .model-status { color: var(--lime); font-size: 11px; font-weight: 800; }
@@ -192,10 +206,10 @@ legend { margin-bottom: 8px; }
 @keyframes sheet-in { from { transform: translateY(26px); opacity: .2; } to { transform: none; opacity: 1; } }
 .sheet-handle { width: 42px; height: 4px; margin: 0 auto 18px; border-radius: 99px; background: #484f49; }
 .sheet-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.proof-grid { display: grid; gap: 0; margin-top: 18px; }
-.proof-row { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line-soft); }
+.proof-grid { min-width: 0; display: grid; gap: 0; margin-top: 18px; }
+.proof-row { min-width: 0; min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line-soft); }
 .proof-row span { color: var(--muted); font-size: 12px; }
-.proof-row strong { max-width: 62%; text-align: right; font-size: 12px; }
+.proof-row strong { min-width: 0; max-width: 62%; overflow-wrap: anywhere; text-align: right; font-size: 12px; }
 .proof-row strong.pass { color: var(--lime); }
 .proof-row strong.pending { color: #ffd36b; }
 .proof-row strong.mono { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10px; }

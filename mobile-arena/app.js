@@ -9,6 +9,9 @@ const state = {
   qualificationPreview: null,
   learningAction: null,
   runbackProposal: null,
+  portableRunback: null,
+  portableImportText: "",
+  portableVerification: null,
   lastFocus: null,
 };
 
@@ -159,12 +162,28 @@ function renderLessons() {
     </button>`).join("");
 }
 
+function portableVerificationMarkup() {
+  const verification = state.portableVerification;
+  if (verification?.status === "verified") {
+    return `<div class="portable-status verified" role="status" tabindex="-1"><strong>Verified locally · still unplayed</strong><span>SHA-256 ${escapeHTML(verification.result.payloadDigest)}</span><span>Parent ${escapeHTML(verification.result.proposal.parentReceipt.receiptId)}</span><span>Challenge ${escapeHTML(verification.result.proposal.runbackLineage.challengeId)} · ${escapeHTML(verification.result.proposal.gameBinding.name)} v${escapeHTML(verification.result.proposal.gameBinding.version)}</span></div>`;
+  }
+  if (verification?.status === "invalid") {
+    return `<div class="portable-status invalid" role="alert" tabindex="-1"><strong>Import refused</strong><span>${escapeHTML(verification.message)}</span><span>No proposal was adopted, qualified, executed, or published.</span></div>`;
+  }
+  return `<div class="portable-status neutral" role="status" tabindex="-1"><strong>Nothing imported</strong><span>Paste an exact canonical envelope to verify its local checksum and still-unplayed contract.</span></div>`;
+}
+
+function portableRunbackMarkup({ canPrepare = false } = {}) {
+  const portable = state.portableRunback;
+  return `<div class="portable-runback" aria-labelledby="portable-runback-title"><div><p class="eyebrow">Portable proposal</p><h4 id="portable-runback-title">Carry or inspect exact unplayed runback JSON.</h4><p>A local SHA-256 checksum detects changed content. It is not a signature or provider attestation.</p></div>${canPrepare ? `<button class="secondary-button" type="button" data-portable-prepare>${portable ? "Refresh portable JSON" : "Prepare portable JSON"}</button>` : ""}${portable ? `<label for="portable-runback-export">Canonical export · read only</label><textarea id="portable-runback-export" class="portable-textarea" rows="6" readonly spellcheck="false">${escapeHTML(portable.serialized)}</textarea><p class="portable-digest">SHA-256 ${escapeHTML(portable.envelope.integrity.payloadDigest)}</p>` : ""}<label for="portable-runback-import">Paste canonical proposal JSON</label><textarea id="portable-runback-import" class="portable-textarea" rows="6" maxlength="32768" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-runback-portable.v1 JSON">${escapeHTML(state.portableImportText)}</textarea><button class="secondary-button" type="button" data-portable-verify>Verify pasted proposal</button>${portableVerificationMarkup()}<div class="learning-boundary">Verification is local inspection only. It cannot authenticate origin, bind missing rules, activate a runner, change registry state, rank a result, publish, or spend.</div></div>`;
+}
+
 function renderReceiptLearning() {
   const container = $("#receipt-learning");
   if (!container) return;
   const action = state.learningAction;
   if (!action) {
-    container.innerHTML = `<div class="empty-state receipt-learning-empty"><strong>Open a reviewed receipt to begin.</strong><span>The lab will summarize visible evidence and offer bounded blueprint deltas. It never reads private reasoning.</span></div>`;
+    container.innerHTML = `<div class="empty-state receipt-learning-empty"><strong>Open a reviewed receipt to learn, or inspect a portable proposal.</strong><span>The lab summarizes visible evidence and offers bounded blueprint deltas. It never reads private reasoning.</span></div>${portableRunbackMarkup()}`;
     return;
   }
   const counts = action.receipt.moveSourceCounts;
@@ -173,7 +192,7 @@ function renderReceiptLearning() {
       <span>${escapeHTML(delta.label)}</span><small>${escapeHTML(delta.rationale)}${delta.id === action.recommendedDeltaId ? " · receipt-guided" : ""}</small>
     </button>`).join("");
   const proposal = state.runbackProposal;
-  let proposalMarkup = "";
+  let proposalMarkup = portableRunbackMarkup();
   if (proposal) {
     const rows = [
       ["Status", "Unplayed proposal", "pending"],
@@ -188,7 +207,7 @@ function renderReceiptLearning() {
       ["Execution", "Disabled", "pending"],
       ["Attestations", "Identity/model/provider/runtime/registry/publication: all false", ""],
     ];
-    proposalMarkup = `<div class="runback-proposal" id="runback-proposal"><div class="qualification-status"><span>Version 1 · local only</span><strong>Still unplayed</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proposal-blockers"><strong>Execution blockers</strong><span>${escapeHTML(proposal.executionBlockers.join(" · "))}</span></div><div class="proof-boundary"><strong>Proposal boundary:</strong> ${escapeHTML(proposal.boundary)} ${escapeHTML(proposal.rulesBinding.statement)}</div><button class="text-button" type="button" data-runback-blueprint>Review local blueprint</button></div>`;
+    proposalMarkup = `<div class="runback-proposal" id="runback-proposal"><div class="qualification-status"><span>Version 1 · local only</span><strong>Still unplayed</strong></div><div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proposal-blockers"><strong>Execution blockers</strong><span>${escapeHTML(proposal.executionBlockers.join(" · "))}</span></div><div class="proof-boundary"><strong>Proposal boundary:</strong> ${escapeHTML(proposal.boundary)} ${escapeHTML(proposal.rulesBinding.statement)}</div>${portableRunbackMarkup({ canPrepare: true })}<button class="text-button" type="button" data-runback-blueprint>Review local blueprint</button></div>`;
   }
   container.innerHTML = `<div class="learning-receipt"><span class="mode-label">${escapeHTML(action.receipt.game.name)} v${escapeHTML(action.receipt.game.version)}</span><h3>${escapeHTML(action.receipt.headline)}</h3><code>${escapeHTML(action.receipt.receiptId)}</code><p>${escapeHTML(action.observation)}</p><p class="row-detail">Visible sources · model ${counts.model} · scripted ${counts.scripted} · fallback ${counts.fallback} · other ${counts.other}</p><div class="learning-boundary">${escapeHTML(action.boundary)}</div></div><div class="learning-deltas"><p class="eyebrow">Choose one declared blueprint delta</p>${deltaControls}</div>${proposalMarkup}`;
 }
@@ -375,6 +394,9 @@ function prepareReceiptLearning(receiptId) {
   try {
     state.learningAction = dataAdapter.buildReceiptLearningAction(proof, state.data.sourceMode);
     state.runbackProposal = null;
+    state.portableRunback = null;
+    state.portableImportText = "";
+    state.portableVerification = null;
     renderReceiptLearning();
     return true;
   } catch {
@@ -386,9 +408,41 @@ function prepareRunbackProposal(deltaId) {
   if (!state.learningAction || !dataAdapter?.buildRunbackProposal) return false;
   try {
     state.runbackProposal = dataAdapter.buildRunbackProposal(state.learningAction, blueprintFromForm(), deltaId, state.data.sourceMode);
+    state.portableRunback = null;
+    state.portableImportText = "";
+    state.portableVerification = null;
     renderReceiptLearning();
     return true;
   } catch {
+    return false;
+  }
+}
+
+async function preparePortableRunback() {
+  if (!state.runbackProposal || !dataAdapter?.createPortableRunbackEnvelope) return false;
+  try {
+    state.portableRunback = await dataAdapter.createPortableRunbackEnvelope(state.runbackProposal);
+    state.portableVerification = null;
+    renderReceiptLearning();
+    return true;
+  } catch {
+    state.portableRunback = null;
+    state.portableVerification = { status: "invalid", message: "The current proposal failed strict portable validation." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function verifyPortableRunback(serializedInput) {
+  state.portableImportText = String(serializedInput || "").slice(0, dataAdapter?.PORTABLE_RUNBACK_MAX_LENGTH || 32768);
+  try {
+    const result = await dataAdapter.verifyPortableRunbackEnvelope(serializedInput);
+    state.portableVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.portableVerification = { status: "invalid", message: error?.message || "Portable proposal validation failed." };
+    renderReceiptLearning();
     return false;
   }
 }
@@ -509,7 +563,7 @@ function renderSourceChrome() {
 }
 
 function bindEvents() {
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const nav = event.target.closest("[data-nav]");
     if (nav) { event.preventDefault(); showView(nav.dataset.nav); return; }
     const proof = event.target.closest("[data-proof-open]");
@@ -559,6 +613,25 @@ function bindEvents() {
       } else {
         showToast("The runback proposal failed closed. Nothing was executed or saved.");
       }
+      return;
+    }
+    if (event.target.closest("[data-portable-prepare]")) {
+      const prepared = await preparePortableRunback();
+      if (prepared) {
+        $("#portable-runback-export")?.focus({ preventScroll: true });
+        showToast("Canonical local JSON prepared. Its checksum is not an identity or provider signature.");
+      } else {
+        showToast("Portable preparation failed closed. Nothing was uploaded, executed, or published.");
+      }
+      return;
+    }
+    if (event.target.closest("[data-portable-verify]")) {
+      const input = $("#portable-runback-import");
+      const verified = await verifyPortableRunback(input?.value || "");
+      $(verified ? ".portable-status.verified" : ".portable-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Checksum and still-unplayed contract verified locally. No authority was granted."
+        : "Import refused. No proposal was adopted, executed, or published.");
       return;
     }
     if (event.target.closest("[data-runback-blueprint]")) {

@@ -104,7 +104,14 @@ def main() -> int:
     require("buildRunbackProposal" in adapter and 'runbackStatus: "unplayed_proposal"' in adapter, "versioned unplayed runback contract missing")
     require('status: "blocked_missing_explicit_rules_digest"' in adapter and "explicit_rules_digest_not_bound" in adapter, "runback rules blocker missing")
     require("does not infer hidden reasoning" in adapter and "does not qualify, execute, attest, rank, publish, or spend" in adapter, "learning/runback truth boundary missing")
-    checks += 15
+    require("createPortableRunbackEnvelope" in adapter and "verifyPortableRunbackEnvelope" in adapter, "portable runback verifier missing")
+    require('PORTABLE_RUNBACK_SCHEMA = "builderwars.mobile-runback-portable.v1"' in adapter, "portable runback schema drift")
+    require("PORTABLE_RUNBACK_MAX_LENGTH = 32768" in adapter and 'maxlength="32768"' in js, "portable import length boundary missing")
+    require("globalThis.crypto.subtle.digest" in adapter and 'algorithm: "sha256"' in adapter, "portable checksum contract missing")
+    require("not a signature" in adapter and "cannot authenticate origin" in js, "portable authenticity boundary missing")
+    require("data-portable-prepare" in js and "data-portable-verify" in js and "portable-runback-import" in js, "portable mobile controls missing")
+    require("navigator.clipboard" not in combined and "FileReader" not in combined, "portable flow must not request clipboard or file authority")
+    checks += 22
     checks += 2
 
     print("[5] accessibility, offline, and reduced-motion contracts")
@@ -158,12 +165,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=9", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=12", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=9",
-        "./styles.css?v=9",
-        "./data-adapter.js?v=9",
-        "./app.js?v=9",
+        "./index.html?v=12",
+        "./styles.css?v=12",
+        "./data-adapter.js?v=12",
+        "./app.js?v=12",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -172,7 +179,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=9"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=12"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -218,6 +225,20 @@ def main() -> int:
     )
     require(learning_runback_check.returncode == 0, f"learning/runback regression failed: {learning_runback_check.stderr.strip()}")
     require("PASS" in learning_runback_check.stdout, "learning/runback regression did not report PASS")
+    checks += 2
+
+    portable_runback_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_portable_runback.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(portable_runback_check.returncode == 0, f"portable runback regression failed: {portable_runback_check.stderr.strip()}")
+    require("PASS" in portable_runback_check.stdout, "portable runback regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

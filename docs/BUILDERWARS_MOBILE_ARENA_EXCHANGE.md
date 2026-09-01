@@ -292,6 +292,7 @@ source and the original fixture as a visibly disclosed fallback. The adapter:
 python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_learning_runback.py
+python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_exchange.py
 ```
 
@@ -339,14 +340,37 @@ an explicit rules digest, the proposal records `rulesDigest: null` and the
 blocking status `blocked_missing_explicit_rules_digest`; it never invents the
 missing binding or implies the runback is ready.
 
+### Canonical portable runback verification
+
+The Receipt Lab can now prepare `builderwars.mobile-runback-portable.v1` as a
+copyable canonical JSON envelope. An empty or active Receipt Lab can inspect an
+envelope independently, so a recipient does not need to recreate the sender's
+local proposal first. The envelope contains the exact still-unplayed proposal,
+a SHA-256 digest over its canonical payload, and an explicit boundary that the
+digest is integrity evidence rather than a signature or origin claim.
+No clipboard permission, file permission, network request, account, provider,
+runner, registry, or publication capability is added.
+
+Pasted envelopes are capped at 32 KiB and accepted only when their JSON is
+canonical, every object has the exact versioned field set, nested prototype
+pollution keys are absent, the proposal key reprojects exactly, all four
+execution blockers remain ordered, every attestation remains false, and the
+payload digest matches. A successful result is labeled
+`verified_local_unplayed_proposal`; it is an inspection result, not adoption or
+activation. The adversarial checker exercises 100 assertions across valid,
+tampered, malformed, oversized, noncanonical, unknown-field, lineage-drift,
+rules-drift, blocker-drift, and attestation-drift cases.
+
 ### Exact next bounded campaign
 
-Add a deterministic local export/import verifier for the versioned runback
-proposal. It should canonicalize the proposal, reject tampering or unknown
-fields, preserve all blockers, and render an inspectable local verification
-result. Do not add auth, network writes, creator code execution, provider use,
-public activation, or spend. The protected private-alpha API binding remains a
-later operator-gated campaign.
+Add a deterministic local review-receipt candidate for a verified portable
+proposal. It should bind the envelope digest, an unattested local reviewer
+label, one `accept_for_blueprint_revision`, `defer`, or `reject` decision, and a
+bounded reason code into an append-only, still-private object. Acceptance may
+produce a proposed blueprint revision only; it must not bind missing rules,
+qualify, execute, register, rank, publish, or spend. Auth, network writes,
+creator code execution, provider use, public activation, and the protected
+private-alpha API binding remain operator-gated campaigns.
 
 ## Review status
 

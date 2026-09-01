@@ -11,9 +11,21 @@
   const QUALIFICATION_SCHEMA = "builderwars.mobile-qualification-preview.v1";
   const LEARNING_SCHEMA = "builderwars.mobile-receipt-learning.v1";
   const RUNBACK_PROPOSAL_SCHEMA = "builderwars.mobile-runback-proposal.v1";
+  const PORTABLE_RUNBACK_SCHEMA = "builderwars.mobile-runback-portable.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
+  const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
+  const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+  const RUNBACK_EXECUTION_BLOCKERS = Object.freeze([
+    "explicit_rules_digest_not_bound",
+    "qualification_not_run",
+    "sanctioned_runner_not_bound",
+    "local_blueprint_version_not_committed",
+  ]);
+  const RUNBACK_RULES_STATEMENT = "The bounded mobile read model does not carry an explicit historical rules digest. A sanctioned runback must bind one before qualification.";
+  const RUNBACK_PROPOSAL_BOUNDARY = "This versioned object is a local, still-unplayed proposal. It preserves parent receipt and challenge lineage, but it does not qualify, execute, attest, rank, publish, or spend.";
+  const PORTABLE_RUNBACK_BOUNDARY = "This canonical envelope carries a local, still-unplayed proposal plus a SHA-256 integrity checksum. The checksum detects accidental or unacknowledged content changes; it is not a signature, does not authenticate an author or provider, and grants no qualification, execution, registry, ranking, publication, or spending authority.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
@@ -32,6 +44,52 @@
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function assertSafeKeys(value, path = "value", depth = 0, state = { nodes: 0 }) {
+    requireValue(depth <= 32, "unsafe portable runback: nesting limit exceeded");
+    state.nodes += 1;
+    requireValue(state.nodes <= 4096, "unsafe portable runback: node limit exceeded");
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => assertSafeKeys(item, `${path}[${index}]`, depth + 1, state));
+      return;
+    }
+    if (!isObject(value)) return;
+    for (const key of Object.keys(value)) {
+      requireValue(!DANGEROUS_KEYS.has(key), `unsafe portable runback: prohibited key at ${path}.${key}`);
+      assertSafeKeys(value[key], `${path}.${key}`, depth + 1, state);
+    }
+  }
+
+  function requireExactKeys(value, expected, context) {
+    requireValue(isObject(value), `unsafe portable runback: ${context} must be an object`);
+    const actual = Object.keys(value).sort();
+    const wanted = [...expected].sort();
+    requireValue(actual.length === wanted.length && actual.every((key, index) => key === wanted[index]), `unsafe portable runback: ${context} fields drift`);
+  }
+
+  function canonicalJSON(value) {
+    if (value === null || typeof value === "boolean" || typeof value === "string") return JSON.stringify(value);
+    if (typeof value === "number") {
+      requireValue(Number.isFinite(value), "unsafe portable runback: non-finite number");
+      return JSON.stringify(value);
+    }
+    if (Array.isArray(value)) return `[${value.map((item) => canonicalJSON(item)).join(",")}]`;
+    requireValue(isObject(value), "unsafe portable runback: unsupported JSON value");
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJSON(value[key])}`).join(",")}}`;
+  }
+
+  async function sha256Hex(value) {
+    requireValue(typeof TextEncoder !== "undefined" && globalThis.crypto?.subtle, "unsafe portable runback: SHA-256 unavailable");
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  function equalHex(left, right) {
+    if (typeof left !== "string" || typeof right !== "string" || left.length !== right.length) return false;
+    let difference = 0;
+    for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+    return difference === 0;
   }
 
   function nonNegativeInteger(value) {
@@ -433,7 +491,7 @@
       rulesBinding: {
         status: "blocked_missing_explicit_rules_digest",
         rulesDigest: null,
-        statement: "The bounded mobile read model does not carry an explicit historical rules digest. A sanctioned runback must bind one before qualification.",
+        statement: RUNBACK_RULES_STATEMENT,
       },
       blueprint: {
         agentName: blueprint.agentName.trim(),
@@ -450,14 +508,113 @@
         to: true,
         changeStatus: currentValue ? "already_declared" : "proposed_change",
       },
-      executionBlockers: [
-        "explicit_rules_digest_not_bound",
-        "qualification_not_run",
-        "sanctioned_runner_not_bound",
-        "local_blueprint_version_not_committed",
-      ],
+      executionBlockers: [...RUNBACK_EXECUTION_BLOCKERS],
       attestations: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false },
-      boundary: "This versioned object is a local, still-unplayed proposal. It preserves parent receipt and challenge lineage, but it does not qualify, execute, attest, rank, publish, or spend.",
+      boundary: RUNBACK_PROPOSAL_BOUNDARY,
+    };
+  }
+
+  function validateRunbackProposal(proposalInput) {
+    assertSafeKeys(proposalInput, "proposal");
+    requireExactKeys(proposalInput, [
+      "schemaVersion", "proposalVersion", "proposalKey", "runbackStatus", "qualificationStatus", "executionStatus", "publicationStatus",
+      "parentReceipt", "runbackLineage", "gameBinding", "rulesBinding", "blueprint", "blueprintDelta", "executionBlockers", "attestations", "boundary",
+    ], "proposal");
+    requireValue(proposalInput.schemaVersion === RUNBACK_PROPOSAL_SCHEMA && proposalInput.proposalVersion === 1, "unsafe portable runback: proposal schema drift");
+    requireValue(proposalInput.runbackStatus === "unplayed_proposal", "unsafe portable runback: proposal is not unplayed");
+    requireValue(proposalInput.qualificationStatus === "not_run", "unsafe portable runback: qualification status drift");
+    requireValue(proposalInput.executionStatus === "disabled", "unsafe portable runback: execution status drift");
+    requireValue(proposalInput.publicationStatus === "not_requested", "unsafe portable runback: publication status drift");
+    requireValue(proposalInput.boundary === RUNBACK_PROPOSAL_BOUNDARY, "unsafe portable runback: proposal boundary drift");
+
+    requireExactKeys(proposalInput.parentReceipt, ["receiptId", "fixtureId", "replayVerdict"], "parent receipt");
+    requireValue(HEX64.test(proposalInput.parentReceipt.receiptId) && HEX64.test(proposalInput.parentReceipt.fixtureId), "unsafe portable runback: parent receipt binding missing");
+    requireValue(proposalInput.parentReceipt.replayVerdict === "PASS", "unsafe portable runback: parent replay was not verified");
+
+    requireExactKeys(proposalInput.runbackLineage, ["challengeId", "fixtureId", "parentReceiptId", "status"], "runback lineage");
+    requireValue(CHALLENGE_ID.test(proposalInput.runbackLineage.challengeId) && HEX64.test(proposalInput.runbackLineage.fixtureId), "unsafe portable runback: runback identifiers missing");
+    requireValue(proposalInput.runbackLineage.parentReceiptId === proposalInput.parentReceipt.receiptId, "unsafe portable runback: runback parent drift");
+    requireValue(proposalInput.runbackLineage.status === "unplayed_challenge", "unsafe portable runback: challenge is not unplayed");
+
+    requireExactKeys(proposalInput.gameBinding, ["format", "name", "version"], "game binding");
+    requireValue(typeof proposalInput.gameBinding.name === "string" && proposalInput.gameBinding.name.length > 0 && proposalInput.gameBinding.name.length <= 80, "unsafe portable runback: game name missing");
+    requireValue(proposalInput.gameBinding.version === "1", "unsafe portable runback: game version drift");
+    requireValue(proposalInput.gameBinding.format === null || (typeof proposalInput.gameBinding.format === "string" && proposalInput.gameBinding.format.length <= 80), "unsafe portable runback: game format drift");
+
+    requireExactKeys(proposalInput.rulesBinding, ["status", "rulesDigest", "statement"], "rules binding");
+    requireValue(proposalInput.rulesBinding.status === "blocked_missing_explicit_rules_digest" && proposalInput.rulesBinding.rulesDigest === null, "unsafe portable runback: rules blocker drift");
+    requireValue(proposalInput.rulesBinding.statement === RUNBACK_RULES_STATEMENT, "unsafe portable runback: rules statement drift");
+
+    requireExactKeys(proposalInput.blueprint, ["agentName", "declaredBase", "harnessStyle", "localOnly"], "blueprint");
+    requireValue(typeof proposalInput.blueprint.agentName === "string" && proposalInput.blueprint.agentName.trim() === proposalInput.blueprint.agentName && proposalInput.blueprint.agentName.length > 0 && proposalInput.blueprint.agentName.length <= 36, "unsafe portable runback: agent name drift");
+    requireValue(ALLOWED_BASE_MODELS.has(proposalInput.blueprint.declaredBase), "unsafe portable runback: unknown declared base");
+    requireValue(ALLOWED_HARNESS_STYLES.has(proposalInput.blueprint.harnessStyle), "unsafe portable runback: unknown harness style");
+    requireValue(proposalInput.blueprint.localOnly === true, "unsafe portable runback: blueprint escaped local boundary");
+
+    requireExactKeys(proposalInput.blueprintDelta, ["id", "guardKey", "label", "rationale", "from", "to", "changeStatus"], "blueprint delta");
+    const delta = RUNBACK_DELTAS.find((candidate) => candidate.id === proposalInput.blueprintDelta.id);
+    requireValue(delta && proposalInput.blueprintDelta.guardKey === delta.guardKey && proposalInput.blueprintDelta.label === delta.label && proposalInput.blueprintDelta.rationale === delta.rationale, "unsafe portable runback: blueprint delta drift");
+    requireValue(typeof proposalInput.blueprintDelta.from === "boolean" && proposalInput.blueprintDelta.to === true, "unsafe portable runback: blueprint change drift");
+    requireValue(proposalInput.blueprintDelta.changeStatus === (proposalInput.blueprintDelta.from ? "already_declared" : "proposed_change"), "unsafe portable runback: blueprint change status drift");
+
+    requireValue(Array.isArray(proposalInput.executionBlockers) && proposalInput.executionBlockers.length === RUNBACK_EXECUTION_BLOCKERS.length, "unsafe portable runback: execution blockers drift");
+    requireValue(proposalInput.executionBlockers.every((blocker, index) => blocker === RUNBACK_EXECUTION_BLOCKERS[index]), "unsafe portable runback: execution blockers drift");
+    requireExactKeys(proposalInput.attestations, ["identity", "model", "provider", "runtime", "registry", "publication"], "attestations");
+    requireValue(Object.values(proposalInput.attestations).every((value) => value === false), "unsafe portable runback: attestation must remain false");
+
+    const expectedProposalKey = [
+      "local-runback-v1",
+      proposalInput.parentReceipt.receiptId,
+      proposalInput.runbackLineage.fixtureId,
+      proposalInput.runbackLineage.challengeId,
+      encodeURIComponent(proposalInput.gameBinding.name),
+      proposalInput.gameBinding.version,
+      proposalInput.blueprintDelta.id,
+      proposalInput.blueprintDelta.from ? 1 : 0,
+      encodeURIComponent(proposalInput.blueprint.agentName),
+      encodeURIComponent(proposalInput.blueprint.declaredBase),
+      encodeURIComponent(proposalInput.blueprint.harnessStyle),
+    ].join(":");
+    requireValue(proposalInput.proposalKey === expectedProposalKey, "unsafe portable runback: proposal key drift");
+    return proposalInput;
+  }
+
+  async function createPortableRunbackEnvelope(proposalInput) {
+    const proposal = clone(validateRunbackProposal(proposalInput));
+    const payloadDigest = await sha256Hex(canonicalJSON(proposal));
+    const envelope = {
+      schemaVersion: PORTABLE_RUNBACK_SCHEMA,
+      payload: proposal,
+      integrity: { algorithm: "sha256", payloadDigest },
+      boundary: PORTABLE_RUNBACK_BOUNDARY,
+    };
+    return { envelope: clone(envelope), serialized: canonicalJSON(envelope) };
+  }
+
+  async function verifyPortableRunbackEnvelope(serializedInput) {
+    requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PORTABLE_RUNBACK_MAX_LENGTH, "unsafe portable runback: input length rejected");
+    let envelope;
+    try {
+      envelope = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe portable runback: invalid JSON");
+    }
+    assertSafeKeys(envelope, "envelope");
+    requireExactKeys(envelope, ["schemaVersion", "payload", "integrity", "boundary"], "envelope");
+    requireValue(envelope.schemaVersion === PORTABLE_RUNBACK_SCHEMA, "unsafe portable runback: envelope schema drift");
+    requireValue(envelope.boundary === PORTABLE_RUNBACK_BOUNDARY, "unsafe portable runback: envelope boundary drift");
+    requireExactKeys(envelope.integrity, ["algorithm", "payloadDigest"], "integrity");
+    requireValue(envelope.integrity.algorithm === "sha256" && HEX64.test(envelope.integrity.payloadDigest), "unsafe portable runback: integrity metadata drift");
+    requireValue(serializedInput === canonicalJSON(envelope), "unsafe portable runback: envelope must use canonical JSON");
+    const proposal = clone(validateRunbackProposal(envelope.payload));
+    const computedDigest = await sha256Hex(canonicalJSON(proposal));
+    requireValue(equalHex(computedDigest, envelope.integrity.payloadDigest), "unsafe portable runback: payload digest mismatch");
+    return {
+      schemaVersion: PORTABLE_RUNBACK_SCHEMA,
+      verificationStatus: "verified_local_unplayed_proposal",
+      payloadDigest: computedDigest,
+      proposal,
+      boundary: PORTABLE_RUNBACK_BOUNDARY,
     };
   }
 
@@ -590,6 +747,8 @@
   return {
     DEMO_SCHEMA,
     LEARNING_SCHEMA,
+    PORTABLE_RUNBACK_MAX_LENGTH,
+    PORTABLE_RUNBACK_SCHEMA,
     QUALIFICATION_SCHEMA,
     PREVIEW_RESOURCE_CLASS,
     READ_MODEL_SCHEMA,
@@ -599,9 +758,12 @@
     buildQualificationPreview,
     buildReceiptLearningAction,
     buildRunbackProposal,
+    createPortableRunbackEnvelope,
     demoFallback,
     loadArenaData,
     validateArenaReadModel,
     validateDemoFixture,
+    validateRunbackProposal,
+    verifyPortableRunbackEnvelope,
   };
 }));

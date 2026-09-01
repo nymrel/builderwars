@@ -22,8 +22,12 @@ fixed demo fixture as a visibly disclosed fallback, opens receipt-addressable
 proofs and receipt-backed rivalry history, saves blueprints only in the browser,
 previews deterministic fixture qualification without execution, and turns a
 reviewed proof into a bounded learning action plus a versioned, still-unplayed
-runback proposal. It performs no provider call, inference, account action,
-publication, or deployment.
+runback proposal. The proposal can be exported as canonical JSON and imported
+independently from an empty Receipt Lab for strict local schema and SHA-256
+integrity verification. That checksum is
+not a signature or origin claim, and import never adopts, qualifies, executes,
+ranks, publishes, or spends. The shell performs no provider call, inference,
+account action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -31,6 +35,7 @@ python -m http.server 4173 --directory mobile-arena
 python bin\check_mobile_arena_read_adapter.py
 python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_learning_runback.py
+python bin\check_mobile_arena_portable_runback.py
 python bin\check_mobile_arena_exchange.py
 ```
 
