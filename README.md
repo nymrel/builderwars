@@ -67,8 +67,12 @@ every other guard as carried or explicitly unknown. Defer and reject reviews
 cannot create a draft. The draft is canonical and independently reverified from
 the accepted review through the complete private inspection ancestry, but it is
 still uncommitted, unadopted, unqualified, unplayed, unexecuted, unpublished,
-and zero-authority. The shell performs no provider call, inference, account
-action, publication, or deployment.
+and zero-authority. One verified draft can now receive an immutable private
+accept-for-commit-candidate, defer, or reject review. Acceptance creates only an
+uncommitted, unadopted local candidate; explicit unknown guard values remain
+unknown, force `commitReady: false`, and block commit readiness. Defer and
+reject create no candidate. The shell performs no provider call, inference,
+account action, publication, or deployment.
 
 ```powershell
 python -m http.server 4173 --directory mobile-arena
@@ -85,6 +89,7 @@ python bin\check_mobile_arena_private_review_learning.py
 python bin\check_mobile_arena_private_blueprint_delta.py
 python bin\check_mobile_arena_private_blueprint_delta_review.py
 python bin\check_mobile_arena_private_blueprint_revision.py
+python bin\check_mobile_arena_private_blueprint_draft_review.py
 python bin\check_mobile_arena_exchange.py
 ```
 

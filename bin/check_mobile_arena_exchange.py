@@ -168,7 +168,14 @@ def main() -> int:
     require("unreviewed_guard_values_not_carried" in adapter and "Unknown guard values preserved" in js, "private blueprint revision-draft unknown guard boundary missing")
     require("accepted review required" in adapter and "Defer and reject reviews fail closed" in js, "private blueprint revision-draft accepted-review gate missing")
     require("applies only the exact reviewed allowlisted guard" in adapter and "Local blueprint revision draft verified · never adopted" in js, "private blueprint revision-draft exact application boundary missing")
-    checks += 81
+    require("createPortablePrivateBlueprintDraftReview" in adapter and "verifyPortablePrivateBlueprintDraftReview" in adapter, "private blueprint draft-review verifier missing")
+    require('PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-revision-draft-review.v1"' in adapter, "private blueprint draft-review schema drift")
+    require("PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH = 5242880" in adapter and 'maxlength="5242880"' in js, "private blueprint draft-review length boundary missing")
+    require("data-private-blueprint-draft-review-create" in js and "data-private-blueprint-draft-review-verify" in js, "private blueprint draft-review controls missing")
+    require("accept_for_commit_candidate" in adapter and "required_guard_values_unknown" in adapter and "guard_change_not_approved" in adapter, "private blueprint draft-review decisions or reasons missing")
+    require("blocked_unknown_guard_values" in adapter and "Unknown guard values remain explicit and block commit readiness" in js, "private blueprint draft-review unknown-guard readiness boundary missing")
+    require("commitReady: false" in adapter and "Review the draft. Commit nothing." in js, "private blueprint draft-review commit boundary missing")
+    checks += 88
 
     print("[5] accessibility, offline, and reduced-motion contracts")
     for marker in (
@@ -221,12 +228,12 @@ def main() -> int:
     require(focus_check.returncode == 0, f"modal focus helper check failed: {focus_check.stderr.strip()}")
     checks += 2
     require(webmanifest.get("display") == "standalone", "web manifest must declare standalone display")
-    require(webmanifest.get("start_url") == "./index.html?v=20", "web manifest start URL drift")
+    require(webmanifest.get("start_url") == "./index.html?v=21", "web manifest start URL drift")
     for offline_asset in (
-        "./index.html?v=20",
-        "./styles.css?v=20",
-        "./data-adapter.js?v=20",
-        "./app.js?v=20",
+        "./index.html?v=21",
+        "./styles.css?v=21",
+        "./data-adapter.js?v=21",
+        "./app.js?v=21",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",
@@ -235,7 +242,7 @@ def main() -> int:
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1
     require('new Request(asset, { cache: "reload" })' in sw, "service-worker install must bypass stale HTTP cache")
-    require('NAVIGATION_FALLBACK = "./index.html?v=20"' in sw, "offline navigation fallback must be versioned")
+    require('NAVIGATION_FALLBACK = "./index.html?v=21"' in sw, "offline navigation fallback must be versioned")
     require('event.request.mode === "navigate"' in sw, "HTML fallback must be limited to navigation requests")
     require("return Response.error()" in sw, "uncached offline resources must fail instead of masquerading as HTML")
     checks += 4
@@ -407,6 +414,20 @@ def main() -> int:
     )
     require(private_blueprint_revision_check.returncode == 0, f"private blueprint revision-draft regression failed: {private_blueprint_revision_check.stderr.strip()}")
     require("PASS" in private_blueprint_revision_check.stdout, "private blueprint revision-draft regression did not report PASS")
+    checks += 2
+
+    private_blueprint_draft_review_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_private_blueprint_draft_review.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    require(private_blueprint_draft_review_check.returncode == 0, f"private blueprint draft-review regression failed: {private_blueprint_draft_review_check.stderr.strip()}")
+    require("PASS" in private_blueprint_draft_review_check.stdout, "private blueprint draft-review regression did not report PASS")
     checks += 2
 
     print("[6] anti-casino and privacy language is durable")

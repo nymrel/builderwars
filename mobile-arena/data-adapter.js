@@ -21,6 +21,7 @@
   const PRIVATE_BLUEPRINT_DELTA_SCHEMA = "builderwars.mobile-private-inspection-blueprint-delta.v1";
   const PRIVATE_BLUEPRINT_DELTA_REVIEW_SCHEMA = "builderwars.mobile-private-inspection-blueprint-delta-review.v1";
   const PRIVATE_BLUEPRINT_REVISION_DRAFT_SCHEMA = "builderwars.mobile-private-blueprint-revision-draft.v1";
+  const PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-revision-draft-review.v1";
   const PREVIEW_RESOURCE_CLASS = "local-preview-no-compute-v1";
   const PORTABLE_RUNBACK_MAX_LENGTH = 32768;
   const PORTABLE_REVIEW_MAX_RECORDS = 64;
@@ -34,12 +35,14 @@
   const PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH = 2621440;
   const PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH = 3145728;
   const PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH = 4194304;
+  const PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH = 5242880;
   const SAFE_JSON_NODE_LIMIT = 16384;
   const PORTABLE_REVIEW_COMPARISON_NODE_LIMIT = 49152;
   const PRIVATE_REVIEW_LEARNING_NODE_LIMIT = 65536;
   const PRIVATE_BLUEPRINT_DELTA_NODE_LIMIT = 73728;
   const PRIVATE_BLUEPRINT_DELTA_REVIEW_NODE_LIMIT = 81920;
   const PRIVATE_BLUEPRINT_REVISION_DRAFT_NODE_LIMIT = 102400;
+  const PRIVATE_BLUEPRINT_DRAFT_REVIEW_NODE_LIMIT = 131072;
   const HEX64 = /^[0-9a-f]{64}$/;
   const CHALLENGE_ID = /^challenge_[0-9a-f]{16}$/;
   const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -61,6 +64,7 @@
   const PRIVATE_BLUEPRINT_DELTA_BOUNDARY = "This canonical receipt independently reverifies one comparison-linked learning receipt and maps one exact digest-bound inspection lesson to one fixed allowlisted guard requirement. It preserves the parent proposal, Packet A, Packet B, and every source digest. The requirement remains uncommitted and unplayed, does not declare a correct packet, and cannot create consensus, approval, progress, blueprint adoption, identity, merge, resolution, rules, qualification, execution, registry, ranking, publication, spending, or provider authority.";
   const PRIVATE_BLUEPRINT_DELTA_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one private inspection-to-blueprint guard proposal and records exactly one immutable private local review. An accept-for-revision decision may create only a proposed uncommitted local revision candidate; it does not adopt the guard, edit the parent proposal, declare correctness, create consensus, grant approval or progress, authenticate identity, merge or resolve histories, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.";
   const PRIVATE_BLUEPRINT_REVISION_DRAFT_BOUNDARY = "This canonical receipt independently reverifies one accepted private guard-proposal review and derives exactly one versioned local blueprint-revision draft. The draft copies the bound parent blueprint identity and applies only the exact reviewed allowlisted guard while preserving every other guard as carried or unknown. It remains uncommitted, unadopted, unqualified, unplayed, unexecuted, and unpublished; it cannot authenticate identity, declare correctness, create consensus, grant approval or progress, mutate the parent, bind rules, activate a fixture, execute, register, rank, publish, spend, or call a provider.";
+  const PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one versioned local blueprint-revision draft and records exactly one immutable private local review. Accept-for-commit-candidate may derive only an uncommitted, unadopted local candidate. Explicit unknown guard values remain unknown and force commit readiness blocked; no decision authenticates identity, declares correctness, creates consensus, grants approval or progress, mutates the draft or parent, binds rules, qualifies, plays, executes, registers, ranks, publishes, spends, or calls a provider.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
   const RUNBACK_DELTAS = Object.freeze([
@@ -134,6 +138,25 @@
     "unreviewed_guard_values_not_carried",
     "local_draft_not_committed",
     "local_draft_not_adopted",
+    "explicit_rules_digest_not_bound",
+    "qualification_not_run",
+    "fixture_not_activated",
+    "sanctioned_runner_not_bound",
+    "registry_not_requested",
+    "publication_not_requested",
+  ]);
+  const PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASONS = Object.freeze({
+    accept_for_commit_candidate: Object.freeze(["draft_lineage_verified", "guard_change_preserved"]),
+    defer: Object.freeze(["required_guard_values_unknown", "needs_operator_commit_review", "needs_additional_private_evidence"]),
+    reject: Object.freeze(["draft_not_needed", "guard_change_not_approved", "unsafe_or_out_of_scope"]),
+  });
+  const PRIVATE_BLUEPRINT_DRAFT_REVIEW_BLOCKERS = Object.freeze([
+    "reviewer_identity_unattested",
+    "lesson_does_not_establish_correctness",
+    "unknown_guard_values_block_commit_readiness",
+    "local_commit_candidate_not_committed",
+    "local_commit_candidate_not_adopted",
+    "operator_commit_review_not_attested",
     "explicit_rules_digest_not_bound",
     "qualification_not_run",
     "fixture_not_activated",
@@ -2030,6 +2053,218 @@
     };
   }
 
+  function privateBlueprintDraftReviewBinding(draftVerification) {
+    const draft = draftVerification.draft;
+    return {
+      draftPacketDigest: draftVerification.packetDigest,
+      draftDigest: draft.draftDigest,
+      draftKey: draft.draftKey,
+      acceptedReviewPacketDigest: draft.lineage.acceptedReviewPacketDigest,
+      acceptedReviewDigest: draft.lineage.acceptedReviewDigest,
+      guardProposalPacketDigest: draft.lineage.guardProposalPacketDigest,
+      parentProposalPayloadDigest: draft.lineage.parentProposalPayloadDigest,
+      selectedReviewDigest: draft.lineage.selectedReviewDigest,
+      appliedGuardId: draft.appliedGuard.id,
+    };
+  }
+
+  async function proposedPrivateBlueprintCommitCandidate(draftVerification, binding) {
+    const draft = draftVerification.draft;
+    const hasUnknownGuards = draft.unknownGuardKeys.length > 0;
+    const blockers = PRIVATE_BLUEPRINT_DRAFT_REVIEW_BLOCKERS.filter(
+      (blocker) => hasUnknownGuards || blocker !== "unknown_guard_values_block_commit_readiness",
+    );
+    const record = {
+      status: "proposed_uncommitted_local_blueprint_commit_candidate",
+      candidateKey: [
+        "private-blueprint-commit-candidate-v1",
+        binding.draftPacketDigest,
+        binding.draftDigest,
+        encodeURIComponent(binding.appliedGuardId),
+      ].join(":"),
+      parentDraftKey: binding.draftKey,
+      parentDraftDigest: binding.draftDigest,
+      blueprint: clone(draft.revisedBlueprint),
+      appliedGuard: clone(draft.appliedGuard),
+      unknownGuardKeys: clone(draft.unknownGuardKeys),
+      guardCompletionStatus: hasUnknownGuards ? "incomplete_unknown_guard_values" : "complete_guard_values",
+      commitReadinessStatus: hasUnknownGuards ? "blocked_unknown_guard_values" : "requires_operator_commit_review",
+      localOnly: true,
+      committed: false,
+      adopted: false,
+      commitReady: false,
+      qualificationStatus: "not_run",
+      executionStatus: "disabled",
+      registryStatus: "not_requested",
+      publicationStatus: "not_requested",
+      blockers,
+      authority: privateBlueprintDeltaAuthority(),
+      boundary: PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY,
+    };
+    const candidateDigest = await sha256Hex(canonicalJSON(record));
+    return { ...record, candidateDigest };
+  }
+
+  async function buildPortablePrivateBlueprintDraftReviewRecord(draftVerification, reviewInput) {
+    requireValue(
+      isObject(draftVerification)
+        && draftVerification.schemaVersion === PRIVATE_BLUEPRINT_REVISION_DRAFT_SCHEMA
+        && draftVerification.verificationStatus === "verified_private_local_blueprint_revision_draft",
+      "unsafe private blueprint draft review: verified revision draft required",
+    );
+    assertSafeKeys(reviewInput, "private blueprint draft review input");
+    requireExactKeys(reviewInput, ["reviewerLabel", "decision", "reasonCode"], "private blueprint draft review input");
+    requireValue(
+      typeof reviewInput.reviewerLabel === "string"
+        && reviewInput.reviewerLabel.trim() === reviewInput.reviewerLabel
+        && reviewInput.reviewerLabel.length > 0
+        && reviewInput.reviewerLabel.length <= 36,
+      "unsafe private blueprint draft review: reviewer label drift",
+    );
+    const allowedReasons = PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASONS[reviewInput.decision];
+    requireValue(Array.isArray(allowedReasons), "unsafe private blueprint draft review: unknown decision");
+    requireValue(allowedReasons.includes(reviewInput.reasonCode), "unsafe private blueprint draft review: decision reason drift");
+    const draftBinding = privateBlueprintDraftReviewBinding(draftVerification);
+    const localCommitCandidate = reviewInput.decision === "accept_for_commit_candidate"
+      ? await proposedPrivateBlueprintCommitCandidate(draftVerification, draftBinding)
+      : null;
+    const hasUnknownGuards = draftVerification.draft.unknownGuardKeys.length > 0;
+    const review = {
+      reviewStatus: "private_local_blueprint_revision_draft_review",
+      decision: reviewInput.decision,
+      reasonCode: reviewInput.reasonCode,
+      reviewer: {
+        label: reviewInput.reviewerLabel,
+        identityAttested: false,
+        localOnly: true,
+      },
+      draftBinding,
+      localCommitCandidate,
+      state: {
+        localOnly: true,
+        committed: false,
+        adopted: false,
+        commitCandidateCreated: localCommitCandidate !== null,
+        commitReadinessStatus: localCommitCandidate?.commitReadinessStatus || "not_requested",
+        qualificationStatus: "not_run",
+        played: false,
+        executionStatus: "disabled",
+        registryStatus: "not_requested",
+        publicationStatus: "not_requested",
+      },
+      blockers: PRIVATE_BLUEPRINT_DRAFT_REVIEW_BLOCKERS.filter(
+        (blocker) => hasUnknownGuards || blocker !== "unknown_guard_values_block_commit_readiness",
+      ),
+      authority: privateBlueprintDeltaAuthority(),
+      boundary: PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY,
+    };
+    const reviewDigest = await sha256Hex(canonicalJSON(review));
+    return { ...review, reviewDigest };
+  }
+
+  async function createPortablePrivateBlueprintDraftReview(serializedDraftInput, reviewInput) {
+    const draftVerification = await verifyPortablePrivateBlueprintRevisionDraft(serializedDraftInput);
+    const review = await buildPortablePrivateBlueprintDraftReviewRecord(draftVerification, reviewInput);
+    const payload = {
+      blueprintRevisionDraft: JSON.parse(serializedDraftInput),
+      review,
+    };
+    const payloadDigest = await sha256Hex(canonicalJSON(payload));
+    const binding = review.draftBinding;
+    const packet = {
+      schemaVersion: PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA,
+      reviewVersion: 1,
+      payload,
+      integrity: {
+        algorithm: "sha256",
+        payloadDigest,
+        draftPacketDigest: binding.draftPacketDigest,
+        draftDigest: binding.draftDigest,
+        acceptedReviewPacketDigest: binding.acceptedReviewPacketDigest,
+        guardProposalPacketDigest: binding.guardProposalPacketDigest,
+        parentProposalPayloadDigest: binding.parentProposalPayloadDigest,
+        selectedReviewDigest: binding.selectedReviewDigest,
+        reviewDigest: review.reviewDigest,
+        commitCandidateDigest: review.localCommitCandidate?.candidateDigest || null,
+      },
+      boundary: PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY,
+    };
+    const serialized = canonicalJSON(packet);
+    requireValue(serialized.length <= PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH, "unsafe private blueprint draft review: packet length rejected");
+    return { packet: clone(packet), serialized };
+  }
+
+  async function verifyPortablePrivateBlueprintDraftReview(serializedInput) {
+    requireValue(
+      typeof serializedInput === "string"
+        && serializedInput.length > 0
+        && serializedInput.length <= PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH,
+      "unsafe private blueprint draft review: input length rejected",
+    );
+    let packet;
+    try {
+      packet = JSON.parse(serializedInput);
+    } catch {
+      throw new Error("unsafe private blueprint draft review: invalid JSON");
+    }
+    assertSafeKeys(packet, "private blueprint draft review", 0, { nodes: 0 }, PRIVATE_BLUEPRINT_DRAFT_REVIEW_NODE_LIMIT);
+    requireExactKeys(packet, ["schemaVersion", "reviewVersion", "payload", "integrity", "boundary"], "private blueprint draft review");
+    requireValue(packet.schemaVersion === PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA && packet.reviewVersion === 1, "unsafe private blueprint draft review: schema drift");
+    requireValue(packet.boundary === PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY, "unsafe private blueprint draft review: boundary drift");
+    requireValue(serializedInput === canonicalJSON(packet), "unsafe private blueprint draft review: packet must use canonical JSON");
+    requireExactKeys(packet.payload, ["blueprintRevisionDraft", "review"], "private blueprint draft review payload");
+    requireExactKeys(packet.integrity, [
+      "algorithm", "payloadDigest", "draftPacketDigest", "draftDigest", "acceptedReviewPacketDigest",
+      "guardProposalPacketDigest", "parentProposalPayloadDigest", "selectedReviewDigest", "reviewDigest", "commitCandidateDigest",
+    ], "private blueprint draft review integrity");
+    requireValue(packet.integrity.algorithm === "sha256", "unsafe private blueprint draft review: integrity algorithm drift");
+    for (const key of [
+      "payloadDigest", "draftPacketDigest", "draftDigest", "acceptedReviewPacketDigest",
+      "guardProposalPacketDigest", "parentProposalPayloadDigest", "selectedReviewDigest", "reviewDigest",
+    ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint draft review: ${key} drift`);
+    requireValue(packet.integrity.commitCandidateDigest === null || HEX64.test(packet.integrity.commitCandidateDigest), "unsafe private blueprint draft review: commitCandidateDigest drift");
+
+    requireValue(isObject(packet.payload.review), "unsafe private blueprint draft review: review record drift");
+    requireExactKeys(packet.payload.review, [
+      "reviewStatus", "decision", "reasonCode", "reviewer", "draftBinding", "localCommitCandidate",
+      "state", "blockers", "authority", "boundary", "reviewDigest",
+    ], "private blueprint draft review record");
+    requireValue(isObject(packet.payload.review.reviewer), "unsafe private blueprint draft review: reviewer drift");
+    requireExactKeys(packet.payload.review.reviewer, ["label", "identityAttested", "localOnly"], "private blueprint draft review reviewer");
+    const draftSerialized = canonicalJSON(packet.payload.blueprintRevisionDraft);
+    const draftVerification = await verifyPortablePrivateBlueprintRevisionDraft(draftSerialized);
+    const expectedReview = await buildPortablePrivateBlueprintDraftReviewRecord(draftVerification, {
+      reviewerLabel: packet.payload.review.reviewer.label,
+      decision: packet.payload.review.decision,
+      reasonCode: packet.payload.review.reasonCode,
+    });
+    requireValue(canonicalJSON(packet.payload.review) === canonicalJSON(expectedReview), "unsafe private blueprint draft review: review projection mismatch");
+    const binding = expectedReview.draftBinding;
+    requireValue(equalHex(binding.draftPacketDigest, packet.integrity.draftPacketDigest), "unsafe private blueprint draft review: draft packet digest binding mismatch");
+    requireValue(equalHex(binding.draftDigest, packet.integrity.draftDigest), "unsafe private blueprint draft review: draft digest binding mismatch");
+    requireValue(equalHex(binding.acceptedReviewPacketDigest, packet.integrity.acceptedReviewPacketDigest), "unsafe private blueprint draft review: accepted review packet digest binding mismatch");
+    requireValue(equalHex(binding.guardProposalPacketDigest, packet.integrity.guardProposalPacketDigest), "unsafe private blueprint draft review: guard proposal packet digest binding mismatch");
+    requireValue(equalHex(binding.parentProposalPayloadDigest, packet.integrity.parentProposalPayloadDigest), "unsafe private blueprint draft review: parent proposal digest binding mismatch");
+    requireValue(equalHex(binding.selectedReviewDigest, packet.integrity.selectedReviewDigest), "unsafe private blueprint draft review: selected review digest binding mismatch");
+    requireValue(equalHex(expectedReview.reviewDigest, packet.integrity.reviewDigest), "unsafe private blueprint draft review: review digest binding mismatch");
+    if (expectedReview.localCommitCandidate) {
+      requireValue(equalHex(expectedReview.localCommitCandidate.candidateDigest, packet.integrity.commitCandidateDigest), "unsafe private blueprint draft review: commit candidate digest binding mismatch");
+    } else {
+      requireValue(packet.integrity.commitCandidateDigest === null, "unsafe private blueprint draft review: unexpected commit candidate digest");
+    }
+    const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
+    requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe private blueprint draft review: payload digest mismatch");
+    return {
+      schemaVersion: PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA,
+      verificationStatus: "verified_private_local_blueprint_revision_draft_review",
+      packetDigest: computedPayloadDigest,
+      draftSerialized,
+      draftVerification,
+      review: clone(expectedReview),
+      boundary: PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY,
+    };
+  }
+
   function adaptArenaReadModel(modelInput, demoInput) {
     const model = validateArenaReadModel(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -2176,6 +2411,9 @@
     PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH,
     PRIVATE_BLUEPRINT_DELTA_REVIEW_REASONS,
     PRIVATE_BLUEPRINT_DELTA_REVIEW_SCHEMA,
+    PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH,
+    PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASONS,
+    PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA,
     PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH,
     PRIVATE_BLUEPRINT_REVISION_DRAFT_SCHEMA,
     PRIVATE_REVIEW_LESSON_DELTA,
@@ -2199,6 +2437,7 @@
     buildRunbackProposal,
     createPortablePrivateBlueprintDelta,
     createPortablePrivateBlueprintDeltaReview,
+    createPortablePrivateBlueprintDraftReview,
     createPortablePrivateBlueprintRevisionDraft,
     createPortablePrivateReviewComparison,
     createPortablePrivateReviewLearning,
@@ -2217,6 +2456,7 @@
     verifyPortableRunbackReviewJournal,
     verifyPortablePrivateBlueprintDelta,
     verifyPortablePrivateBlueprintDeltaReview,
+    verifyPortablePrivateBlueprintDraftReview,
     verifyPortablePrivateBlueprintRevisionDraft,
     verifyPortablePrivateReviewComparison,
     verifyPortablePrivateReviewLearning,

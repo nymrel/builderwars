@@ -597,16 +597,44 @@ defer and reject refusal, exact identity and guard application, unknown-value
 preservation, complete nested ancestry reconstruction, digest resealing attacks,
 dangerous keys, excessive depth or nodes, and oversized input.
 
+### Deterministic private blueprint-draft review
+
+`builderwars.mobile-private-blueprint-revision-draft-review.v1` embeds one
+canonical verified revision draft and records exactly one immutable private
+local decision: `accept_for_commit_candidate`, `defer`, or `reject`. Import
+independently reverifies the draft, accepted guard review, guard proposal,
+inspection lesson, comparison, both correction packets, both review journals,
+and bound parent proposal before accepting the review.
+
+Only `accept_for_commit_candidate` derives a
+`proposed_uncommitted_local_blueprint_commit_candidate`. That candidate copies
+the exact revised blueprint and reviewed allowlisted guard. Explicit unknown
+guard values remain unknown and deterministically force
+`guardCompletionStatus: incomplete_unknown_guard_values`,
+`commitReadinessStatus: blocked_unknown_guard_values`, and `commitReady: false`.
+The candidate remains local, uncommitted, unadopted, unqualified, unexecuted,
+unregistered, unpublished, and all-false authority. Defer and reject create no
+candidate or candidate digest.
+
+The review is canonical, SHA-256 addressed, atomic, and memory-only. Reviewer
+identity remains unattested. No decision can invent guard values, alter the
+draft or parent, create correctness, consensus, approval, or progress, commit or
+adopt a blueprint, bind rules, qualify, play, execute, register, rank, publish,
+spend, or call a provider. The dedicated checker exercises 194 adversarial
+assertions, including every allowed decision/reason pair, candidate suppression,
+unknown-guard readiness blocking, full ancestry reconstruction, all-false
+authority, nested and resealed tampering, dangerous keys, excessive depth or
+nodes, and oversized input.
+
 ### Exact next bounded campaign
 
-Add a deterministic private blueprint-draft review receipt that accepts one
-verified revision draft and records exactly one immutable local decision:
-`accept_for_commit_candidate`, `defer`, or `reject`. Acceptance may derive only
-an uncommitted commit candidate. It must preserve explicit unknown guard values
-and must refuse qualification or commit readiness while any required guard is
-unknown. Defer and reject create no candidate. No decision may mutate the
-parent or draft, award progress, bind rules, qualify, play, execute, register,
-rank, publish, spend, or call a provider.
+Add a deterministic private guard-completion proposal that accepts only one
+verified accepted blueprint-draft review candidate. It may supply boolean values
+only for that candidate's exact explicitly unknown guard keys, with one bounded
+reason and one identity-unattested local provenance record per key. It must not
+change known or applied guard values, remove source lineage, or infer a missing
+value. The result remains an uncommitted, unadopted proposal with qualification,
+execution, registry, and publication disabled pending a later immutable review.
 Auth, network writes, creator code execution, provider use, public activation,
 and the protected private-alpha API binding remain operator-gated campaigns.
 

@@ -50,6 +50,12 @@ const state = {
   privateBlueprintRevisionDraftReceipt: null,
   privateBlueprintRevisionDraftImportText: "",
   privateBlueprintRevisionDraftVerification: null,
+  privateBlueprintDraftReviewReceipt: null,
+  privateBlueprintDraftReviewImportText: "",
+  privateBlueprintDraftReviewVerification: null,
+  privateBlueprintDraftReviewerLabel: "",
+  privateBlueprintDraftReviewDecision: "accept_for_commit_candidate",
+  privateBlueprintDraftReviewReason: "draft_lineage_verified",
   lastFocus: null,
 };
 
@@ -95,6 +101,21 @@ const PRIVATE_BLUEPRINT_DELTA_REVIEW_REASON_LABELS = {
   needs_operator_revision_review: "Needs operator revision review",
   lesson_guard_mismatch: "Lesson and guard do not match",
   duplicate_or_unnecessary_guard: "Duplicate or unnecessary guard",
+  unsafe_or_out_of_scope: "Unsafe or out of scope",
+};
+const PRIVATE_BLUEPRINT_DRAFT_REVIEW_DECISION_LABELS = {
+  accept_for_commit_candidate: "Accept for local commit candidate",
+  defer: "Defer blueprint draft",
+  reject: "Reject blueprint draft",
+};
+const PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASON_LABELS = {
+  draft_lineage_verified: "Draft lineage verified",
+  guard_change_preserved: "Reviewed guard change preserved",
+  required_guard_values_unknown: "Required guard values remain unknown",
+  needs_operator_commit_review: "Needs operator commit review",
+  needs_additional_private_evidence: "Needs additional private evidence",
+  draft_not_needed: "Draft is not needed",
+  guard_change_not_approved: "Guard change is not approved",
   unsafe_or_out_of_scope: "Unsafe or out of scope",
 };
 const RECEIPT_ROUTE_ID = /^[A-Za-z0-9_-]{1,80}$/;
@@ -261,10 +282,18 @@ function resetPortableReviewCorrectionExchangeState({ keepImportText = false } =
   state.portableReviewCorrectionExchangeVerification = null;
 }
 
+function resetPrivateBlueprintDraftReviewState({ keepImportText = false, keepReviewerLabel = false } = {}) {
+  state.privateBlueprintDraftReviewReceipt = null;
+  if (!keepImportText) state.privateBlueprintDraftReviewImportText = "";
+  state.privateBlueprintDraftReviewVerification = null;
+  if (!keepReviewerLabel) state.privateBlueprintDraftReviewerLabel = "";
+}
+
 function resetPrivateBlueprintRevisionDraftState({ keepImportText = false } = {}) {
   state.privateBlueprintRevisionDraftReceipt = null;
   if (!keepImportText) state.privateBlueprintRevisionDraftImportText = "";
   state.privateBlueprintRevisionDraftVerification = null;
+  resetPrivateBlueprintDraftReviewState();
 }
 
 function resetPrivateBlueprintDeltaReviewState({ keepImportText = false, keepReviewerLabel = false } = {}) {
@@ -532,6 +561,35 @@ function privateBlueprintRevisionDraftStatusMarkup() {
   return `<div class="portable-status neutral private-blueprint-revision-draft-status" role="status" tabindex="-1"><strong>No blueprint revision draft verified</strong><span>Create one only from an accepted guard review, or paste one canonical draft receipt. Defer and reject reviews fail closed.</span></div>`;
 }
 
+function privateBlueprintDraftReviewReasonOptions(decision) {
+  const reasons = dataAdapter?.PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASONS?.[decision] || [];
+  return reasons.map((reasonCode) => `<option value="${escapeHTML(reasonCode)}" ${reasonCode === state.privateBlueprintDraftReviewReason ? "selected" : ""}>${escapeHTML(PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASON_LABELS[reasonCode] || reasonCode)}</option>`).join("");
+}
+
+function privateBlueprintDraftReviewStatusMarkup() {
+  const verification = state.privateBlueprintDraftReviewVerification;
+  if (verification?.status === "verified") {
+    const result = verification.result;
+    const review = result.review;
+    const candidate = review.localCommitCandidate;
+    const candidateStatus = candidate
+      ? `<span>Candidate ${escapeHTML(candidate.commitReadinessStatus.replaceAll("_", " "))} · unknown guards: ${escapeHTML(candidate.unknownGuardKeys.length ? candidate.unknownGuardKeys.join(", ") : "none")}</span><span>Candidate is local, uncommitted, unadopted, and not commit-ready.</span>`
+      : `<span>No commit candidate was created.</span>`;
+    return `<div class="portable-status verified private-blueprint-draft-review-status" role="status" tabindex="-1"><strong>Blueprint draft review verified · immutable private decision</strong><span>SHA-256 ${escapeHTML(result.packetDigest)}</span><span>${escapeHTML(PRIVATE_BLUEPRINT_DRAFT_REVIEW_DECISION_LABELS[review.decision] || review.decision)} · ${escapeHTML(PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASON_LABELS[review.reasonCode] || review.reasonCode)}</span><span>Reviewer ${escapeHTML(review.reviewer.label)} · identity unattested</span>${candidateStatus}<span>No blueprint was committed, adopted, qualified, played, executed, registered, ranked, or published.</span></div>`;
+  }
+  if (verification?.status === "invalid") {
+    return `<div class="portable-status invalid private-blueprint-draft-review-status" role="alert" tabindex="-1"><strong>Blueprint draft review refused</strong><span>${escapeHTML(verification.message)}</span><span>No review, commit candidate, readiness, adoption, progress, execution, or authority state was retained.</span></div>`;
+  }
+  return `<div class="portable-status neutral private-blueprint-draft-review-status" role="status" tabindex="-1"><strong>No blueprint draft review verified</strong><span>Review one verified local draft or paste one canonical receipt. Unknown guard values remain explicit and block commit readiness.</span></div>`;
+}
+
+function privateBlueprintDraftReviewMarkup() {
+  const prepared = state.privateBlueprintDraftReviewReceipt;
+  const canReview = state.privateBlueprintRevisionDraftVerification?.status === "verified";
+  const decisionOptions = Object.entries(PRIVATE_BLUEPRINT_DRAFT_REVIEW_DECISION_LABELS).map(([decision, label]) => `<option value="${escapeHTML(decision)}" ${decision === state.privateBlueprintDraftReviewDecision ? "selected" : ""}>${escapeHTML(label)}</option>`).join("");
+  return `<section class="portable-review private-blueprint-draft-review" aria-labelledby="private-blueprint-draft-review-title"><div><p class="eyebrow">Private blueprint-draft review</p><h4 id="private-blueprint-draft-review-title">Review the draft. Commit nothing.</h4><p>Accept can create only an uncommitted, unadopted local candidate. Unknown guard values remain explicit and block commit readiness. Defer and reject create no candidate.</p></div>${canReview ? `<div class="portable-review-form" role="group" aria-describedby="private-blueprint-draft-review-boundary"><label for="private-blueprint-draft-reviewer-label">Unattested reviewer label</label><input id="private-blueprint-draft-reviewer-label" type="text" maxlength="36" autocomplete="off" value="${escapeHTML(state.privateBlueprintDraftReviewerLabel)}" placeholder="Example: local reviewer"><label for="private-blueprint-draft-review-decision">Private decision</label><select id="private-blueprint-draft-review-decision" data-private-blueprint-draft-review-decision>${decisionOptions}</select><label for="private-blueprint-draft-review-reason">Bounded reason</label><select id="private-blueprint-draft-review-reason" data-private-blueprint-draft-review-reason>${privateBlueprintDraftReviewReasonOptions(state.privateBlueprintDraftReviewDecision)}</select><button class="secondary-button" type="button" data-private-blueprint-draft-review-create>Record immutable draft review</button></div>` : ""}${prepared ? `<label for="private-blueprint-draft-review-export">Canonical blueprint draft review · read only</label><textarea id="private-blueprint-draft-review-export" class="portable-textarea" rows="14" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Blueprint draft review SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-draft-review-import">Paste canonical blueprint draft review JSON</label><textarea id="private-blueprint-draft-review-import" class="portable-textarea" rows="14" maxlength="5242880" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-revision-draft-review.v1 JSON">${escapeHTML(state.privateBlueprintDraftReviewImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-draft-review-verify>Verify blueprint draft review</button>${privateBlueprintDraftReviewStatusMarkup()}<div class="learning-boundary" id="private-blueprint-draft-review-boundary">This immutable private review cannot authenticate a reviewer, declare correctness, create consensus or approval, invent guard values, award progress, commit or adopt a blueprint, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+}
+
 function privateBlueprintRevisionDraftMarkup() {
   const prepared = state.privateBlueprintRevisionDraftReceipt;
   const review = state.privateBlueprintDeltaReviewVerification?.status === "verified"
@@ -541,7 +599,7 @@ function privateBlueprintRevisionDraftMarkup() {
   const blockedByDecision = review && !canCreate
     ? `<p class="portable-digest">This ${escapeHTML(PRIVATE_BLUEPRINT_DELTA_REVIEW_DECISION_LABELS[review.decision] || review.decision)} review cannot create a draft.</p>`
     : "";
-  return `<section class="portable-review-exchange private-blueprint-revision-draft" aria-labelledby="private-blueprint-revision-draft-title"><div><p class="eyebrow">Versioned local blueprint draft</p><h4 id="private-blueprint-revision-draft-title">Apply one reviewed guard. Invent nothing else.</h4><p>The draft copies the bound parent blueprint and changes only the accepted allowlisted guard. Missing guard values stay explicitly unknown.</p></div>${canCreate ? `<button class="secondary-button" type="button" data-private-blueprint-revision-draft-create>${prepared ? "Refresh local revision draft" : "Create local revision draft"}</button>` : blockedByDecision}${prepared ? `<label for="private-blueprint-revision-draft-export">Canonical blueprint revision draft · read only</label><textarea id="private-blueprint-revision-draft-export" class="portable-textarea" rows="14" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Blueprint revision draft SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-revision-draft-import">Paste canonical blueprint revision draft JSON</label><textarea id="private-blueprint-revision-draft-import" class="portable-textarea" rows="14" maxlength="4194304" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-revision-draft.v1 JSON">${escapeHTML(state.privateBlueprintRevisionDraftImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-revision-draft-verify>Verify blueprint revision draft</button>${privateBlueprintRevisionDraftStatusMarkup()}<div class="learning-boundary">This local draft cannot authenticate identity, declare correctness, create consensus or approval, award progress, mutate its parent, commit or adopt a blueprint, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
+  return `<section class="portable-review-exchange private-blueprint-revision-draft" aria-labelledby="private-blueprint-revision-draft-title"><div><p class="eyebrow">Versioned local blueprint draft</p><h4 id="private-blueprint-revision-draft-title">Apply one reviewed guard. Invent nothing else.</h4><p>The draft copies the bound parent blueprint and changes only the accepted allowlisted guard. Missing guard values stay explicitly unknown.</p></div>${canCreate ? `<button class="secondary-button" type="button" data-private-blueprint-revision-draft-create>${prepared ? "Refresh local revision draft" : "Create local revision draft"}</button>` : blockedByDecision}${prepared ? `<label for="private-blueprint-revision-draft-export">Canonical blueprint revision draft · read only</label><textarea id="private-blueprint-revision-draft-export" class="portable-textarea" rows="14" readonly spellcheck="false">${escapeHTML(prepared.serialized)}</textarea><p class="portable-digest">Blueprint revision draft SHA-256 ${escapeHTML(prepared.packet.integrity.payloadDigest)}</p>` : ""}<label for="private-blueprint-revision-draft-import">Paste canonical blueprint revision draft JSON</label><textarea id="private-blueprint-revision-draft-import" class="portable-textarea" rows="14" maxlength="4194304" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste builderwars.mobile-private-blueprint-revision-draft.v1 JSON">${escapeHTML(state.privateBlueprintRevisionDraftImportText)}</textarea><button class="secondary-button" type="button" data-private-blueprint-revision-draft-verify>Verify blueprint revision draft</button>${privateBlueprintRevisionDraftStatusMarkup()}${privateBlueprintDraftReviewMarkup()}<div class="learning-boundary">This local draft cannot authenticate identity, declare correctness, create consensus or approval, award progress, mutate its parent, commit or adopt a blueprint, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.</div></section>`;
 }
 
 function privateBlueprintDeltaReviewMarkup() {
@@ -1279,6 +1337,77 @@ async function verifyPrivateBlueprintRevisionDraft(serializedInput) {
   }
 }
 
+async function createPrivateBlueprintDraftReview() {
+  if (!dataAdapter?.createPortablePrivateBlueprintDraftReview || !dataAdapter?.verifyPortablePrivateBlueprintDraftReview) return false;
+  const draftSerialized = state.privateBlueprintRevisionDraftVerification?.status === "verified"
+    ? state.privateBlueprintRevisionDraftImportText
+    : "";
+  try {
+    const receipt = await dataAdapter.createPortablePrivateBlueprintDraftReview(draftSerialized, {
+      reviewerLabel: state.privateBlueprintDraftReviewerLabel,
+      decision: state.privateBlueprintDraftReviewDecision,
+      reasonCode: state.privateBlueprintDraftReviewReason,
+    });
+    const result = await dataAdapter.verifyPortablePrivateBlueprintDraftReview(receipt.serialized);
+    state.privateBlueprintDraftReviewReceipt = receipt;
+    state.privateBlueprintDraftReviewImportText = receipt.serialized;
+    state.privateBlueprintDraftReviewVerification = { status: "verified", result };
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintDraftReviewReceipt = null;
+    state.privateBlueprintDraftReviewImportText = "";
+    state.privateBlueprintDraftReviewVerification = { status: "invalid", message: error?.message || "Private blueprint draft review failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
+async function verifyPrivateBlueprintDraftReview(serializedInput) {
+  const importedText = String(serializedInput || "").slice(0, dataAdapter?.PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH || 5242880);
+  try {
+    const result = await dataAdapter.verifyPortablePrivateBlueprintDraftReview(serializedInput);
+    const draftVerification = result.draftVerification;
+    const reviewVerification = draftVerification.acceptedReviewVerification;
+    const deltaVerification = reviewVerification.blueprintDeltaVerification;
+    const learningVerification = deltaVerification.learningVerification;
+    state.privateBlueprintDraftReviewReceipt = null;
+    state.privateBlueprintDraftReviewImportText = importedText;
+    state.privateBlueprintDraftReviewVerification = { status: "verified", result };
+    state.privateBlueprintDraftReviewerLabel = result.review.reviewer.label;
+    state.privateBlueprintDraftReviewDecision = result.review.decision;
+    state.privateBlueprintDraftReviewReason = result.review.reasonCode;
+    state.privateBlueprintRevisionDraftReceipt = null;
+    state.privateBlueprintRevisionDraftImportText = result.draftSerialized;
+    state.privateBlueprintRevisionDraftVerification = { status: "verified", result: draftVerification };
+    state.privateBlueprintDeltaReviewReceipt = null;
+    state.privateBlueprintDeltaReviewImportText = draftVerification.acceptedReviewSerialized;
+    state.privateBlueprintDeltaReviewVerification = { status: "verified", result: reviewVerification };
+    state.privateBlueprintDeltaReviewerLabel = reviewVerification.review.reviewer.label;
+    state.privateBlueprintDeltaReviewDecision = reviewVerification.review.decision;
+    state.privateBlueprintDeltaReviewReason = reviewVerification.review.reasonCode;
+    state.privateBlueprintDeltaReceipt = null;
+    state.privateBlueprintDeltaImportText = reviewVerification.blueprintDeltaSerialized;
+    state.privateBlueprintDeltaVerification = { status: "verified", result: deltaVerification };
+    state.privateReviewLearningReceipt = null;
+    state.privateReviewLearningImportText = deltaVerification.learningSerialized;
+    state.privateReviewLearningVerification = { status: "verified", result: learningVerification };
+    state.portableReviewComparisonReceipt = null;
+    state.portableReviewComparisonImportText = learningVerification.comparisonSerialized;
+    state.portableReviewComparisonVerification = { status: "verified", result: learningVerification.comparisonVerification };
+    state.portableReviewComparisonLeftText = learningVerification.comparisonVerification.leftSerialized;
+    state.portableReviewComparisonRightText = learningVerification.comparisonVerification.rightSerialized;
+    renderReceiptLearning();
+    return true;
+  } catch (error) {
+    state.privateBlueprintDraftReviewReceipt = null;
+    state.privateBlueprintDraftReviewImportText = importedText;
+    state.privateBlueprintDraftReviewVerification = { status: "invalid", message: error?.message || "Private blueprint draft review validation failed." };
+    renderReceiptLearning();
+    return false;
+  }
+}
+
 function showView(name, updateHistory = true) {
   if (!$("#view-" + name)) return;
   state.activeView = name;
@@ -1602,6 +1731,23 @@ function bindEvents() {
         : "Blueprint revision draft refused. No verified draft or authority state was retained.");
       return;
     }
+    if (event.target.closest("[data-private-blueprint-draft-review-create]")) {
+      const created = await createPrivateBlueprintDraftReview();
+      $(created ? ".private-blueprint-draft-review-status.verified" : ".private-blueprint-draft-review-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(created
+        ? "Immutable blueprint draft review recorded. Any commit candidate remains local, uncommitted, unadopted, and not commit-ready."
+        : "Blueprint draft review refused. No review, commit candidate, readiness, adoption, progress, or authority state was retained.");
+      return;
+    }
+    if (event.target.closest("[data-private-blueprint-draft-review-verify]")) {
+      const input = $("#private-blueprint-draft-review-import");
+      const verified = await verifyPrivateBlueprintDraftReview(input?.value || "");
+      $(verified ? ".private-blueprint-draft-review-status.verified" : ".private-blueprint-draft-review-status.invalid")?.focus?.({ preventScroll: true });
+      showToast(verified
+        ? "Blueprint draft review and full ancestry verified locally. No blueprint was committed, adopted, qualified, played, executed, or published."
+        : "Blueprint draft review refused. No verified review, commit candidate, or authority state was retained.");
+      return;
+    }
     if (event.target.closest("[data-runback-blueprint]")) {
       showView("build");
       $("#agent-name").focus();
@@ -1698,6 +1844,17 @@ function bindEvents() {
       state.privateBlueprintRevisionDraftImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH || 4194304);
       state.privateBlueprintRevisionDraftReceipt = null;
       state.privateBlueprintRevisionDraftVerification = null;
+      resetPrivateBlueprintDraftReviewState({ keepReviewerLabel: true });
+    }
+    if (event.target.matches("#private-blueprint-draft-reviewer-label")) {
+      state.privateBlueprintDraftReviewerLabel = event.target.value.slice(0, 36);
+      state.privateBlueprintDraftReviewReceipt = null;
+      state.privateBlueprintDraftReviewVerification = null;
+    }
+    if (event.target.matches("#private-blueprint-draft-review-import")) {
+      state.privateBlueprintDraftReviewImportText = event.target.value.slice(0, dataAdapter?.PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH || 5242880);
+      state.privateBlueprintDraftReviewReceipt = null;
+      state.privateBlueprintDraftReviewVerification = null;
     }
   });
   document.addEventListener("change", (event) => {
@@ -1761,6 +1918,23 @@ function bindEvents() {
       state.privateBlueprintDeltaReviewReceipt = null;
       state.privateBlueprintDeltaReviewVerification = null;
       resetPrivateBlueprintRevisionDraftState();
+      return;
+    }
+    if (event.target.matches("[data-private-blueprint-draft-review-decision]")) {
+      const decision = event.target.value;
+      const reasons = dataAdapter?.PRIVATE_BLUEPRINT_DRAFT_REVIEW_REASONS?.[decision] || [];
+      state.privateBlueprintDraftReviewDecision = decision;
+      state.privateBlueprintDraftReviewReason = reasons[0] || "";
+      state.privateBlueprintDraftReviewReceipt = null;
+      state.privateBlueprintDraftReviewVerification = null;
+      const reasonSelect = $("[data-private-blueprint-draft-review-reason]");
+      if (reasonSelect) reasonSelect.innerHTML = privateBlueprintDraftReviewReasonOptions(decision);
+      return;
+    }
+    if (event.target.matches("[data-private-blueprint-draft-review-reason]")) {
+      state.privateBlueprintDraftReviewReason = event.target.value;
+      state.privateBlueprintDraftReviewReceipt = null;
+      state.privateBlueprintDraftReviewVerification = null;
     }
   });
 
