@@ -140,8 +140,13 @@ STAGES: tuple[StageDefinition, ...] = (
         "mobile_static_contracts",
         "Mobile Arena deterministic, offline, accessibility, truth, and append-only correction contracts",
         "local_executable",
-        commands=((PYTHON, "bin/check_mobile_arena_exchange.py"),),
+        commands=(
+            (PYTHON, "-B", "bin/check_mobile_arena_contrast.py"),
+            (PYTHON, "bin/check_mobile_arena_exchange.py"),
+        ),
         evidence_files=(
+            "mobile-arena/styles.css",
+            "bin/check_mobile_arena_contrast.py",
             "publishing/corrections.py",
             "publishing/agentwars-public-correction-ledger.v1.json",
             "docs/AGENTWARS_PUBLIC_CORRECTIONS.md",

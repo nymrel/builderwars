@@ -129,9 +129,16 @@ python bin\check_mobile_arena_private_blueprint_guard_completion_review.py
 python bin\check_mobile_arena_private_blueprint_operator_review_packet.py
 python bin\check_agentwars_corrections.py
 python bin\check_agentwars_scoped_ratings.py
+python bin\check_mobile_arena_contrast.py
 python bin\check_mobile_arena_exchange.py
 python bin\check_mobile_arena_browser.py
 ```
+
+The static contrast gate reads tracked CSS only. It refuses unresolved custom
+properties, uncovered declared text foregrounds, critical palette-route drift,
+and committed opaque text/focus pairs below their declared thresholds. It does
+not render gradients or alpha compositing and does not prove forced-colors,
+zoom, display hardware, or production accessibility.
 
 The browser gate requires Python Playwright plus its managed Chromium in the QA
 environment. It starts an ephemeral `127.0.0.1` server, uses isolated browser
@@ -584,8 +591,11 @@ redraft rules and its declared resource class, fail-closed checks the exact
 canonical blueprint for local competition-format eligibility before execution,
 runs two fixed scripted fixtures, replay-verifies both seat orders, derives a
 proof-linked observation-only learning action, and proposes a versioned seat-
-swapped runback that remains unqualified and unplayed. The format decision is
-not legal advice or provider-terms approval. These create-only local artifacts
+swapped runback that remains unqualified and unplayed. Non-authoritative
+latency/stderr sidecars are required during execution but excluded from the
+final receipt-bound tree; the gate requires two consecutive local outputs to be
+byte-identical. The format decision is not legal advice or provider-terms
+approval. These create-only local artifacts
 explicitly do not qualify a person, customer harness, model, provider account,
 hosted runtime, ranking, publication, spend, or deployment. See
 [`docs/AGENTWARS_STARTER_KIT.md`](docs/AGENTWARS_STARTER_KIT.md).

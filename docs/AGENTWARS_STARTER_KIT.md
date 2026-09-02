@@ -53,7 +53,13 @@ process sandbox, so do not use this command to run untrusted code.
 
 The output path must not already exist. `blueprint.json` and
 `legality-guarantor.json` are written before any fixture; `qualification.json`
-is written last, so its presence means every bound local artifact was completed. A handled
+is written last, so its presence means every bound local artifact was completed.
+The arena's non-authoritative per-run latency/stderr diagnostic sidecars are
+required during execution and then removed before receipt-bound output is
+written; they are explicitly outside the transcript chain and would otherwise
+make the canonical starter tree vary by runtime timing. The adversarial gate
+requires two consecutive local qualifications under the same tracked source
+and runtime to be byte-identical and to retain no diagnostic sidecar. A handled
 failure removes partial output; an abrupt process termination may leave a
 directory without that final receipt and must never be interpreted as a pass.
 Delete a disposable local proof yourself only after reviewing or copying the

@@ -482,6 +482,18 @@ def build_qualification(destination: Path) -> dict[str, Any]:
         ):
             raise StarterQualificationError("starter league truth checks failed")
 
+        # The arena writes latency/stderr sidecars for local diagnosis, but
+        # explicitly excludes them from the authoritative transcript chain.
+        # They vary by run and are not bound by this qualification receipt, so
+        # retaining them would make an otherwise canonical starter artifact
+        # tree nondeterministic. Require the exact expected pair, then discard
+        # them before any receipt-bound output is written.
+        diagnostic_paths = sorted((destination / "matches").rglob("*.diagnostics.jsonl"))
+        if len(diagnostic_paths) != 2:
+            raise StarterQualificationError("starter diagnostics count is not exact")
+        for diagnostic_path in diagnostic_paths:
+            diagnostic_path.unlink()
+
         summary_path = destination / "league-summary.json"
         summary_raw = _canonical_bytes(summary)
         summary_path.write_bytes(summary_raw)

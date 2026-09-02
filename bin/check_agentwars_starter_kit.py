@@ -128,6 +128,11 @@ def main() -> int:
 
         check(tree_bytes(first) == tree_bytes(second), "two starter qualifications are byte identical")
         check(
+            not list(first.rglob("*.diagnostics.jsonl"))
+            and not list(second.rglob("*.diagnostics.jsonl")),
+            "non-authoritative per-run diagnostics are excluded from canonical starter output",
+        )
+        check(
             first_receipt["schemaVersion"] == SCHEMA_VERSION
             and first_receipt["status"] == STATUS,
             "receipt pins the starter qualification schema and local-only status",

@@ -117,7 +117,16 @@ def main() -> int:
     )
     check(stages[7].stage_id == "real_browser_acceptance", "browser evidence is stage 8")
     check(
+        stages[6].commands == (
+            (evidence_builder.PYTHON, "-B", "bin/check_mobile_arena_contrast.py"),
+            (evidence_builder.PYTHON, "bin/check_mobile_arena_exchange.py"),
+        ),
+        "stage 7 runs static contrast and integrated mobile contract gates",
+    )
+    check(
         stages[6].evidence_files == (
+            "mobile-arena/styles.css",
+            "bin/check_mobile_arena_contrast.py",
             "publishing/corrections.py",
             "publishing/agentwars-public-correction-ledger.v1.json",
             "docs/AGENTWARS_PUBLIC_CORRECTIONS.md",
@@ -126,7 +135,7 @@ def main() -> int:
             "docs/BUILDERWARS_MOBILE_CREATOR_GAME_LAB.md",
             "mobile-arena/data/creator-game-lab.v1.json",
         ),
-        "stage 7 binds corrections plus mobile Agent Passport and held creator-game contracts",
+        "stage 7 binds tracked palette proof, corrections, mobile Agent Passport, and held creator-game contracts",
     )
     check(
         stages[8].commands == (
@@ -177,7 +186,7 @@ def main() -> int:
     check(stages[10].stage_id == "protected_runtime_configuration", "protected runtime is the first held gate")
 
     commands = [command for stage in stages for command in stage.commands]
-    check(len(commands) == 25, "local evidence contract has exactly 25 bounded commands")
+    check(len(commands) == 26, "local evidence contract has exactly 26 bounded commands")
     check(all(command and command[0] == evidence_builder.PYTHON for command in commands), "every executable stage uses the current Python runtime directly")
     flattened = " ".join(token for command in commands for token in command).lower()
     for forbidden in ("curl ", "invoke-webrequest", "vercel", "cloudflare", "git push", "deploy", "publish", "oauth", "clerk"):

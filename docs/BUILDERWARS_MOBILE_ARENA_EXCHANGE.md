@@ -116,8 +116,12 @@ retain a secret, publish a game, or create an authenticated account.
   panel is the interaction (featured match, proof inspector, build editor).
 - **Motion:** state-change pulse, shared workspace slide, and mobile bottom-sheet
   detail. Reduced-motion preferences disable nonessential transitions.
-- **Accessibility:** 44px targets, visible focus, semantic controls, safe color
-  contrast, labeled charts, and meaningful empty/error/offline states.
+- **Accessibility:** 44px targets, visible focus, semantic controls, tracked
+  critical text and focus token pairs that clear deterministic contrast
+  thresholds, labeled charts, and meaningful empty/error/offline states. The
+  static contrast gate does not claim rendered gradients, alpha compositing,
+  forced-colors behavior, zoom behavior, display hardware, or production
+  accessibility.
 
 ## Trust contract in the interface
 
@@ -283,8 +287,8 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 255
-assertions across 21 isolated journeys: first-run starter selection, returning
+It starts an ephemeral loopback server and runs managed Chromium through 276
+assertions across 23 isolated journeys: first-run starter selection, returning
 state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
@@ -475,13 +479,20 @@ browser storage.
 ```powershell
 python bin\check_mobile_arena_local_exhibition.py
 python bin\check_mobile_arena_spectator_rehearsal.py
+python bin\check_mobile_arena_contrast.py
 python bin\check_mobile_arena_exchange.py
 python bin\check_mobile_arena_browser.py
 ```
 
+The static contrast gate fails on unresolved CSS custom properties, uncovered
+declared text foregrounds, palette-route drift, or any of 35 committed opaque
+foreground/background pairs below its role-specific threshold. It also runs
+seven adversarial parser and threshold checks. This is tracked CSS evidence,
+not a rendered-page or production-accessibility claim.
+
 The focused local-exhibition checker runs 87 assertions. The integrated exchange
-checker runs 317 checks, and real-browser acceptance runs 248 assertions across
-20 journeys, including canonical share preparation, same-page verification,
+checker runs 339 checks, and real-browser acceptance runs 276 assertions across
+23 journeys, including canonical share preparation, same-page verification,
 tamper refusal, clean-state resolution, discard, reload cleanup, and storage
 invariance. These are local exhibition proofs only; they do not establish
 sanctioned execution, model play, a user identity, an activated competition, a
@@ -844,7 +855,7 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 317 checks across this contract and every preceding Arena
+mobile checker runs 339 checks across this contract and every preceding Arena
 Exchange layer.
 
 ### Deterministic private guard-completion review
@@ -880,7 +891,7 @@ adversarial assertions across every allowed decision/reason pair, candidate
 suppression for defer and reject, exact completed-blueprint and provenance
 preservation, full ancestry reconstruction, all-false authority, nested and
 resealed tampering, dangerous keys, excessive depth or nodes, and oversized
-input. The integrated mobile checker runs 317 checks across this contract and
+input. The integrated mobile checker runs 339 checks across this contract and
 every preceding Arena Exchange layer.
 
 ### Deterministic local operator-review packet
@@ -911,7 +922,7 @@ review-only creation; full lineage reconstruction; exact diff and digest parity;
 deterministic export; zero authority; all-unrun validation; discard rollback;
 operator-decision suppression; nested and fully resealed tampering; dangerous
 keys; excessive depth or nodes; and oversized input. The integrated mobile
-checker runs 317 checks across this contract and every preceding Arena Exchange
+checker runs 339 checks across this contract and every preceding Arena Exchange
 layer. A refused operator-packet import preserves the verified upstream
 completion review while retaining no operator decision or packet authority.
 
