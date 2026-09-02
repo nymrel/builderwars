@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "35"
+EXPECTED_SHELL_VERSION = "36"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -306,6 +306,7 @@ def main() -> int:
         'aria-modal="true"',
         'role="status"',
         "prefers-reduced-motion",
+        "forced-colors",
         "serviceWorker",
         "Arena unavailable",
     ):
@@ -327,7 +328,9 @@ def main() -> int:
         and '.avatar-button { display: none; }' not in css,
         "320px header must preserve both local action controls without overflow",
     )
-    checks += 10
+    require('outline: 3px solid Highlight' in css and 'background: Canvas' in css, "forced-colors focus and canvas treatment missing")
+    require('background: Highlight' in css and 'color: HighlightText' in css, "forced-colors selected-control treatment missing")
+    checks += 12
 
     node = shutil.which("node")
     require(node is not None, "Node.js is required to exercise mobile focus helpers")

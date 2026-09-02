@@ -389,3 +389,28 @@ legend { margin-bottom: 8px; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+@media (forced-colors: active) {
+  *, *::before, *::after { box-shadow: none !important; text-shadow: none !important; }
+  .topbar, .connection-strip, .bottom-nav, .bottom-sheet, .starter-panel,
+  .card, .watch-item, .filter-button, .follow-button, .primary-button,
+  .secondary-button, .queue-button, .danger-button, input, select, textarea,
+  fieldset { border-color: CanvasText; }
+  .topbar, .connection-strip, .bottom-nav, .bottom-sheet, .starter-panel,
+  .card, .watch-item, input, select, textarea { background: Canvas; color: CanvasText; }
+  .bottom-nav, .bottom-sheet { backdrop-filter: none; }
+  .sheet-backdrop { background: Canvas; opacity: .76; }
+  .nav-item.is-active, .text-button, .queue-button, .follow-button.is-followed,
+  .eyebrow, .proof-row strong.pass, .qualification-row strong.ready { color: LinkText; }
+  .primary-button, .avatar-button, .nav-item.action svg,
+  .switch-row input:checked, .qualification-check.ready > span {
+    border: 2px solid ButtonText;
+    background: Highlight;
+    color: HighlightText;
+  }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, [role="status"]:focus-visible, [role="alert"]:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+}

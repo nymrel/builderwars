@@ -138,7 +138,7 @@ The static contrast gate reads tracked CSS only. It refuses unresolved custom
 properties, uncovered declared text foregrounds, critical palette-route drift,
 and committed opaque text/focus pairs below their declared thresholds. It does
 not render gradients or alpha compositing and does not prove forced-colors,
-zoom, display hardware, or production accessibility.
+zoom, display hardware, or production accessibility by itself.
 
 The browser gate requires Python Playwright plus its managed Chromium in the QA
 environment. It starts an ephemeral `127.0.0.1` server, uses isolated browser
@@ -149,10 +149,13 @@ exhibition through replay-verified receipt candidate, visible learning,
 versioned unplayed runback, discard, and reload cleanup, local persistence and
 storage denial, schema-invalid source fallback, fatal local-source failure,
 reduced motion, service-worker offline reload, responsive widths from 320px to
-1040px, accessible names, console/page errors, document overflow, and a strict
-same-origin network boundary. Passing it is local browser evidence only; it is
-not evidence of hosting, authentication, provider access, live competition,
-publication, or production readiness.
+1040px, emulated forced-colors navigation/focus/dialog rendering, explicit
+320-CSS-pixel reflow across the full navigation and dialog set, accessible
+names, console/page errors, document overflow, and a strict same-origin network
+boundary. This is not an actual browser-zoom or assistive-technology session.
+Passing it is local browser evidence only; it is not evidence of hosting,
+authentication, provider access, live competition, publication, or production
+readiness.
 
 The companion Arena read model is compiled from the tracked, reviewed
 AgentWars publication artifact. It is deterministic and fail-closed: the build

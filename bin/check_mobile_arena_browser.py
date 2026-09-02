@@ -26,7 +26,7 @@ READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
 CREATOR_GAME_LAB_PATH = "**/data/creator-game-lab.v1.json"
-SHELL_VERSION = "35"
+SHELL_VERSION = "36"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -631,6 +631,80 @@ def reduced_motion_journey(browser: Any, base_url: str, evidence: Evidence) -> N
         context.close()
 
 
+def forced_colors_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
+    context = browser.new_context(viewport=VIEWPORTS[1], forced_colors="active", service_workers="allow")
+    page = context.new_page()
+    observed = install_observers(page, base_url, "forced-colors")
+    try:
+        page.goto(base_url, wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        evidence.require(page.evaluate("matchMedia('(forced-colors: active)').matches") is True, "forced colors: browser preference is active")
+        focus_target = page.locator("#starter-guide-button")
+        focus_target.focus()
+        focus_style = focus_target.evaluate(
+            "node => ({style: getComputedStyle(node).outlineStyle, width: parseFloat(getComputedStyle(node).outlineWidth), color: getComputedStyle(node).outlineColor})"
+        )
+        evidence.require(focus_style["style"] != "none" and focus_style["width"] >= 3, f"forced colors: focused control retains a three-pixel outline ({focus_style!r})")
+        evidence.require(focus_style["color"] not in {"rgba(0, 0, 0, 0)", "transparent"}, f"forced colors: focus outline remains visible ({focus_style['color']!r})")
+        for view in VIEW_NAMES:
+            page.locator(f'.bottom-nav [data-nav="{view}"]').click()
+            assert_view(evidence, page, view)
+            evidence.require(page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth"), f"forced colors: {view} has no document overflow")
+        page.locator("#profile-button").click()
+        evidence.require(locator_visible(page, "#session-sheet"), "forced colors: local-session dialog remains visible")
+        sheet_fit = page.locator("#session-sheet").evaluate(
+            "node => ({inside: node.getBoundingClientRect().left >= 0 && node.getBoundingClientRect().right <= innerWidth, noOverflow: node.scrollWidth <= node.clientWidth})"
+        )
+        evidence.require(sheet_fit["inside"] and sheet_fit["noOverflow"], f"forced colors: local-session dialog remains within the viewport ({sheet_fit!r})")
+        page.keyboard.press("Escape")
+        assert_observers_clean(evidence, observed, "forced-colors")
+        evidence.journey("forced-colors navigation, focus, and dialog rendering")
+    finally:
+        context.close()
+
+
+def reflow_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
+    context = browser.new_context(viewport=VIEWPORTS[0], service_workers="allow")
+    page = context.new_page()
+    observed = install_observers(page, base_url, "reflow")
+    try:
+        page.goto(base_url, wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        evidence.require(page.evaluate("innerWidth") == 320, "reflow: CSS viewport is exactly 320 pixels")
+        for view in VIEW_NAMES:
+            page.locator(f'.bottom-nav [data-nav="{view}"]').click()
+            assert_view(evidence, page, view)
+            evidence.require(page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth"), f"reflow: {view} has no horizontal document overflow at 320 CSS pixels")
+        nav_fit = page.locator(".bottom-nav").evaluate(
+            "node => [...node.querySelectorAll('.nav-item')].every(item => { const rect = item.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth && rect.width >= 54 && rect.height >= 44; })"
+        )
+        evidence.require(nav_fit is True, "reflow: all five navigation targets remain inside the viewport and touch-sized")
+        page.locator("#profile-button").click()
+        evidence.require(locator_visible(page, "#session-sheet"), "reflow: local-session dialog opens at 320 CSS pixels")
+        session_fit = page.locator("#session-sheet").evaluate(
+            "node => ({inside: node.getBoundingClientRect().left >= 0 && node.getBoundingClientRect().right <= innerWidth, noOverflow: node.scrollWidth <= node.clientWidth})"
+        )
+        evidence.require(session_fit["inside"] and session_fit["noOverflow"], f"reflow: local-session dialog remains within the viewport ({session_fit!r})")
+        page.locator("[data-session-open-feedback]").click()
+        feedback_fit = page.locator("#tester-feedback-sheet").evaluate(
+            "node => ({inside: node.getBoundingClientRect().left >= 0 && node.getBoundingClientRect().right <= innerWidth, noOverflow: node.scrollWidth <= node.clientWidth})"
+        )
+        evidence.require(feedback_fit["inside"] and feedback_fit["noOverflow"], f"reflow: feedback dialog remains within the viewport ({feedback_fit!r})")
+        page.locator("#tester-feedback-sheet [data-sheet-close]").click()
+        page.keyboard.press("Escape")
+        page.locator('.bottom-nav [data-nav="arena"]').click()
+        page.locator("#featured-match [data-proof-open]").first.click()
+        proof_fit = page.locator("#proof-sheet").evaluate(
+            "node => ({inside: node.getBoundingClientRect().left >= 0 && node.getBoundingClientRect().right <= innerWidth, noOverflow: node.scrollWidth <= node.clientWidth})"
+        )
+        evidence.require(proof_fit["inside"] and proof_fit["noOverflow"], f"reflow: proof dialog remains within the viewport ({proof_fit!r})")
+        page.keyboard.press("Escape")
+        assert_observers_clean(evidence, observed, "reflow")
+        evidence.journey("320-CSS-pixel reflow across navigation and dialogs")
+    finally:
+        context.close()
+
+
 def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
     context = browser.new_context(viewport=VIEWPORTS[1], service_workers="allow")
     page = context.new_page()
@@ -642,7 +716,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v35');
+              const cache = await caches.open('builderwars-mobile-arena-v36');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;
@@ -701,6 +775,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             creator_game_failure_journey(browser, base_url, evidence)
             storage_denial_journey(browser, base_url, evidence)
             reduced_motion_journey(browser, base_url, evidence)
+            forced_colors_journey(browser, base_url, evidence)
+            reflow_journey(browser, base_url, evidence)
             offline_journey(browser, base_url, evidence)
         finally:
             browser.close()
@@ -719,6 +795,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "authenticated": False,
             "providerConnected": False,
             "liveCompetition": False,
+            "forcedColorsEmulated": True,
+            "reflowAt320CssPixels": True,
+            "actualBrowserZoom": False,
             "productionReady": False,
         },
     }

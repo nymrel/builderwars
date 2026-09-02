@@ -121,7 +121,10 @@ retain a secret, publish a game, or create an authenticated account.
   thresholds, labeled charts, and meaningful empty/error/offline states. The
   static contrast gate does not claim rendered gradients, alpha compositing,
   forced-colors behavior, zoom behavior, display hardware, or production
-  accessibility.
+  accessibility. The separate Chromium gate emulates forced colors and verifies
+  the complete navigation and dialog set at 320 CSS pixels, while retaining an
+  explicit boundary that this is not actual browser zoom, assistive-technology,
+  display-hardware, or production accessibility proof.
 
 ## Trust contract in the interface
 
@@ -287,8 +290,8 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 276
-assertions across 23 isolated journeys: first-run starter selection, returning
+It starts an ephemeral loopback server and runs managed Chromium through 343
+assertions across 25 isolated journeys: first-run starter selection, returning
 state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
@@ -300,9 +303,13 @@ the eight-category memory-only tester worksheet, reload cleanup, invalid-rubric
 refusal, two-step browser-only cleanup, and starter restart; denied storage; semantic
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
-1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v34 HTML requests; and a v34-only installed
-offline cache. The gate found and fixed a history-backed proof-dialog
+1040px layouts; emulated forced-colors navigation, focus, and dialog rendering;
+an explicit 320-CSS-pixel reflow journey across every destination and the local
+session, tester-feedback, and proof dialogs; zero console/page errors; no
+document overflow; zero cross-origin requests; coherent v36 HTML requests; and
+a v36-only installed offline cache. Actual browser zoom, assistive technology,
+display hardware, and production accessibility remain unproven. The gate found
+and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
 The result remains local browser evidence only and leaves hosting, auth,
@@ -491,10 +498,12 @@ seven adversarial parser and threshold checks. This is tracked CSS evidence,
 not a rendered-page or production-accessibility claim.
 
 The focused local-exhibition checker runs 87 assertions. The integrated exchange
-checker runs 339 checks, and real-browser acceptance runs 276 assertions across
-23 journeys, including canonical share preparation, same-page verification,
+checker runs 342 checks, and real-browser acceptance runs 343 assertions across
+25 journeys, including canonical share preparation, same-page verification,
 tamper refusal, clean-state resolution, discard, reload cleanup, and storage
-invariance. These are local exhibition proofs only; they do not establish
+invariance, emulated forced colors, and 320-CSS-pixel dialog reflow. These are
+local exhibition proofs only; they do not establish actual browser zoom,
+assistive-technology behavior,
 sanctioned execution, model play, a user identity, an activated competition, a
 registry entry, a ranking, publication, or launch.
 
@@ -855,7 +864,7 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 339 checks across this contract and every preceding Arena
+mobile checker runs 342 checks across this contract and every preceding Arena
 Exchange layer.
 
 ### Deterministic private guard-completion review
@@ -891,7 +900,7 @@ adversarial assertions across every allowed decision/reason pair, candidate
 suppression for defer and reject, exact completed-blueprint and provenance
 preservation, full ancestry reconstruction, all-false authority, nested and
 resealed tampering, dangerous keys, excessive depth or nodes, and oversized
-input. The integrated mobile checker runs 339 checks across this contract and
+input. The integrated mobile checker runs 342 checks across this contract and
 every preceding Arena Exchange layer.
 
 ### Deterministic local operator-review packet
@@ -922,7 +931,7 @@ review-only creation; full lineage reconstruction; exact diff and digest parity;
 deterministic export; zero authority; all-unrun validation; discard rollback;
 operator-decision suppression; nested and fully resealed tampering; dangerous
 keys; excessive depth or nodes; and oversized input. The integrated mobile
-checker runs 339 checks across this contract and every preceding Arena Exchange
+checker runs 342 checks across this contract and every preceding Arena Exchange
 layer. A refused operator-packet import preserves the verified upstream
 completion review while retaining no operator decision or packet authority.
 
