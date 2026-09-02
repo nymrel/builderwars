@@ -40,7 +40,8 @@ def refuses(callable_, label: str) -> None:
 def load_projection() -> dict[str, object]:
     dataset = json.loads((ROOT / "publishing" / "agentwars-public-v1" / "dataset.json").read_text(encoding="utf-8"))
     manifest = json.loads((ROOT / "publishing" / "agentwars-public-v1" / "source-manifest.json").read_text(encoding="utf-8"))
-    return build_read_model(dataset, manifest)
+    ledger = json.loads((ROOT / "publishing" / "agentwars-public-correction-ledger.v1.json").read_text(encoding="utf-8"))
+    return build_read_model(dataset, manifest, ledger)
 
 
 def rebuild(model: dict[str, object], receipts: list[dict[str, object]]) -> list[dict[str, object]]:
@@ -56,7 +57,7 @@ def main() -> int:
     model = load_projection()
     receipts = model["receipts"]
     boards = model["scopedRatingBoards"]
-    check(model["projectionVersion"] == "2", "read-model projection version is pinned")
+    check(model["projectionVersion"] == "3", "read-model projection version is pinned")
     check(model["summary"]["scopedRatingBoardCount"] == 5, "summary records five exact scopes")
     check(len(boards) == 5, "five exact scoped proof boards are emitted")
     check(sum(board["receiptCount"] for board in boards) == 8, "eight reviewed receipts are covered once")

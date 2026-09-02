@@ -67,6 +67,8 @@ function response(body, ok = true) {
   check(view.sourceMode === "verified_corpus", "selects verified corpus");
   check(view.demoOnly === false, "does not relabel corpus as demo");
   check(view.proofReceipts.length === 8, "projects eight reviewed receipts");
+  check(model.corrections.entries.length === 0 && model.corrections.summary.correctionCount === 0, "tracked corpus fabricates no corrections");
+  check(view.proofReceipts.every((proof) => proof.correction.state === "active" && proof.correction.eligibleForScopedRating === true), "projects active no-correction truth for every tracked proof");
   check(view.tape.length === view.proofReceipts.length, "tape is receipt-backed");
   check(view.channels.every((channel) => channel.viewers === null), "does not invent viewers");
   check(view.leaderboard.every((row) => row.record.includes("not ranked")), "does not invent ranking");
@@ -97,6 +99,8 @@ function response(body, ok = true) {
   await rejects((changed) => { changed.truthBoundary.live = true; }, "live must stay false");
   await rejects((changed) => { changed.receipts[0].proof.replayVerdict = "FAIL"; }, "replay failed");
   await rejects((changed) => { changed.receipts[0].proof.publicationApproved = false; }, "unpublished receipt");
+  await rejects((changed) => { changed.receipts[0].correction.state = "voided"; }, "correction drift");
+  await rejects((changed) => { changed.receipts[0].correction.state = "voided"; changed.receipts[0].correction.eligibleForScopedRating = false; }, "rating coverage");
   await rejects((changed) => { delete changed.receipts[0].proof.engineDigest; }, "engine digest missing");
   await rejects((changed) => { changed.summary.receiptCount += 1; }, "receipt count mismatch");
   await rejects((changed) => { changed.summary.scopedRatingBoardCount += 1; }, "scoped rating board summary drift");

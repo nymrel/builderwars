@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from arena.canonical import digest  # noqa: E402
+from publishing.corrections import CorrectionLedgerError, project_receipt_corrections  # noqa: E402
 from publishing.scoped_ratings import build_scoped_rating_boards  # noqa: E402
 
 
@@ -31,10 +32,13 @@ DATASET_SCHEMA = "agentwars.public-product.v1"
 SOURCE_MANIFEST_SCHEMA = "agentwars.public-source-manifest.v1"
 RECEIPT_SCHEMA = "agentwars.public-receipt.v1"
 READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1"
-PROJECTION_VERSION = "2"
+PROJECTION_VERSION = "3"
 DEFAULT_DATASET = ROOT / "publishing" / "agentwars-public-v1" / "dataset.json"
 DEFAULT_SOURCE_MANIFEST = (
     ROOT / "publishing" / "agentwars-public-v1" / "source-manifest.json"
+)
+DEFAULT_CORRECTION_LEDGER = (
+    ROOT / "publishing" / "agentwars-public-correction-ledger.v1.json"
 )
 DEFAULT_OUTPUT = ROOT / "mobile-arena" / "data" / "arena-read-model.v1.json"
 HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -408,7 +412,11 @@ def _validate_source_entries(
     _require(seen == approved_ids, "source manifest entries do not equal the approved allowlist")
 
 
-def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -> dict[str, Any]:
+def build_read_model(
+    dataset: dict[str, Any],
+    source_manifest: dict[str, Any],
+    correction_ledger: dict[str, Any],
+) -> dict[str, Any]:
     _require(dataset.get("schemaVersion") == DATASET_SCHEMA, "dataset schema drift")
     dataset_digest = _hex64(dataset.get("datasetDigest"), "dataset.datasetDigest")
     _require(digest(_without(dataset, "datasetDigest")) == dataset_digest, "dataset digest mismatch")
@@ -433,6 +441,19 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
     receipts = [_receipt_card(_object(row, "receipt"), index, approved_ids) for index, row in enumerate(raw_receipts)]
     receipt_ids = {row["receiptId"] for row in receipts}
     _require(receipt_ids == approved_ids, "dataset receipt IDs do not equal the approved allowlist")
+    try:
+        correction_state, verified_correction_ledger = project_receipt_corrections(
+            correction_ledger,
+            dataset_digest=dataset_digest,
+            source_manifest_digest=manifest_digest,
+            approved_receipt_ids=approved_list,
+        )
+    except CorrectionLedgerError as exc:
+        raise ReadModelError(f"correction ledger rejected: {exc}") from exc
+    receipts = [
+        {**receipt, "correction": correction_state[receipt["receiptId"]]}
+        for receipt in receipts
+    ]
 
     raw_rivalries = _list(dataset.get("rivalries"), "dataset.rivalries", MAX_RIVALRIES)
     rivalries = [_rivalry_card(row, index, receipt_ids) for index, row in enumerate(raw_rivalries)]
@@ -457,10 +478,17 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
         )
 
     _validate_projection_relationships(receipts, fixtures, rules)
-    scoped_rating_boards = build_scoped_rating_boards(
-        receipts,
-        dataset_digest=dataset_digest,
-        source_manifest_digest=manifest_digest,
+    active_rating_receipts = [
+        receipt for receipt in receipts if receipt["correction"]["eligibleForScopedRating"]
+    ]
+    scoped_rating_boards = (
+        build_scoped_rating_boards(
+            active_rating_receipts,
+            dataset_digest=dataset_digest,
+            source_manifest_digest=manifest_digest,
+        )
+        if active_rating_receipts
+        else []
     )
 
     evidence_counts = Counter(row["evidence"]["class"] for row in receipts)
@@ -468,6 +496,10 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
     channels = [
         {
             "game": game,
+            "activeScopedRatingReceiptCount": sum(
+                row["game"]["name"] == game and row["correction"]["eligibleForScopedRating"]
+                for row in receipts
+            ),
             "publishedReceiptCount": game_counts[game],
             "rulesWeekIds": [row["rulesWeekId"] for row in rules if row["game"] == game],
             "status": "tracked_publication_read_only",
@@ -479,6 +511,7 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
     truth_boundary = _object(dataset.get("truthBoundary"), "dataset.truthBoundary")
     core = {
         "channels": channels,
+        "corrections": verified_correction_ledger,
         "futureFixtures": fixtures,
         "projectionVersion": PROJECTION_VERSION,
         "receipts": receipts,
@@ -491,12 +524,16 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
             "datasetDigest": dataset_digest,
             "datasetSchemaVersion": DATASET_SCHEMA,
             "datasetVersion": _string(dataset.get("datasetVersion"), "dataset.datasetVersion"),
+            "correctionLedgerDigest": verified_correction_ledger["ledgerDigest"],
+            "correctionPolicy": "append_only_history_current_scoped_ratings_exclude_corrected_receipts",
             "publicationPolicy": "explicit_reviewed_allowlist_only",
             "sourceCommit": _git_commit(build_integrity.get("sourceCommit"), "dataset.buildIntegrity.sourceCommit"),
             "sourceManifestDigest": manifest_digest,
             "status": "tracked_local_publication_artifact_not_hosted",
         },
         "summary": {
+            "activeScopedRatingReceiptCount": len(active_rating_receipts),
+            "correctionCount": verified_correction_ledger["summary"]["correctionCount"],
             "fallbackOnlyReferenceReceiptCount": evidence_counts["fallback_only_reference"],
             "modelAttestedReceiptCount": 0,
             "modelInfluencedUnattestedReceiptCount": evidence_counts["model_influenced_unattested"],
@@ -504,6 +541,7 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
             "rivalryCount": len(rivalries),
             "scriptedReferenceReceiptCount": evidence_counts["scripted_reference"],
             "scopedRatingBoardCount": len(scoped_rating_boards),
+            "scopedRatingExcludedReceiptCount": verified_correction_ledger["summary"]["scopedRatingExcludedReceiptCount"],
             "unplayedFixtureCount": len(fixtures),
             "verifiedReceiptCount": len(receipts),
         },
@@ -544,6 +582,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--source-manifest", type=Path, default=DEFAULT_SOURCE_MANIFEST)
+    parser.add_argument("--correction-ledger", type=Path, default=DEFAULT_CORRECTION_LEDGER)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--write", action="store_true", help="atomically write the compiled read model")
@@ -554,6 +593,7 @@ def main(argv: list[str] | None = None) -> int:
         model = build_read_model(
             _load_object(args.dataset, "dataset"),
             _load_object(args.source_manifest, "source manifest"),
+            _load_object(args.correction_ledger, "correction ledger"),
         )
         expected = _json_bytes(model)
         if args.write:

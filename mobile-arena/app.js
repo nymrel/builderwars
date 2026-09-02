@@ -1218,6 +1218,7 @@ function renderProof(proofId = "featured") {
       ["Engine digest", proof.engineDigestMatch ? "Match" : "Mismatch", proof.engineDigestMatch ? "pass" : ""],
       ["Verifier snapshot", proof.verifierSnapshotMatch ? "Match" : "Mismatch", proof.verifierSnapshotMatch ? "pass" : ""],
       ["Evidence class", proof.evidenceLabel, ""],
+      ["Correction status", proof.correction.state === "active" ? "Active · no correction recorded" : proof.correction.state === "voided" ? "Voided · excluded from current proof points" : `Superseded → ${proof.correction.successorReceiptId}`, proof.correction.state === "active" ? "pass" : "pending"],
       ["Move sources", `model ${counts.model} · scripted ${counts.scripted} · fallback ${counts.fallback} · other ${counts.other}`, ""],
       ["Harness version", proof.harnessVersionBound ? "Content-bound" : "Not bound", proof.harnessVersionBound ? "pass" : ""],
       ["Registry", "No authoritative commit", "pending"],

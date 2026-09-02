@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "bin"))
 from arena.canonical import digest  # noqa: E402
 from build_mobile_arena_read_model import (  # noqa: E402
     DEFAULT_DATASET,
+    DEFAULT_CORRECTION_LEDGER,
     DEFAULT_OUTPUT,
     DEFAULT_SOURCE_MANIFEST,
     READ_MODEL_SCHEMA,
@@ -25,6 +26,7 @@ from build_mobile_arena_read_model import (  # noqa: E402
     build_read_model,
 )
 from publishing.scoped_ratings import verify_scoped_rating_boards  # noqa: E402
+from publishing.corrections import build_correction_ledger  # noqa: E402
 
 
 def require(predicate: bool, message: str) -> None:
@@ -32,9 +34,15 @@ def require(predicate: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def expect_rejected(dataset: dict, manifest: dict, needle: str) -> None:
+def expect_rejected(dataset: dict, manifest: dict, ledger: dict, needle: str) -> None:
+    rebound_ledger = build_correction_ledger(
+        dataset_digest=dataset["datasetDigest"],
+        source_manifest_digest=manifest["manifestDigest"],
+        approved_receipt_ids=dataset["publication"]["approvedReceiptIds"],
+        entries=ledger["entries"],
+    )
     try:
-        build_read_model(dataset, manifest)
+        build_read_model(dataset, manifest, rebound_ledger)
     except ReadModelError as exc:
         require(needle in str(exc), f"wrong rejection for {needle!r}: {exc}")
         return
@@ -60,11 +68,17 @@ def main() -> int:
     checks = 0
     dataset = json.loads(DEFAULT_DATASET.read_text(encoding="utf-8"))
     manifest = json.loads(DEFAULT_SOURCE_MANIFEST.read_text(encoding="utf-8"))
+    ledger = json.loads(DEFAULT_CORRECTION_LEDGER.read_text(encoding="utf-8"))
 
     print("[1] tracked product compiles into the bounded read model")
-    model = build_read_model(dataset, manifest)
+    model = build_read_model(dataset, manifest, ledger)
     require(model["schemaVersion"] == READ_MODEL_SCHEMA, "read-model schema drift")
-    require(model["projectionVersion"] == "2", "read-model projection drift")
+    require(model["projectionVersion"] == "3", "read-model projection drift")
+    require(model["corrections"]["entries"] == [], "tracked corpus must not fabricate corrections")
+    require(model["summary"]["correctionCount"] == 0, "tracked correction count drift")
+    require(model["summary"]["activeScopedRatingReceiptCount"] == 8, "all tracked receipts should remain rating-active")
+    require(model["summary"]["scopedRatingExcludedReceiptCount"] == 0, "tracked corpus should exclude no receipt")
+    require(all(row["correction"]["state"] == "active" for row in model["receipts"]), "tracked receipt correction state drift")
     require(model["source"]["datasetDigest"] == dataset["datasetDigest"], "source digest not carried")
     require(model["summary"]["receiptCount"] == 8, "expected eight reviewed receipts")
     require(model["summary"]["verifiedReceiptCount"] == 8, "every projected receipt must be verified")
@@ -89,7 +103,7 @@ def main() -> int:
         "scoped boards do not verify",
     )
     require(model["readModelDigest"] == digest({key: value for key, value in model.items() if key != "readModelDigest"}), "read-model digest mismatch")
-    checks += 18
+    checks += 23
 
     print("[2] stale generated output fails closed")
     command = [sys.executable, str(ROOT / "bin" / "build_mobile_arena_read_model.py"), "--check"]
@@ -102,25 +116,25 @@ def main() -> int:
     print("[3] dataset and source-manifest integrity mutations are rejected")
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["datasetVersion"] = "tampered"
-    expect_rejected(mutated_dataset, manifest, "dataset digest mismatch")
+    expect_rejected(mutated_dataset, manifest, ledger, "dataset digest mismatch")
     checks += 1
 
     mutated_manifest = copy.deepcopy(manifest)
     mutated_manifest["entries"] = []
-    expect_rejected(dataset, mutated_manifest, "source manifest digest mismatch")
+    expect_rejected(dataset, mutated_manifest, ledger, "source manifest digest mismatch")
     checks += 1
 
     mutated_manifest = copy.deepcopy(manifest)
     mutated_manifest["entries"][0]["publicTranscriptBytes"] += 1
     rehash_manifest(mutated_manifest)
-    expect_rejected(dataset, mutated_manifest, "transcript byte count mismatch")
+    expect_rejected(dataset, mutated_manifest, ledger, "transcript byte count mismatch")
     checks += 1
 
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["receipts"][0]["verification"]["engineDigest"] = "0" * 64
     rehash_dataset(mutated_dataset)
     mutated_manifest = manifest_for_dataset(manifest, mutated_dataset)
-    expect_rejected(mutated_dataset, mutated_manifest, "engine digest mismatch")
+    expect_rejected(mutated_dataset, mutated_manifest, ledger, "engine digest mismatch")
     checks += 1
 
     print("[4] a rehashed failed proof still cannot enter the read model")
@@ -130,7 +144,7 @@ def main() -> int:
     mutated_manifest = copy.deepcopy(manifest)
     mutated_manifest["datasetDigest"] = mutated_dataset["datasetDigest"]
     rehash_manifest(mutated_manifest)
-    expect_rejected(mutated_dataset, mutated_manifest, "verification replayVerdict mismatch")
+    expect_rejected(mutated_dataset, mutated_manifest, ledger, "verification replayVerdict mismatch")
     checks += 1
 
     print("[5] allowlist drift and evidence-label drift are rejected")
@@ -143,7 +157,7 @@ def main() -> int:
     mutated_manifest["approvedReceiptIds"] = mutated_dataset["publication"]["approvedReceiptIds"]
     mutated_manifest["approvedReceiptCount"] -= 1
     rehash_manifest(mutated_manifest)
-    expect_rejected(mutated_dataset, mutated_manifest, "dataset receipt count must equal")
+    expect_rejected(mutated_dataset, mutated_manifest, ledger, "dataset receipt count must equal")
     checks += 1
 
     mutated_dataset = copy.deepcopy(dataset)
@@ -152,50 +166,50 @@ def main() -> int:
     mutated_manifest = copy.deepcopy(manifest)
     mutated_manifest["datasetDigest"] = mutated_dataset["datasetDigest"]
     rehash_manifest(mutated_manifest)
-    expect_rejected(mutated_dataset, mutated_manifest, "disagrees with move-source evidence")
+    expect_rejected(mutated_dataset, mutated_manifest, ledger, "disagrees with move-source evidence")
     checks += 1
 
     print("[6] projection relationships fail closed after valid source rehashing")
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["futureFixtures"][0]["rulesDigest"] = "0" * 64
     rehash_dataset(mutated_dataset)
-    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "rules binding drift")
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), ledger, "rules binding drift")
     checks += 1
 
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["futureFixtures"][0]["matchup"][0]["entrantId"] = "0" * 64
     rehash_dataset(mutated_dataset)
-    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "entrant is not receipt-backed")
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), ledger, "entrant is not receipt-backed")
     checks += 1
 
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["futureFixtures"][0]["matchup"][1]["seat"] = 0
     rehash_dataset(mutated_dataset)
-    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "seats drift")
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), ledger, "seats drift")
     checks += 1
 
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["futureFixtures"][0]["closeAt"] = "not-a-time"
     rehash_dataset(mutated_dataset)
-    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "UTC second timestamp")
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), ledger, "UTC second timestamp")
     checks += 1
 
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["rulesWeeks"][0]["rulesDigest"] = "0" * 64
     rehash_dataset(mutated_dataset)
-    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "rules binding drift")
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), ledger, "rules binding drift")
     checks += 1
 
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["futureFixtures"].append(copy.deepcopy(mutated_dataset["futureFixtures"][0]))
     rehash_dataset(mutated_dataset)
-    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "duplicate future fixture")
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), ledger, "duplicate future fixture")
     checks += 1
 
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["receipts"][0]["entrants"][1]["seat"] = 0
     rehash_dataset(mutated_dataset)
-    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), "entrant seats must be contiguous and unique")
+    expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), ledger, "entrant seats must be contiguous and unique")
     checks += 1
 
     print("[7] check mode detects a stale or missing output")

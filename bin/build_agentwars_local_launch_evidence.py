@@ -138,9 +138,14 @@ STAGES: tuple[StageDefinition, ...] = (
     StageDefinition(
         7,
         "mobile_static_contracts",
-        "Mobile Arena deterministic, offline, accessibility, and truth contracts",
+        "Mobile Arena deterministic, offline, accessibility, truth, and append-only correction contracts",
         "local_executable",
         commands=((PYTHON, "bin/check_mobile_arena_exchange.py"),),
+        evidence_files=(
+            "publishing/corrections.py",
+            "publishing/agentwars-public-correction-ledger.v1.json",
+            "docs/AGENTWARS_PUBLIC_CORRECTIONS.md",
+        ),
         not_proven=("hosted mobile route", "real user", "supported-device deployment"),
     ),
     StageDefinition(

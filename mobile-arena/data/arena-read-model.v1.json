@@ -1,6 +1,7 @@
 {
   "channels": [
     {
+      "activeScopedRatingReceiptCount": 2,
       "game": "fantasy_dynasty",
       "publishedReceiptCount": 2,
       "rulesWeekIds": [
@@ -9,6 +10,7 @@
       "status": "tracked_publication_read_only"
     },
     {
+      "activeScopedRatingReceiptCount": 2,
       "game": "fantasy_qb_surge",
       "publishedReceiptCount": 2,
       "rulesWeekIds": [
@@ -17,6 +19,7 @@
       "status": "tracked_publication_read_only"
     },
     {
+      "activeScopedRatingReceiptCount": 2,
       "game": "fantasy_redraft",
       "publishedReceiptCount": 2,
       "rulesWeekIds": [
@@ -25,18 +28,53 @@
       "status": "tracked_publication_read_only"
     },
     {
+      "activeScopedRatingReceiptCount": 1,
       "game": "nim",
       "publishedReceiptCount": 1,
       "rulesWeekIds": [],
       "status": "tracked_publication_read_only"
     },
     {
+      "activeScopedRatingReceiptCount": 1,
       "game": "ten_fronts",
       "publishedReceiptCount": 1,
       "rulesWeekIds": [],
       "status": "tracked_publication_read_only"
     }
   ],
+  "corrections": {
+    "authority": {
+      "humanDecisionAttested": false,
+      "identityAttested": false,
+      "launchable": false,
+      "moderationAuthority": false,
+      "productionApplied": false,
+      "productionMutation": false,
+      "publication": false,
+      "ranking": false
+    },
+    "boundary": {
+      "statement": "All reviewed receipts remain historical evidence. A void or supersession excludes only the corrected receipt from current exact-scope proof points; source records are append-only, identity-unattested, local, and grant no production, publication, ranking, or launch authority."
+    },
+    "entries": [],
+    "ledgerDigest": "fb32bdb42c4c46d9efad2e3f781433cc87bc88d222b96497b2cdfcddf6de5fbb",
+    "ledgerVersion": "1",
+    "schemaVersion": "agentwars.public-correction-ledger.v1",
+    "sourceBindings": {
+      "approvedReceiptIdsDigest": "eb6dbd0a32416f9030704f93ab3cd3a86d2aa355fb9993ca18c345b4d5a5ae88",
+      "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
+      "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8"
+    },
+    "status": "TRACKED_APPEND_ONLY_NO_CORRECTIONS",
+    "summary": {
+      "activeReceiptCount": 8,
+      "approvedReceiptCount": 8,
+      "correctionCount": 0,
+      "scopedRatingExcludedReceiptCount": 0,
+      "supersededReceiptCount": 0,
+      "voidedReceiptCount": 0
+    }
+  },
   "futureFixtures": [
     {
       "activationStatus": "proposed_not_activated",
@@ -117,10 +155,16 @@
       "week": 3
     }
   ],
-  "projectionVersion": "2",
-  "readModelDigest": "902151f8d7fa56f2199372afe85c235e08ccec92256c5d9bbb04f44e8025dc08",
+  "projectionVersion": "3",
+  "readModelDigest": "3ee821defe188169bb59e2f186ca2237488469ed4e0f66dd2bb35353baae18bb",
   "receipts": [
     {
+      "correction": {
+        "correctionIds": [],
+        "eligibleForScopedRating": true,
+        "state": "active",
+        "successorReceiptId": null
+      },
       "entrants": [
         {
           "entrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
@@ -178,6 +222,12 @@
       "resultLine": "over naive-harness (took_last_object)"
     },
     {
+      "correction": {
+        "correctionIds": [],
+        "eligibleForScopedRating": true,
+        "state": "active",
+        "successorReceiptId": null
+      },
       "entrants": [
         {
           "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
@@ -235,6 +285,12 @@
       "resultLine": "1766-1507 over Future Proof"
     },
     {
+      "correction": {
+        "correctionIds": [],
+        "eligibleForScopedRating": true,
+        "state": "active",
+        "successorReceiptId": null
+      },
       "entrants": [
         {
           "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
@@ -292,6 +348,12 @@
       "resultLine": "1771-1502 over Future Proof"
     },
     {
+      "correction": {
+        "correctionIds": [],
+        "eligibleForScopedRating": true,
+        "state": "active",
+        "successorReceiptId": null
+      },
       "entrants": [
         {
           "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
@@ -349,6 +411,12 @@
       "resultLine": "4660-3551 over Sunday Machine"
     },
     {
+      "correction": {
+        "correctionIds": [],
+        "eligibleForScopedRating": true,
+        "state": "active",
+        "successorReceiptId": null
+      },
       "entrants": [
         {
           "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
@@ -406,6 +474,12 @@
       "resultLine": "4559-3652 over Sunday Machine"
     },
     {
+      "correction": {
+        "correctionIds": [],
+        "eligibleForScopedRating": true,
+        "state": "active",
+        "successorReceiptId": null
+      },
       "entrants": [
         {
           "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
@@ -463,6 +537,12 @@
       "resultLine": "2112-1816 over Future Proof"
     },
     {
+      "correction": {
+        "correctionIds": [],
+        "eligibleForScopedRating": true,
+        "state": "active",
+        "successorReceiptId": null
+      },
       "entrants": [
         {
           "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
@@ -520,6 +600,12 @@
       "resultLine": "2117-1811 over Future Proof"
     },
     {
+      "correction": {
+        "correctionIds": [],
+        "eligibleForScopedRating": true,
+        "state": "active",
+        "successorReceiptId": null
+      },
       "entrants": [
         {
           "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
@@ -1075,6 +1161,8 @@
   ],
   "source": {
     "approvedReceiptCount": 8,
+    "correctionLedgerDigest": "fb32bdb42c4c46d9efad2e3f781433cc87bc88d222b96497b2cdfcddf6de5fbb",
+    "correctionPolicy": "append_only_history_current_scoped_ratings_exclude_corrected_receipts",
     "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
     "datasetSchemaVersion": "agentwars.public-product.v1",
     "datasetVersion": "1",
@@ -1084,12 +1172,15 @@
     "status": "tracked_local_publication_artifact_not_hosted"
   },
   "summary": {
+    "activeScopedRatingReceiptCount": 8,
+    "correctionCount": 0,
     "fallbackOnlyReferenceReceiptCount": 1,
     "modelAttestedReceiptCount": 0,
     "modelInfluencedUnattestedReceiptCount": 1,
     "receiptCount": 8,
     "rivalryCount": 3,
     "scopedRatingBoardCount": 5,
+    "scopedRatingExcludedReceiptCount": 0,
     "scriptedReferenceReceiptCount": 6,
     "unplayedFixtureCount": 3,
     "verifiedReceiptCount": 8

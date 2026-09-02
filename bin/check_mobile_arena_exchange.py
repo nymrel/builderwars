@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "32"
+EXPECTED_SHELL_VERSION = "33"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -413,6 +413,20 @@ def main() -> int:
     )
     require(scoped_ratings_check.returncode == 0, f"scoped proof-rating regression failed: {scoped_ratings_check.stderr.strip()}")
     require("PASS" in scoped_ratings_check.stdout, "scoped proof-rating regression did not report PASS")
+    checks += 2
+
+    corrections_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_agentwars_corrections.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(corrections_check.returncode == 0, f"append-only correction regression failed: {corrections_check.stderr.strip()}")
+    require("PASS" in corrections_check.stdout, "append-only correction regression did not report PASS")
     checks += 2
 
     adapter_check = subprocess.run(

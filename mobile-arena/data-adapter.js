@@ -1,5 +1,4 @@
 "use strict";
-
 (function installDataAdapter(root, factory) {
   const adapter = factory();
   if (typeof module !== "undefined" && module.exports) module.exports = adapter;
@@ -7,7 +6,7 @@
 }(typeof globalThis !== "undefined" ? globalThis : this, function createDataAdapter() {
   const DEMO_SCHEMA = "builderwars.mobile-arena-demo.v1";
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
-  const READ_MODEL_DIGEST_PIN = "902151f8d7fa56f2199372afe85c235e08ccec92256c5d9bbb04f44e8025dc08";
+  const READ_MODEL_DIGEST_PIN = "3ee821defe188169bb59e2f186ca2237488469ed4e0f66dd2bb35353baae18bb";
   const SCOPED_RATING_SCHEMA = "agentwars.scoped-proof-rating-board/1";
   const SCOPED_RATING_METHOD = "reviewed_final_win_count_v1";
   const SCOPED_RATING_RESOURCE_CLASS = "reviewed_publication_receipt_v1";
@@ -310,19 +309,9 @@
     "registry_not_requested",
     "publication_not_requested",
   ]);
-
-  function requireValue(predicate, message) {
-    if (!predicate) throw new Error(message);
-  }
-
-  function isObject(value) {
-    return value !== null && typeof value === "object" && !Array.isArray(value);
-  }
-
-  function clone(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
-
+  function requireValue(predicate, message) { if (!predicate) throw new Error(message); }
+  function isObject(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
+  function clone(value) { return JSON.parse(JSON.stringify(value)); }
   function assertSafeKeys(value, path = "value", depth = 0, state = { nodes: 0 }, nodeLimit = SAFE_JSON_NODE_LIMIT) {
     requireValue(depth <= 32, "unsafe portable runback: nesting limit exceeded");
     state.nodes += 1;
@@ -337,14 +326,12 @@
       assertSafeKeys(value[key], `${path}.${key}`, depth + 1, state, nodeLimit);
     }
   }
-
   function requireExactKeys(value, expected, context) {
     requireValue(isObject(value), `unsafe portable runback: ${context} must be an object`);
     const actual = Object.keys(value).sort();
     const wanted = [...expected].sort();
     requireValue(actual.length === wanted.length && actual.every((key, index) => key === wanted[index]), `unsafe portable runback: ${context} fields drift`);
   }
-
   function canonicalJSON(value) {
     if (value === null || typeof value === "boolean" || typeof value === "string") return JSON.stringify(value);
     if (typeof value === "number") {
@@ -355,24 +342,18 @@
     requireValue(isObject(value), "unsafe portable runback: unsupported JSON value");
     return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJSON(value[key])}`).join(",")}}`;
   }
-
   async function sha256Hex(value) {
     requireValue(typeof TextEncoder !== "undefined" && globalThis.crypto?.subtle, "unsafe portable runback: SHA-256 unavailable");
     const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
     return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
   }
-
   function equalHex(left, right) {
     if (typeof left !== "string" || typeof right !== "string" || left.length !== right.length) return false;
     let difference = 0;
     for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
     return difference === 0;
   }
-
-  function nonNegativeInteger(value) {
-    return Number.isInteger(value) && value >= 0;
-  }
-
+  function nonNegativeInteger(value) { return Number.isInteger(value) && value >= 0; }
   function validateDemoFixture(fixture) {
     requireValue(isObject(fixture), "unsafe demo fixture: expected object");
     requireValue(fixture.schemaVersion === DEMO_SCHEMA, "unsafe demo fixture: schema drift");
@@ -389,28 +370,26 @@
     requireValue(proof.registryState === "pending_registry_commit", "unsafe demo fixture: registry boundary drift");
     return fixture;
   }
-
   function validateArenaReadModel(model) {
-    requireValue(isObject(model), "unsafe arena read model: expected object");
-    requireValue(model.schemaVersion === READ_MODEL_SCHEMA, "unsafe arena read model: schema drift");
-    requireValue(model.projectionVersion === "2", "unsafe arena read model: projection drift");
-    requireValue(typeof model.readModelDigest === "string" && HEX64.test(model.readModelDigest), "unsafe arena read model: digest missing");
-    requireValue(isObject(model.source), "unsafe arena read model: source missing");
-    requireValue(model.source.status === "tracked_local_publication_artifact_not_hosted", "unsafe arena read model: source status drift");
-    requireValue(model.source.publicationPolicy === "explicit_reviewed_allowlist_only", "unsafe arena read model: publication policy drift");
-    requireValue(HEX64.test(model.source.datasetDigest), "unsafe arena read model: source dataset digest drift");
-    requireValue(HEX64.test(model.source.sourceManifestDigest), "unsafe arena read model: source manifest digest drift");
-    requireValue(GIT_COMMIT.test(model.source.sourceCommit), "unsafe arena read model: source commit drift");
-    requireValue(isObject(model.truthBoundary), "unsafe arena read model: truth boundary missing");
+    requireValue(isObject(model), "read model: expected object");
+    requireValue(model.schemaVersion === READ_MODEL_SCHEMA, "read model: schema drift");
+    requireValue(model.projectionVersion === "3", "read-model projection drift");
+    requireValue(typeof model.readModelDigest === "string" && HEX64.test(model.readModelDigest), "read model: digest missing");
+    requireValue(isObject(model.source), "read model: source missing");
+    requireValue(model.source.status === "tracked_local_publication_artifact_not_hosted", "read model: source status drift");
+    requireValue(model.source.publicationPolicy === "explicit_reviewed_allowlist_only", "read model: publication policy drift");
+    requireValue(HEX64.test(model.source.datasetDigest), "read model: source dataset digest drift");
+    requireValue(HEX64.test(model.source.sourceManifestDigest), "read model: source manifest digest drift");
+    requireValue(GIT_COMMIT.test(model.source.sourceCommit), "read model: source commit drift");
+    requireValue(isObject(model.truthBoundary), "read model: truth boundary missing");
     for (const field of ["live", "hosted", "authenticated", "modelAttested", "providerAttested", "runtimeAttested"]) {
-      requireValue(model.truthBoundary[field] === false, `unsafe arena read model: ${field} must stay false`);
+      requireValue(model.truthBoundary[field] === false, `read model: ${field} must stay false`);
     }
-    requireValue(Array.isArray(model.receipts) && model.receipts.length > 0, "unsafe arena read model: receipts missing");
-    requireValue(isObject(model.summary), "unsafe arena read model: summary missing");
-    requireValue(model.summary.receiptCount === model.receipts.length, "unsafe arena read model: receipt count mismatch");
-    requireValue(model.summary.verifiedReceiptCount === model.receipts.length, "unsafe arena read model: unverified receipt count");
-    requireValue(model.summary.modelAttestedReceiptCount === 0, "unsafe arena read model: model attestation count drift");
-
+    requireValue(Array.isArray(model.receipts) && model.receipts.length > 0, "read model: receipts missing");
+    requireValue(isObject(model.summary), "read model: summary missing");
+    requireValue(model.summary.receiptCount === model.receipts.length, "read model: receipt count mismatch");
+    requireValue(model.summary.verifiedReceiptCount === model.receipts.length, "read model: unverified receipt count");
+    requireValue(model.summary.modelAttestedReceiptCount === 0, "read model: model attestation count drift");
     const receiptIds = new Set();
     const receiptFixtureIds = new Set();
     const receiptById = new Map();
@@ -423,55 +402,54 @@
       ["other_unattested_reference", 0],
     ]);
     for (const receipt of model.receipts) {
-      requireValue(isObject(receipt) && HEX64.test(receipt.receiptId), "unsafe arena read model: invalid receipt id");
-      requireValue(HEX64.test(receipt.fixtureId), `unsafe arena read model: invalid fixture for ${receipt.receiptId}`);
-      requireValue(!receiptIds.has(receipt.receiptId), `unsafe arena read model: duplicate receipt ${receipt.receiptId}`);
-      requireValue(!receiptFixtureIds.has(receipt.fixtureId), `unsafe arena read model: duplicate receipt fixture ${receipt.fixtureId}`);
+      requireValue(isObject(receipt) && HEX64.test(receipt.receiptId), "read model: invalid receipt id");
+      requireValue(HEX64.test(receipt.fixtureId), `read model: invalid fixture for ${receipt.receiptId}`);
+      requireValue(!receiptIds.has(receipt.receiptId), `read model: duplicate receipt ${receipt.receiptId}`);
+      requireValue(!receiptFixtureIds.has(receipt.fixtureId), `read model: duplicate receipt fixture ${receipt.fixtureId}`);
       receiptIds.add(receipt.receiptId);
       receiptFixtureIds.add(receipt.fixtureId);
       receiptById.set(receipt.receiptId, receipt);
-      requireValue(isObject(receipt.game) && typeof receipt.game.name === "string" && receipt.game.name.length > 0 && receipt.game.version === "1", `unsafe arena read model: receipt game drift for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.game) && typeof receipt.game.name === "string" && receipt.game.name.length > 0 && receipt.game.version === "1", `read model: receipt game drift for ${receipt.receiptId}`);
       receiptGameCounts.set(receipt.game.name, (receiptGameCounts.get(receipt.game.name) || 0) + 1);
-      requireValue(Array.isArray(receipt.entrants) && receipt.entrants.length >= 2, `unsafe arena read model: entrants missing for ${receipt.receiptId}`);
+      requireValue(Array.isArray(receipt.entrants) && receipt.entrants.length >= 2, `read model: entrants missing for ${receipt.receiptId}`);
       const entrantIds = new Set();
       const entrantSeats = new Set();
       for (const entrant of receipt.entrants) {
-        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `unsafe arena read model: entrant binding drift for ${receipt.receiptId}`);
-        requireValue(nonNegativeInteger(entrant.seat) && !entrantSeats.has(entrant.seat), `unsafe arena read model: entrant seat drift for ${receipt.receiptId}`);
-        requireValue(!entrantIds.has(entrant.entrantId), `unsafe arena read model: duplicate entrant for ${receipt.receiptId}`);
+        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `read model: entrant binding drift for ${receipt.receiptId}`);
+        requireValue(nonNegativeInteger(entrant.seat) && !entrantSeats.has(entrant.seat), `read model: entrant seat drift for ${receipt.receiptId}`);
+        requireValue(!entrantIds.has(entrant.entrantId), `read model: duplicate entrant for ${receipt.receiptId}`);
         entrantIds.add(entrant.entrantId);
         entrantSeats.add(entrant.seat);
         const knownEntrantName = receiptEntrantNames.get(entrant.entrantId);
-        requireValue(knownEntrantName === undefined || knownEntrantName === entrant.name, `unsafe arena read model: entrant name drift for ${entrant.entrantId}`);
+        requireValue(knownEntrantName === undefined || knownEntrantName === entrant.name, `read model: entrant name drift for ${entrant.entrantId}`);
         receiptEntrantNames.set(entrant.entrantId, entrant.name);
       }
-      requireValue([...entrantSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `unsafe arena read model: entrant seats are not contiguous for ${receipt.receiptId}`);
-      requireValue(isObject(receipt.proof), `unsafe arena read model: proof missing for ${receipt.receiptId}`);
+      requireValue([...entrantSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `read model: entrant seats are not contiguous for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.proof), `read model: proof missing for ${receipt.receiptId}`);
       requireValue(HEX64.test(receipt.proof.engineDigest), `engine digest missing for ${receipt.receiptId}`);
-      requireValue(receipt.proof.publicationApproved === true, `unsafe arena read model: unpublished receipt ${receipt.receiptId}`);
-      requireValue(receipt.proof.replayVerdict === "PASS", `unsafe arena read model: replay failed for ${receipt.receiptId}`);
-      requireValue(receipt.proof.engineDigestMatch === true, `unsafe arena read model: engine mismatch for ${receipt.receiptId}`);
-      requireValue(receipt.proof.verifierSnapshotMatch === true, `unsafe arena read model: verifier mismatch for ${receipt.receiptId}`);
-      requireValue(isObject(receipt.evidence), `unsafe arena read model: evidence missing for ${receipt.receiptId}`);
-      requireValue(evidenceClassCounts.has(receipt.evidence.class), `unsafe arena read model: evidence class drift for ${receipt.receiptId}`);
+      requireValue(receipt.proof.publicationApproved === true, `read model: unpublished receipt ${receipt.receiptId}`);
+      requireValue(receipt.proof.replayVerdict === "PASS", `read model: replay failed for ${receipt.receiptId}`);
+      requireValue(receipt.proof.engineDigestMatch === true, `read model: engine mismatch for ${receipt.receiptId}`);
+      requireValue(receipt.proof.verifierSnapshotMatch === true, `read model: verifier mismatch for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.evidence), `read model: evidence missing for ${receipt.receiptId}`);
+      requireValue(evidenceClassCounts.has(receipt.evidence.class), `read model: evidence class drift for ${receipt.receiptId}`);
       evidenceClassCounts.set(receipt.evidence.class, evidenceClassCounts.get(receipt.evidence.class) + 1);
       for (const field of ["modelAttested", "providerAttested", "runtimeAttested"]) {
-        requireValue(receipt.evidence[field] === false, `unsafe arena read model: ${field} drift for ${receipt.receiptId}`);
+        requireValue(receipt.evidence[field] === false, `read model: ${field} drift for ${receipt.receiptId}`);
       }
-      requireValue(isObject(receipt.evidence.moveSourceCounts), `unsafe arena read model: move counts missing for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.evidence.moveSourceCounts), `read model: move counts missing for ${receipt.receiptId}`);
       for (const field of ["model", "scripted", "fallback", "other"]) {
-        requireValue(nonNegativeInteger(receipt.evidence.moveSourceCounts[field]), `unsafe arena read model: invalid ${field} count for ${receipt.receiptId}`);
+        requireValue(nonNegativeInteger(receipt.evidence.moveSourceCounts[field]), `read model: invalid ${field} count for ${receipt.receiptId}`);
       }
-      requireValue(isObject(receipt.outcome) && HEX64.test(receipt.outcome.winnerEntrantId), `unsafe arena read model: outcome missing for ${receipt.receiptId}`);
-      requireValue(receipt.entrants.some((entrant) => entrant.entrantId === receipt.outcome.winnerEntrantId), `unsafe arena read model: winner is not an entrant for ${receipt.receiptId}`);
-      requireValue(receipt.entrants.every((entrant) => entrant.harnessVersionContentDerived === true && HEX64.test(entrant.harnessVersionId)), `unsafe arena read model: harness version drift for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.outcome) && HEX64.test(receipt.outcome.winnerEntrantId), `read model: outcome missing for ${receipt.receiptId}`);
+      requireValue(receipt.entrants.some((entrant) => entrant.entrantId === receipt.outcome.winnerEntrantId), `read model: winner is not an entrant for ${receipt.receiptId}`);
+      requireValue(receipt.entrants.every((entrant) => entrant.harnessVersionContentDerived === true && HEX64.test(entrant.harnessVersionId)), `read model: harness version drift for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.correction) && ["active", "voided", "superseded"].includes(receipt.correction.state) && receipt.correction.eligibleForScopedRating === (receipt.correction.state === "active"), `correction drift for ${receipt.receiptId}`);
     }
-
-    requireValue(model.source.approvedReceiptCount === receiptIds.size, "unsafe arena read model: source receipt count mismatch");
-    requireValue(model.summary.modelInfluencedUnattestedReceiptCount === evidenceClassCounts.get("model_influenced_unattested"), "unsafe arena read model: model-influenced summary drift");
-    requireValue(model.summary.scriptedReferenceReceiptCount === evidenceClassCounts.get("scripted_reference"), "unsafe arena read model: scripted summary drift");
-    requireValue(model.summary.fallbackOnlyReferenceReceiptCount === evidenceClassCounts.get("fallback_only_reference"), "unsafe arena read model: fallback summary drift");
-
+    requireValue(model.source.approvedReceiptCount === receiptIds.size, "read model: source receipt count mismatch");
+    requireValue(model.summary.modelInfluencedUnattestedReceiptCount === evidenceClassCounts.get("model_influenced_unattested"), "read model: model-influenced summary drift");
+    requireValue(model.summary.scriptedReferenceReceiptCount === evidenceClassCounts.get("scripted_reference"), "read model: scripted summary drift");
+    requireValue(model.summary.fallbackOnlyReferenceReceiptCount === evidenceClassCounts.get("fallback_only_reference"), "read model: fallback summary drift");
     const boards = model.scopedRatingBoards;
     requireValue(Array.isArray(boards) && boards.length > 0, "scoped rating boards missing");
     requireValue(model.summary.scopedRatingBoardCount === boards.length, "scoped rating board summary drift");
@@ -507,102 +485,101 @@
       }
       order.push(`${scope.gameName}\u0000${scope.gameVersion}\u0000${scope.format || ""}\u0000${board.scopeId}`);
     }
-    requireValue(covered.size === receiptIds.size && [...receiptIds].every((id) => covered.has(id)), "scoped rating receipt coverage drift");
+    const activeReceiptIds = [...receiptIds].filter((id) => receiptById.get(id).correction.eligibleForScopedRating);
+    requireValue(covered.size === activeReceiptIds.length && activeReceiptIds.every((id) => covered.has(id)), "rating coverage");
     requireValue(order.every((value, index) => index === 0 || order[index - 1] < value), "scoped rating board order drift");
-
-    requireValue(Array.isArray(model.channels), "unsafe arena read model: channels missing");
-    requireValue(Array.isArray(model.rivalries), "unsafe arena read model: rivalries missing");
-    requireValue(Array.isArray(model.futureFixtures), "unsafe arena read model: future fixtures missing");
-    requireValue(Array.isArray(model.rulesWeeks), "unsafe arena read model: rules weeks missing");
+    requireValue(Array.isArray(model.channels), "read model: channels missing");
+    requireValue(Array.isArray(model.rivalries), "read model: rivalries missing");
+    requireValue(Array.isArray(model.futureFixtures), "read model: future fixtures missing");
+    requireValue(Array.isArray(model.rulesWeeks), "read model: rules weeks missing");
     const rulesById = new Map();
     for (const rule of model.rulesWeeks) {
-      requireValue(isObject(rule) && typeof rule.rulesWeekId === "string" && rule.rulesWeekId.length > 0, "unsafe arena read model: invalid rules week id");
-      requireValue(!rulesById.has(rule.rulesWeekId), `unsafe arena read model: duplicate rules week ${rule.rulesWeekId}`);
-      requireValue(typeof rule.game === "string" && rule.game.length > 0 && rule.gameVersion === "1", `unsafe arena read model: rules week game drift for ${rule.rulesWeekId}`);
-      requireValue(typeof rule.label === "string" && rule.label.length > 0 && HEX64.test(rule.rulesDigest), `unsafe arena read model: rules week evidence drift for ${rule.rulesWeekId}`);
-      requireValue(rule.status === "playable" && nonNegativeInteger(rule.week) && rule.week > 0, `unsafe arena read model: rules week status drift for ${rule.rulesWeekId}`);
+      requireValue(isObject(rule) && typeof rule.rulesWeekId === "string" && rule.rulesWeekId.length > 0, "read model: invalid rules week id");
+      requireValue(!rulesById.has(rule.rulesWeekId), `read model: duplicate rules week ${rule.rulesWeekId}`);
+      requireValue(typeof rule.game === "string" && rule.game.length > 0 && rule.gameVersion === "1", `read model: rules week game drift for ${rule.rulesWeekId}`);
+      requireValue(typeof rule.label === "string" && rule.label.length > 0 && HEX64.test(rule.rulesDigest), `read model: rules week evidence drift for ${rule.rulesWeekId}`);
+      requireValue(rule.status === "playable" && nonNegativeInteger(rule.week) && rule.week > 0, `read model: rules week status drift for ${rule.rulesWeekId}`);
       rulesById.set(rule.rulesWeekId, rule);
     }
     const channelGames = new Set();
     for (const channel of model.channels) {
-      requireValue(isObject(channel) && typeof channel.game === "string" && channel.game.length > 0, "unsafe arena read model: invalid channel game");
-      requireValue(!channelGames.has(channel.game), `unsafe arena read model: duplicate channel ${channel.game}`);
+      requireValue(isObject(channel) && typeof channel.game === "string" && channel.game.length > 0, "read model: invalid channel game");
+      requireValue(!channelGames.has(channel.game), `read model: duplicate channel ${channel.game}`);
       channelGames.add(channel.game);
-      requireValue(channel.status === "tracked_publication_read_only", `unsafe arena read model: channel status drift for ${channel.game}`);
-      requireValue(nonNegativeInteger(channel.publishedReceiptCount) && channel.publishedReceiptCount === receiptGameCounts.get(channel.game), `unsafe arena read model: channel receipt count drift for ${channel.game}`);
-      requireValue(Array.isArray(channel.rulesWeekIds) && new Set(channel.rulesWeekIds).size === channel.rulesWeekIds.length, `unsafe arena read model: channel rules drift for ${channel.game}`);
+      requireValue(channel.status === "tracked_publication_read_only", `read model: channel status drift for ${channel.game}`);
+      requireValue(nonNegativeInteger(channel.publishedReceiptCount) && channel.publishedReceiptCount === receiptGameCounts.get(channel.game), `read model: channel receipt count drift for ${channel.game}`);
+      requireValue(Array.isArray(channel.rulesWeekIds) && new Set(channel.rulesWeekIds).size === channel.rulesWeekIds.length, `read model: channel rules drift for ${channel.game}`);
       const expectedRules = model.rulesWeeks.filter((rule) => rule.game === channel.game).map((rule) => rule.rulesWeekId);
-      requireValue(channel.rulesWeekIds.length === expectedRules.length && channel.rulesWeekIds.every((ruleId, index) => ruleId === expectedRules[index]), `unsafe arena read model: channel rules binding drift for ${channel.game}`);
+      requireValue(channel.rulesWeekIds.length === expectedRules.length && channel.rulesWeekIds.every((ruleId, index) => ruleId === expectedRules[index]), `read model: channel rules binding drift for ${channel.game}`);
     }
-    requireValue(channelGames.size === receiptGameCounts.size && [...receiptGameCounts.keys()].every((game) => channelGames.has(game)), "unsafe arena read model: channel coverage drift");
+    requireValue(channelGames.size === receiptGameCounts.size && [...receiptGameCounts.keys()].every((game) => channelGames.has(game)), "read model: channel coverage drift");
     const rivalryReceiptIds = new Set();
     const rivalryIds = new Set();
     for (const rivalry of model.rivalries) {
-      requireValue(HEX64.test(rivalry.rivalryId), "unsafe arena read model: invalid rivalry id");
-      requireValue(!rivalryIds.has(rivalry.rivalryId), `unsafe arena read model: duplicate rivalry ${rivalry.rivalryId}`);
+      requireValue(HEX64.test(rivalry.rivalryId), "read model: invalid rivalry id");
+      requireValue(!rivalryIds.has(rivalry.rivalryId), `read model: duplicate rivalry ${rivalry.rivalryId}`);
       rivalryIds.add(rivalry.rivalryId);
-      requireValue(Array.isArray(rivalry.entrantIds) && rivalry.entrantIds.length === 2, `unsafe arena read model: rivalry entrants missing for ${rivalry.rivalryId}`);
-      requireValue(rivalry.entrantIds.every((entrantId) => HEX64.test(entrantId)), `unsafe arena read model: invalid rivalry entrant for ${rivalry.rivalryId}`);
-      requireValue(Array.isArray(rivalry.meetings) && rivalry.meetingCount === rivalry.meetings.length && rivalry.meetingCount > 0, `unsafe arena read model: rivalry meeting count drift for ${rivalry.rivalryId}`);
+      requireValue(Array.isArray(rivalry.entrantIds) && rivalry.entrantIds.length === 2, `read model: rivalry entrants missing for ${rivalry.rivalryId}`);
+      requireValue(rivalry.entrantIds.every((entrantId) => HEX64.test(entrantId)), `read model: invalid rivalry entrant for ${rivalry.rivalryId}`);
+      requireValue(Array.isArray(rivalry.meetings) && rivalry.meetingCount === rivalry.meetings.length && rivalry.meetingCount > 0, `read model: rivalry meeting count drift for ${rivalry.rivalryId}`);
       for (const [meetingIndex, meeting] of rivalry.meetings.entries()) {
-        requireValue(receiptIds.has(meeting.receiptId), `unsafe arena read model: unknown rivalry receipt ${meeting.receiptId}`);
-        requireValue(!rivalryReceiptIds.has(meeting.receiptId), `unsafe arena read model: duplicate rivalry receipt ${meeting.receiptId}`);
+        requireValue(receiptIds.has(meeting.receiptId), `read model: unknown rivalry receipt ${meeting.receiptId}`);
+        requireValue(!rivalryReceiptIds.has(meeting.receiptId), `read model: duplicate rivalry receipt ${meeting.receiptId}`);
         rivalryReceiptIds.add(meeting.receiptId);
         const receipt = receiptById.get(meeting.receiptId);
-        requireValue(meeting.meetingNumber === meetingIndex + 1, `unsafe arena read model: rivalry meeting order drift for ${rivalry.rivalryId}`);
-        requireValue(receipt.game.name === meeting.game, `unsafe arena read model: rivalry game drift for ${meeting.receiptId}`);
-        requireValue(receipt.outcome.winnerEntrantId === meeting.winnerEntrantId, `unsafe arena read model: rivalry outcome drift for ${meeting.receiptId}`);
-        requireValue(receipt.entrants.every((entrant) => rivalry.entrantIds.includes(entrant.entrantId)), `unsafe arena read model: rivalry entrant drift for ${meeting.receiptId}`);
-        requireValue(rivalry.entrantIds.includes(meeting.winnerEntrantId), `unsafe arena read model: rivalry winner drift for ${meeting.receiptId}`);
-        requireValue(isObject(meeting.runback), `unsafe arena read model: rivalry runback missing for ${meeting.receiptId}`);
-        requireValue(meeting.runback.parentReceiptId === meeting.receiptId, `unsafe arena read model: rivalry parent drift for ${meeting.receiptId}`);
-        requireValue(meeting.runback.status === "unplayed_challenge", `unsafe arena read model: rivalry runback activated for ${meeting.receiptId}`);
-        requireValue(HEX64.test(meeting.runback.fixtureId), `unsafe arena read model: invalid rivalry runback fixture for ${meeting.receiptId}`);
-        requireValue(CHALLENGE_ID.test(meeting.runback.challengeId), `unsafe arena read model: invalid rivalry challenge for ${meeting.receiptId}`);
+        requireValue(meeting.meetingNumber === meetingIndex + 1, `read model: rivalry meeting order drift for ${rivalry.rivalryId}`);
+        requireValue(receipt.game.name === meeting.game, `read model: rivalry game drift for ${meeting.receiptId}`);
+        requireValue(receipt.outcome.winnerEntrantId === meeting.winnerEntrantId, `read model: rivalry outcome drift for ${meeting.receiptId}`);
+        requireValue(receipt.entrants.every((entrant) => rivalry.entrantIds.includes(entrant.entrantId)), `read model: rivalry entrant drift for ${meeting.receiptId}`);
+        requireValue(rivalry.entrantIds.includes(meeting.winnerEntrantId), `read model: rivalry winner drift for ${meeting.receiptId}`);
+        requireValue(isObject(meeting.runback), `read model: rivalry runback missing for ${meeting.receiptId}`);
+        requireValue(meeting.runback.parentReceiptId === meeting.receiptId, `read model: rivalry parent drift for ${meeting.receiptId}`);
+        requireValue(meeting.runback.status === "unplayed_challenge", `read model: rivalry runback activated for ${meeting.receiptId}`);
+        requireValue(HEX64.test(meeting.runback.fixtureId), `read model: invalid rivalry runback fixture for ${meeting.receiptId}`);
+        requireValue(CHALLENGE_ID.test(meeting.runback.challengeId), `read model: invalid rivalry challenge for ${meeting.receiptId}`);
       }
     }
-    requireValue(rivalryReceiptIds.size === receiptIds.size, "unsafe arena read model: receipt missing rivalry runback lineage");
-    requireValue(model.summary.rivalryCount === rivalryIds.size, "unsafe arena read model: rivalry summary drift");
+    requireValue(rivalryReceiptIds.size === receiptIds.size, "read model: receipt missing rivalry runback lineage");
+    requireValue(model.summary.rivalryCount === rivalryIds.size, "read model: rivalry summary drift");
     const futureFixtureIds = new Set();
     for (const fixture of model.futureFixtures) {
-      requireValue(HEX64.test(fixture.fixtureId), "unsafe arena read model: invalid future fixture id");
-      requireValue(!futureFixtureIds.has(fixture.fixtureId), `unsafe arena read model: duplicate future fixture ${fixture.fixtureId}`);
+      requireValue(HEX64.test(fixture.fixtureId), "read model: invalid future fixture id");
+      requireValue(!futureFixtureIds.has(fixture.fixtureId), `read model: duplicate future fixture ${fixture.fixtureId}`);
       futureFixtureIds.add(fixture.fixtureId);
-      requireValue(isObject(fixture.game) && typeof fixture.game.name === "string" && fixture.game.version === "1", `unsafe arena read model: future fixture game drift for ${fixture.fixtureId}`);
-      requireValue(typeof fixture.rulesWeekId === "string" && fixture.rulesWeekId.length > 0, `unsafe arena read model: future fixture rules missing for ${fixture.fixtureId}`);
-      requireValue(HEX64.test(fixture.rulesDigest), `unsafe arena read model: future fixture rules digest missing for ${fixture.fixtureId}`);
-      requireValue(fixture.activationStatus === "proposed_not_activated", "unsafe arena read model: activated future fixture");
-      requireValue(fixture.status === "unplayed", "unsafe arena read model: future fixture status drift");
-      requireValue(typeof fixture.format === "string" && fixture.format.length > 0 && nonNegativeInteger(fixture.week) && fixture.week > 0, `unsafe arena read model: future fixture metadata drift for ${fixture.fixtureId}`);
-      requireValue(typeof fixture.closeAt === "string" && UTC_SECOND.test(fixture.closeAt) && Number.isFinite(Date.parse(fixture.closeAt)), `unsafe arena read model: future fixture close time drift for ${fixture.fixtureId}`);
-      requireValue(Array.isArray(fixture.matchup) && fixture.matchup.length === 2, `unsafe arena read model: future fixture matchup drift for ${fixture.fixtureId}`);
+      requireValue(isObject(fixture.game) && typeof fixture.game.name === "string" && fixture.game.version === "1", `read model: future fixture game drift for ${fixture.fixtureId}`);
+      requireValue(typeof fixture.rulesWeekId === "string" && fixture.rulesWeekId.length > 0, `read model: future fixture rules missing for ${fixture.fixtureId}`);
+      requireValue(HEX64.test(fixture.rulesDigest), `read model: future fixture rules digest missing for ${fixture.fixtureId}`);
+      requireValue(fixture.activationStatus === "proposed_not_activated", "read model: activated future fixture");
+      requireValue(fixture.status === "unplayed", "read model: future fixture status drift");
+      requireValue(typeof fixture.format === "string" && fixture.format.length > 0 && nonNegativeInteger(fixture.week) && fixture.week > 0, `read model: future fixture metadata drift for ${fixture.fixtureId}`);
+      requireValue(typeof fixture.closeAt === "string" && UTC_SECOND.test(fixture.closeAt) && Number.isFinite(Date.parse(fixture.closeAt)), `read model: future fixture close time drift for ${fixture.fixtureId}`);
+      requireValue(Array.isArray(fixture.matchup) && fixture.matchup.length === 2, `read model: future fixture matchup drift for ${fixture.fixtureId}`);
       const fixtureEntrantIds = new Set();
       const fixtureSeats = new Set();
       for (const entrant of fixture.matchup) {
-        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `unsafe arena read model: future fixture entrant drift for ${fixture.fixtureId}`);
-        requireValue(receiptEntrantNames.get(entrant.entrantId) === entrant.name, `unsafe arena read model: future fixture entrant is not receipt-backed for ${fixture.fixtureId}`);
-        requireValue(!fixtureEntrantIds.has(entrant.entrantId) && nonNegativeInteger(entrant.seat) && !fixtureSeats.has(entrant.seat), `unsafe arena read model: future fixture seat drift for ${fixture.fixtureId}`);
+        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `read model: future fixture entrant drift for ${fixture.fixtureId}`);
+        requireValue(receiptEntrantNames.get(entrant.entrantId) === entrant.name, `read model: future fixture entrant is not receipt-backed for ${fixture.fixtureId}`);
+        requireValue(!fixtureEntrantIds.has(entrant.entrantId) && nonNegativeInteger(entrant.seat) && !fixtureSeats.has(entrant.seat), `read model: future fixture seat drift for ${fixture.fixtureId}`);
         fixtureEntrantIds.add(entrant.entrantId);
         fixtureSeats.add(entrant.seat);
       }
-      requireValue([...fixtureSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `unsafe arena read model: future fixture seats are not contiguous for ${fixture.fixtureId}`);
+      requireValue([...fixtureSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `read model: future fixture seats are not contiguous for ${fixture.fixtureId}`);
       const rule = rulesById.get(fixture.rulesWeekId);
-      requireValue(rule, `unsafe arena read model: unknown future fixture rules week ${fixture.rulesWeekId}`);
-      requireValue(rule.game === fixture.game.name && rule.gameVersion === fixture.game.version && rule.rulesDigest === fixture.rulesDigest && rule.week === fixture.week, `unsafe arena read model: future fixture rules binding drift for ${fixture.fixtureId}`);
+      requireValue(rule, `read model: unknown future fixture rules week ${fixture.rulesWeekId}`);
+      requireValue(rule.game === fixture.game.name && rule.gameVersion === fixture.game.version && rule.rulesDigest === fixture.rulesDigest && rule.week === fixture.week, `read model: future fixture rules binding drift for ${fixture.fixtureId}`);
     }
-    requireValue(model.summary.unplayedFixtureCount === futureFixtureIds.size, "unsafe arena read model: future fixture summary drift");
+    requireValue(model.summary.unplayedFixtureCount === futureFixtureIds.size, "read model: future fixture summary drift");
     return model;
   }
-
   async function verifyArenaReadModelIntegrity(modelInput) {
     const model = validateArenaReadModel(modelInput);
     requireValue(
       typeof TextEncoder !== "undefined" && globalThis.crypto?.subtle,
-      "unsafe arena read model: SHA-256 unavailable",
+      "read model: SHA-256 unavailable",
     );
     requireValue(
       equalHex(model.readModelDigest, READ_MODEL_DIGEST_PIN),
-      "unsafe arena read model: digest pin mismatch",
+      "read model: digest pin mismatch",
     );
     const digestPayload = Object.fromEntries(
       Object.entries(model).filter(([key]) => key !== "readModelDigest"),
@@ -610,11 +587,10 @@
     const computedDigest = await sha256Hex(canonicalJSON(digestPayload));
     requireValue(
       equalHex(computedDigest, model.readModelDigest),
-      "unsafe arena read model: digest mismatch",
+      "read model: digest mismatch",
     );
     return model;
   }
-
   function evidenceLabel(evidenceClass) {
     return ({
       model_influenced_unattested: "model-influenced · unattested",
@@ -623,16 +599,8 @@
       other_unattested_reference: "other source · unattested",
     })[evidenceClass] || "unattested reference";
   }
-
-  function gameLabel(value) {
-    return String(value || "unknown").replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  function symbolFor(value) {
-    const parts = String(value || "BW").split(/[_\s-]+/).filter(Boolean);
-    return parts.slice(0, 3).map((part) => part[0]).join("").toUpperCase().padEnd(2, "W");
-  }
-
+  function gameLabel(value) { return String(value || "unknown").replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
+  function symbolFor(value) { return String(value || "BW").split(/[_\s-]+/).filter(Boolean).slice(0, 3).map((part) => part[0]).join("").toUpperCase().padEnd(2, "W"); }
   function proofFromReceipt(receipt, boundary, runback) {
     const counts = receipt.evidence.moveSourceCounts;
     return {
@@ -664,11 +632,11 @@
       providerAttested: false,
       runtimeAttested: false,
       registryState: "no_authoritative_registry_commit",
+      correction: clone(receipt.correction),
       runback: clone(runback),
       boundary,
     };
   }
-
   function featuredFromReceipt(receipt, proof) {
     const winner = receipt.entrants.find((entrant) => entrant.entrantId === receipt.outcome.winnerEntrantId);
     const opponent = receipt.entrants.find((entrant) => entrant.entrantId !== receipt.outcome.winnerEntrantId) || receipt.entrants[0];
@@ -688,7 +656,6 @@
       runbackLabel: "Runback pending",
     };
   }
-
   function buildReceiptBoard(scopedRatingBoards) {
     return scopedRatingBoards.flatMap((board) => board.entrants.map((entrant) => ({
         id: `${board.scopeId}:${entrant.entrantId}`,
@@ -701,7 +668,6 @@
         scopeId: board.scopeId,
       })));
   }
-
   function buildRivalryViews(rivalries, receipts) {
     const entrantNames = new Map();
     for (const receipt of receipts) {
@@ -726,7 +692,6 @@
       };
     });
   }
-
   function validateQualificationBlueprint(blueprint) {
     requireValue(isObject(blueprint), "unsafe qualification preview: blueprint missing");
     requireValue(blueprint.localOnly === true, "unsafe qualification preview: blueprint must stay local only");
@@ -738,7 +703,6 @@
     }
     return blueprint;
   }
-
   function buildQualificationPreview(blueprintInput, fixture, sourceMode) {
     const blueprint = validateQualificationBlueprint(blueprintInput);
     requireValue(sourceMode === "verified_corpus", "unsafe qualification preview: verified corpus required");
@@ -748,7 +712,6 @@
     requireValue(typeof fixture.rulesWeekId === "string" && fixture.rulesWeekId.length > 0 && HEX64.test(fixture.rulesDigest), "unsafe qualification preview: rules binding missing");
     requireValue(fixture.activationStatus === "proposed_not_activated" && fixture.fixtureStatus === "unplayed", "unsafe qualification preview: fixture activation drift");
     requireValue(fixture.resourceClass === PREVIEW_RESOURCE_CLASS, "unsafe qualification preview: resource class drift");
-
     const localGuardsReady = blueprint.strictValidation && blueprint.fallbackDisclosure;
     const readinessChecks = [
       { id: "local-blueprint", label: "Local-only blueprint", status: "ready", ready: true },
@@ -807,7 +770,6 @@
       boundary: "This deterministic preview binds a local blueprint to proposed game, rules, and no-compute resource metadata only. It does not qualify, execute, authenticate, attest, rank, publish, or spend.",
     };
   }
-
   function localExhibitionFixtureView() {
     return {
       id: LOCAL_EXHIBITION_FIXTURE_ID,
@@ -828,13 +790,11 @@
       resourceClass: LOCAL_EXHIBITION_RESOURCE_CLASS,
     };
   }
-
   function localExhibitionStrategy(harnessStyle) {
     if (harnessStyle === "Validate every move") return LOCAL_EXHIBITION_RULES.strategies.blueprint_solver;
     if (harnessStyle === "Naive control") return LOCAL_EXHIBITION_RULES.strategies.blueprint_naive;
     return null;
   }
-
   function validateLocalExhibitionFixture(fixture) {
     requireValue(isObject(fixture) && fixture.exhibitionAllowed === true && fixture.previewAllowed === true && fixture.enabled === false, "unsafe local exhibition: fixture unavailable");
     requireValue(fixture.id === LOCAL_EXHIBITION_FIXTURE_ID, "unsafe local exhibition: fixture id drift");
@@ -845,7 +805,6 @@
     requireValue(fixture.ranked === false, "unsafe local exhibition: ranked claim drift");
     return fixture;
   }
-
   function buildLocalExhibitionQualification(blueprintInput, fixtureInput, sourceMode) {
     const blueprint = validateQualificationBlueprint(blueprintInput);
     const fixture = validateLocalExhibitionFixture(fixtureInput);
@@ -906,7 +865,6 @@
       boundary: LOCAL_EXHIBITION_BOUNDARY,
     };
   }
-
   async function validateLocalExhibitionConstants() {
     const rulesDigest = await sha256Hex(canonicalJSON(LOCAL_EXHIBITION_RULES));
     requireValue(equalHex(rulesDigest, LOCAL_EXHIBITION_RULES_DIGEST), "unsafe local exhibition: canonical rules digest drift");
@@ -920,7 +878,6 @@
     }));
     requireValue(equalHex(fixtureDigest, LOCAL_EXHIBITION_FIXTURE_ID), "unsafe local exhibition: canonical fixture digest drift");
   }
-
   function localNimLegalMoves(heaps) {
     const moves = [];
     for (let heap = 0; heap < heaps.length; heap += 1) {
@@ -928,7 +885,6 @@
     }
     return moves;
   }
-
   function localNimMove(strategyId, heaps) {
     const legalMoves = localNimLegalMoves(heaps);
     requireValue(legalMoves.length > 0, "unsafe local exhibition: no legal move available");
@@ -945,7 +901,6 @@
     }
     return legalMoves[0];
   }
-
   function applyLocalNimMove(heapsInput, move) {
     requireValue(Array.isArray(heapsInput) && heapsInput.length === 3 && heapsInput.every(nonNegativeInteger), "unsafe local exhibition: invalid heap state");
     requireValue(isObject(move) && Object.keys(move).sort().join(",") === "heap,take", "unsafe local exhibition: invalid move shape");
@@ -955,7 +910,6 @@
     heaps[move.heap] -= move.take;
     return heaps;
   }
-
   function validateLocalExhibitionQualification(qualification) {
     assertSafeKeys(qualification, "local exhibition qualification");
     requireValue(isObject(qualification) && qualification.schemaVersion === LOCAL_EXHIBITION_QUALIFICATION_SCHEMA, "unsafe local exhibition: qualification schema drift");
@@ -1001,7 +955,6 @@
     requireValue(qualification.boundary === LOCAL_EXHIBITION_BOUNDARY, "unsafe local exhibition: qualification boundary drift");
     return qualification;
   }
-
   async function createLocalExhibitionReceipt(qualificationInput) {
     await validateLocalExhibitionConstants();
     const qualification = clone(validateLocalExhibitionQualification(qualificationInput));
@@ -1063,7 +1016,6 @@
     };
     return { ...payload, candidateDigest: await sha256Hex(canonicalJSON(payload)) };
   }
-
   async function verifyLocalExhibitionReceipt(receiptInput) {
     await validateLocalExhibitionConstants();
     assertSafeKeys(receiptInput, "local exhibition receipt");
@@ -1091,7 +1043,6 @@
       boundary: LOCAL_EXHIBITION_BOUNDARY,
     };
   }
-
   async function createLocalExhibitionLearning(receiptInput, verificationInput) {
     const verification = await verifyLocalExhibitionReceipt(receiptInput);
     requireValue(canonicalJSON(verification) === canonicalJSON(verificationInput), "unsafe local exhibition learning: verification drift");
@@ -1113,7 +1064,6 @@
     };
     return { ...payload, learningDigest: await sha256Hex(canonicalJSON(payload)) };
   }
-
   async function createLocalExhibitionRunback(receiptInput, verificationInput, learningInput) {
     const verification = await verifyLocalExhibitionReceipt(receiptInput);
     requireValue(canonicalJSON(verification) === canonicalJSON(verificationInput), "unsafe local exhibition runback: verification drift");
@@ -1144,7 +1094,6 @@
     };
     return { ...payload, runbackDigest: await sha256Hex(canonicalJSON(payload)) };
   }
-
   async function createLocalExhibitionProofShare(receiptInput, verificationInput, learningInput, runbackInput) {
     const verification = await verifyLocalExhibitionReceipt(receiptInput);
     requireValue(canonicalJSON(verification) === canonicalJSON(verificationInput), "unsafe local exhibition proof share: verification drift");
@@ -1207,7 +1156,6 @@
     requireValue(serialized.length <= LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH, "unsafe local exhibition proof share: output length rejected");
     return { envelope: clone(envelope), serialized };
   }
-
   async function verifyLocalExhibitionProofShare(serializedInput) {
     requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= LOCAL_EXHIBITION_PROOF_SHARE_MAX_LENGTH, "unsafe local exhibition proof share: input length rejected");
     let envelope;
@@ -1251,9 +1199,7 @@
       boundary: LOCAL_EXHIBITION_PROOF_SHARE_BOUNDARY,
     };
   }
-
   function spectatorRequire(predicate, message) { requireValue(predicate, `unsafe spectator rehearsal: ${message}`); }
-
   function validateReviewedSpectatorProof(proofInput, sourceMode) {
     const proof = validateReceiptProofForLearning(proofInput, sourceMode);
     spectatorRequire(Array.isArray(proof.entrants) && proof.entrants.length === 2, "exactly two entrants required");
@@ -1263,7 +1209,6 @@
     spectatorRequire(winner && winner.entrantId === proof.outcome?.winnerEntrantId && winner.name === proof.outcome?.winnerName && typeof proof.outcome?.resultLine === "string" && proof.outcome.resultLine.length > 0, "winner binding drift");
     return proof;
   }
-
   async function createSpectatorRehearsalChoice(proofInput, sourceMode, choiceIdInput) {
     const proof = validateReviewedSpectatorProof(proofInput, sourceMode);
     spectatorRequire(["seat0", "seat1", "runback"].includes(choiceIdInput), "unsupported choice");
@@ -1284,7 +1229,6 @@
     };
     return { ...draft, choiceDigest: await sha256Hex(canonicalJSON(draft)) };
   }
-
   async function verifySpectatorRehearsalChoice(proofInput, sourceMode, draftInput) {
     const proof = validateReviewedSpectatorProof(proofInput, sourceMode);
     assertSafeKeys(draftInput, "spectator rehearsal draft");
@@ -1305,7 +1249,6 @@
         : "selected_reviewed_nonwinner";
     return { verified: true, choiceRelation: relation, authority: false };
   }
-
   function validateReceiptProofForLearning(proof, sourceMode) {
     requireValue(sourceMode === "verified_corpus", "unsafe receipt learning: verified corpus required");
     requireValue(isObject(proof) && HEX64.test(proof.receiptId), "unsafe receipt learning: reviewed receipt missing");
@@ -1321,7 +1264,6 @@
     requireValue(HEX64.test(proof.runback.fixtureId) && CHALLENGE_ID.test(proof.runback.challengeId), "unsafe receipt learning: runback identifiers missing");
     return proof;
   }
-
   function buildReceiptLearningAction(proofInput, sourceMode) {
     const proof = validateReceiptProofForLearning(proofInput, sourceMode);
     const counts = proof.moveSourceCounts;
@@ -1359,7 +1301,6 @@
       boundary: "This learning action summarizes a reviewed receipt and offers local blueprint deltas. It does not infer hidden reasoning, prove model identity, award progress, or activate a runback.",
     };
   }
-
   function buildRunbackProposal(learningInput, blueprintInput, deltaId, sourceMode) {
     requireValue(sourceMode === "verified_corpus", "unsafe runback proposal: verified corpus required");
     requireValue(isObject(learningInput) && learningInput.schemaVersion === LEARNING_SCHEMA && learningInput.status === "review_only", "unsafe runback proposal: learning action missing");
@@ -1424,7 +1365,6 @@
       boundary: RUNBACK_PROPOSAL_BOUNDARY,
     };
   }
-
   function validateRunbackProposal(proposalInput) {
     assertSafeKeys(proposalInput, "proposal");
     requireExactKeys(proposalInput, [
@@ -1437,42 +1377,34 @@
     requireValue(proposalInput.executionStatus === "disabled", "unsafe portable runback: execution status drift");
     requireValue(proposalInput.publicationStatus === "not_requested", "unsafe portable runback: publication status drift");
     requireValue(proposalInput.boundary === RUNBACK_PROPOSAL_BOUNDARY, "unsafe portable runback: proposal boundary drift");
-
     requireExactKeys(proposalInput.parentReceipt, ["receiptId", "fixtureId", "replayVerdict"], "parent receipt");
     requireValue(HEX64.test(proposalInput.parentReceipt.receiptId) && HEX64.test(proposalInput.parentReceipt.fixtureId), "unsafe portable runback: parent receipt binding missing");
     requireValue(proposalInput.parentReceipt.replayVerdict === "PASS", "unsafe portable runback: parent replay was not verified");
-
     requireExactKeys(proposalInput.runbackLineage, ["challengeId", "fixtureId", "parentReceiptId", "status"], "runback lineage");
     requireValue(CHALLENGE_ID.test(proposalInput.runbackLineage.challengeId) && HEX64.test(proposalInput.runbackLineage.fixtureId), "unsafe portable runback: runback identifiers missing");
     requireValue(proposalInput.runbackLineage.parentReceiptId === proposalInput.parentReceipt.receiptId, "unsafe portable runback: runback parent drift");
     requireValue(proposalInput.runbackLineage.status === "unplayed_challenge", "unsafe portable runback: challenge is not unplayed");
-
     requireExactKeys(proposalInput.gameBinding, ["format", "name", "version"], "game binding");
     requireValue(typeof proposalInput.gameBinding.name === "string" && proposalInput.gameBinding.name.length > 0 && proposalInput.gameBinding.name.length <= 80, "unsafe portable runback: game name missing");
     requireValue(proposalInput.gameBinding.version === "1", "unsafe portable runback: game version drift");
     requireValue(proposalInput.gameBinding.format === null || (typeof proposalInput.gameBinding.format === "string" && proposalInput.gameBinding.format.length <= 80), "unsafe portable runback: game format drift");
-
     requireExactKeys(proposalInput.rulesBinding, ["status", "rulesDigest", "statement"], "rules binding");
     requireValue(proposalInput.rulesBinding.status === "blocked_missing_explicit_rules_digest" && proposalInput.rulesBinding.rulesDigest === null, "unsafe portable runback: rules blocker drift");
     requireValue(proposalInput.rulesBinding.statement === RUNBACK_RULES_STATEMENT, "unsafe portable runback: rules statement drift");
-
     requireExactKeys(proposalInput.blueprint, ["agentName", "declaredBase", "harnessStyle", "localOnly"], "blueprint");
     requireValue(typeof proposalInput.blueprint.agentName === "string" && proposalInput.blueprint.agentName.trim() === proposalInput.blueprint.agentName && proposalInput.blueprint.agentName.length > 0 && proposalInput.blueprint.agentName.length <= 36, "unsafe portable runback: agent name drift");
     requireValue(ALLOWED_BASE_MODELS.has(proposalInput.blueprint.declaredBase), "unsafe portable runback: unknown declared base");
     requireValue(ALLOWED_HARNESS_STYLES.has(proposalInput.blueprint.harnessStyle), "unsafe portable runback: unknown harness style");
     requireValue(proposalInput.blueprint.localOnly === true, "unsafe portable runback: blueprint escaped local boundary");
-
     requireExactKeys(proposalInput.blueprintDelta, ["id", "guardKey", "label", "rationale", "from", "to", "changeStatus"], "blueprint delta");
     const delta = RUNBACK_DELTAS.find((candidate) => candidate.id === proposalInput.blueprintDelta.id);
     requireValue(delta && proposalInput.blueprintDelta.guardKey === delta.guardKey && proposalInput.blueprintDelta.label === delta.label && proposalInput.blueprintDelta.rationale === delta.rationale, "unsafe portable runback: blueprint delta drift");
     requireValue(typeof proposalInput.blueprintDelta.from === "boolean" && proposalInput.blueprintDelta.to === true, "unsafe portable runback: blueprint change drift");
     requireValue(proposalInput.blueprintDelta.changeStatus === (proposalInput.blueprintDelta.from ? "already_declared" : "proposed_change"), "unsafe portable runback: blueprint change status drift");
-
     requireValue(Array.isArray(proposalInput.executionBlockers) && proposalInput.executionBlockers.length === RUNBACK_EXECUTION_BLOCKERS.length, "unsafe portable runback: execution blockers drift");
     requireValue(proposalInput.executionBlockers.every((blocker, index) => blocker === RUNBACK_EXECUTION_BLOCKERS[index]), "unsafe portable runback: execution blockers drift");
     requireExactKeys(proposalInput.attestations, ["identity", "model", "provider", "runtime", "registry", "publication"], "attestations");
     requireValue(Object.values(proposalInput.attestations).every((value) => value === false), "unsafe portable runback: attestation must remain false");
-
     const expectedProposalKey = [
       "local-runback-v1",
       proposalInput.parentReceipt.receiptId,
@@ -1489,7 +1421,6 @@
     requireValue(proposalInput.proposalKey === expectedProposalKey, "unsafe portable runback: proposal key drift");
     return proposalInput;
   }
-
   async function createPortableRunbackEnvelope(proposalInput) {
     const proposal = clone(validateRunbackProposal(proposalInput));
     const payloadDigest = await sha256Hex(canonicalJSON(proposal));
@@ -1501,7 +1432,6 @@
     };
     return { envelope: clone(envelope), serialized: canonicalJSON(envelope) };
   }
-
   async function verifyPortableRunbackEnvelope(serializedInput) {
     requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PORTABLE_RUNBACK_MAX_LENGTH, "unsafe portable runback: input length rejected");
     let envelope;
@@ -1528,7 +1458,6 @@
       boundary: PORTABLE_RUNBACK_BOUNDARY,
     };
   }
-
   async function validateVerifiedPortableResult(resultInput) {
     assertSafeKeys(resultInput, "verified portable result");
     requireExactKeys(resultInput, ["schemaVersion", "verificationStatus", "payloadDigest", "proposal", "boundary"], "verified portable result");
@@ -1541,7 +1470,6 @@
     requireValue(equalHex(computedDigest, resultInput.payloadDigest), "unsafe portable review: verified payload digest mismatch");
     return { proposal, payloadDigest: computedDigest };
   }
-
   function reviewProposalBinding(verified) {
     return {
       envelopeDigest: verified.payloadDigest,
@@ -1551,7 +1479,6 @@
       runbackFixtureId: verified.proposal.runbackLineage.fixtureId,
     };
   }
-
   function proposedBlueprintRevision(verified, binding, sequence) {
     return {
       status: "proposed_uncommitted_revision",
@@ -1565,7 +1492,6 @@
       committed: false,
     };
   }
-
   async function validatePortableRunbackReview(recordInput, verified, previousDigest, expectedSequence) {
     assertSafeKeys(recordInput, "portable review");
     requireExactKeys(recordInput, [
@@ -1578,16 +1504,13 @@
     const allowedReasons = PORTABLE_REVIEW_REASONS[recordInput.decision];
     requireValue(Array.isArray(allowedReasons), "unsafe portable review: unknown decision");
     requireValue(allowedReasons.includes(recordInput.reasonCode), "unsafe portable review: decision reason drift");
-
     requireExactKeys(recordInput.reviewer, ["label", "identityAttested", "localOnly"], "reviewer");
     requireValue(typeof recordInput.reviewer.label === "string" && recordInput.reviewer.label.trim() === recordInput.reviewer.label && recordInput.reviewer.label.length > 0 && recordInput.reviewer.label.length <= 36, "unsafe portable review: reviewer label drift");
     requireValue(recordInput.reviewer.identityAttested === false && recordInput.reviewer.localOnly === true, "unsafe portable review: reviewer boundary drift");
-
     const expectedBinding = reviewProposalBinding(verified);
     requireExactKeys(recordInput.proposalBinding, ["envelopeDigest", "proposalKey", "parentReceiptId", "challengeId", "runbackFixtureId"], "review proposal binding");
     for (const key of Object.keys(expectedBinding)) requireValue(recordInput.proposalBinding[key] === expectedBinding[key], `unsafe portable review: ${key} drift`);
     requireValue(recordInput.previousReviewDigest === previousDigest, "unsafe portable review: append-only chain drift");
-
     if (recordInput.decision === "accept_for_blueprint_revision") {
       requireExactKeys(recordInput.blueprintRevision, [
         "status", "revisionKey", "parentProposalKey", "agentName", "declaredBase", "harnessStyle", "acceptedDelta", "localOnly", "committed",
@@ -1597,7 +1520,6 @@
     } else {
       requireValue(recordInput.blueprintRevision === null, "unsafe portable review: non-accept decision created a blueprint revision");
     }
-
     requireValue(Array.isArray(recordInput.blockers) && recordInput.blockers.length === PORTABLE_REVIEW_BLOCKERS.length, "unsafe portable review: blockers drift");
     requireValue(recordInput.blockers.every((blocker, index) => blocker === PORTABLE_REVIEW_BLOCKERS[index]), "unsafe portable review: blockers drift");
     requireExactKeys(recordInput.attestations, [
@@ -1612,7 +1534,6 @@
     requireValue(equalHex(computedDigest, recordInput.reviewDigest), "unsafe portable review: review digest mismatch");
     return clone(recordInput);
   }
-
   async function verifyPortableRunbackReviewJournal(reviewInput, verifiedPortableInput) {
     requireValue(Array.isArray(reviewInput) && reviewInput.length <= PORTABLE_REVIEW_MAX_RECORDS, "unsafe portable review: journal length rejected");
     assertSafeKeys(reviewInput, "portable review journal");
@@ -1634,7 +1555,6 @@
       boundary: PORTABLE_REVIEW_BOUNDARY,
     };
   }
-
   async function appendPortableRunbackReview(verifiedPortableInput, reviewInput, existingReviewInput = []) {
     assertSafeKeys(reviewInput, "portable review input");
     requireExactKeys(reviewInput, ["reviewerLabel", "decision", "reasonCode"], "portable review input");
@@ -1670,7 +1590,6 @@
     await verifyPortableRunbackReviewJournal([...journal.reviews, sealed], verifiedPortableInput);
     return clone(sealed);
   }
-
   function proposedCorrectionBlueprintRevision(verified, binding, targetReview, sequence) {
     return {
       status: "proposed_uncommitted_correction_revision",
@@ -1685,7 +1604,6 @@
       committed: false,
     };
   }
-
   async function validatePortableRunbackReviewCorrection(recordInput, verified, reviewByDigest, previousDigest, latestByTarget, expectedSequence) {
     assertSafeKeys(recordInput, "portable review correction");
     requireExactKeys(recordInput, [
@@ -1699,28 +1617,23 @@
     const allowedReasons = PORTABLE_REVIEW_CORRECTION_REASONS[recordInput.action];
     requireValue(Array.isArray(allowedReasons), "unsafe portable review correction: unknown action");
     requireValue(allowedReasons.includes(recordInput.reasonCode), "unsafe portable review correction: action reason drift");
-
     requireExactKeys(recordInput.reviewer, ["label", "identityAttested", "localOnly"], "correction reviewer");
     requireValue(typeof recordInput.reviewer.label === "string" && recordInput.reviewer.label.trim() === recordInput.reviewer.label && recordInput.reviewer.label.length > 0 && recordInput.reviewer.label.length <= 36, "unsafe portable review correction: reviewer label drift");
     requireValue(recordInput.reviewer.identityAttested === false && recordInput.reviewer.localOnly === true, "unsafe portable review correction: reviewer boundary drift");
-
     const expectedBinding = reviewProposalBinding(verified);
     requireExactKeys(recordInput.proposalBinding, ["envelopeDigest", "proposalKey", "parentReceiptId", "challengeId", "runbackFixtureId"], "correction proposal binding");
     for (const key of Object.keys(expectedBinding)) requireValue(recordInput.proposalBinding[key] === expectedBinding[key], `unsafe portable review correction: ${key} drift`);
-
     requireExactKeys(recordInput.targetReview, ["sequence", "reviewDigest"], "correction target review");
     requireValue(Number.isInteger(recordInput.targetReview.sequence) && recordInput.targetReview.sequence > 0, "unsafe portable review correction: target sequence drift");
     requireValue(HEX64.test(recordInput.targetReview.reviewDigest), "unsafe portable review correction: target digest drift");
     const targetReview = reviewByDigest.get(recordInput.targetReview.reviewDigest);
     requireValue(targetReview && targetReview.sequence === recordInput.targetReview.sequence, "unsafe portable review correction: immutable target review missing");
-
     requireValue(recordInput.previousCorrectionDigest === previousDigest, "unsafe portable review correction: append-only chain drift");
     const superseded = latestByTarget.get(targetReview.reviewDigest) || null;
     requireValue(recordInput.supersedesCorrectionDigest === (superseded?.correctionDigest || null), "unsafe portable review correction: supersession link drift");
     const currentDecision = superseded
       ? (superseded.action === "correct_decision" ? superseded.correctedDecision : null)
       : targetReview.decision;
-
     if (recordInput.action === "correct_decision") {
       requireValue(Array.isArray(PORTABLE_REVIEW_REASONS[recordInput.correctedDecision]), "unsafe portable review correction: corrected decision drift");
       requireValue(recordInput.correctedDecision !== currentDecision, "unsafe portable review correction: corrected decision is unchanged");
@@ -1728,7 +1641,6 @@
       requireValue(recordInput.correctedDecision === null, "unsafe portable review correction: withdrawal decision drift");
       requireValue(currentDecision !== null, "unsafe portable review correction: review already withdrawn");
     }
-
     if (recordInput.action === "correct_decision" && recordInput.correctedDecision === "accept_for_blueprint_revision") {
       requireExactKeys(recordInput.blueprintRevision, [
         "status", "revisionKey", "parentProposalKey", "targetReviewDigest", "agentName", "declaredBase", "harnessStyle",
@@ -1739,7 +1651,6 @@
     } else {
       requireValue(recordInput.blueprintRevision === null, "unsafe portable review correction: correction created an unauthorized revision");
     }
-
     requireValue(Array.isArray(recordInput.blockers) && recordInput.blockers.length === PORTABLE_REVIEW_BLOCKERS.length, "unsafe portable review correction: blockers drift");
     requireValue(recordInput.blockers.every((blocker, index) => blocker === PORTABLE_REVIEW_BLOCKERS[index]), "unsafe portable review correction: blockers drift");
     requireExactKeys(recordInput.attestations, [
@@ -1754,7 +1665,6 @@
     requireValue(equalHex(computedDigest, recordInput.correctionDigest), "unsafe portable review correction: correction digest mismatch");
     return clone(recordInput);
   }
-
   async function verifyPortableRunbackReviewCorrectionJournal(correctionInput, verifiedPortableInput, reviewInput) {
     requireValue(Array.isArray(correctionInput) && correctionInput.length <= PORTABLE_REVIEW_CORRECTION_MAX_RECORDS, "unsafe portable review correction: journal length rejected");
     assertSafeKeys(correctionInput, "portable review correction journal");
@@ -1802,7 +1712,6 @@
       boundary: PORTABLE_REVIEW_CORRECTION_BOUNDARY,
     };
   }
-
   async function appendPortableRunbackReviewCorrection(verifiedPortableInput, reviewInput, correctionInput, existingCorrectionInput = []) {
     assertSafeKeys(correctionInput, "portable review correction input");
     requireExactKeys(correctionInput, ["reviewerLabel", "targetReviewDigest", "action", "correctedDecision", "reasonCode"], "portable review correction input");
@@ -1815,7 +1724,6 @@
     } else {
       requireValue(correctionInput.action === "withdraw_review" && correctionInput.correctedDecision === null, "unsafe portable review correction: withdrawal decision drift");
     }
-
     const verified = await validateVerifiedPortableResult(verifiedPortableInput);
     const reviewJournal = await verifyPortableRunbackReviewJournal(reviewInput, verifiedPortableInput);
     const correctionJournal = await verifyPortableRunbackReviewCorrectionJournal(existingCorrectionInput, verifiedPortableInput, reviewJournal.reviews);
@@ -1853,7 +1761,6 @@
     await verifyPortableRunbackReviewCorrectionJournal([...correctionJournal.corrections, sealed], verifiedPortableInput, reviewJournal.reviews);
     return clone(sealed);
   }
-
   async function createPortableRunbackReviewExchange(serializedProposalInput, reviewInput) {
     const verifiedProposal = await verifyPortableRunbackEnvelope(serializedProposalInput);
     const journal = await verifyPortableRunbackReviewJournal(reviewInput, verifiedProposal);
@@ -1879,7 +1786,6 @@
     requireValue(serialized.length <= PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH, "unsafe portable review exchange: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortableRunbackReviewExchange(serializedInput) {
     requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PORTABLE_REVIEW_EXCHANGE_MAX_LENGTH, "unsafe portable review exchange: input length rejected");
     let packet;
@@ -1893,13 +1799,11 @@
     requireValue(packet.schemaVersion === PORTABLE_REVIEW_EXCHANGE_SCHEMA && packet.exchangeVersion === 1, "unsafe portable review exchange: schema drift");
     requireValue(packet.boundary === PORTABLE_REVIEW_EXCHANGE_BOUNDARY, "unsafe portable review exchange: boundary drift");
     requireValue(serializedInput === canonicalJSON(packet), "unsafe portable review exchange: packet must use canonical JSON");
-
     requireExactKeys(packet.payload, ["proposalEnvelope", "reviews"], "portable review exchange payload");
     requireExactKeys(packet.integrity, ["algorithm", "payloadDigest", "proposalPayloadDigest", "reviewHeadDigest"], "portable review exchange integrity");
     requireValue(packet.integrity.algorithm === "sha256", "unsafe portable review exchange: integrity algorithm drift");
     requireValue(HEX64.test(packet.integrity.payloadDigest) && HEX64.test(packet.integrity.proposalPayloadDigest), "unsafe portable review exchange: integrity digest drift");
     requireValue(packet.integrity.reviewHeadDigest === null || HEX64.test(packet.integrity.reviewHeadDigest), "unsafe portable review exchange: review head digest drift");
-
     const proposalSerialized = canonicalJSON(packet.payload.proposalEnvelope);
     const proposalVerification = await verifyPortableRunbackEnvelope(proposalSerialized);
     const journal = await verifyPortableRunbackReviewJournal(packet.payload.reviews, proposalVerification);
@@ -1907,7 +1811,6 @@
     requireValue(journal.latestReviewDigest === packet.integrity.reviewHeadDigest, "unsafe portable review exchange: review head binding mismatch");
     const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
     requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe portable review exchange: payload digest mismatch");
-
     return {
       schemaVersion: PORTABLE_REVIEW_EXCHANGE_SCHEMA,
       verificationStatus: "verified_private_local_review_exchange",
@@ -1918,7 +1821,6 @@
       boundary: PORTABLE_REVIEW_EXCHANGE_BOUNDARY,
     };
   }
-
   async function createPortableRunbackReviewCorrectionExchange(serializedProposalInput, reviewInput, correctionInput) {
     const reviewExchange = await createPortableRunbackReviewExchange(serializedProposalInput, reviewInput);
     const reviewVerification = await verifyPortableRunbackReviewExchange(reviewExchange.serialized);
@@ -1946,7 +1848,6 @@
     requireValue(serialized.length <= PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH, "unsafe portable review correction exchange: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortableRunbackReviewCorrectionExchange(serializedInput) {
     requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PORTABLE_REVIEW_CORRECTION_EXCHANGE_MAX_LENGTH, "unsafe portable review correction exchange: input length rejected");
     let packet;
@@ -1965,7 +1866,6 @@
     requireValue(packet.integrity.algorithm === "sha256", "unsafe portable review correction exchange: integrity algorithm drift");
     requireValue(HEX64.test(packet.integrity.payloadDigest) && HEX64.test(packet.integrity.reviewExchangePayloadDigest), "unsafe portable review correction exchange: integrity digest drift");
     requireValue(packet.integrity.correctionHeadDigest === null || HEX64.test(packet.integrity.correctionHeadDigest), "unsafe portable review correction exchange: correction head digest drift");
-
     const reviewExchangeSerialized = canonicalJSON(packet.payload.reviewExchangePacket);
     const reviewExchangeVerification = await verifyPortableRunbackReviewExchange(reviewExchangeSerialized);
     const correctionJournal = await verifyPortableRunbackReviewCorrectionJournal(
@@ -1977,7 +1877,6 @@
     requireValue(correctionJournal.latestCorrectionDigest === packet.integrity.correctionHeadDigest, "unsafe portable review correction exchange: correction head binding mismatch");
     const computedPayloadDigest = await sha256Hex(canonicalJSON(packet.payload));
     requireValue(equalHex(computedPayloadDigest, packet.integrity.payloadDigest), "unsafe portable review correction exchange: payload digest mismatch");
-
     return {
       schemaVersion: PORTABLE_REVIEW_CORRECTION_EXCHANGE_SCHEMA,
       verificationStatus: "verified_private_local_review_correction_exchange",
@@ -1990,7 +1889,6 @@
       boundary: PORTABLE_REVIEW_CORRECTION_EXCHANGE_BOUNDARY,
     };
   }
-
   function comparisonState(effectiveReview) {
     return {
       reviewSequence: effectiveReview.reviewSequence,
@@ -2001,7 +1899,6 @@
       correctionCount: effectiveReview.correctionCount,
     };
   }
-
   function comparisonPacketSummary(verification) {
     return {
       packetDigest: verification.packetDigest,
@@ -2011,7 +1908,6 @@
       correctionCount: verification.correctionJournal.correctionCount,
     };
   }
-
   function buildPortablePrivateReviewComparison(leftVerification, rightVerification) {
     requireValue(
       equalHex(leftVerification.proposalVerification.payloadDigest, rightVerification.proposalVerification.payloadDigest),
@@ -2070,7 +1966,6 @@
       },
     };
   }
-
   async function createPortablePrivateReviewComparison(leftSerializedInput, rightSerializedInput) {
     const leftVerification = await verifyPortableRunbackReviewCorrectionExchange(leftSerializedInput);
     const rightVerification = await verifyPortableRunbackReviewCorrectionExchange(rightSerializedInput);
@@ -2098,7 +1993,6 @@
     requireValue(serialized.length <= PORTABLE_REVIEW_COMPARISON_MAX_LENGTH, "unsafe portable private review comparison: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateReviewComparison(serializedInput) {
     requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PORTABLE_REVIEW_COMPARISON_MAX_LENGTH, "unsafe portable private review comparison: input length rejected");
     let packet;
@@ -2122,7 +2016,6 @@
         && HEX64.test(packet.integrity.proposalPayloadDigest),
       "unsafe portable private review comparison: integrity digest drift",
     );
-
     const leftSerialized = canonicalJSON(packet.payload.leftCorrectionExchangePacket);
     const rightSerialized = canonicalJSON(packet.payload.rightCorrectionExchangePacket);
     const leftVerification = await verifyPortableRunbackReviewCorrectionExchange(leftSerialized);
@@ -2146,7 +2039,6 @@
       boundary: PORTABLE_REVIEW_COMPARISON_BOUNDARY,
     };
   }
-
   function privateReviewLearningSide(packetRole, state) {
     if (!state) return null;
     return {
@@ -2158,7 +2050,6 @@
       correctionCount: state.correctionCount,
     };
   }
-
   function privateReviewLearningPacketSource(packetRole, packetSummary) {
     return {
       packetRole,
@@ -2169,7 +2060,6 @@
       correctionCount: packetSummary.correctionCount,
     };
   }
-
   function buildPortablePrivateReviewLearning(comparisonVerification) {
     requireValue(
       isObject(comparisonVerification)
@@ -2228,7 +2118,6 @@
       },
     };
   }
-
   async function createPortablePrivateReviewLearning(serializedComparisonInput) {
     const comparisonVerification = await verifyPortablePrivateReviewComparison(serializedComparisonInput);
     const learning = buildPortablePrivateReviewLearning(comparisonVerification);
@@ -2255,7 +2144,6 @@
     requireValue(serialized.length <= PRIVATE_REVIEW_LEARNING_MAX_LENGTH, "unsafe private review learning: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateReviewLearning(serializedInput) {
     requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PRIVATE_REVIEW_LEARNING_MAX_LENGTH, "unsafe private review learning: input length rejected");
     let packet;
@@ -2280,7 +2168,6 @@
         && HEX64.test(packet.integrity.proposalPayloadDigest),
       "unsafe private review learning: integrity digest drift",
     );
-
     const comparisonSerialized = canonicalJSON(packet.payload.comparisonReceipt);
     const comparisonVerification = await verifyPortablePrivateReviewComparison(comparisonSerialized);
     const expectedLearning = buildPortablePrivateReviewLearning(comparisonVerification);
@@ -2301,7 +2188,6 @@
       boundary: PRIVATE_REVIEW_LEARNING_BOUNDARY,
     };
   }
-
   function privateBlueprintDeltaAuthority() {
     return {
       correctness: false,
@@ -2322,7 +2208,6 @@
       provider: false,
     };
   }
-
   function buildPortablePrivateBlueprintDelta(learningVerification, selectedReviewDigest) {
     requireValue(
       isObject(learningVerification)
@@ -2336,7 +2221,6 @@
     const deltaId = PRIVATE_REVIEW_LESSON_DELTA[lesson.lessonId];
     const delta = RUNBACK_DELTAS.find((candidate) => candidate.id === deltaId);
     requireValue(delta, "unsafe private blueprint delta: lesson delta unavailable");
-
     const leftProposalVerification = learningVerification.comparisonVerification.leftVerification.proposalVerification;
     const rightProposalVerification = learningVerification.comparisonVerification.rightVerification.proposalVerification;
     requireValue(
@@ -2411,7 +2295,6 @@
       authority: privateBlueprintDeltaAuthority(),
     };
   }
-
   async function createPortablePrivateBlueprintDelta(serializedLearningInput, selectedReviewDigest) {
     const learningVerification = await verifyPortablePrivateReviewLearning(serializedLearningInput);
     const proposal = buildPortablePrivateBlueprintDelta(learningVerification, selectedReviewDigest);
@@ -2441,7 +2324,6 @@
     requireValue(serialized.length <= PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH, "unsafe private blueprint delta: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateBlueprintDelta(serializedInput) {
     requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH, "unsafe private blueprint delta: input length rejected");
     let packet;
@@ -2465,7 +2347,6 @@
       "payloadDigest", "learningPacketDigest", "comparisonPacketDigest", "parentProposalPayloadDigest",
       "leftPacketDigest", "rightPacketDigest", "selectedReviewDigest",
     ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint delta: ${key} drift`);
-
     const learningSerialized = canonicalJSON(packet.payload.learningReceipt);
     const learningVerification = await verifyPortablePrivateReviewLearning(learningSerialized);
     const expectedProposal = buildPortablePrivateBlueprintDelta(learningVerification, packet.integrity.selectedReviewDigest);
@@ -2488,7 +2369,6 @@
       boundary: PRIVATE_BLUEPRINT_DELTA_BOUNDARY,
     };
   }
-
   function privateBlueprintDeltaReviewProposalBinding(deltaVerification) {
     const proposal = deltaVerification.proposal;
     return {
@@ -2501,7 +2381,6 @@
       guardDeltaId: proposal.guardDelta.id,
     };
   }
-
   function proposedPrivateBlueprintDeltaRevisionCandidate(deltaVerification, binding) {
     const proposal = deltaVerification.proposal;
     return {
@@ -2522,7 +2401,6 @@
       played: false,
     };
   }
-
   async function buildPortablePrivateBlueprintDeltaReviewRecord(deltaVerification, reviewInput) {
     requireValue(
       isObject(deltaVerification)
@@ -2563,7 +2441,6 @@
     const reviewDigest = await sha256Hex(canonicalJSON(review));
     return { ...review, reviewDigest };
   }
-
   async function createPortablePrivateBlueprintDeltaReview(serializedProposalInput, reviewInput) {
     const deltaVerification = await verifyPortablePrivateBlueprintDelta(serializedProposalInput);
     const review = await buildPortablePrivateBlueprintDeltaReviewRecord(deltaVerification, reviewInput);
@@ -2595,7 +2472,6 @@
     requireValue(serialized.length <= PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH, "unsafe private blueprint delta review: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateBlueprintDeltaReview(serializedInput) {
     requireValue(
       typeof serializedInput === "string"
@@ -2624,7 +2500,6 @@
       "payloadDigest", "proposalPacketDigest", "learningPacketDigest", "comparisonPacketDigest", "parentProposalPayloadDigest",
       "leftPacketDigest", "rightPacketDigest", "selectedReviewDigest", "reviewDigest",
     ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint delta review: ${key} drift`);
-
     const blueprintDeltaSerialized = canonicalJSON(packet.payload.blueprintDeltaProposal);
     const deltaVerification = await verifyPortablePrivateBlueprintDelta(blueprintDeltaSerialized);
     const review = packet.payload.review;
@@ -2657,7 +2532,6 @@
       boundary: PRIVATE_BLUEPRINT_DELTA_REVIEW_BOUNDARY,
     };
   }
-
   async function buildPortablePrivateBlueprintRevisionDraft(reviewVerification) {
     requireValue(
       isObject(reviewVerification)
@@ -2740,7 +2614,6 @@
     const draftDigest = await sha256Hex(canonicalJSON(record));
     return { ...record, draftDigest };
   }
-
   async function createPortablePrivateBlueprintRevisionDraft(serializedReviewInput) {
     const acceptedReviewVerification = await verifyPortablePrivateBlueprintDeltaReview(serializedReviewInput);
     const draft = await buildPortablePrivateBlueprintRevisionDraft(acceptedReviewVerification);
@@ -2770,7 +2643,6 @@
     requireValue(serialized.length <= PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH, "unsafe private blueprint revision draft: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateBlueprintRevisionDraft(serializedInput) {
     requireValue(
       typeof serializedInput === "string"
@@ -2799,7 +2671,6 @@
       "payloadDigest", "acceptedReviewPacketDigest", "acceptedReviewDigest", "guardProposalPacketDigest",
       "parentProposalPayloadDigest", "selectedReviewDigest", "draftDigest",
     ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint revision draft: ${key} drift`);
-
     const acceptedReviewSerialized = canonicalJSON(packet.payload.acceptedReviewReceipt);
     const acceptedReviewVerification = await verifyPortablePrivateBlueprintDeltaReview(acceptedReviewSerialized);
     const expectedDraft = await buildPortablePrivateBlueprintRevisionDraft(acceptedReviewVerification);
@@ -2823,7 +2694,6 @@
       boundary: PRIVATE_BLUEPRINT_REVISION_DRAFT_BOUNDARY,
     };
   }
-
   function privateBlueprintDraftReviewBinding(draftVerification) {
     const draft = draftVerification.draft;
     return {
@@ -2838,7 +2708,6 @@
       appliedGuardId: draft.appliedGuard.id,
     };
   }
-
   async function proposedPrivateBlueprintCommitCandidate(draftVerification, binding) {
     const draft = draftVerification.draft;
     const hasUnknownGuards = draft.unknownGuardKeys.length > 0;
@@ -2875,7 +2744,6 @@
     const candidateDigest = await sha256Hex(canonicalJSON(record));
     return { ...record, candidateDigest };
   }
-
   async function buildPortablePrivateBlueprintDraftReviewRecord(draftVerification, reviewInput) {
     requireValue(
       isObject(draftVerification)
@@ -2932,7 +2800,6 @@
     const reviewDigest = await sha256Hex(canonicalJSON(review));
     return { ...review, reviewDigest };
   }
-
   async function createPortablePrivateBlueprintDraftReview(serializedDraftInput, reviewInput) {
     const draftVerification = await verifyPortablePrivateBlueprintRevisionDraft(serializedDraftInput);
     const review = await buildPortablePrivateBlueprintDraftReviewRecord(draftVerification, reviewInput);
@@ -2964,7 +2831,6 @@
     requireValue(serialized.length <= PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH, "unsafe private blueprint draft review: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateBlueprintDraftReview(serializedInput) {
     requireValue(
       typeof serializedInput === "string"
@@ -2994,7 +2860,6 @@
       "guardProposalPacketDigest", "parentProposalPayloadDigest", "selectedReviewDigest", "reviewDigest",
     ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint draft review: ${key} drift`);
     requireValue(packet.integrity.commitCandidateDigest === null || HEX64.test(packet.integrity.commitCandidateDigest), "unsafe private blueprint draft review: commitCandidateDigest drift");
-
     requireValue(isObject(packet.payload.review), "unsafe private blueprint draft review: review record drift");
     requireExactKeys(packet.payload.review, [
       "reviewStatus", "decision", "reasonCode", "reviewer", "draftBinding", "localCommitCandidate",
@@ -3035,7 +2900,6 @@
       boundary: PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY,
     };
   }
-
   function privateBlueprintGuardCompletionBinding(draftReviewVerification) {
     const review = draftReviewVerification.review;
     const candidate = review.localCommitCandidate;
@@ -3054,11 +2918,9 @@
       appliedGuardId: review.draftBinding.appliedGuardId,
     };
   }
-
   function privateBlueprintGuardDefinition(guardKey) {
     return RUNBACK_DELTAS.find((guard) => guard.guardKey === guardKey) || null;
   }
-
   async function buildPortablePrivateBlueprintGuardCompletionRecord(draftReviewVerification, completionInput) {
     requireValue(
       isObject(draftReviewVerification)
@@ -3088,7 +2950,6 @@
     requireValue(PRIVATE_BLUEPRINT_GUARD_COMPLETION_REASONS.includes(completionInput.reasonCode), "unsafe private blueprint guard completion: reason drift");
     requireValue(Array.isArray(completionInput.guardCompletions), "unsafe private blueprint guard completion: guard completions drift");
     requireValue(completionInput.guardCompletions.length === candidate.unknownGuardKeys.length, "unsafe private blueprint guard completion: exact unknown guard set required");
-
     const guardCompletions = completionInput.guardCompletions.map((completion, index) => {
       assertSafeKeys(completion, "private blueprint guard completion entry");
       requireExactKeys(completion, ["guardKey", "value", "provenanceCode"], "private blueprint guard completion entry");
@@ -3110,7 +2971,6 @@
         },
       };
     });
-
     const completedBlueprint = clone(candidate.blueprint);
     for (const completion of guardCompletions) completedBlueprint.guardValues[completion.guardKey] = completion.value;
     const parentBinding = privateBlueprintGuardCompletionBinding(draftReviewVerification);
@@ -3154,7 +3014,6 @@
     const completionDigest = await sha256Hex(canonicalJSON(record));
     return { ...record, completionDigest };
   }
-
   async function createPortablePrivateBlueprintGuardCompletion(serializedDraftReviewInput, completionInput) {
     const draftReviewVerification = await verifyPortablePrivateBlueprintDraftReview(serializedDraftReviewInput);
     const completionProposal = await buildPortablePrivateBlueprintGuardCompletionRecord(draftReviewVerification, completionInput);
@@ -3189,7 +3048,6 @@
     requireValue(serialized.length <= PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH, "unsafe private blueprint guard completion: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateBlueprintGuardCompletion(serializedInput) {
     requireValue(
       typeof serializedInput === "string"
@@ -3220,7 +3078,6 @@
       "draftDigest", "acceptedReviewPacketDigest", "acceptedReviewDigest", "guardProposalPacketDigest",
       "parentProposalPayloadDigest", "selectedReviewDigest", "completionDigest",
     ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint guard completion: ${key} drift`);
-
     const completionProposal = packet.payload.completionProposal;
     requireValue(isObject(completionProposal), "unsafe private blueprint guard completion: proposal record drift");
     requireExactKeys(completionProposal, [
@@ -3269,7 +3126,6 @@
       boundary: PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY,
     };
   }
-
   function privateBlueprintGuardCompletionReviewBinding(completionVerification) {
     const completion = completionVerification.completionProposal;
     return {
@@ -3286,7 +3142,6 @@
       selectedReviewDigest: completion.parentBinding.selectedReviewDigest,
     };
   }
-
   async function proposedPrivateBlueprintCommitReviewCandidate(completionVerification, binding) {
     const completion = completionVerification.completionProposal;
     const record = {
@@ -3320,7 +3175,6 @@
     const candidateDigest = await sha256Hex(canonicalJSON(record));
     return { ...record, candidateDigest };
   }
-
   async function buildPortablePrivateBlueprintGuardCompletionReviewRecord(completionVerification, reviewInput) {
     requireValue(
       isObject(completionVerification)
@@ -3391,7 +3245,6 @@
     const reviewDigest = await sha256Hex(canonicalJSON(review));
     return { ...review, reviewDigest };
   }
-
   async function createPortablePrivateBlueprintGuardCompletionReview(serializedCompletionInput, reviewInput) {
     const completionVerification = await verifyPortablePrivateBlueprintGuardCompletion(serializedCompletionInput);
     const review = await buildPortablePrivateBlueprintGuardCompletionReviewRecord(completionVerification, reviewInput);
@@ -3426,7 +3279,6 @@
     requireValue(serialized.length <= PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_MAX_LENGTH, "unsafe private blueprint guard completion review: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateBlueprintGuardCompletionReview(serializedInput) {
     requireValue(
       typeof serializedInput === "string"
@@ -3458,7 +3310,6 @@
       "selectedReviewDigest", "reviewDigest",
     ]) requireValue(HEX64.test(packet.integrity[key]), `unsafe private blueprint guard completion review: ${key} drift`);
     requireValue(packet.integrity.candidateDigest === null || HEX64.test(packet.integrity.candidateDigest), "unsafe private blueprint guard completion review: candidateDigest drift");
-
     requireValue(isObject(packet.payload.review), "unsafe private blueprint guard completion review: review record drift");
     requireExactKeys(packet.payload.review, [
       "reviewStatus", "decision", "reasonCode", "reviewer", "completionBinding", "localCommitReviewCandidate",
@@ -3504,7 +3355,6 @@
       boundary: PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_BOUNDARY,
     };
   }
-
   async function buildPortablePrivateBlueprintOperatorReviewPacketRecord(reviewVerification) {
     requireValue(
       isObject(reviewVerification)
@@ -3534,7 +3384,6 @@
         && candidate.publicationStatus === "not_requested",
       "unsafe private blueprint operator review packet: local candidate state drift",
     );
-
     const completionVerification = reviewVerification.guardCompletionVerification;
     const completion = completionVerification.completionProposal;
     const draft = completionVerification.draftReviewVerification.draftVerification.draft;
@@ -3559,7 +3408,6 @@
         && Object.values(candidateBlueprint.guardValues).every((value) => typeof value === "boolean"),
       "unsafe private blueprint operator review packet: complete boolean guard set required",
     );
-
     const completionByGuard = new Map(completion.guardCompletions.map((entry) => [entry.guardKey, entry]));
     const fields = RUNBACK_DELTAS.map((guard) => {
       const beforeValue = sourceBlueprint.guardValues[guard.guardKey];
@@ -3678,7 +3526,6 @@
     const operatorPacketDigest = await sha256Hex(canonicalJSON(record));
     return { ...record, operatorPacketDigest };
   }
-
   async function createPortablePrivateBlueprintOperatorReviewPacket(serializedReviewInput) {
     const acceptedReviewVerification = await verifyPortablePrivateBlueprintGuardCompletionReview(serializedReviewInput);
     const operatorReviewPacket = await buildPortablePrivateBlueprintOperatorReviewPacketRecord(acceptedReviewVerification);
@@ -3710,7 +3557,6 @@
     requireValue(serialized.length <= PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH, "unsafe private blueprint operator review packet: packet length rejected");
     return { packet: clone(packet), serialized };
   }
-
   async function verifyPortablePrivateBlueprintOperatorReviewPacket(serializedInput) {
     requireValue(
       typeof serializedInput === "string"
@@ -3745,7 +3591,6 @@
       "verifierEvidence", "validationPlan", "rollbackPlan", "operatorAction", "state", "blockers", "authority",
       "boundary", "operatorPacketDigest",
     ], "private blueprint operator review packet record");
-
     const reviewSerialized = canonicalJSON(packet.payload.acceptedGuardCompletionReviewReceipt);
     const acceptedReviewVerification = await verifyPortablePrivateBlueprintGuardCompletionReview(reviewSerialized);
     const expectedOperatorPacket = await buildPortablePrivateBlueprintOperatorReviewPacketRecord(acceptedReviewVerification);
@@ -3773,7 +3618,6 @@
       boundary: PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BOUNDARY,
     };
   }
-
   async function adaptArenaReadModel(modelInput, demoInput) {
     const model = await verifyArenaReadModelIntegrity(modelInput);
     const demo = clone(validateDemoFixture(demoInput));
@@ -3782,7 +3626,6 @@
     const proofs = model.receipts.map((receipt) => proofFromReceipt(receipt, boundary, runbackByReceipt.get(receipt.receiptId)));
     const proofById = new Map(proofs.map((proof) => [proof.receiptId, proof]));
     const featuredReceipt = model.receipts.find((receipt) => receipt.evidence.class === "model_influenced_unattested") || model.receipts[0];
-
     demo.schemaVersion = VIEW_SCHEMA;
     demo.demoOnly = false;
     demo.sourceMode = "verified_corpus";
@@ -3852,7 +3695,6 @@
     demo.rivalries = buildRivalryViews(model.rivalries, model.receipts);
     return demo;
   }
-
   function demoFallback(demoInput, reason = "verified_read_model_unavailable_or_invalid") {
     const demo = clone(validateDemoFixture(demoInput));
     demo.sourceMode = "demo_fixture_fallback";
@@ -3883,7 +3725,6 @@
     demo.rivalries = [];
     return demo;
   }
-
   function readModelFallbackReason(error) {
     const message = error instanceof Error ? error.message : "";
     if (message.includes("digest mismatch") || message.includes("digest pin mismatch")) {
@@ -3892,7 +3733,6 @@
     if (message.includes("SHA-256 unavailable")) return "verified_read_model_integrity_unavailable";
     return "verified_read_model_unavailable_or_invalid";
   }
-
   async function validateTesterFeedbackRubric(rubricInput) {
     assertSafeKeys(rubricInput, "testerFeedbackRubric");
     const rubric = clone(rubricInput);
@@ -3930,7 +3770,6 @@
     requireValue(equalHex(computedDigest, rubric.rubricDigest), "unsafe tester feedback rubric: digest mismatch");
     return rubric;
   }
-
   async function createTesterFeedbackDraft(rubricInput, ratingsInput, blockerClass, severeIssueClass) {
     const rubric = await validateTesterFeedbackRubric(rubricInput);
     requireExactKeys(ratingsInput, TESTER_FEEDBACK_CATEGORIES.map((category) => category.categoryId), "tester feedback ratings");
@@ -3961,7 +3800,6 @@
     draft.draftDigest = await sha256Hex(canonicalJSON(draft));
     return { draft: clone(draft), serialized: canonicalJSON(draft) };
   }
-
   async function verifyTesterFeedbackDraft(serializedInput, rubricInput) {
     requireValue(typeof serializedInput === "string" && serializedInput.length > 0 && serializedInput.length <= TESTER_FEEDBACK_DRAFT_MAX_LENGTH, "unsafe tester feedback draft: bounded canonical JSON required");
     let draft;
@@ -4001,13 +3839,11 @@
     requireValue(equalHex(computedDigest, draft.draftDigest), "unsafe tester feedback draft: digest mismatch");
     return clone(draft);
   }
-
   async function fetchJSON(fetchImpl, path, label) {
     const response = await fetchImpl(path, { cache: "no-store" });
     if (!response || response.ok !== true) throw new Error(`${label} request failed`);
     return response.json();
   }
-
   async function loadArenaData(fetchImpl = fetch) {
     const demo = await fetchJSON(fetchImpl, "data/demo-state.json", "demo fixture");
     validateDemoFixture(demo);
@@ -4018,12 +3854,10 @@
       return demoFallback(demo, readModelFallbackReason(error));
     }
   }
-
   async function loadTesterFeedbackRubric(fetchImpl = fetch) {
     const rubric = await fetchJSON(fetchImpl, "data/tester-feedback-rubric.v1.json", "tester feedback rubric");
     return validateTesterFeedbackRubric(rubric);
   }
-
   return {
     DEMO_SCHEMA,
     LEARNING_SCHEMA,

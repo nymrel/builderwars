@@ -283,8 +283,8 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 217
-assertions across 18 isolated journeys: first-run starter selection, returning
+It starts an ephemeral loopback server and runs managed Chromium through 255
+assertions across 21 isolated journeys: first-run starter selection, returning
 state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
@@ -297,7 +297,7 @@ refusal, two-step browser-only cleanup, and starter restart; denied storage; sem
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v31 HTML requests; and a v31-only installed
+cross-origin requests; coherent v33 HTML requests; and a v33-only installed
 offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
@@ -315,10 +315,14 @@ python bin\build_mobile_arena_read_model.py --check
 python bin\check_mobile_arena_read_model.py
 ```
 
-The compiler verifies dataset and source-manifest digests, exact allowlist
+The compiler verifies dataset, source-manifest, and append-only correction-
+ledger digests, exact allowlist
 parity, receipt IDs, PASS replay/engine/snapshot predicates, proof paths,
 move-source evidence classes, rivalry receipt references, and proposed-only
-future-fixture status. It also rejects inconsistent entrant names or seats,
+future-fixture status. It retains corrected historical receipts while removing
+only voided or superseded targets from current exact-scope proof points. The
+tracked ledger contains zero corrections today, and the receipt inspector says
+`Active · no correction recorded`. It also rejects inconsistent entrant names or seats,
 duplicate fixture or rules identifiers, unknown fixture entrants, non-UTC
 close times, and fixture-to-rules game, version, week, or digest drift. The
 generated payload has its own canonical digest and keeps `live`, `hosted`,
@@ -341,7 +345,7 @@ identity claim. The adapter:
 
 1. validates the read-model schema, digest shape, source policy, receipt count,
    PASS replay/engine/snapshot predicates, allowlist status, content-derived
-   harness versions, evidence counts, false attestation flags, channel-to-
+   harness versions, correction eligibility, evidence counts, false attestation flags, channel-to-
    receipt counts, rules-week relationships, rivalry and fixture summaries,
    receipt-backed fixture entrants, unique seats, and proposed close times;
 2. pins the reviewed digest in executable source and asynchronously recomputes
@@ -366,6 +370,7 @@ identity claim. The adapter:
 
 ```powershell
 python bin\check_mobile_arena_read_adapter.py
+python bin\check_agentwars_corrections.py
 python bin\check_agentwars_scoped_ratings.py
 python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_local_exhibition.py

@@ -157,6 +157,24 @@ state refuses publication instead of dropping the score. Result prose is never a
 score source, and the fantasy receipts keep their independently recomputed
 scoring path.
 
+## Append-only corrections
+
+`publishing/agentwars-public-correction-ledger.v1.json` is a downstream overlay
+bound to the exact dataset digest, source-manifest
+digest, and approved receipt-id set. Its tracked entry list is empty today, so
+all eight reviewed receipts remain active. A later authorized source decision
+may append a bounded `void` or `supersede` record, but it may never rewrite or
+delete the target receipt or replay. Keeping it outside the atomically replaced
+public artifact prevents a corpus rebuild from silently dropping the journal;
+changed corpus bindings fail closed until explicitly reconciled. The Mobile Arena read compiler preserves
+the historical result and excludes the corrected target only from newly
+compiled exact-scope proof points. Synthetic adversarial fixtures prove this
+behavior without fabricating a real correction or human decision.
+
+See [`AGENTWARS_PUBLIC_CORRECTIONS.md`](AGENTWARS_PUBLIC_CORRECTIONS.md) for the
+entry schema, refusal rules, current zero-correction counts, and protected real-
+decision/promotion boundary.
+
 Adding a reviewed source is phase 1 of a two-commit release. The tracked
 generated artifact intentionally lags until a separate clean lane regenerates
 it so `buildIntegrity.sourceCommit` names that accepted source commit; until

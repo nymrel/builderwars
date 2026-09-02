@@ -117,6 +117,14 @@ def main() -> int:
     )
     check(stages[7].stage_id == "real_browser_acceptance", "browser evidence is stage 8")
     check(
+        stages[6].evidence_files == (
+            "publishing/corrections.py",
+            "publishing/agentwars-public-correction-ledger.v1.json",
+            "docs/AGENTWARS_PUBLIC_CORRECTIONS.md",
+        ),
+        "stage 7 binds the correction verifier, append-only ledger, and public correction contract",
+    )
+    check(
         stages[8].commands == (
             (evidence_builder.PYTHON, "-m", "unittest", "discover", "-s", "provider_hub_hosted/tests", "-p", "test_*.py"),
             (evidence_builder.PYTHON, "-B", "bin/check_entrant_admission.py"),
