@@ -160,11 +160,13 @@ STAGES: tuple[StageDefinition, ...] = (
         commands=(
             (PYTHON, "-m", "unittest", "discover", "-s", "provider_hub_hosted/tests", "-p", "test_*.py"),
             (PYTHON, "-B", "bin/check_entrant_admission.py"),
+            (PYTHON, "-B", "bin/check_builderwars_data_map.py"),
             (PYTHON, "bin/check_builderwars_threat_model.py"),
         ),
         evidence_files=(
             "arena/admission.py",
             "arena/reference_sources.py",
+            "docs/BUILDERWARS_REFERENCE_DATA_MAP.md",
             "docs/BUILDERWARS_THREAT_MODEL.md",
             "docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md",
         ),
@@ -176,6 +178,7 @@ STAGES: tuple[StageDefinition, ...] = (
             "durable edge and account rate limits",
             "production idempotency store parity, response-key custody, and rotation execution",
             "production deletion",
+            "production regions, subprocessors, privacy obligations, and exact retention periods",
             "OS-level untrusted-code isolation",
             "external penetration review",
             "production security approval",

@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from publishing import threat_model as tm
+from publishing import reference_data_map as dm
 from provider_hub_hosted import browser_gateway as bg
 from provider_hub_hosted import store as hosted_store
 
@@ -90,9 +91,9 @@ def main() -> int:
     check(len(model["boundaries"]) == 8, "eight trust boundaries are modeled")
     check(len(model["assets"]) == 9, "nine security-driving assets are modeled")
     check(len(model["entryPoints"]) == 8, "eight concrete entry points are modeled")
-    check(len(model["evidenceAnchors"]) == 18, "eighteen source anchors ground the model")
+    check(len(model["evidenceAnchors"]) == 19, "nineteen source anchors ground the model")
     check(len(model["threats"]) == 10, "ten concrete threats are prioritized")
-    check(len(model["focusPaths"]) == 15, "fifteen manual-review focus paths are named")
+    check(len(model["focusPaths"]) == 16, "sixteen manual-review focus paths are named")
     check(len(model["assumptions"]) == 5 and len(model["openQuestions"]) == 3, "assumptions and open questions are bounded")
     check(model["context"] == tm.CONTEXT, "service context is exact")
     check("beta_scale_unknown" in model["context"]["riskQualifier"], "unknown scale remains an explicit qualifier")
@@ -111,7 +112,7 @@ def main() -> int:
     check(boundary_ids == [f"B-{index:03d}" for index in range(1, 9)], "boundary ids are stable and contiguous")
     check(asset_ids == [f"A-{index:03d}" for index in range(1, 10)], "asset ids are stable and contiguous")
     check(entry_ids == [f"EP-{index:03d}" for index in range(1, 9)], "entry-point ids are stable and contiguous")
-    check(anchor_ids == [f"EA-{index:03d}" for index in range(1, 19)], "anchor ids are stable and contiguous")
+    check(anchor_ids == [f"EA-{index:03d}" for index in range(1, 20)], "anchor ids are stable and contiguous")
     check(threat_ids == [f"TM-{index:03d}" for index in range(1, 11)], "threat ids are stable and contiguous")
     for ids, label in ((component_ids, "component"), (boundary_ids, "boundary"), (asset_ids, "asset"), (entry_ids, "entry"), (anchor_ids, "anchor"), (threat_ids, "threat")):
         check(len(ids) == len(set(ids)), f"{label} ids are unique")
@@ -200,10 +201,12 @@ def main() -> int:
     ], "entrant boundary separates exact reviewed source from customer-local source")
     check("post_preflight_source_swap_not_excluded" in boundary_b006["gaps"], "entrant boundary keeps source-swap residual explicit")
     check(model["evidenceAnchors"][-1] == {
-        "anchorId": "EA-018",
-        "path": "arena/reference_sources.py",
-        "symbol": "REVIEWED_REFERENCE_SOURCES = MappingProxyType",
-    }, "reviewed reference source anchor is exact")
+        "anchorId": "EA-019",
+        "path": "publishing/reference_data_map.py",
+        "symbol": "SOURCE_BOUND_REFERENCE_CANDIDATE_PRODUCTION_FACTS_HELD",
+    }, "reference data-map source anchor is exact")
+    check(dm.reference_data_map_contract()["mapStatus"] == "SOURCE_BOUND_REFERENCE_CANDIDATE_PRODUCTION_FACTS_HELD", "threat model binds the held reference data map")
+    check(all(flag is False for flag in dm.reference_data_map_contract()["productionAuthority"].values()), "reference data map grants no production authority")
 
     check(bg.BROWSER_GATEWAY_SCHEMA == "agentwars.browser_authorization_gateway/1", "browser gateway schema is pinned")
     check(bg.BROWSER_GATEWAY_EVIDENCE_CLASS == "local_browser_authorization_reference", "gateway evidence class is local")
@@ -224,7 +227,7 @@ def main() -> int:
     ], "verified principal contract is exact")
 
     observations = evidence_observations()
-    check(len(observations) == 18, "all source observations are constructed")
+    check(len(observations) == 19, "all source observations are constructed")
     check(all(row["anchorFound"] is True for row in observations), "every source anchor is present")
     check(all(row["productionObserved"] is False for row in observations), "source observations make no production claim")
     check(len({row["fileSha256"] for row in observations}) >= 11, "source observations bind distinct files")
@@ -232,7 +235,7 @@ def main() -> int:
     check(assessment["schemaVersion"] == tm.ASSESSMENT_SCHEMA, "assessment schema is pinned")
     check(assessment["sourceCommit"] == COMMIT and assessment["sourceTree"] == TREE, "assessment binds the checked source identity")
     check(assessment["status"] == "LOCAL_THREAT_MODEL_PASS_PROTECTED_HELD", "assessment status keeps protected hold")
-    check(assessment["evidenceObservationCount"] == 18, "assessment records all evidence anchors")
+    check(assessment["evidenceObservationCount"] == 19, "assessment records all evidence anchors")
     check(assessment["highCriticalThreatIds"] == high_critical, "assessment binds high and critical threats")
     check(assessment["protectedThreatIds"] == high_critical, "assessment holds every high and critical threat")
     check(assessment["residualProtectedGates"] == list(tm.RESIDUAL_PROTECTED_GATES), "assessment binds residual gates")
@@ -339,7 +342,7 @@ def main() -> int:
     check("BuilderWars.com apex and www remain untouched" in boundary_markdown, "browser boundary preserves the protected domain boundary")
 
     print(f"BuilderWars threat model: PASS ({CHECKS} checks)")
-    print("10 threats / 8 boundaries / 18 source anchors / local atomic idempotency, bounded key rotation, and reviewed-source admission proven / production custody-auth-store parity and OS-isolation gaps held / zero production security authority")
+    print("10 threats / 8 boundaries / 19 source anchors / local atomic idempotency, bounded key rotation, reviewed-source admission, and reference data map proven / production custody-auth-store parity, final data map, and OS-isolation gaps held / zero production security authority")
     return 0
 
 

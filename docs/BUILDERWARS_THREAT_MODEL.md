@@ -4,7 +4,7 @@ Status: repository-grounded local security model for the protected public-beta l
 
 ## Executive summary
 
-BuilderWars has a strong local reference foundation: exact schemas, tenant predicates, a fail-closed browser-authorization gateway, atomic owner-scoped browser idempotency with versioned encrypted replay and a bounded rotation keyring, signed runner requests, durable nonce consumption, transactional lease and deletion behavior, deterministic replay, an engine-versioned reviewed-reference source registry, bounded publication projections, and source-bound local launch evidence. Those controls are real and testable, but the Clerk verifier, durable perimeter, production-store parity, protected key custody/rotation execution, and deployment adapters do not yet exist.
+BuilderWars has a strong local reference foundation: exact schemas, tenant predicates, a fail-closed browser-authorization gateway, atomic owner-scoped browser idempotency with versioned encrypted replay and a bounded rotation keyring, signed runner requests, durable nonce consumption, transactional lease and deletion behavior, deterministic replay, an engine-versioned reviewed-reference source registry, bounded publication projections, a source-bound reference data-map candidate, and source-bound local launch evidence. Those controls are real and testable, but the Clerk verifier, durable perimeter, production-store parity, final production data map, protected key custody/rotation execution, and deployment adapters do not yet exist.
 
 The launch-critical exposure is production integration of browser authentication. The local gateway rejects request-supplied owner identifiers, requires exact origin and CSRF evidence, accepts only a freshly verified injected principal, derives the owner identifier with a server pepper, enforces strict route/body schemas, and fails closed when its injected account limiter is unavailable. A public service must still cryptographically verify the live Clerk session, provision the pepper, expose only the gateway, and supply durable edge/account controls. The second major boundary is untrusted execution: the current entrant sandbox is a process-lifecycle boundary, not an operating-system jail. Public arbitrary creator or entrant code must remain disabled until independent isolation evidence exists.
 
@@ -14,7 +14,7 @@ Seven high or critical threats remain protected holds: browser owner-mapping byp
 
 In scope:
 
-- The Mobile Arena, local browser-authorization gateway, future production Clerk adapter, hosted control-plane reference, transactional state, runner verifier, customer-local provider runner, arena referee and entrant boundary, publication pipeline, and local launch evidence builder.
+- The Mobile Arena, local browser-authorization gateway, future production Clerk adapter, hosted control-plane reference, transactional state, runner verifier, customer-local provider runner, arena referee and entrant boundary, publication pipeline, source-bound reference data map, and local launch evidence builder.
 - Authentication and authorization, tenant isolation, signed request replay resistance, pairing abuse, local provider authority, untrusted process isolation, result integrity, retention and recovery, availability, and release provenance.
 - The transition from the current local reference implementation to a public multi-tenant beta.
 
@@ -63,7 +63,7 @@ Open questions:
 | B-001 | Internet browser -> browser-authorization gateway | Session and customer actions over future HTTPS | Exact origin; canonical CSRF pair; strict routes/bodies; injected verified principal; owner-scoped local limiter; owner-scoped local idempotency; AES-256-GCM sealed replay; versioned bounded keyring rotation | Production Clerk cookie/session verifier, edge controls, durable account limits, owner pepper, idempotency-key custody/rotation execution, and store parity unproven |
 | B-002 | Browser-authorization gateway -> hosted control plane | Opaque owner id and bounded commands, in-process reference | HMAC-derived opaque owner id; no request owner id; canonical validation; uniform foreign-object errors | Live Clerk-subject binding and direct-handler non-exposure unproven |
 | B-003 | Customer-local runner -> runner verifier | Signed exact method, path, body, origin, timestamp, and nonce over future HTTPS | Ed25519, origin binding, timestamp window, durable nonce consumption | TLS edge and perimeter limits unproven |
-| B-004 | Hosted control plane -> hosted state | Tenant, browser-idempotency, runner, nonce, lease, job, and result state | Exact identifiers, parameterized queries, foreign keys, `BEGIN IMMEDIATE`, nested savepoints, mutation/replay-record atomicity | Production adapter idempotency parity, backup, restore, and capacity unproven |
+| B-004 | Hosted control plane -> hosted state | Tenant, browser-idempotency, runner, nonce, lease, job, and result state | Exact identifiers, parameterized queries, foreign keys, `BEGIN IMMEDIATE`, nested savepoints, mutation/replay-record atomicity, source-bound reference data map | Production adapter parity, backup, capacity, regions, subprocessors, retention, and privacy obligations unproven |
 | B-005 | Customer-local runner -> provider CLI or PKCE | Customer prompt and provider authority through local subprocess or pinned HTTPS | Explicit local intent, output bounds, redacted secret wrapper, pinned origin | Customer endpoint and broad native environments are not isolated; identity and billing unattested |
 | B-006 | Arena referee -> entrant process | `arena/1` JSONL moves through stdin/stdout | Engine-versioned path/digest allowlist for every reviewed entrant entrypoint and shared entrant source dependency; separate customer-local unreviewed scope; scratch cwd; environment allowlist; timeouts; output caps; tree cleanup | Network, filesystem, CPU, and memory are not confined; a source swap after preflight is not excluded; external runtime and third-party import identity remain unattested |
 | B-007 | Private result -> public projection | Offline receipts, replay digests, labels, and reviewed source | Exact schemas, replay verification, false attestations, separate source decision | Production reviewer identity, registry, and signing unproven |
@@ -181,6 +181,7 @@ flowchart LR
 | `publishing/promotion.py` | Review projection bounds and false attestations | TM-006, TM-007 |
 | `publishing/source_decision.py` | Separate source admission and mutation authority | TM-007, TM-010 |
 | `publishing/retention_recovery.py` | Deletion, suppression, recovery, rollback truth | TM-008, TM-010 |
+| `publishing/reference_data_map.py` | Reference systems, datasets, flows, publication deny rules, and unresolved production facts | TM-006, TM-007, TM-008 |
 | `bin/build_agentwars_local_launch_evidence.py` | Source custody, bounded child environment, protected holds | TM-008, TM-010 |
 | `provider_hub_hosted/tests/test_control_plane.py` | Tenant, replay, race, rollback, and cleanup conformance | TM-001, TM-002, TM-003, TM-004, TM-008, TM-009 |
 | `provider_hub_hosted/tests/test_browser_idempotency.py` | Same-request replay, owner isolation, concurrency, rollback, restart, ciphertext/key-ID tamper, expiry, and staged key-rotation conformance | TM-001, TM-008, TM-009 |
@@ -197,7 +198,7 @@ The following remain protected gates:
 4. Production secret boundary, customer provider consent, route identity, and cost receipts.
 5. OS-level isolation for untrusted code, or continued disablement of that capability.
 6. Monitoring delivery, alert thresholds, incident staffing, and exercised response.
-7. Complete data map, retention policy, deletion propagation, external backup, and restore proof.
+7. Promote the [source-bound reference data map](BUILDERWARS_REFERENCE_DATA_MAP.md) into an approved production inventory with accountable owners, regions, subprocessors, purposes, exact retention periods, deletion propagation, external backup, and restore proof.
 8. Source-bound deployment, served-byte parity, production configuration identity, and rollback rehearsal.
 9. External penetration review and separate accountable security acceptance.
 
@@ -213,4 +214,4 @@ Local work has no authority to accept provider terms, attest human action, chang
 - Assumptions and unanswered production questions are explicit.
 - The threat model is useful for launch review but intentionally refuses to claim customers, traffic, security acceptance, or production readiness.
 
-The browser boundary, adapter checklist, focused adversarial command, and rollback expectations are specified in [`AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md`](AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md). The executable model binds 18 exact source anchors; all production authority remains false.
+The browser boundary, adapter checklist, focused adversarial command, and rollback expectations are specified in [`AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md`](AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md). The executable model binds 19 exact source anchors; all production authority remains false.

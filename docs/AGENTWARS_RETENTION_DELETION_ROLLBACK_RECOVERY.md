@@ -46,6 +46,13 @@ periods depend on the final data map, product behavior, incident needs,
 applicable obligations, and an operator-approved policy. An unapproved class is
 held atomically instead of partly deleted.
 
+The source-bound candidate in
+[`BUILDERWARS_REFERENCE_DATA_MAP.md`](BUILDERWARS_REFERENCE_DATA_MAP.md) maps
+the currently implemented browser, hosted-reference, customer-local, public,
+and evidence surfaces to these eight resource classes. It is not the final
+production data map: regions, subprocessors, purposes, exact periods, deletion
+propagation, and backup/restore remain protected facts.
+
 ## Deletion drill
 
 The local flow is:

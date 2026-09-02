@@ -258,14 +258,35 @@ backup, restore, rollback, deployment, feature-flag change, or operator action.
 The exact evidence boundary and protected activation ceremony are documented in
 [`docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md`](docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md).
 
+## Reference data map — source-bound candidate, production facts held
+
+BuilderWars now maps six implemented reference systems, 19 datasets, all nine
+hosted SQLite tables, both browser-local storage keys, the service-worker cache,
+customer-local provider authority, five data flows, and the reviewed public
+projection boundary. Every applicable dataset binds to the existing retention
+class; raw prompts, model output, provider credentials, identity fields,
+private inputs, and sealed responses are explicitly denied from public
+projection.
+
+```powershell
+python -B bin\check_builderwars_data_map.py
+```
+
+The map invents no production region, subprocessor, storage owner, purpose,
+legal basis, retention period, deletion propagation, backup, restore, or
+support access. Those eight deployment-specific facts and every production or
+launch authority flag remain held. Contract and exact boundary:
+[`docs/BUILDERWARS_REFERENCE_DATA_MAP.md`](docs/BUILDERWARS_REFERENCE_DATA_MAP.md).
+
 ## Launch threat model — repository-grounded, protected gaps held
 
 BuilderWars now carries an executable public-beta threat model covering the
 local browser-authorization gateway, future production Clerk adapter,
 multi-tenant hosted reference, signed runner
 protocol, customer-local provider authority, entrant process boundary,
-publication lineage, deletion/recovery, availability, and release provenance.
-It binds ten threats to eight trust boundaries and seventeen exact source anchors.
+publication lineage, the source-bound reference data map, deletion/recovery,
+availability, and release provenance. It binds ten threats to eight trust
+boundaries and 19 exact source anchors.
 
 ```powershell
 python bin\check_builderwars_threat_model.py
@@ -275,7 +296,7 @@ The checker validates coverage, source symbols and file digests, risk ordering,
 hostile contract mutations, and zero production authority. A green result is
 not a penetration test or production security approval. Browser principal to
 owner mapping, production-store conformance, rate limits, secret/consent
-receipts, OS-level isolation or continued disablement, monitoring, the data map,
+receipts, OS-level isolation or continued disablement, monitoring, the final production data map,
 served-byte parity, and independent security acceptance remain protected. Model:
 [`docs/BUILDERWARS_THREAT_MODEL.md`](docs/BUILDERWARS_THREAT_MODEL.md).
 The exact sanitized request, verified-principal, opaque-owner, CSRF, route,

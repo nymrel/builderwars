@@ -36,7 +36,7 @@ It deliberately records the protected downstream nodes as held.
 | 6 | Replay and verifier parity | Checks package versus standalone verifier parity | Production custody, registry commit, external signature |
 | 7 | Mobile static contracts | Checks deterministic mobile, truth, offline, and accessibility contracts | Hosted route, real user, deployed device support |
 | 8 | Real-browser acceptance | Runs Chromium navigation, failure, storage, responsive, offline, and accessibility journeys | Production browser, authenticated journey, external performance |
-| 9 | Hosted security, abuse, cleanup, browser authorization, and threat model | Runs local hosted-control-plane refusal, rollback, cleanup, browser-gateway, atomic-idempotency, and bounded key-rotation adversarial tests plus the repository-grounded 10-threat/8-boundary security model | Live Clerk/session verification, durable production store/rate-limit/deletion/idempotency parity, owner-pepper and idempotency-response-key custody/rotation execution, OS isolation, penetration review, and security approval |
+| 9 | Hosted security, abuse, cleanup, browser authorization, reference data map, and threat model | Runs local hosted-control-plane refusal, rollback, cleanup, browser-gateway, atomic-idempotency, bounded key-rotation, and source-bound 6-system/19-dataset data-map adversarial tests plus the repository-grounded 10-threat/8-boundary security model | Live Clerk/session verification, durable production store/rate-limit/deletion/idempotency parity, owner-pepper and idempotency-response-key custody/rotation execution, final production inventory/regions/subprocessors/privacy obligations, OS isolation, penetration review, and security approval |
 | 10 | Launch contracts, measurement, performance, observability, support, retention/deletion, incident, recovery, tester-readiness, and discoverability drills | Runs strict measurement and observability zero-baseline gates, deterministic incident drills, an exact redacted support-intake and severity-routing contract, classified atomic deletion simulation, source-bound rollback/recovery failure drills, deterministic Mobile Arena asset budgets, an exact fail-closed 16-step synthetic tester rehearsal, and a prelaunch search/AI contract with indexing disabled | Consented human tester and feedback, durable/live counters and telemetry, real deletion, backup/restore, support transport and staffing, alert delivery, production rollback/performance, canonical origin, indexing, citations, audience, legal approval |
 | 11 | Protected runtime configuration | Executes nothing; records `HELD_PROTECTED` | Clerk, Redis, webhook, peppers, reviewer keys, rate limits, flags |
 | 12 | Source-bound deployment and rollback | Executes nothing; records `HELD_PROTECTED` | Target, DNS/TLS, served bytes, performance, observability, rollback |
@@ -108,8 +108,12 @@ The JSON includes:
   simulation, five-dimension last-known-good recovery plan, and injected
   deletion/recovery failures with no data access, external deletion, backup,
   restore, deployment, flag, or operator-authority claim;
+- a source-bound reference data map covering six systems, 19 datasets, nine
+  hosted tables, five flows, and eight explicitly unresolved production facts,
+  with no production inventory, residency, privacy, retention, deletion,
+  backup, restore, legal, or launch authority;
 - a repository-grounded ten-threat security model covering eight trust
-  boundaries and seventeen exact source anchors, with a fail-closed local
+  boundaries and 19 exact source anchors, with a fail-closed local
   browser-authorization gateway and production Clerk, tenant-store,
   rate-limit, provider-secret, OS-isolation, monitoring, deletion, deployment,
   and independent-review production gates held;
