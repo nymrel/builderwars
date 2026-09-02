@@ -1,6 +1,6 @@
 # BuilderWars Fable 5.1 top-down review
 
-Status: **review complete; three bounded recommendations adopted, remaining recommendations are proposals**
+Status: **review complete; four bounded recommendations adopted, remaining recommendations are proposals**
 
 Review date: 2026-09-01
 
@@ -128,7 +128,7 @@ The launch ladder remains evidence gated:
 Numbers above are proposed cohort shapes, not current users, commitments,
 results, or launch claims.
 
-## Decisions adopted through the first three slices
+## Decisions adopted through the first four slices
 
 The first slice adopted the demo-truth recommendation. The mobile fallback must:
 
@@ -158,6 +158,18 @@ receipt candidate, derives an observation-only learning record, and prepares a
 versioned unplayed runback. The verified corpus is required; fallback exposes
 no game controls. No identity, model, provider, persistence, registry, ranking,
 publication, spending, or production authority is created.
+
+The fourth slice adopts the three-signal proof-summary recommendation. Mobile
+Arena v40 leads every receipt inspector with Replay, Build binding, and
+Attribution. Each signal is computed from the exact source mode and underlying
+predicates; verified replay requires the reviewed `PASS` verdict, while fallback
+replay is visibly labeled `DEMO PASS`. The complete replay, engine, snapshot,
+harness, source, registry, correction, passport, and attestation rows remain
+available through one native disclosure. Keyboard order now includes that
+disclosure, and the browser gate covers its focus, forced-colors treatment,
+expanded 320px reflow, verified-corpus values, and fallback distinction. No
+identity, model, provider, runtime, registry, ranking, publication, spending, or
+production authority is created.
 
 All other Fable recommendations remain candidates for their own bounded design,
 implementation, and evidence passes.

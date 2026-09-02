@@ -27,7 +27,7 @@ READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
 CREATOR_GAME_LAB_PATH = "**/data/creator-game-lab.v1.json"
-SHELL_VERSION = "39"
+SHELL_VERSION = "40"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -246,6 +246,25 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require(f"#arena/receipt/{receipt_id}" in page.url, "proof: inspector has a receipt-specific local address")
         evidence.require(page.locator("#app-shell").evaluate("node => node.inert === true"), "proof: background is inert while dialog is open")
         evidence.require(page.locator("#proof-sheet").evaluate("node => node.contains(document.activeElement)"), "proof: focus enters the dialog")
+        trust_chips = page.locator(".proof-trust-chip")
+        evidence.require(trust_chips.count() == 3, "proof: exactly three first-glance trust signals render")
+        replay_signal = page.locator('[data-proof-trust="replay"]').inner_text().splitlines()
+        binding_signal = page.locator('[data-proof-trust="binding"]').inner_text().splitlines()
+        attribution_signal = page.locator('[data-proof-trust="attribution"]').inner_text().splitlines()
+        evidence.require(replay_signal == ["REPLAY", "PASS", "Receipt replay agrees"], f"proof: replay signal is concise and predicate-derived ({replay_signal!r})")
+        evidence.require(binding_signal == ["BUILD BINDING", "BOUND", "Engine, verifier, harness"], f"proof: build-binding signal summarizes the exact three bindings ({binding_signal!r})")
+        evidence.require(attribution_signal == ["ATTRIBUTION", "UNATTESTED", "0/3 model, provider, runtime"], f"proof: attribution signal cannot inflate current evidence ({attribution_signal!r})")
+        proof_details = page.locator(".proof-predicates")
+        evidence.require(proof_details.get_attribute("open") is None and not page.locator("#proof-content .proof-grid").is_visible(), "proof: detailed predicates start collapsed")
+        proof_summary = proof_details.locator("summary")
+        evidence.require(proof_summary.evaluate("node => node.getBoundingClientRect().height") >= 44, "proof: predicate disclosure has a touch-safe target")
+        page.keyboard.press("Tab")
+        evidence.require(proof_summary.evaluate("node => document.activeElement === node"), "proof: predicate disclosure follows the close control in keyboard order")
+        evidence.require(proof_summary.evaluate("node => getComputedStyle(node).outlineStyle") != "none", "proof: predicate disclosure has visible keyboard focus")
+        proof_summary.click()
+        evidence.require(proof_details.get_attribute("open") is not None and page.locator("#proof-content .proof-grid").is_visible(), "proof: one action expands every detailed predicate")
+        predicate_codes = page.locator(".proof-summary-predicates code").all_inner_texts()
+        evidence.require(predicate_codes == ['replayVerdict === "PASS"', "engineDigestMatch && verifierSnapshotMatch && harnessVersionBound", "modelAttested && providerAttested && runtimeAttested"], "proof: all three summary predicates are inspectable verbatim")
         proof_text = page.locator("#proof-content").inner_text()
         evidence.require("No authoritative commit" in proof_text, "proof: registry authority remains absent")
         evidence.require("Correction status\nActive · no correction recorded" in proof_text, "proof: tracked receipt shows truthful active correction state")
@@ -537,6 +556,17 @@ def fallback_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         evidence.require(page.locator("#automations input:checked").count() == 0 and "streak" not in page.locator("#automations").inner_text().lower(), "fallback: reminders are off and no streak is claimed")
         page.locator("#automations-sheet [data-sheet-close]").click()
         page.locator('.bottom-nav [data-nav="arena"]').click()
+        page.locator("#featured-match [data-proof-open]").first.click()
+        fallback_chips = page.locator(".proof-trust-chip")
+        evidence.require(fallback_chips.count() == 3, "fallback proof: exactly three first-glance trust signals render")
+        evidence.require(page.locator('[data-proof-trust="replay"]').inner_text().splitlines() == ["REPLAY", "DEMO PASS", "Static fixture replay only"], "fallback proof: simulated replay status cannot masquerade as reviewed-corpus proof")
+        evidence.require(page.locator('[data-proof-trust="binding"]').inner_text().splitlines() == ["BUILD BINDING", "BOUND", "Demo harness only"], "fallback proof: binding scope is limited to the demo harness")
+        evidence.require(page.locator('[data-proof-trust="attribution"]').inner_text().splitlines() == ["ATTRIBUTION", "UNATTESTED", "0/3 model, provider, runtime"], "fallback proof: provider and model attribution remain unattested")
+        page.locator(".proof-predicates > summary").click()
+        fallback_predicates = page.locator(".proof-summary-predicates code").all_inner_texts()
+        evidence.require(fallback_predicates[0] == 'replayVerdict === "PASS_DEMO_FIXTURE"', "fallback proof: expanded predicate names the demo-only replay verdict")
+        evidence.require(fallback_predicates[1] == "harnessVersionBound", "fallback proof: expanded predicate names the narrower demo binding")
+        page.locator("#proof-sheet [data-sheet-close]").click()
         page_text = page.locator("body").inner_text().lower()
         evidence.require(all(term not in page_text for term in ("simulated credits", "demo viewers", "learning streak", "how ranking works")), "fallback: finance and social theater copy stays absent")
         assert_observers_clean(evidence, observed, "fallback")
@@ -866,6 +896,15 @@ def forced_colors_journey(browser: Any, base_url: str, evidence: Evidence) -> No
         )
         evidence.require(sheet_fit["inside"] and sheet_fit["noOverflow"], f"forced colors: local-session dialog remains within the viewport ({sheet_fit!r})")
         page.keyboard.press("Escape")
+        page.locator('.bottom-nav [data-nav="arena"]').click()
+        page.locator("#featured-match [data-proof-open]").first.click()
+        proof_summary = page.locator(".proof-predicates > summary")
+        page.keyboard.press("Tab")
+        evidence.require(proof_summary.evaluate("node => document.activeElement === node"), "forced colors: proof disclosure remains in keyboard order")
+        proof_outline = proof_summary.evaluate("node => ({style: getComputedStyle(node).outlineStyle, width: parseFloat(getComputedStyle(node).outlineWidth)})")
+        evidence.require(proof_outline["style"] != "none" and proof_outline["width"] >= 3, f"forced colors: proof disclosure retains a three-pixel outline ({proof_outline!r})")
+        evidence.require(page.locator(".proof-trust-strip").evaluate("node => getComputedStyle(node).borderTopStyle") != "none", "forced colors: first-glance proof strip retains a visible boundary")
+        page.keyboard.press("Escape")
         assert_observers_clean(evidence, observed, "forced-colors")
         evidence.journey("forced-colors navigation, focus, and dialog rendering")
     finally:
@@ -903,6 +942,8 @@ def reflow_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         page.keyboard.press("Escape")
         page.locator('.bottom-nav [data-nav="arena"]').click()
         page.locator("#featured-match [data-proof-open]").first.click()
+        page.locator(".proof-predicates > summary").click()
+        evidence.require(page.locator(".proof-predicates").get_attribute("open") is not None, "reflow: expanded proof predicates remain operable at 320 CSS pixels")
         proof_fit = page.locator("#proof-sheet").evaluate(
             "node => ({inside: node.getBoundingClientRect().left >= 0 && node.getBoundingClientRect().right <= innerWidth, noOverflow: node.scrollWidth <= node.clientWidth})"
         )
@@ -925,7 +966,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v39');
+              const cache = await caches.open('builderwars-mobile-arena-v40');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;

@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "39"
+EXPECTED_SHELL_VERSION = "40"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -161,6 +161,15 @@ def main() -> int:
     require("state.data.quickMatches.filter((match) => match.exhibitionAllowed !== true)" in js, "promoted local exhibition must not remain duplicated in the general format list")
     require("receipt?.qualification?.qualificationKey === qualification.qualificationKey" in adapter, "local-play result status must bind the current blueprint qualification")
     checks += 6
+    require("function proofTrustSummaryMarkup(proof)" in js, "proof inspector must derive a bounded first-glance summary")
+    require('aria-label="Proof at a glance"' in js and 'data-proof-trust="${signal.id}"' in js, "proof summary must expose exactly addressable trust signals")
+    require('class="proof-predicates"' in js and "Inspect all proof predicates" in js, "proof detail must remain available behind one native disclosure")
+    require('replayVerdict === "PASS"' in js and 'replayVerdict === "PASS_DEMO_FIXTURE"' in js and "engineDigestMatch && verifierSnapshotMatch && harnessVersionBound" in js and "modelAttested && providerAttested && runtimeAttested" in js, "proof summary predicates must remain explicit in source")
+    require('demoReplayPass ? "DEMO PASS"' in js and '"Static fixture replay only"' in js, "fallback proof signal must not masquerade as reviewed-corpus PASS")
+    require(".proof-trust-strip" in css and ".proof-trust-chip" in css and ".proof-predicates > summary" in css, "proof summary hierarchy styling missing")
+    require("summary:focus-visible" in css and "forced-colors: active" in css, "proof disclosure accessibility styling missing")
+    require('a[href], summary, [tabindex]' in js, "modal focus trap must include native proof disclosures")
+    checks += 8
     for required in ("session-boundary", "session-source-status", "session-account-status", "session-provider-status", "session-blueprint-status", "session-starter-status", "session-storage-status"):
         require(f'id="{required}"' in html, f"missing local-session surface: {required}")
         checks += 1

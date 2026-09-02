@@ -20,9 +20,14 @@ destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
 reviewed Arena receipt corpus through a fail-closed client adapter, retains the
 fixed demo fixture as a visibly disclosed fallback, and refuses invented
 credits, ratings, deltas, trend charts, viewer counts, model quotas, earned
-progress, enabled reminders, or simulated-live state. The v39 fallback presents
+progress, enabled reminders, or simulated-live state. The v40 fallback presents
 only a static fixture, an unranked zero-receipt roster, and explicit no-audience
-and no-provider labels. Compete now leads with one explicit local proof-loop
+and no-provider labels. Every receipt inspector now leads with exactly three
+plain trust signals: Replay, Build binding, and Attribution. Verified receipts
+earn only the predicates present in the reviewed corpus; the fallback says
+`DEMO PASS` instead of borrowing verified `PASS`. A native disclosure preserves
+the complete predicate set without crowding the first glance. Compete now leads
+with one explicit local proof-loop
 spotlight when the verified corpus is available: the current blueprint, exact
 qualification, deterministic Nim execution, independent replay, receipt
 candidate, learning action, and unplayed runback. The same verified-only
@@ -162,7 +167,8 @@ contexts, and closes Chromium and the server before returning. Its real-browser
 journeys cover all five destinations, browser history, receipt routes, dialog
 focus and Escape restoration, qualification preview, the deterministic local
 exhibition through replay-verified receipt candidate, visible learning,
-versioned unplayed runback, discard, and reload cleanup, the human-controlled
+versioned unplayed runback, discard, and reload cleanup, three-signal proof
+inspection with keyboard-accessible predicate expansion, the human-controlled
 Ten Fronts Blitz path through allocation refusal, three reveals, independent
 replay, restart, discard, reload cleanup, offline launch, responsive reflow,
 reduced motion, and forced colors, local persistence and

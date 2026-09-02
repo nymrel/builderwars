@@ -1249,6 +1249,51 @@ function spectatorRehearsalMarkup(proof) {
   return `<section class="portable-runback spectator-rehearsal" aria-labelledby="spectator-rehearsal-title"><div><p class="eyebrow">Spectator rehearsal</p><h4 id="spectator-rehearsal-title">Choose → reveal → verify → runback</h4><p>This browser-memory walkthrough uses one reviewed receipt. Its result already exists. Nothing is a prediction, collected, ranked, or published.</p></div>${status}${action}</section>`;
 }
 
+function proofTrustSummaryMarkup(proof) {
+  const verified = state.data.sourceMode === "verified_corpus";
+  const replayPass = verified && proof.replayVerdict === "PASS";
+  const demoReplayPass = !verified && proof.replayVerdict === "PASS_DEMO_FIXTURE";
+  const bindingPass = verified
+    ? proof.engineDigestMatch === true && proof.verifierSnapshotMatch === true && proof.harnessVersionBound === true
+    : proof.harnessVersionBound === true;
+  const attributionCount = [proof.modelAttested, proof.providerAttested, proof.runtimeAttested].filter((value) => value === true).length;
+  const attributionValue = attributionCount === 3 ? "ATTESTED" : attributionCount === 0 ? "UNATTESTED" : "PARTIAL";
+  const signals = [
+    {
+      id: "replay",
+      label: "Replay",
+      value: replayPass ? "PASS" : demoReplayPass ? "DEMO PASS" : "NOT VERIFIED",
+      tone: replayPass ? "pass" : demoReplayPass ? "pending" : "fail",
+      reason: replayPass ? "Receipt replay agrees" : demoReplayPass ? "Static fixture replay only" : "Receipt replay did not pass",
+    },
+    {
+      id: "binding",
+      label: "Build binding",
+      value: bindingPass ? "BOUND" : "INCOMPLETE",
+      tone: bindingPass ? "pass" : "fail",
+      reason: verified ? "Engine, verifier, harness" : "Demo harness only",
+    },
+    {
+      id: "attribution",
+      label: "Attribution",
+      value: attributionValue,
+      tone: attributionCount === 3 ? "pass" : "pending",
+      reason: `${attributionCount}/3 model, provider, runtime`,
+    },
+  ];
+  const predicateRows = [
+    ["Replay signal", verified ? 'replayVerdict === "PASS"' : 'replayVerdict === "PASS_DEMO_FIXTURE"'],
+    ["Build-binding signal", verified
+      ? "engineDigestMatch && verifierSnapshotMatch && harnessVersionBound"
+      : "harnessVersionBound"],
+    ["Attribution signal", "modelAttested && providerAttested && runtimeAttested"],
+  ];
+  return {
+    strip: `<ul class="proof-trust-strip" aria-label="Proof at a glance">${signals.map((signal) => `<li class="proof-trust-chip ${signal.tone}" data-proof-trust="${signal.id}"><span>${signal.label}</span><strong>${signal.value}</strong><small>${signal.reason}</small></li>`).join("")}</ul>`,
+    predicates: `<div class="proof-summary-predicates" aria-label="Trust-signal predicates"><p>Three summary signals are derived only from these exact predicates.</p><dl>${predicateRows.map(([label, predicate]) => `<div><dt>${label}</dt><dd><code>${escapeHTML(predicate)}</code></dd></div>`).join("")}</dl></div>`,
+  };
+}
+
 function renderProof(proofId = "featured") {
   const proof = resolveProof(proofId);
   if (!proof) return false;
@@ -1300,7 +1345,8 @@ function renderProof(proofId = "featured") {
   }
   const boundaryLabel = state.data.sourceMode === "verified_corpus" ? "Verified-corpus boundary" : "Demo boundary";
   const address = formatArenaRoute(state.activeView, proof.receiptId);
-  $("#proof-content").innerHTML = `<div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div><div class="proof-address"><span>Local proof address</span><code>${escapeHTML(address)}</code></div><div class="proof-boundary"><strong>${boundaryLabel}:</strong> ${escapeHTML(proof.boundary || state.data.truthBoundary.statement)}</div>${spectatorRehearsalMarkup(proof)}`;
+  const trust = proofTrustSummaryMarkup(proof);
+  $("#proof-content").innerHTML = `${trust.strip}<details class="proof-predicates"><summary><span>Inspect all proof predicates</span><span class="proof-predicate-count">${rows.length} checks</span></summary>${trust.predicates}<div class="proof-grid">${rows.map(([label, value, tone]) => `<div class="proof-row"><span>${escapeHTML(label)}</span><strong class="${tone}">${escapeHTML(value)}</strong></div>`).join("")}</div></details><div class="proof-address"><span>Local proof address</span><code>${escapeHTML(address)}</code></div><div class="proof-boundary"><strong>${boundaryLabel}:</strong> ${escapeHTML(proof.boundary || state.data.truthBoundary.statement)}</div>${spectatorRehearsalMarkup(proof)}`;
   const learningButton = $("#proof-learning-button");
   learningButton.hidden = !(state.data.sourceMode === "verified_corpus" && proof.runback);
   learningButton.dataset.proofLearn = proof.receiptId || "";
@@ -2340,7 +2386,7 @@ function trapSheetFocus(event) {
   if (event.key !== "Tab") return;
   const sheet = $(".bottom-sheet:not([hidden])");
   if (!sheet) return;
-  const focusables = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])', sheet)
+  const focusables = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], summary, [tabindex]:not([tabindex="-1"])', sheet)
     .filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true");
   if (focusables.length === 0) {
     event.preventDefault();

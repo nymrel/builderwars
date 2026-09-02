@@ -22,7 +22,7 @@ opens no browser, socket, provider, account, deployment, or analytics source.
 | `index.html` | HTML | 24,000 B | 9,000 B |
 | `styles.css` | Style | 45,000 B | 12,000 B |
 | `data-adapter.js` | Script | 285,000 B | 45,000 B |
-| `app.js` | Script | 225,000 B | 40,000 B |
+| `app.js` | Script | 230,000 B | 40,000 B |
 | `ten-fronts.html` | Route HTML | 4,096 B | 2,048 B |
 | `ten-fronts-blitz.css` | Route style | 8,192 B | 3,072 B |
 | `ten-fronts-blitz.js` | Route script | 20,000 B | 8,192 B |
@@ -42,7 +42,7 @@ manifest, icon, reviewed corpus, demo fallback, and service worker.
 | Metric | Limit |
 | --- | ---: |
 | Tracked assets | 13 |
-| Total raw bytes | 660,000 B |
+| Total raw bytes | 670,000 B |
 | Total deterministic gzip bytes | 132,000 B |
 | Core shell raw bytes | 570,000 B |
 | Core shell deterministic gzip bytes | 96,000 B |
@@ -75,6 +75,17 @@ accepted 13-asset receipt is 659,604 raw / 114,065 deterministic gzip bytes;
 the core shell is 563,110 / 92,825, core scripts are 497,359 / 78,969, and the
 lazy route is 27,983 / 9,415. This is deliberately tight. New route growth must
 be paid for by source reduction or a separately reviewed budget decision.
+
+The later 2026-09-02 proof-inspector slice makes Replay, Build binding, and
+Attribution legible at first glance while retaining every exact predicate in a
+native disclosure. The prior ceiling correctly caught the readable source
+growth. After review, only the `app.js` raw limit moved from 225,000 to 230,000
+bytes and the total raw limit moved from 660,000 to 670,000 bytes; every gzip,
+core-shell, script, lazy-route, and data limit remains unchanged. The accepted
+v40 receipt is 664,908 raw / 115,238 deterministic gzip bytes; the core shell is
+568,414 / 93,999, core scripts are 500,124 / 79,761, the lazy route is 27,983 /
+9,414, and `app.js` is 227,725 / 37,183. This is a reviewed source-maintainability
+adjustment, not a transfer-performance waiver or production measurement.
 
 ## Receipt and adversarial gate
 

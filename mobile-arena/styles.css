@@ -23,7 +23,7 @@ body { margin: 0; background: var(--bg); color: var(--text); min-width: 0; }
 button, input, select, textarea { font: inherit; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; }
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role="status"]:focus-visible, [role="alert"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, [role="status"]:focus-visible, [role="alert"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .skip-link { position: fixed; left: 12px; top: -60px; z-index: 100; padding: 10px 14px; background: var(--lime); color: #0b0d0c; font-weight: 800; border-radius: 6px; }
 .skip-link:focus { top: 10px; }
 .app-shell { min-height: 100svh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
@@ -311,7 +311,29 @@ legend { margin-bottom: 8px; }
 @keyframes sheet-in { from { transform: translateY(26px); opacity: .2; } to { transform: none; opacity: 1; } }
 .sheet-handle { width: 42px; height: 4px; margin: 0 auto 18px; border-radius: 99px; background: #484f49; }
 .sheet-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.proof-grid { min-width: 0; display: grid; gap: 0; margin-top: 18px; }
+.proof-trust-strip { min-width: 0; margin: 18px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(86px, 1fr)); overflow-x: auto; border-block: 1px solid var(--line); }
+.proof-trust-chip { min-width: 0; min-height: 96px; padding: 13px 11px; display: grid; align-content: center; gap: 5px; border-left: 1px solid var(--line-soft); }
+.proof-trust-chip:first-child { border-left: 0; }
+.proof-trust-chip > span { color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.proof-trust-chip > strong { color: var(--text); font-size: 12px; line-height: 1.2; overflow-wrap: anywhere; }
+.proof-trust-chip.pass > strong { color: var(--lime); }
+.proof-trust-chip.pending > strong { color: #ffd36b; }
+.proof-trust-chip.fail > strong { color: #ff9b8c; }
+.proof-trust-chip > small { color: var(--muted); font-size: 9px; line-height: 1.35; }
+.proof-predicates { margin-top: 12px; border-bottom: 1px solid var(--line); }
+.proof-predicates > summary { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text); cursor: pointer; font-size: 12px; font-weight: 800; list-style: none; }
+.proof-predicates > summary::-webkit-details-marker { display: none; }
+.proof-predicates > summary::after { content: "+"; width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--lime); font-size: 15px; line-height: 1; }
+.proof-predicates[open] > summary::after { content: "−"; }
+.proof-predicate-count { margin-left: auto; color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.proof-summary-predicates { padding: 12px 0 4px; border-top: 1px solid var(--line-soft); }
+.proof-summary-predicates > p { margin: 0 0 10px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.proof-summary-predicates dl { margin: 0; display: grid; gap: 8px; }
+.proof-summary-predicates dl > div { min-width: 0; display: grid; gap: 3px; }
+.proof-summary-predicates dt { color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.proof-summary-predicates dd { min-width: 0; margin: 0; }
+.proof-summary-predicates code { color: var(--text); font-size: 9px; overflow-wrap: anywhere; }
+.proof-grid { min-width: 0; display: grid; gap: 0; margin-top: 8px; }
 .proof-row { min-width: 0; min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line-soft); }
 .proof-row span { color: var(--muted); font-size: 12px; }
 .proof-row strong { min-width: 0; max-width: 62%; overflow-wrap: anywhere; text-align: right; font-size: 12px; }
@@ -414,13 +436,13 @@ legend { margin-bottom: 8px; }
   .topbar, .connection-strip, .bottom-nav, .bottom-sheet, .starter-panel,
   .card, .watch-item, .filter-button, .follow-button, .primary-button,
   .secondary-button, .queue-button, .danger-button, .local-play-card, input, select, textarea,
-  fieldset { border-color: CanvasText; }
+  fieldset, .proof-trust-strip, .proof-trust-chip, .proof-predicates, .proof-predicates > summary::after { border-color: CanvasText; }
   .topbar, .connection-strip, .bottom-nav, .bottom-sheet, .starter-panel,
   .card, .watch-item, input, select, textarea { background: Canvas; color: CanvasText; }
   .bottom-nav, .bottom-sheet { backdrop-filter: none; }
   .sheet-backdrop { background: Canvas; opacity: .76; }
   .nav-item.is-active, .text-button, .queue-button, .follow-button.is-followed,
-  .eyebrow, .proof-row strong.pass, .qualification-row strong.ready { color: LinkText; }
+  .eyebrow, .proof-row strong.pass, .proof-trust-chip.pass > strong, .proof-predicates > summary::after, .qualification-row strong.ready { color: LinkText; }
   .primary-button, .avatar-button, .nav-item.action svg,
   .switch-row input:checked, .qualification-check.ready > span {
     border: 2px solid ButtonText;
@@ -428,7 +450,7 @@ legend { margin-bottom: 8px; }
     color: HighlightText;
   }
   button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
-  textarea:focus-visible, [role="status"]:focus-visible, [role="alert"]:focus-visible {
+  textarea:focus-visible, summary:focus-visible, [role="status"]:focus-visible, [role="alert"]:focus-visible {
     outline: 3px solid Highlight;
     outline-offset: 3px;
   }
