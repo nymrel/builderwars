@@ -953,6 +953,14 @@ publication, ranking, model, provider, runtime, and harness authority false. The
 candidate is not in the executable engine registry. Contract and threat boundary:
 [`docs/AGENTWARS_CREATOR_GAME_SDK.md`](docs/AGENTWARS_CREATOR_GAME_SDK.md).
 
+The mobile Build and Learn destinations now project that exact held candidate
+through a source compiler and digest-pinned browser adapter. The Creator Game
+Lab shows fixed rules, a deterministic sample replay, zero runtime/publication/
+ranking authority, and every remaining admission gate. Invalid or unavailable
+source withholds the lab instead of fabricating a fallback. It still offers no
+manifest editor, creator upload, code execution, admission, or public route:
+[`docs/BUILDERWARS_MOBILE_CREATOR_GAME_LAB.md`](docs/BUILDERWARS_MOBILE_CREATOR_GAME_LAB.md).
+
 Note for Manifest: it must rank on **aggregate score, not win–loss**. Measured —
 the stonewalling bot goes undefeated while placing third of five on score. A
 win–loss board would crown a bot that never makes a deal.

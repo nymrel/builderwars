@@ -36,27 +36,28 @@ class AssetBudget:
 
 
 ASSET_BUDGETS = (
-    AssetBudget("index.html", "html", 20_000, 8_000),
+    AssetBudget("index.html", "html", 24_000, 9_000),
     AssetBudget("styles.css", "style", 45_000, 12_000),
-    AssetBudget("data-adapter.js", "script", 262_144, 40_000),
+    AssetBudget("data-adapter.js", "script", 285_000, 45_000),
     AssetBudget("app.js", "script", 225_000, 40_000),
     AssetBudget("sw.js", "worker", 8_000, 4_000),
     AssetBudget("manifest.webmanifest", "manifest", 4_096, 2_048),
     AssetBudget("assets/arena-mark.svg", "image", 4_096, 2_048),
     AssetBudget("data/arena-read-model.v1.json", "data", 65_536, 12_000),
     AssetBudget("data/demo-state.json", "data", 16_384, 8_000),
+    AssetBudget("data/creator-game-lab.v1.json", "data", 16_384, 8_000),
 )
 
 AGGREGATE_LIMITS = {
-    "trackedAssetCount": 9,
-    "totalRawBytes": 625_000,
-    "totalGzipBytes": 125_000,
-    "coreShellRawBytes": 540_000,
-    "coreShellGzipBytes": 90_000,
-    "scriptRawBytes": 485_000,
-    "scriptGzipBytes": 80_000,
-    "dataRawBytes": 100_000,
-    "dataGzipBytes": 20_000,
+    "trackedAssetCount": 10,
+    "totalRawBytes": 660_000,
+    "totalGzipBytes": 132_000,
+    "coreShellRawBytes": 570_000,
+    "coreShellGzipBytes": 96_000,
+    "scriptRawBytes": 515_000,
+    "scriptGzipBytes": 86_000,
+    "dataRawBytes": 116_000,
+    "dataGzipBytes": 26_000,
 }
 
 CORE_SHELL = frozenset(("index.html", "styles.css", "data-adapter.js", "app.js"))

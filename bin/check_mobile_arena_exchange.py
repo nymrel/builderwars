@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "34"
+EXPECTED_SHELL_VERSION = "35"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -24,6 +24,7 @@ EXPECTED = {
     "data/demo-state.json",
     "data/arena-read-model.v1.json",
     "data/tester-feedback-rubric.v1.json",
+    "data/creator-game-lab.v1.json",
 }
 
 
@@ -55,6 +56,20 @@ def main() -> int:
     fixture = json.loads(read("data/demo-state.json"))
     read_model = json.loads(read("data/arena-read-model.v1.json"))
     feedback_rubric = json.loads(read("data/tester-feedback-rubric.v1.json"))
+    creator_game_lab = json.loads(read("data/creator-game-lab.v1.json"))
+
+    creator_game_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_creator_game.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    require(creator_game_check.returncode == 0, f"mobile creator-game lab drift: {creator_game_check.stderr.strip()}")
+    checks += 1
 
     rubric_check = subprocess.run(
         [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "build_mobile_tester_feedback_rubric.py"), "--check"],
@@ -119,13 +134,13 @@ def main() -> int:
     checks += 4
 
     print("[4] local-only network and execution boundary")
-    combined = "\n".join((html, css, js, adapter, sw, json.dumps(fixture), json.dumps(read_model), json.dumps(feedback_rubric), json.dumps(webmanifest)))
+    combined = "\n".join((html, css, js, adapter, sw, json.dumps(fixture), json.dumps(read_model), json.dumps(feedback_rubric), json.dumps(creator_game_lab), json.dumps(webmanifest)))
     require(re.search(r"https?://", combined, re.IGNORECASE) is None, "mobile shell contains an external URL")
     for forbidden in ("eval(", "new Function", "WebSocket(", "EventSource(", "postMessage(", "document.cookie", "Authorization", "Bearer "):
         require(forbidden not in combined, f"forbidden active capability: {forbidden}")
         checks += 1
     require("dataAdapter.loadArenaData(fetch)" in js, "app must load sources through the fail-closed adapter")
-    require('"data/demo-state.json"' in adapter and '"data/arena-read-model.v1.json"' in adapter and '"data/tester-feedback-rubric.v1.json"' in adapter, "adapter must load only the three bounded local sources")
+    require('"data/demo-state.json"' in adapter and '"data/arena-read-model.v1.json"' in adapter and '"data/tester-feedback-rubric.v1.json"' in adapter and '"data/creator-game-lab.v1.json"' in adapter, "adapter must load only the four bounded local sources")
     require('sourceMode = "verified_corpus"' in adapter and 'sourceMode = "demo_fixture_fallback"' in adapter, "adapter source modes must remain explicit")
     require("requestURL.origin !== self.location.origin" in sw, "service worker must reject cross-origin caching")
     require("localStorage.setItem" in js and "localStorage.getItem" in js, "local blueprint persistence missing")
@@ -159,6 +174,14 @@ def main() -> int:
     require("localStorage" not in "\n".join(line for line in js.splitlines() if "TesterFeedback" in line), "tester feedback lifecycle must not use browser storage")
     require("navigator.clipboard" not in combined and "FileReader" not in combined, "tester feedback flow must not request clipboard or file authority")
     checks += 13
+    require(creator_game_lab.get("schemaVersion") == "builderwars.mobile-creator-game-lab.v1", "creator-game lab schema drift")
+    require(creator_game_lab.get("candidateStatus") == "candidate_not_admitted" and creator_game_lab.get("decision") == "held_exhibition_candidate", "creator-game admission boundary drift")
+    require(all(value is False for value in creator_game_lab.get("authority", {}).values()), "creator-game authority must remain false")
+    require('id="creator-game-lab"' in html and 'id="creator-game-lesson"' in html, "creator-game Build and Learn surfaces missing")
+    require("renderCreatorGameLab" in js and "loadCreatorGameLab" in js, "creator-game mobile lifecycle missing")
+    require("No fallback game, replay, creator adoption, or admission claim was fabricated." in js, "creator-game fail-closed disclosure missing")
+    require("executes no creator code" in adapter and "authority inflation" in adapter, "creator-game execution boundary missing")
+    checks += 7
     require("buildQualificationPreview" in adapter and 'qualificationStatus: "not_run"' in adapter, "deterministic qualification preview missing")
     require('executionStatus: "disabled"' in adapter and "computeAllowed: false" in adapter and "networkAllowed: false" in adapter, "qualification execution boundary missing")
     require("buildLocalExhibitionQualification" in adapter and "createLocalExhibitionReceipt" in adapter and "verifyLocalExhibitionReceipt" in adapter, "deterministic local exhibition loop missing")
@@ -367,6 +390,7 @@ def main() -> int:
         "./data/demo-state.json",
         "./data/arena-read-model.v1.json",
         "./data/tester-feedback-rubric.v1.json",
+        "./data/creator-game-lab.v1.json",
     ):
         require(f'"{offline_asset}"' in sw, f"service-worker cache misses {offline_asset}")
         checks += 1

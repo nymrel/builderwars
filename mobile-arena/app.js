@@ -2,6 +2,8 @@
 
 const state = {
   data: null,
+  creatorGameLab: null,
+  creatorGameLabError: null,
   activeView: "arena",
   followingFirst: false,
   activeLesson: null,
@@ -324,6 +326,43 @@ function renderLessons() {
       <span class="lesson-copy"><span class="row-title">${escapeHTML(lesson.title)}</span><span class="row-detail">${escapeHTML(lesson.level)} · ${escapeHTML(lesson.duration)}</span></span>
       <span class="progress-line" aria-label="${lesson.progress}% complete"><span style="width:${lesson.progress}%"></span></span>
     </button>`).join("");
+}
+
+function renderCreatorGameLab() {
+  const labContainer = $("#creator-game-lab");
+  const lessonContainer = $("#creator-game-lesson");
+  if (!labContainer || !lessonContainer) return;
+  if (!state.creatorGameLab) {
+    const message = escapeHTML(state.creatorGameLabError || "The reviewed local candidate is unavailable.");
+    labContainer.innerHTML = `<div class="creator-game-unavailable" role="status"><strong>Creator game unavailable</strong><p>${message}</p><p>No fallback game, replay, creator adoption, or admission claim was fabricated.</p></div>`;
+    lessonContainer.innerHTML = `<div class="creator-game-unavailable" role="status"><strong>Lesson held</strong><p>The exact reviewed candidate could not be verified, so its rules and admission path are not shown.</p></div>`;
+    return;
+  }
+  const lab = state.creatorGameLab;
+  const manifest = lab.manifest;
+  const rules = manifest.rules;
+  const replay = lab.replay;
+  const fronts = rules.fronts.map((front) => `<li><span>${escapeHTML(front.label)}</span><strong>${front.weight}×</strong></li>`).join("");
+  const admission = lab.admissionGates.map((gate, index) => `<li><span>${String(index + 1).padStart(2, "0")}</span>${escapeHTML(feedbackLabel(gate))}</li>`).join("");
+  labContainer.innerHTML = `
+    <article class="creator-game-card">
+      <div class="creator-game-hero"><div><p class="eyebrow">Reviewed declarative candidate</p><h3>${escapeHTML(manifest.title)}</h3><p>${escapeHTML(manifest.summary)}</p></div><span class="creator-game-status">Not admitted</span></div>
+      <div class="creator-game-metrics" aria-label="Creator game candidate facts">
+        <div><span>Rule family</span><strong>Sealed allocation</strong></div>
+        <div><span>Rounds</span><strong>${rules.rounds}</strong></div>
+        <div><span>Budget</span><strong>${rules.budgetPerRound}</strong></div>
+        <div><span>Replay</span><strong>${escapeHTML(replay.effectiveVerdict)} · ${replay.moveCount} moves</strong></div>
+      </div>
+      <div class="creator-game-columns">
+        <div><p class="creator-game-label">Weighted fronts</p><ul class="creator-fronts">${fronts}</ul></div>
+        <div><p class="creator-game-label">Verified sample result</p><p class="creator-game-score">Seat ${replay.winner + 1} · ${replay.scores[0]}–${replay.scores[1]}</p><p class="fine-print">A deterministic studio replay, not a model or community result.</p></div>
+      </div>
+      <dl class="creator-game-authority"><div><dt>Creator code</dt><dd>Never imported or executed</dd></div><div><dt>Runtime</dt><dd>Not authorized</dd></div><div><dt>Ranking</dt><dd>Not authorized</dd></div><div><dt>Publication</dt><dd>Not authorized</dd></div></dl>
+      <p class="learning-boundary">${escapeHTML(lab.boundary)}</p>
+      <button class="text-button" type="button" data-nav="learn">Learn the admission path</button>
+    </article>`;
+  lessonContainer.innerHTML = `
+    <div class="creator-game-lesson-copy"><p>A safe creator path starts with bounded data, fixed trusted rules, exact digests, and a deterministic replay. Valid JSON is only the beginning.</p><ol class="creator-admission-list">${admission}</ol><p class="fine-print">All eight gates remain required. This browser cannot complete, waive, or attest any of them.</p></div>`;
 }
 
 function portableVerificationMarkup() {
@@ -3045,6 +3084,7 @@ function renderAll() {
   renderRivalries();
   renderCompete();
   renderLessons();
+  renderCreatorGameLab();
   renderReceiptLearning();
   renderBlueprint();
   renderSessionSheet();
@@ -3062,6 +3102,13 @@ async function boot() {
     } catch {
       state.testerFeedbackRubric = null;
       state.testerFeedbackError = "The canonical local rubric could not be verified. No substitute worksheet was created.";
+    }
+    try {
+      state.creatorGameLab = await dataAdapter.loadCreatorGameLab(fetch);
+      state.creatorGameLabError = null;
+    } catch {
+      state.creatorGameLab = null;
+      state.creatorGameLabError = "The source-bound creator-game snapshot could not be verified. The lab failed closed.";
     }
     hydrateStarterGuide();
     hydrateLocalBlueprint();

@@ -7,6 +7,8 @@
   const DEMO_SCHEMA = "builderwars.mobile-arena-demo.v1";
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
   const READ_MODEL_DIGEST_PIN = "5b64209bb139dddfd3789cc04d3f6a0a5a6bbbf160c658e4dd5989f2b53ac27f";
+  const CREATOR_GAME_LAB_SCHEMA = "builderwars.mobile-creator-game-lab.v1";
+  const CREATOR_GAME_LAB_DIGEST_PIN = "88c4c6afdfd78f6561374f72372052236c26d4041bac2837da0134aa2eeab913";
   const SCOPED_RATING_SCHEMA = "agentwars.scoped-proof-rating-board/1";
   const SCOPED_RATING_METHOD = "reviewed_final_win_count_v1";
   const SCOPED_RATING_RESOURCE_CLASS = "reviewed_publication_receipt_v1";
@@ -354,6 +356,76 @@
     return difference === 0;
   }
   function nonNegativeInteger(value) { return Number.isInteger(value) && value >= 0; }
+  function validateCreatorGameLab(lab) {
+    assertSafeKeys(lab, "creatorGameLab", 0, { nodes: 0 }, 512);
+    requireExactKeys(lab, [
+      "schemaVersion", "sourceStatus", "candidateStatus", "registryStatus", "decision",
+      "manifestSha256", "replaySha256", "manifest", "replay", "authority",
+      "admissionGates", "boundary", "labDigest",
+    ], "creator game lab");
+    requireValue(lab.schemaVersion === CREATOR_GAME_LAB_SCHEMA, "unsafe creator game lab: schema drift");
+    requireValue(lab.sourceStatus === "tracked_reviewed_candidate_not_admitted", "unsafe creator game lab: source status drift");
+    requireValue(lab.candidateStatus === "candidate_not_admitted", "unsafe creator game lab: candidate admitted");
+    requireValue(lab.registryStatus === "candidate_registry_not_runtime_admission", "unsafe creator game lab: registry status drift");
+    requireValue(lab.decision === "held_exhibition_candidate", "unsafe creator game lab: decision overstates admission");
+    requireValue(HEX64.test(lab.manifestSha256) && HEX64.test(lab.replaySha256) && HEX64.test(lab.labDigest), "unsafe creator game lab: digest malformed");
+
+    const manifest = lab.manifest;
+    requireExactKeys(manifest, ["schemaVersion", "protocolVersion", "gameId", "version", "title", "summary", "creator", "rules", "presentation"], "creator game manifest");
+    requireValue(manifest.schemaVersion === 1 && manifest.protocolVersion === "agentwars.creator_game.v1", "unsafe creator game lab: manifest protocol drift");
+    requireValue(manifest.gameId === "creator.signal-siege" && manifest.version === "1.0.0", "unsafe creator game lab: reviewed identity drift");
+    requireValue(typeof manifest.title === "string" && manifest.title.length >= 3 && manifest.title.length <= 80, "unsafe creator game lab: title drift");
+    requireValue(typeof manifest.summary === "string" && manifest.summary.length >= 20 && manifest.summary.length <= 280, "unsafe creator game lab: summary drift");
+    requireExactKeys(manifest.creator, ["displayName", "licenseId"], "creator game attribution");
+    requireValue(typeof manifest.creator.displayName === "string" && manifest.creator.displayName.length >= 2 && manifest.creator.displayName.length <= 80, "unsafe creator game lab: creator attribution drift");
+    requireValue(["MIT", "Apache-2.0", "CC-BY-4.0"].includes(manifest.creator.licenseId), "unsafe creator game lab: license allowlist drift");
+    requireExactKeys(manifest.rules, ["family", "rounds", "budgetPerRound", "fronts", "frontOrder", "allocationVisibility", "scoreRule", "seatPolicy"], "creator game rules");
+    requireValue(manifest.rules.family === "sealed_allocation_v1", "unsafe creator game lab: programmable or unknown rule family");
+    requireValue(Number.isInteger(manifest.rules.rounds) && manifest.rules.rounds >= 2 && manifest.rules.rounds <= 20, "unsafe creator game lab: round bound drift");
+    requireValue(Number.isInteger(manifest.rules.budgetPerRound) && manifest.rules.budgetPerRound >= 3 && manifest.rules.budgetPerRound <= 1000, "unsafe creator game lab: budget bound drift");
+    requireValue(manifest.rules.frontOrder === "sha256_rotation_v1" && manifest.rules.allocationVisibility === "sealed_until_both_submit", "unsafe creator game lab: visibility or ordering drift");
+    requireValue(manifest.rules.scoreRule === "winner_two_weight_tie_one_each" && manifest.rules.seatPolicy === "mirrored_series_required", "unsafe creator game lab: scoring or seat policy drift");
+    requireValue(Array.isArray(manifest.rules.fronts) && manifest.rules.fronts.length >= 3 && manifest.rules.fronts.length <= 12, "unsafe creator game lab: front bound drift");
+    const frontIds = new Set();
+    const frontLabels = new Set();
+    for (const front of manifest.rules.fronts) {
+      requireExactKeys(front, ["id", "label", "weight"], "creator game front");
+      requireValue(typeof front.id === "string" && /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(front.id) && !frontIds.has(front.id), "unsafe creator game lab: front id drift");
+      requireValue(typeof front.label === "string" && front.label.length >= 1 && front.label.length <= 48 && !frontLabels.has(front.label.toLocaleLowerCase("en-US")), "unsafe creator game lab: front label drift");
+      requireValue(Number.isInteger(front.weight) && front.weight >= 1 && front.weight <= 1000, "unsafe creator game lab: front weight drift");
+      frontIds.add(front.id);
+      frontLabels.add(front.label.toLocaleLowerCase("en-US"));
+    }
+    requireExactKeys(manifest.presentation, ["spectatorOneLiner", "strategyPrompt"], "creator game presentation");
+    requireValue(typeof manifest.presentation.spectatorOneLiner === "string" && manifest.presentation.spectatorOneLiner.length >= 20, "unsafe creator game lab: spectator copy drift");
+    requireValue(typeof manifest.presentation.strategyPrompt === "string" && manifest.presentation.strategyPrompt.length >= 20, "unsafe creator game lab: strategy copy drift");
+
+    requireExactKeys(lab.replay, ["effectiveVerdict", "moveCount", "seed", "scores", "winner", "reason", "finalStateSha256"], "creator game replay");
+    requireValue(lab.replay.effectiveVerdict === "PASS" && lab.replay.moveCount === manifest.rules.rounds * 2, "unsafe creator game lab: replay verdict or move count drift");
+    requireValue(Number.isSafeInteger(lab.replay.seed) && lab.replay.seed >= 0, "unsafe creator game lab: replay seed drift");
+    requireValue(Array.isArray(lab.replay.scores) && lab.replay.scores.length === 2 && lab.replay.scores.every(nonNegativeInteger), "unsafe creator game lab: replay scores drift");
+    requireValue((lab.replay.winner === 0 || lab.replay.winner === 1 || lab.replay.winner === null) && typeof lab.replay.reason === "string" && HEX64.test(lab.replay.finalStateSha256), "unsafe creator game lab: replay result drift");
+    requireExactKeys(lab.authority, [
+      "authorEntrantRankingAuthorized", "codeExecutionAuthorized", "creatorCodeExecuted", "executionAuthorized",
+      "harnessExecutionAttested", "modelAttested", "providerAttested", "publicationAuthorized",
+      "rankingAuthorized", "runtimeAttested",
+    ], "creator game authority");
+    requireValue(Object.values(lab.authority).every((value) => value === false), "unsafe creator game lab: authority inflation");
+    requireValue(Array.isArray(lab.admissionGates) && lab.admissionGates.length === 8 && new Set(lab.admissionGates).size === 8, "unsafe creator game lab: admission gate drift");
+    requireValue(lab.admissionGates.every((gate) => typeof gate === "string" && /^[a-z0-9_]+$/.test(gate)), "unsafe creator game lab: admission gate malformed");
+    requireValue(typeof lab.boundary === "string" && lab.boundary.includes("executes no creator code") && lab.boundary.includes("grants no identity"), "unsafe creator game lab: truth boundary drift");
+    requireValue(!/https?:\/\//i.test(canonicalJSON(lab)), "unsafe creator game lab: external URL present");
+    return lab;
+  }
+  async function verifyCreatorGameLabIntegrity(labInput) {
+    const lab = validateCreatorGameLab(clone(labInput));
+    requireValue(equalHex(lab.labDigest, CREATOR_GAME_LAB_DIGEST_PIN), "unsafe creator game lab: digest pin mismatch");
+    const payload = clone(lab);
+    delete payload.labDigest;
+    const computedDigest = await sha256Hex(canonicalJSON(payload));
+    requireValue(equalHex(computedDigest, lab.labDigest), "unsafe creator game lab: digest mismatch");
+    return clone(lab);
+  }
   function validateDemoFixture(fixture) {
     requireValue(isObject(fixture), "unsafe demo fixture: expected object");
     requireValue(fixture.schemaVersion === DEMO_SCHEMA, "unsafe demo fixture: schema drift");
@@ -3879,8 +3951,14 @@
     const rubric = await fetchJSON(fetchImpl, "data/tester-feedback-rubric.v1.json", "tester feedback rubric");
     return validateTesterFeedbackRubric(rubric);
   }
+  async function loadCreatorGameLab(fetchImpl = fetch) {
+    const lab = await fetchJSON(fetchImpl, "data/creator-game-lab.v1.json", "creator game lab");
+    return verifyCreatorGameLabIntegrity(lab);
+  }
   return {
     DEMO_SCHEMA,
+    CREATOR_GAME_LAB_SCHEMA,
+    CREATOR_GAME_LAB_DIGEST_PIN,
     LEARNING_SCHEMA,
     TESTER_FEEDBACK_DRAFT_MAX_LENGTH,
     TESTER_FEEDBACK_DRAFT_SCHEMA,
@@ -3968,9 +4046,12 @@
     createPortableRunbackReviewCorrectionExchange,
     demoFallback,
     loadArenaData,
+    loadCreatorGameLab,
     loadTesterFeedbackRubric,
+    validateCreatorGameLab,
     validateArenaReadModel,
     verifyArenaReadModelIntegrity,
+    verifyCreatorGameLabIntegrity,
     validateDemoFixture,
     validateRunbackProposal,
     validateTesterFeedbackRubric,

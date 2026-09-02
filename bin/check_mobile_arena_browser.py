@@ -25,7 +25,8 @@ MOBILE_ARENA = ROOT / "mobile-arena"
 READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
-SHELL_VERSION = "34"
+CREATOR_GAME_LAB_PATH = "**/data/creator-game-lab.v1.json"
+SHELL_VERSION = "35"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -72,7 +73,7 @@ def loopback_server() -> Iterator[str]:
     thread.start()
     host, port = server.server_address
     try:
-        yield f"http://{host}:{port}/index.html?browser-acceptance=1"
+        yield f"http://{host}:{port}/index.html?v={SHELL_VERSION}"
     finally:
         server.shutdown()
         server.server_close()
@@ -145,7 +146,7 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require(response is not None and response.ok, "normal: loopback shell returns HTTP success")
         wait_for_source(page, "verified_corpus")
         requested_resources = set(observed["same_origin_requests"])
-        for resource in (f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}", "/data/tester-feedback-rubric.v1.json"):
+        for resource in (f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}", "/data/tester-feedback-rubric.v1.json", "/data/creator-game-lab.v1.json"):
             evidence.require(resource in requested_resources, f"normal: installed HTML requests current shell resource {resource}")
         evidence.require(not any("?v=30" in resource for resource in requested_resources), "normal: retired v30 shell URLs are not requested")
         evidence.require(locator_visible(page, "#starter-panel"), "starter: first browser visit exposes the local starter guide")
@@ -184,6 +185,19 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
             page.locator(f'.bottom-nav [data-nav="{view}"]').click()
             assert_view(evidence, page, view)
         evidence.journey("five-destination navigation")
+
+        page.locator('.bottom-nav [data-nav="build"]').click()
+        creator_lab = page.locator("#creator-game-lab")
+        evidence.require(creator_lab.is_visible(), "creator game: reviewed candidate lab is visible in Build")
+        creator_text = creator_lab.inner_text()
+        evidence.require("signal siege" in creator_text.lower() and "not admitted" in creator_text.lower(), "creator game: exact candidate identity and held status are visible")
+        evidence.require("Never imported or executed" in creator_text and creator_text.count("Not authorized") == 3, "creator game: code, runtime, ranking, and publication boundaries are visible")
+        evidence.require(page.locator("#creator-game-lab .creator-fronts li").count() == 5, "creator game: five reviewed weighted fronts render")
+        page.locator('#creator-game-lab [data-nav="learn"]').click()
+        assert_view(evidence, page, "learn")
+        evidence.require(page.locator("#creator-game-lesson .creator-admission-list li").count() == 8, "creator game: all eight admission gates remain visible")
+        evidence.require("cannot complete, waive, or attest" in page.locator("#creator-game-lesson").inner_text(), "creator game: browser authority limit is explicit")
+        evidence.journey("reviewed declarative creator-game candidate through Build and Learn")
 
         page.locator('.bottom-nav [data-nav="watch"]').click()
         page.locator('.bottom-nav [data-nav="compete"]').click()
@@ -519,6 +533,26 @@ def tester_rubric_failure_journey(browser: Any, base_url: str, evidence: Evidenc
         context.close()
 
 
+def creator_game_failure_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
+    context = browser.new_context(viewport=VIEWPORTS[1], service_workers="allow")
+    page = context.new_page()
+    observed = install_observers(page, base_url, "creator-game-failure")
+    try:
+        page.route(CREATOR_GAME_LAB_PATH, lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
+        page.goto(base_url, wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        page.locator('.bottom-nav [data-nav="build"]').click()
+        text = page.locator("#creator-game-lab").inner_text()
+        evidence.require("Creator game unavailable" in text and "No fallback game" in text, "creator game failure: invalid source withholds the lab without fabrication")
+        evidence.require(page.locator("#creator-game-lab .creator-game-card").count() == 0, "creator game failure: no candidate card survives failed verification")
+        page.locator('.bottom-nav [data-nav="learn"]').click()
+        evidence.require("Lesson held" in page.locator("#creator-game-lesson").inner_text(), "creator game failure: learning projection is also withheld")
+        assert_observers_clean(evidence, observed, "creator-game-failure")
+        evidence.journey("creator-game source failure and no fabricated fallback")
+    finally:
+        context.close()
+
+
 def storage_denial_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
     context = browser.new_context(viewport=VIEWPORTS[0], service_workers="allow")
     context.add_init_script(
@@ -608,7 +642,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v34');
+              const cache = await caches.open('builderwars-mobile-arena-v35');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;
@@ -620,6 +654,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         for resource in (f"/index.html?v={SHELL_VERSION}", f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
             evidence.require(resource in cache_state["urls"], f"offline: current shell cache contains {resource}")
         evidence.require("/data/tester-feedback-rubric.v1.json" in cache_state["urls"], "offline: canonical tester rubric is cached with the current shell")
+        evidence.require("/data/creator-game-lab.v1.json" in cache_state["urls"], "offline: reviewed creator-game lab is cached with the current shell")
         evidence.require(not any("?v=30" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v30 URLs")
         page.reload(wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
@@ -633,6 +668,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         evidence.require("Browser reports offline" in (page.locator("#connection-status").get_attribute("aria-label") or ""), "offline: browser connectivity is disclosed")
         page.locator('.bottom-nav [data-nav="learn"]').click()
         assert_view(evidence, page, "learn")
+        evidence.require(page.locator("#creator-game-lesson .creator-admission-list li").count() == 8, "offline: verified creator-game admission lesson remains available")
         evidence.require(not observed["external_requests"], f"offline: zero cross-origin requests ({observed['external_requests']})")
         evidence.require(not observed["console"], f"offline: zero console warnings or errors ({observed['console']})")
         evidence.require(not observed["page_errors"], f"offline: zero uncaught page errors ({observed['page_errors']})")
@@ -662,6 +698,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             semantic_drift_fallback_journey(browser, base_url, evidence)
             fatal_source_journey(browser, base_url, evidence)
             tester_rubric_failure_journey(browser, base_url, evidence)
+            creator_game_failure_journey(browser, base_url, evidence)
             storage_denial_journey(browser, base_url, evidence)
             reduced_motion_journey(browser, base_url, evidence)
             offline_journey(browser, base_url, evidence)

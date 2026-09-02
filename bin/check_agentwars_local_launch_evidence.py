@@ -122,8 +122,11 @@ def main() -> int:
             "publishing/agentwars-public-correction-ledger.v1.json",
             "docs/AGENTWARS_PUBLIC_CORRECTIONS.md",
             "docs/BUILDERWARS_MOBILE_AGENT_PASSPORTS.md",
+            "docs/AGENTWARS_CREATOR_GAME_SDK.md",
+            "docs/BUILDERWARS_MOBILE_CREATOR_GAME_LAB.md",
+            "mobile-arena/data/creator-game-lab.v1.json",
         ),
-        "stage 7 binds corrections plus the mobile Agent Passport disclosure contract",
+        "stage 7 binds corrections plus mobile Agent Passport and held creator-game contracts",
     )
     check(
         stages[8].commands == (
