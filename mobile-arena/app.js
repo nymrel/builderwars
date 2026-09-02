@@ -289,9 +289,29 @@ function renderRivalries() {
     </div>`).join("");
 }
 
+function renderLocalPlaySpotlight(fixture) {
+  const container = $("#local-play-spotlight");
+  if (!container) return;
+  const view = dataAdapter.buildLocalPlaySpotlightView(blueprintFromForm(), fixture, state.localExhibitionReceipt, state.data.sourceMode);
+  const template = $(`#local-play-${view.available ? "ready" : "held"}-template`);
+  container.replaceChildren(template.content.cloneNode(true));
+  if (!view.available) return;
+  const card = container.firstElementChild;
+  card.dataset.localPlayState = view.phase;
+  $(".local-play-status", card).textContent = view.status;
+  $("[data-local-play-blueprint]", card).textContent = view.blueprint;
+  $("[data-local-play-duration]", card).textContent = view.duration;
+  const action = $("[data-qualification-preview]", card);
+  action.dataset.qualificationPreview = fixture.id;
+  action.textContent = view.action;
+}
+
 function renderCompete() {
   $("#entry-boundary").innerHTML = `<strong>${escapeHTML(state.data.account.accessLabel)}</strong><span>${escapeHTML(state.data.account.accessDetail)}</span>`;
-  $("#quick-matches").innerHTML = state.data.quickMatches.map((match) => `
+  const localFixture = state.data.quickMatches.find((match) => match.exhibitionAllowed === true) || null;
+  renderLocalPlaySpotlight(localFixture);
+  const formats = state.data.quickMatches.filter((match) => match.exhibitionAllowed !== true);
+  $("#quick-matches").innerHTML = formats.map((match) => `
     <div class="quick-row">
       <div><span class="mode-label">${escapeHTML(match.mode)}</span><p class="row-title">${escapeHTML(match.title)}</p><p class="row-detail">${escapeHTML(match.duration)} · ${escapeHTML(match.access)} · unranked</p></div>
       ${match.previewAllowed ? `<button class="queue-button preview" type="button" data-qualification-preview="${escapeHTML(match.id)}">${escapeHTML(match.actionLabel)}</button>` : `<button class="queue-button" type="button" data-queue="${escapeHTML(match.id)}">${escapeHTML(match.actionLabel || "Explore format")}</button>`}
@@ -1152,6 +1172,7 @@ function armOrRemoveLocalBlueprint() {
     disarmBlueprintRemoval({ render: false });
     $("#builder-form").reset();
     renderBlueprint();
+    renderCompete();
     renderSessionSheet();
     showToast("Browser-only blueprint removed. Reviewed receipts and tracked source files were not deleted.");
   } catch {
@@ -1399,10 +1420,12 @@ async function runLocalExhibition() {
     state.localExhibitionLearning = learning;
     state.localExhibitionRunback = runback;
     renderQualificationPreview(qualification.fixture.fixtureId);
+    renderCompete();
     return true;
   } catch {
     clearLocalExhibitionResult();
     renderQualificationPreview(qualification.fixture.fixtureId);
+    renderCompete();
     return false;
   }
 }
@@ -2351,7 +2374,7 @@ function renderSourceChrome() {
   $("#channels-source-label").textContent = verified ? "receipt channels" : "demo catalog";
   $("#standings-title").textContent = verified ? "Receipt board" : "Demo roster";
   $("#standings-help").textContent = "Why this is not ranked";
-  $("#quick-title").textContent = verified ? "Playable and proposed formats" : "Static format previews";
+  $("#quick-title").textContent = verified ? "Other proposed formats" : "Static format previews";
   $("#quick-source-label").textContent = verified ? "proposed · inactive" : "unranked demo";
   $("#learn-proof-button").textContent = verified ? "Inspect a reviewed receipt" : "Inspect the demo receipt";
   $("#entry-boundary").setAttribute("aria-label", `${state.data.account.accessLabel}. ${state.data.account.accessDetail}.`);
@@ -2462,6 +2485,7 @@ function bindEvents() {
       const fixtureId = state.qualificationPreview?.fixture?.fixtureId;
       clearLocalExhibitionResult();
       if (fixtureId) renderQualificationPreview(fixtureId);
+      renderCompete();
       showToast("Memory-only exhibition result discarded. No tracked receipt or remote state was deleted.");
       return;
     }
@@ -3025,10 +3049,11 @@ function bindEvents() {
     await prepareTesterFeedbackDraft();
   });
   $("#watch-filter").addEventListener("click", () => { state.followingFirst = !state.followingFirst; $("#watch-filter").textContent = state.followingFirst ? "Default order" : "Following first"; renderChannels(); });
-  $("#builder-form").addEventListener("input", renderBlueprint);
+  $("#builder-form").addEventListener("input", () => { renderBlueprint(); renderCompete(); });
   $("#builder-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const blueprint = renderBlueprint();
+    renderCompete();
     try {
       const serialized = JSON.stringify(blueprint);
       localStorage.setItem(BLUEPRINT_STORAGE_KEY, serialized);

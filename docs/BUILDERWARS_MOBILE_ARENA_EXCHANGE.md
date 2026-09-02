@@ -19,12 +19,18 @@ The interface may borrow information-density and watchlist patterns from modern
 consumer finance products, but it must not imply investing, asset ownership,
 wagering, cash prizes, or speculative returns.
 
-The v37 demo fallback also refuses finance and social theater. It contains no
+The v38 demo fallback also refuses finance and social theater. It contains no
 invented credits, ratings, deltas, trend charts, ranks, records, viewer counts,
 model quotas, earned lesson progress, enabled reminders, or streaks. Its match
 is a static simulated fixture, channels explicitly carry no audience data, and
 the roster is unranked with zero reviewed receipts. The verified-corpus path
 continues to render only receipt-derived counts and exact scoped proof points.
+Its Compete view promotes the verified deterministic Nim exhibition into one
+dedicated four-stage proof-loop surface: blueprint, qualification, run and
+replay, then receipt inspection. The general format list no longer duplicates
+that fixture. When verified-corpus loading fails, the same surface becomes a
+non-actionable held state and explicitly denies local execution, match, model,
+provider, receipt, and runback creation.
 The independent product review that motivated this boundary is recorded in
 [`BUILDERWARS_FABLE_5_1_TOP_DOWN_REVIEW_2026-09-01.md`](BUILDERWARS_FABLE_5_1_TOP_DOWN_REVIEW_2026-09-01.md).
 
@@ -299,13 +305,14 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 359
+It starts an ephemeral loopback server and runs managed Chromium through 373
 assertions across 25 isolated journeys: first-run starter selection, returning
 state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, and trigger-focus restoration; proposed
-fixture qualification; a separate deterministic browser-memory Nim exhibition
-through replay-verified receipt candidate, visible learning, a versioned
+fixture qualification; a prominent verified-corpus-only local-play spotlight;
+a separate deterministic browser-memory Nim exhibition through ready, result,
+discard, and reload spotlight states, replay-verified receipt candidate, visible learning, a versioned
 seat-swapped unplayed runback, explicit discard, and reload cleanup; local
 blueprint persistence; local-session inspection,
 the eight-category memory-only tester worksheet, reload cleanup, invalid-rubric
@@ -315,8 +322,8 @@ failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; emulated forced-colors navigation, focus, and dialog rendering;
 an explicit 320-CSS-pixel reflow journey across every destination and the local
 session, tester-feedback, and proof dialogs; zero console/page errors; no
-document overflow; zero cross-origin requests; coherent v37 HTML requests; and
-a v37-only installed offline cache. Actual browser zoom, assistive technology,
+document overflow; zero cross-origin requests; coherent v38 HTML requests; and
+a v38-only installed offline cache. Actual browser zoom, assistive technology,
 display hardware, and production accessibility remain unproven. The gate found
 and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
@@ -507,7 +514,7 @@ seven adversarial parser and threshold checks. This is tracked CSS evidence,
 not a rendered-page or production-accessibility claim.
 
 The focused local-exhibition checker runs 87 assertions. The integrated exchange
-checker runs 366 checks, and real-browser acceptance runs 359 assertions across
+checker runs 373 checks, and real-browser acceptance runs 373 assertions across
 25 journeys, including canonical share preparation, same-page verification,
 tamper refusal, clean-state resolution, discard, reload cleanup, and storage
 invariance, emulated forced colors, and 320-CSS-pixel dialog reflow. These are
@@ -873,7 +880,7 @@ adversarial assertions covering all reason, provenance, and boolean combinations
 exact unknown-key closure; known-guard preservation; canonical determinism; full
 ancestry reconstruction; all-false authority; nested and resealed tampering;
 dangerous keys; excessive depth or nodes; and oversized input. The integrated
-mobile checker runs 366 checks across this contract and every preceding Arena
+mobile checker runs 373 checks across this contract and every preceding Arena
 Exchange layer.
 
 ### Deterministic private guard-completion review
@@ -909,7 +916,7 @@ adversarial assertions across every allowed decision/reason pair, candidate
 suppression for defer and reject, exact completed-blueprint and provenance
 preservation, full ancestry reconstruction, all-false authority, nested and
 resealed tampering, dangerous keys, excessive depth or nodes, and oversized
-input. The integrated mobile checker runs 366 checks across this contract and
+input. The integrated mobile checker runs 373 checks across this contract and
 every preceding Arena Exchange layer.
 
 ### Deterministic local operator-review packet
@@ -940,7 +947,7 @@ review-only creation; full lineage reconstruction; exact diff and digest parity;
 deterministic export; zero authority; all-unrun validation; discard rollback;
 operator-decision suppression; nested and fully resealed tampering; dangerous
 keys; excessive depth or nodes; and oversized input. The integrated mobile
-checker runs 366 checks across this contract and every preceding Arena Exchange
+checker runs 373 checks across this contract and every preceding Arena Exchange
 layer. A refused operator-packet import preserves the verified upstream
 completion review while retaining no operator decision or packet authority.
 

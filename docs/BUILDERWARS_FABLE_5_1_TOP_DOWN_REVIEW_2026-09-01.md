@@ -128,9 +128,9 @@ The launch ladder remains evidence gated:
 Numbers above are proposed cohort shapes, not current users, commitments,
 results, or launch claims.
 
-## Decision adopted in this slice
+## Decisions adopted through the first two slices
 
-Only the demo-truth recommendation is adopted now. The mobile fallback must:
+The first slice adopted the demo-truth recommendation. The mobile fallback must:
 
 - show a static fixture, never simulated-live state;
 - expose no invented credits, ratings, deltas, trends, viewers, quotas, ranks,
@@ -139,6 +139,13 @@ Only the demo-truth recommendation is adopted now. The mobile fallback must:
 - keep reminders off by default and browser-session only;
 - present demo entrants as an unranked roster with zero reviewed receipts;
 - preserve the verified-corpus receipt board and exact scoped proof points.
+
+The second slice adopts the recommendation to make the existing deterministic
+local proof loop prominent. Mobile Arena v38 gives the verified-corpus Nim
+exhibition its own Compete spotlight, removes its duplicate format row, surfaces
+the current blueprint and four proof stages before entry, and reflects ready,
+memory-result, discard, and reload states. If the verified corpus is unavailable,
+the spotlight exposes no action and says that local execution was withheld.
 
 All other Fable recommendations remain candidates for their own bounded design,
 implementation, and evidence passes.

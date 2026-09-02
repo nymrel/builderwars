@@ -441,7 +441,7 @@
     requireValue(proof.runtimeAttested === false, "unsafe demo fixture: runtime attestation must stay false");
     requireValue(proof.registryState === "pending_registry_commit", "unsafe demo fixture: registry boundary drift");
     requireValue(fixture.featured.status === "simulated_fixture", "unsafe demo fixture: featured status drift");
-    requireValue(isObject(fixture.account) && fixture.account.accessLabel === "Local play only" && fixture.account.accessDetail === "No account or provider call", "unsafe demo fixture: access boundary drift");
+    requireValue(isObject(fixture.account) && fixture.account.accessLabel === "Static preview only" && fixture.account.accessDetail === "No account, provider, or local execution", "unsafe demo fixture: access boundary drift");
     const unearnedMetricKey = /"(?:creditsRemaining|creditsLabel|viewers|rating|delta|trend|rank|cost|quota|latency)"\s*:/;
     requireValue(!unearnedMetricKey.test(canonicalJSON(fixture)), "unsafe demo fixture: unearned finance, audience, ranking, or capacity metric");
     requireValue(!/\blive\b/i.test(fixture.featured.status), "unsafe demo fixture: live status claim");
@@ -969,6 +969,23 @@
       executionBlockers,
       attestations: { identity: false, model: false, provider: false, runtime: false, registry: false, publication: false },
       boundary: LOCAL_EXHIBITION_BOUNDARY,
+    };
+  }
+  function buildLocalPlaySpotlightView(blueprint, fixture, receipt, sourceMode) {
+    if (!fixture || sourceMode !== "verified_corpus") return { available: false };
+    let qualification = null;
+    try {
+      qualification = buildLocalExhibitionQualification(blueprint, fixture, sourceMode);
+    } catch {}
+    const ready = qualification?.qualificationStatus === "qualified_local_exhibition";
+    const result = ready && receipt?.qualification?.qualificationKey === qualification.qualificationKey;
+    return {
+      available: true,
+      phase: result ? "result" : ready ? "ready" : "setup",
+      status: result ? "Receipt in memory" : ready ? "Ready locally" : "Setup needed",
+      action: result ? "Inspect local result" : ready ? "Review and run" : "Review setup",
+      blueprint: `${blueprint.agentName || "Untitled Agent"} · ${blueprint.harnessStyle}`,
+      duration: fixture.duration,
     };
   }
   async function validateLocalExhibitionConstants() {
@@ -4035,6 +4052,7 @@
     appendPortableRunbackReviewCorrection,
     buildQualificationPreview,
     buildLocalExhibitionQualification,
+    buildLocalPlaySpotlightView,
     buildReceiptLearningAction,
     buildRunbackProposal,
     createLocalExhibitionLearning,

@@ -136,6 +136,27 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -.035em; }
 .entry-boundary { max-width: 180px; text-align: right; color: var(--muted); font-size: 10px; line-height: 1.35; }
 .entry-boundary strong, .entry-boundary span { display: block; }
 .entry-boundary strong { color: var(--text); font-size: 13px; }
+.local-play-shell { min-width: 0; }
+.local-play-card { position: relative; display: grid; gap: 18px; overflow: hidden; padding: clamp(20px, 5vw, 32px); border: 1px solid color-mix(in srgb, var(--lime) 35%, var(--line)); border-radius: 18px; background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 90%, var(--lime) 10%), var(--surface)); }
+.local-play-card::after { content: ""; position: absolute; right: -90px; bottom: -110px; width: 250px; height: 250px; border: 1px solid color-mix(in srgb, var(--lime) 18%, transparent); border-radius: 50%; pointer-events: none; }
+.local-play-card.is-held { border-color: var(--line); background: var(--surface); }
+.local-play-card.is-held::after { border-color: var(--line-soft); }
+.local-play-top, .local-play-actions { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.local-play-status { color: var(--lime); font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.is-held .local-play-status { color: #ffd36b; }
+.local-play-copy { position: relative; z-index: 1; max-width: 760px; }
+.local-play-copy h2 { max-width: 18ch; margin-top: 4px; font-size: clamp(28px, 7vw, 48px); line-height: .98; }
+.local-play-copy > p:last-child { max-width: 70ch; margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.local-play-steps { position: relative; z-index: 1; display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.local-play-steps li { min-width: 0; padding: 12px; border: 1px solid var(--line-soft); border-radius: 10px; background: rgb(0 0 0 / .12); }
+.local-play-steps span, .local-play-steps strong, .local-play-steps small { display: block; }
+.local-play-steps span { color: var(--lime); font: 800 9px ui-monospace, SFMono-Regular, Consolas, monospace; }
+.local-play-steps strong { margin-top: 5px; font-size: 12px; }
+.local-play-steps small { margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.local-play-actions { justify-content: flex-start; flex-wrap: wrap; }
+.local-play-boundary, .local-play-held { position: relative; z-index: 1; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.local-play-held { display: grid; gap: 5px; max-width: 680px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.local-play-held strong { color: var(--text); font-size: 12px; }
 .quick-row { grid-template-columns: 1fr auto; gap: 14px; padding: 8px 0; }
 .mode-label { color: var(--lime); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
 .queue-button { min-height: 42px; background: transparent; color: var(--lime); }
@@ -358,6 +379,8 @@ legend { margin-bottom: 8px; }
   .starter-grid { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; padding-bottom: 0; }
   .arena-layout { grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr); align-items: start; }
   .watch-layout, .compete-layout, .learn-layout, .build-layout { grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); }
+  .local-play-shell { grid-column: 1 / -1; }
+  .local-play-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .receipt-learning, .creator-game-lesson { grid-column: 1 / -1; }
   .creator-game-hero { grid-template-columns: minmax(0, 1fr) auto; }
   .creator-game-status { justify-self: auto; }
@@ -390,7 +413,7 @@ legend { margin-bottom: 8px; }
   *, *::before, *::after { box-shadow: none !important; text-shadow: none !important; }
   .topbar, .connection-strip, .bottom-nav, .bottom-sheet, .starter-panel,
   .card, .watch-item, .filter-button, .follow-button, .primary-button,
-  .secondary-button, .queue-button, .danger-button, input, select, textarea,
+  .secondary-button, .queue-button, .danger-button, .local-play-card, input, select, textarea,
   fieldset { border-color: CanvasText; }
   .topbar, .connection-strip, .bottom-nav, .bottom-sheet, .starter-panel,
   .card, .watch-item, input, select, textarea { background: Canvas; color: CanvasText; }

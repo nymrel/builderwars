@@ -110,6 +110,7 @@ function response(body, ok = true) {
 
   const fallback = adapter.demoFallback(demo);
   check(fallback.sourceMode === "demo_fixture_fallback" && fallback.featured.statusLabel === "Simulated fixture", "labels the bounded static fallback")
+  check(fallback.account.accessLabel === "Static preview only" && fallback.account.accessDetail === "No account, provider, or local execution", "fallback denies executable local play when the verified corpus is unavailable")
   check(fallback.leaderboard.every((row) => row.position === "—" && row.metric === "DEMO" && row.verified === 0), "fallback roster remains unranked and unverified")
   check(fallback.channels.every((channel) => channel.evidenceLabel.includes("no audience data")), "fallback channels carry no audience data")
   check(fallback.lessons.every((lesson) => lesson.progress === 0), "fallback carries no earned learning progress")

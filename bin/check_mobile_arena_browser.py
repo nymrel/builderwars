@@ -27,7 +27,7 @@ READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
 CREATOR_GAME_LAB_PATH = "**/data/creator-game-lab.v1.json"
-SHELL_VERSION = "37"
+SHELL_VERSION = "38"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -290,7 +290,14 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.journey("unknown proof fail-closed routing")
 
         page.locator('.bottom-nav [data-nav="compete"]').click()
-        preview = page.locator("[data-qualification-preview]").first
+        spotlight = page.locator("#local-play-spotlight")
+        spotlight_text = spotlight.inner_text()
+        evidence.require(spotlight.locator('[data-local-play-state="ready"]').count() == 1, "local play spotlight: safe default blueprint is visibly ready")
+        evidence.require("Run the complete local proof loop" in spotlight_text and "zero provider calls" in spotlight_text, "local play spotlight: the complete deterministic loop and provider boundary are first-class")
+        evidence.require("No sign-in, model inference, provider access, persistence, ranking, registry, or publication" in spotlight_text, "local play spotlight: authority boundary is visible before entry")
+        evidence.require(spotlight.locator("[data-qualification-preview]").count() == 1 and page.locator("#quick-matches").inner_text().count("Practice") == 0, "local play spotlight: one promoted practice entry exists without a duplicate format row")
+        evidence.require(page.locator("#quick-title").inner_text() == "Other proposed formats", "local play spotlight: inactive formats remain secondary")
+        preview = page.locator("#quick-matches [data-qualification-preview]").first
         evidence.require(preview.count() == 1, "qualification: a bounded proposed fixture is available")
         preview.click()
         qualification_text = page.locator("#qualification-sheet").inner_text()
@@ -302,8 +309,8 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.journey("proposed fixture qualification preview")
 
         storage_before_exhibition = page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))")
-        exhibition = page.locator('[data-qualification-preview]').filter(has_text="Practice")
-        evidence.require(exhibition.count() == 1, "local exhibition: exactly one separate deterministic practice fixture is available")
+        exhibition = page.locator('#local-play-spotlight [data-qualification-preview]')
+        evidence.require(exhibition.count() == 1, "local exhibition: exactly one prominent deterministic practice fixture is available")
         exhibition.click()
         exhibition_text = page.locator("#qualification-sheet").inner_text()
         evidence.require("Local exhibition qualified" in exhibition_text, "local exhibition: safe default blueprint qualifies for bounded practice")
@@ -312,6 +319,9 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require("all false" in exhibition_text, "local exhibition: every authority attestation remains false")
         page.locator("[data-local-exhibition-run]").click()
         page.wait_for_selector("#local-exhibition-result-title")
+        spotlight_state = page.locator("#local-play-spotlight [data-local-play-state]").get_attribute("data-local-play-state")
+        spotlight_result_text = page.locator("#local-play-spotlight").inner_text()
+        evidence.require(spotlight_state == "result" and "receipt in memory" in spotlight_result_text.lower(), f"local exhibition: spotlight reflects the memory-only result without claiming publication (state={spotlight_state!r}, text={spotlight_result_text!r})")
         result_text = page.locator("#qualification-content").inner_text()
         evidence.require("Replay verified" in result_text and "Receipt candidate\nVerified locally · unreviewed" in result_text, "local exhibition: receipt candidate is independently replay verified without review claim")
         evidence.require("Model/provider moves\n0 / 0" in result_text, "local exhibition: model and provider move counts remain zero")
@@ -335,15 +345,27 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         page.locator("[data-local-exhibition-proof-share-verify]").click()
         evidence.require("Proof refused" in page.locator(".local-exhibition-proof-share-status.invalid").inner_text(), "local exhibition share: changed input fails closed")
         evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before_exhibition, "local exhibition: qualification, play, proof, learning, and runback do not touch browser storage")
+        page.keyboard.press("Escape")
+        page.locator('.bottom-nav [data-nav="build"]').click()
+        page.locator("#agent-name").fill("Revised Browser Proof")
+        page.locator('.bottom-nav [data-nav="compete"]').click()
+        evidence.require(page.locator('#local-play-spotlight [data-local-play-state="ready"]').count() == 1 and "Revised Browser Proof" in page.locator("#local-play-spotlight").inner_text(), "local exhibition: a changed blueprint cannot inherit the prior receipt status")
+        page.locator('#local-play-spotlight [data-qualification-preview]').click()
+        evidence.require(page.locator("#local-exhibition-result-title").count() == 0 and page.locator("[data-local-exhibition-run]").is_visible(), "local exhibition: opening the changed qualification clears the stale result chain")
+        evidence.require(page.locator("#local-exhibition-proof-share-import").input_value() == "", "local exhibition: changed qualification clears stale private proof text")
+        evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before_exhibition, "local exhibition: unsaved blueprint revision and stale-result cleanup remain storage free")
+        page.locator("[data-local-exhibition-run]").click()
+        page.wait_for_selector("#local-exhibition-result-title")
         page.locator("[data-local-exhibition-discard]").click()
         evidence.require(page.locator("#local-exhibition-result-title").count() == 0, "local exhibition: explicit discard clears the memory-only result")
+        evidence.require(page.locator('#local-play-spotlight [data-local-play-state="ready"]').count() == 1, "local exhibition: discard returns the spotlight to the locally ready state")
         evidence.require("tracked receipt or remote state was deleted" in page.locator("#toast").inner_text().lower(), "local exhibition: discard does not imply tracked or remote deletion")
         page.locator("[data-local-exhibition-run]").click()
         page.wait_for_selector("#local-exhibition-result-title")
         page.reload(wait_until="domcontentloaded")
         wait_for_source(page, "verified_corpus")
         page.locator('.bottom-nav [data-nav="compete"]').click()
-        page.locator('[data-qualification-preview]').filter(has_text="Practice").click()
+        page.locator('#local-play-spotlight [data-qualification-preview]').click()
         evidence.require(page.locator("#local-exhibition-result-title").count() == 0 and page.locator("[data-local-exhibition-run]").is_visible(), "local exhibition: reload clears the browser-memory receipt, learning, runback, and prepared share")
         evidence.require(page.locator("#local-exhibition-proof-share-import").input_value() == "", "local exhibition share: reload clears imported private proof text")
         page.locator("#local-exhibition-proof-share-import").fill(proof_share)
@@ -480,7 +502,11 @@ def fallback_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         channels_text = page.locator("#channels").inner_text().lower()
         evidence.require(channels_text.count("no audience data") == 5 and "viewers" not in channels_text, "fallback: channels deny audience counts")
         page.locator('.bottom-nav [data-nav="compete"]').click()
-        evidence.require(page.locator("#entry-boundary").inner_text().splitlines() == ["Local play only", "No account or provider call"], "fallback: access replaces simulated credits")
+        evidence.require(page.locator("#entry-boundary").inner_text().splitlines() == ["Static preview only", "No account, provider, or local execution"], "fallback: access denies account, provider, and local execution")
+        fallback_spotlight = page.locator("#local-play-spotlight")
+        evidence.require(fallback_spotlight.locator('[data-local-play-state="held"]').count() == 1, "fallback: local-play spotlight fails closed")
+        evidence.require("No executable fixture loaded" in fallback_spotlight.inner_text() and "static previews" in fallback_spotlight.inner_text().lower(), "fallback: held spotlight explains why no substitute match exists")
+        evidence.require(fallback_spotlight.locator("[data-qualification-preview], [data-local-exhibition-run]").count() == 0, "fallback: held spotlight exposes no execution control")
         evidence.require(page.locator("#quick-title").inner_text() == "Static format previews", "fallback: inactive demo formats are not labeled as live matches")
         evidence.require(page.locator("#quick-matches").inner_text().count("Local preview · no provider call") == 3, "fallback: every quick match denies provider execution")
         evidence.require(page.locator("#quick-matches [data-queue]").all_inner_texts() == ["Explore format", "Explore format", "Explore format"], "fallback: demo controls do not claim queue entry")
@@ -745,7 +771,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v37');
+              const cache = await caches.open('builderwars-mobile-arena-v38');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;

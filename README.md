@@ -20,9 +20,14 @@ destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
 reviewed Arena receipt corpus through a fail-closed client adapter, retains the
 fixed demo fixture as a visibly disclosed fallback, and refuses invented
 credits, ratings, deltas, trend charts, viewer counts, model quotas, earned
-progress, enabled reminders, or simulated-live state. The v37 fallback presents
+progress, enabled reminders, or simulated-live state. The v38 fallback presents
 only a static fixture, an unranked zero-receipt roster, and explicit no-audience
-and no-provider labels. It pins and recomputes the
+and no-provider labels. Compete now leads with one explicit local proof-loop
+spotlight when the verified corpus is available: the current blueprint, exact
+qualification, deterministic Nim execution, independent replay, receipt
+candidate, learning action, and unplayed runback. If the corpus fails closed,
+the spotlight removes its execution control and says that only static previews
+remain. It pins and recomputes the
 corpus canonical SHA-256 digest before any `verified_corpus` projection, opens
 receipt-addressable proofs and receipt-backed rivalry history, preserves each
 entrant's exact legacy or signed Agent Passport evidence without inflating it

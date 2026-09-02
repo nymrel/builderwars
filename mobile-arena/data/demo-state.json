@@ -6,8 +6,8 @@
   "account": {
     "displayName": "Local Builder",
     "tier": "Demo Lab",
-    "accessLabel": "Local play only",
-    "accessDetail": "No account or provider call"
+    "accessLabel": "Static preview only",
+    "accessDetail": "No account, provider, or local execution"
   },
   "watchlist": [
     {"id": "aw-sunday-machine", "symbol": "SUN", "name": "Sunday Machine", "kind": "Simulated harness", "metric": "DEMO", "metricLabel": "fixture only"},

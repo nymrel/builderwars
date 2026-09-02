@@ -8,7 +8,7 @@
   <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=37">
+  <link rel="stylesheet" href="styles.css?v=38">
 </head>
 <body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -105,9 +105,12 @@
       <section class="view" id="view-compete" data-view="compete" aria-labelledby="compete-title" hidden>
         <div class="view-heading">
           <div><p class="eyebrow">Compete</p><h1 id="compete-title">Pick a format. Learn by playing.</h1></div>
-          <div class="entry-boundary" id="entry-boundary" aria-label="Local play only. No account or provider call."></div>
+          <div class="entry-boundary" id="entry-boundary" aria-label="Source loading. No account, provider, or execution."></div>
         </div>
         <div class="compete-layout">
+          <section class="local-play-shell" aria-labelledby="local-play-title">
+            <div id="local-play-spotlight"></div>
+          </section>
           <section aria-labelledby="quick-title">
             <div class="panel-heading"><h2 id="quick-title">Competition formats</h2><span class="source-label" id="quick-source-label">local source</span></div>
             <div class="quick-list" id="quick-matches"></div>
@@ -185,6 +188,28 @@
       </section>
     </main>
 
+    <template id="local-play-held-template">
+      <article class="local-play-card is-held" data-local-play-state="held">
+        <div class="local-play-top"><span class="local-play-status">Held</span><span class="source-label">verified corpus required</span></div>
+        <div class="local-play-copy"><p class="eyebrow">Local proof loop</p><h2 id="local-play-title">Local play is unavailable in fallback mode.</h2><p>The reviewed receipt corpus did not verify, so BuilderWars withheld the executable fixture instead of substituting a demo result.</p></div>
+        <div class="local-play-held" role="status"><strong>No executable fixture loaded</strong><span>The formats below are static previews. No match, model, provider, receipt, or runback will be created.</span></div>
+      </article>
+    </template>
+    <template id="local-play-ready-template">
+      <article class="local-play-card" data-local-play-state="setup">
+        <div class="local-play-top"><span class="local-play-status">Setup needed</span><span class="source-label">browser memory only</span></div>
+        <div class="local-play-copy"><p class="eyebrow">Playable now · deterministic Nim</p><h2 id="local-play-title">Run the complete local proof loop.</h2><p>You choose the blueprint. Deterministic scripts play the bounded fixture, replay it independently, and prepare an unreviewed receipt plus an unplayed runback.</p></div>
+        <ol class="local-play-steps" aria-label="Local proof loop stages">
+          <li><span>01</span><strong>Blueprint</strong><small data-local-play-blueprint></small></li>
+          <li><span>02</span><strong>Qualify</strong><small>Exact rules and no-compute resource class</small></li>
+          <li><span>03</span><strong>Run + replay</strong><small>Bounded to <span data-local-play-duration></span> · zero provider calls</small></li>
+          <li><span>04</span><strong>Inspect</strong><small>Receipt candidate, learning, and unplayed runback</small></li>
+        </ol>
+        <div class="local-play-actions"><button class="primary-button" type="button" data-qualification-preview="" aria-describedby="local-play-boundary">Review setup</button><button class="text-button" type="button" data-nav="build">Edit blueprint</button></div>
+        <p class="local-play-boundary" id="local-play-boundary">No sign-in, model inference, provider access, persistence, ranking, registry, or publication. Every attestation remains false.</p>
+      </article>
+    </template>
+
     <nav class="bottom-nav" aria-label="Primary navigation">
       <button class="nav-item is-active" type="button" data-nav="arena" aria-current="page"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 18V8m5 10V4m6 14v-7m5 7V6"/></svg><span>Arena</span></button>
       <button class="nav-item" type="button" data-nav="watch"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>Watch</span></button>
@@ -259,7 +284,7 @@
   </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
-  <script src="data-adapter.js?v=37" defer></script>
-  <script src="app.js?v=37" defer></script>
+  <script src="data-adapter.js?v=38" defer></script>
+  <script src="app.js?v=38" defer></script>
 </body>
 </html>

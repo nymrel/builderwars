@@ -111,8 +111,8 @@ def main() -> int:
     check(mapped_local_keys == expected_local_keys, "all and only browser storage keys are mapped")
     service_worker_source = (ROOT / "mobile-arena" / "sw.js").read_text(encoding="utf-8")
     cache_match = re.search(r'CACHE_NAME\s*=\s*"([^"]+)"', service_worker_source)
-    check(cache_match is not None and cache_match.group(1) == "builderwars-mobile-arena-v37", "current service-worker cache is discovered")
-    check(any(row["referenceLocation"] == "CacheStorage:builderwars-mobile-arena-v37" for row in data_sets), "current service-worker cache is mapped")
+    check(cache_match is not None and cache_match.group(1) == "builderwars-mobile-arena-v38", "current service-worker cache is discovered")
+    check(any(row["referenceLocation"] == "CacheStorage:builderwars-mobile-arena-v38" for row in data_sets), "current service-worker cache is mapped")
 
     mapped_resource_classes = {row["retentionResourceClass"] for row in data_sets}
     check(set(rr.RESOURCE_POLICIES) <= mapped_resource_classes, "every retention resource class appears in the data map")

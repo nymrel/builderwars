@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "37"
+EXPECTED_SHELL_VERSION = "38"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -95,7 +95,7 @@ def main() -> int:
     require(fixture["featured"]["proof"]["runtimeAttested"] is False, "runtime attestation must stay false")
     require(fixture["featured"]["proof"]["registryState"] == "pending_registry_commit", "registry must remain pending")
     require(fixture["featured"]["status"] == "simulated_fixture", "demo featured state must remain a static fixture")
-    require(fixture["account"] == {"displayName": "Local Builder", "tier": "Demo Lab", "accessLabel": "Local play only", "accessDetail": "No account or provider call"}, "demo account must expose access boundary instead of credits")
+    require(fixture["account"] == {"displayName": "Local Builder", "tier": "Demo Lab", "accessLabel": "Static preview only", "accessDetail": "No account, provider, or local execution"}, "demo account must expose the fallback execution boundary instead of credits")
     serialized_fixture = json.dumps(fixture, sort_keys=True)
     for forbidden_key in ("creditsRemaining", "creditsLabel", "viewers", "rating", "delta", "trend", "rank", "cost", "quota", "latency"):
         require(f'"{forbidden_key}"' not in serialized_fixture, f"demo fixture must not carry unearned {forbidden_key} data")
@@ -130,7 +130,7 @@ def main() -> int:
         require(f'id="view-{destination}"' in html, f"missing {destination} view")
         require(f'data-nav="{destination}"' in html, f"missing {destination} navigation")
         checks += 2
-    for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "session-sheet", "tester-feedback-sheet", "tester-feedback-form", "tester-feedback-categories", "tester-feedback-output", "tester-feedback-json", "builder-form", "featured-match", "quick-matches", "rivalries", "receipt-learning", "proof-learning-button"):
+    for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "session-sheet", "tester-feedback-sheet", "tester-feedback-form", "tester-feedback-categories", "tester-feedback-output", "tester-feedback-json", "builder-form", "featured-match", "local-play-spotlight", "quick-matches", "rivalries", "receipt-learning", "proof-learning-button"):
         require(f'id="{required}"' in html, f"missing interactive surface: {required}")
         checks += 1
     for required in ("starter-panel", "starter-title", "starter-boundary", "starter-guide-button", "starter-persistence"):
@@ -140,6 +140,13 @@ def main() -> int:
     require("No account · no provider · no live match · no publication" in html, "starter path truth boundary missing")
     require('aria-controls="starter-panel"' in html and 'aria-describedby="starter-boundary"' in html, "starter path accessible relationships missing")
     checks += 3
+    require('aria-labelledby="local-play-title"' in html and 'id="local-play-spotlight"' in html, "prominent local-play surface must expose an accessible heading relationship")
+    require("Run the complete local proof loop" in html and "Local play is unavailable in fallback mode" in html, "local-play surface must render ready and fail-closed states")
+    require('data-local-play-state="held"' in html and 'data-qualification-preview=""' in html and "action.dataset.qualificationPreview = fixture.id" in js, "local-play surface must keep fallback non-actionable and verified fixture addressable")
+    require("No executable fixture loaded" in html and "No sign-in, model inference, provider access, persistence, ranking, registry, or publication" in html, "local-play surface must disclose execution and authority boundaries")
+    require("state.data.quickMatches.filter((match) => match.exhibitionAllowed !== true)" in js, "promoted local exhibition must not remain duplicated in the general format list")
+    require("receipt?.qualification?.qualificationKey === qualification.qualificationKey" in adapter, "local-play result status must bind the current blueprint qualification")
+    checks += 6
     for required in ("session-boundary", "session-source-status", "session-account-status", "session-provider-status", "session-blueprint-status", "session-starter-status", "session-storage-status"):
         require(f'id="{required}"' in html, f"missing local-session surface: {required}")
         checks += 1
