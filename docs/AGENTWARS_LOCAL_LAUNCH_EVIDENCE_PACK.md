@@ -36,7 +36,7 @@ It deliberately records the protected downstream nodes as held.
 | 6 | Replay and verifier parity | Checks package versus standalone verifier parity | Production custody, registry commit, external signature |
 | 7 | Mobile static contracts | Checks deterministic mobile, truth, offline, and accessibility contracts | Hosted route, real user, deployed device support |
 | 8 | Real-browser acceptance | Runs Chromium navigation, failure, storage, responsive, offline, and accessibility journeys | Production browser, authenticated journey, external performance |
-| 9 | Hosted security, abuse, cleanup, browser authorization, reference data map, and threat model | Runs local hosted-control-plane refusal, rollback, cleanup, browser-gateway, atomic-idempotency, bounded key-rotation, and source-bound 6-system/19-dataset data-map adversarial tests plus the repository-grounded 10-threat/8-boundary security model | Live Clerk/session verification, durable production store/rate-limit/deletion/idempotency parity, owner-pepper and idempotency-response-key custody/rotation execution, final production inventory/regions/subprocessors/privacy obligations, OS isolation, penetration review, and security approval |
+| 9 | Hosted security, abuse, cleanup, browser authorization, capacity readiness, reference data map, and threat model | Runs local hosted-control-plane refusal, rollback, cleanup, browser-gateway, atomic-idempotency, bounded key-rotation, operator-fill capacity-contract and concurrency-correctness, source-bound 6-system/19-dataset data-map, and repository-grounded 10-threat/8-boundary security-model adversarial tests | Live Clerk/session verification, operator-approved beta target, production load test and capacity acceptance, durable production store/rate-limit/backpressure/deletion/idempotency parity, owner-pepper and idempotency-response-key custody/rotation execution, final production inventory/regions/subprocessors/privacy obligations, OS isolation, penetration review, and security approval |
 | 10 | Launch contracts, measurement, performance, observability, support, retention/deletion, incident, recovery, tester-readiness, and discoverability drills | Runs strict measurement and observability zero-baseline gates, deterministic incident drills, an exact redacted support-intake and severity-routing contract, classified atomic deletion simulation, source-bound rollback/recovery failure drills, deterministic Mobile Arena asset budgets, an exact fail-closed 16-step synthetic tester rehearsal, and a prelaunch search/AI contract with indexing disabled | Consented human tester and feedback, durable/live counters and telemetry, real deletion, backup/restore, support transport and staffing, alert delivery, production rollback/performance, canonical origin, indexing, citations, audience, legal approval |
 | 11 | Protected runtime configuration | Executes nothing; records `HELD_PROTECTED` | Clerk, Redis, webhook, peppers, reviewer keys, rate limits, flags |
 | 12 | Source-bound deployment and rollback | Executes nothing; records `HELD_PROTECTED` | Target, DNS/TLS, served bytes, performance, observability, rollback |
@@ -112,8 +112,12 @@ The JSON includes:
   hosted tables, five flows, and eight explicitly unresolved production facts,
   with no production inventory, residency, privacy, retention, deletion,
   backup, restore, legal, or launch authority;
+- an operator-fill capacity contract with no default numeric target, exact
+  request-envelope derivation, 32-owner quota-concurrency correctness, 1,024
+  non-mutating replay misses, and explicit zero throughput, provider, paid
+  compute, production-capacity, SLO, or launch claim;
 - a repository-grounded ten-threat security model covering eight trust
-  boundaries and 19 exact source anchors, with a fail-closed local
+  boundaries and 20 exact source anchors, with a fail-closed local
   browser-authorization gateway and production Clerk, tenant-store,
   rate-limit, provider-secret, OS-isolation, monitoring, deletion, deployment,
   and independent-review production gates held;

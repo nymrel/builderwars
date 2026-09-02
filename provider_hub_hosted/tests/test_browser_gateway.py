@@ -155,6 +155,17 @@ class BrowserGatewayTests(unittest.TestCase):
         self.assertEqual(contract["schemaVersion"], BROWSER_GATEWAY_SCHEMA)
         self.assertEqual(contract["evidenceClass"], BROWSER_GATEWAY_EVIDENCE_CLASS)
         self.assertEqual(contract["maxBodyBytes"], MAX_BROWSER_BODY_BYTES)
+        self.assertEqual(
+            contract["localRatePolicies"],
+            {
+                "confirm_pairing": {"limit": 12, "windowSeconds": 60},
+                "create_fixture_job": {"limit": 12, "windowSeconds": 60},
+                "create_pairing": {"limit": 6, "windowSeconds": 60},
+                "delete_owner": {"limit": 2, "windowSeconds": 300},
+                "delete_runner": {"limit": 6, "windowSeconds": 60},
+                "revoke_runner": {"limit": 6, "windowSeconds": 60},
+            },
+        )
         self.assertEqual(contract["idempotencyKeyBytes"], 16)
         self.assertEqual(contract["idempotencyTtlSeconds"], 86_400)
         self.assertEqual(

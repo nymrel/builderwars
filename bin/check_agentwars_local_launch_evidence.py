@@ -120,23 +120,28 @@ def main() -> int:
         stages[8].commands == (
             (evidence_builder.PYTHON, "-m", "unittest", "discover", "-s", "provider_hub_hosted/tests", "-p", "test_*.py"),
             (evidence_builder.PYTHON, "-B", "bin/check_entrant_admission.py"),
+            (evidence_builder.PYTHON, "-B", "bin/check_builderwars_capacity.py"),
             (evidence_builder.PYTHON, "-B", "bin/check_builderwars_data_map.py"),
             (evidence_builder.PYTHON, "bin/check_builderwars_threat_model.py"),
         ),
-        "stage 9 runs hosted abuse, entrant refusal, reference data-map, browser-authorization, and repository-grounded threat-model tests",
+        "stage 9 runs hosted abuse, entrant refusal, capacity-correctness, reference data-map, browser-authorization, and repository-grounded threat-model tests",
     )
     check(stages[8].evidence_files == (
         "arena/admission.py",
         "arena/reference_sources.py",
+        "publishing/capacity_readiness.py",
+        "docs/BUILDERWARS_BETA_CAPACITY_READINESS.md",
         "docs/BUILDERWARS_REFERENCE_DATA_MAP.md",
         "docs/BUILDERWARS_THREAT_MODEL.md",
         "docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md",
-    ), "stage 9 binds executable admission, reviewed source authority, the reference data map, the threat model, and browser-authorization boundary")
+    ), "stage 9 binds executable admission, reviewed source authority, capacity readiness, the reference data map, the threat model, and browser-authorization boundary")
     check(stages[8].not_proven == (
         "production Clerk session verification",
         "production owner pepper custody",
         "production store",
         "durable edge and account rate limits",
+        "operator-approved beta capacity target and production load-test receipt",
+        "production backpressure, saturation, and capacity acceptance",
         "production idempotency store parity, response-key custody, and rotation execution",
         "production deletion",
         "production regions, subprocessors, privacy obligations, and exact retention periods",
@@ -160,7 +165,7 @@ def main() -> int:
     check(stages[10].stage_id == "protected_runtime_configuration", "protected runtime is the first held gate")
 
     commands = [command for stage in stages for command in stage.commands]
-    check(len(commands) == 24, "local evidence contract has exactly 24 bounded commands")
+    check(len(commands) == 25, "local evidence contract has exactly 25 bounded commands")
     check(all(command and command[0] == evidence_builder.PYTHON for command in commands), "every executable stage uses the current Python runtime directly")
     flattened = " ".join(token for command in commands for token in command).lower()
     for forbidden in ("curl ", "invoke-webrequest", "vercel", "cloudflare", "git push", "deploy", "publish", "oauth", "clerk"):

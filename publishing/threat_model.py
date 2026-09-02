@@ -89,7 +89,7 @@ COMPONENTS = (
     _component("C-007", "Arena referee", "deterministic game state, transcript, replay, and scoring", "implemented_local", ("EA-009",)),
     _component("C-008", "Entrant process boundary", "JSONL subprocess channel source admission and process-tree cleanup", "partial_not_os_isolation", ("EA-009", "EA-010", "EA-011", "EA-018")),
     _component("C-009", "Publication pipeline", "private review candidate, source decision, bounded public projection", "implemented_local", ("EA-012", "EA-013")),
-    _component("C-010", "Launch evidence builder", "source-bound local checks and protected launch holds", "implemented_local", ("EA-014", "EA-016")),
+    _component("C-010", "Launch evidence builder", "source-bound local checks, operator-fill capacity candidate, and protected launch holds", "implemented_local", ("EA-014", "EA-016", "EA-020")),
 )
 
 
@@ -107,7 +107,7 @@ def _boundary(boundary_id: str, source: str, destination: str, data: str, channe
 
 
 BOUNDARIES = (
-    _boundary("B-001", "internet_browser", "browser_authorization_gateway", "session_and_customer_actions", "https_future", ("exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies", "injected_verified_principal", "owner_scoped_local_rate_limit_reference", "owner_scoped_local_idempotency_reference", "aes256gcm_sealed_replay_response", "versioned_bounded_keyring_rotation_reference"), ("production_clerk_cookie_session_verifier_and_edge_limits_unproven", "durable_account_limits_owner_pepper_idempotency_key_custody_rotation_execution_and_store_parity_unproven"), ("EA-001", "EA-004", "EA-017")),
+    _boundary("B-001", "internet_browser", "browser_authorization_gateway", "session_and_customer_actions", "https_future", ("exact_origin", "canonical_csrf_pair", "strict_routes_and_bodies", "injected_verified_principal", "owner_scoped_local_rate_limit_reference", "owner_scoped_local_idempotency_reference", "aes256gcm_sealed_replay_response", "versioned_bounded_keyring_rotation_reference", "operator_fill_capacity_candidate_without_throughput_claim"), ("production_clerk_cookie_session_verifier_edge_limits_and_named_capacity_target_unproven", "durable_account_limits_owner_pepper_idempotency_key_custody_rotation_execution_and_store_parity_unproven"), ("EA-001", "EA-004", "EA-017", "EA-020")),
     _boundary("B-002", "browser_authorization_gateway", "hosted_control_plane", "opaque_owner_id_and_bounded_commands", "in_process_reference", ("hmac_derived_opaque_owner_id", "no_request_owner_id", "canonical_owner_id_validation", "uniform_foreign_object_errors"), ("live_clerk_subject_to_gateway_binding_and_direct_handler_non_exposure_unproven",), ("EA-001", "EA-002", "EA-017")),
     _boundary("B-003", "customer_local_runner", "runner_verifier", "signed_exact_method_path_body_timestamp_nonce", "https_future", ("ed25519_signature", "origin_binding", "timestamp_window", "durable_nonce_consumption"), ("tls_edge_and_perimeter_rate_limits_unproven",), ("EA-005", "EA-006", "EA-007")),
     _boundary("B-004", "hosted_control_plane", "hosted_state_store", "tenant_browser_idempotency_runner_nonce_lease_job_and_result_state", "sqlite_reference", ("exact_identifiers", "parameterized_queries", "foreign_keys", "begin_immediate_transactions", "nested_savepoint_atomicity", "browser_mutation_and_replay_record_same_transaction", "source_bound_reference_data_map"), ("production_store_adapter_idempotency_parity_backup_capacity_regions_subprocessors_retention_and_privacy_obligations_unproven",), ("EA-003", "EA-004", "EA-006", "EA-019")),
@@ -167,6 +167,7 @@ EVIDENCE_ANCHORS = (
     {"anchorId": "EA-017", "path": "provider_hub_hosted/browser_gateway.py", "symbol": "class BrowserAuthorizationGateway"},
     {"anchorId": "EA-018", "path": "arena/reference_sources.py", "symbol": "REVIEWED_REFERENCE_SOURCES = MappingProxyType"},
     {"anchorId": "EA-019", "path": "publishing/reference_data_map.py", "symbol": "SOURCE_BOUND_REFERENCE_CANDIDATE_PRODUCTION_FACTS_HELD"},
+    {"anchorId": "EA-020", "path": "publishing/capacity_readiness.py", "symbol": "OPERATOR_INPUT_REQUIRED_LOCAL_CORRECTNESS_ONLY_PRODUCTION_HELD"},
 )
 
 
@@ -322,7 +323,7 @@ THREATS = (
         "Flood JSON parsing pairing job polling result submission or public replay lookups within individually valid bounds.",
         "Service unavailability queue starvation elevated cost or delayed cleanup.",
         ("A-004", "A-008", "A-009"), ("B-001", "B-003", "B-004"), ("EP-001", "EP-002", "EP-003", "EP-004"),
-        ("EA-003", "EA-005", "EA-006", "EA-017"),
+        ("EA-003", "EA-005", "EA-006", "EA-017", "EA-020"),
         ("production_capacity_concurrency_backpressure_and_rate_limits_unproven",),
         ("Set body header concurrency queue and tenant quotas at the edge and service.", "Use bounded public cache semantics and fail-closed backpressure.", "Load test authenticated and public routes at the named beta target."),
         ("Measure request class saturation lock time queue age rejection and error budgets.", "Alert before capacity or cost budgets are exceeded."),
@@ -365,6 +366,7 @@ FOCUS_PATHS = (
     {"path": "publishing/source_decision.py", "reason": "separate reviewed-source admission and mutation authorization", "threatIds": ["TM-007", "TM-010"]},
     {"path": "publishing/retention_recovery.py", "reason": "deletion suppression recovery and rollback truth boundary", "threatIds": ["TM-008", "TM-010"]},
     {"path": "publishing/reference_data_map.py", "reason": "source-bound reference systems datasets flows publication deny rules and unresolved production facts", "threatIds": ["TM-006", "TM-007", "TM-008"]},
+    {"path": "publishing/capacity_readiness.py", "reason": "operator-fill request envelope local policy fit concurrency correctness and explicit no-throughput boundary", "threatIds": ["TM-009"]},
     {"path": "bin/build_agentwars_local_launch_evidence.py", "reason": "source custody bounded child environment and protected launch holds", "threatIds": ["TM-008", "TM-010"]},
     {"path": "provider_hub_hosted/tests/test_control_plane.py", "reason": "reference conformance for tenant replay race rollback and cleanup behavior", "threatIds": ["TM-001", "TM-002", "TM-003", "TM-004", "TM-008", "TM-009"]},
     {"path": "provider_hub_hosted/tests/test_browser_idempotency.py", "reason": "same-request replay owner isolation concurrency rollback restart ciphertext tamper expiry and key rotation conformance", "threatIds": ["TM-001", "TM-008", "TM-009"]},

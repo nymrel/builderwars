@@ -24,6 +24,7 @@ import re
 import threading
 import urllib.parse
 from collections.abc import Callable, Mapping
+from types import MappingProxyType
 from typing import Protocol, runtime_checkable
 
 from cryptography.exceptions import InvalidTag
@@ -78,14 +79,14 @@ _RUNNER_REVOKE_RE = re.compile(r"^/v1/browser/runners/(awr1_[A-Za-z0-9_-]{22})/r
 _RUNNER_DELETE_RE = re.compile(r"^/v1/browser/runners/(awr1_[A-Za-z0-9_-]{22})$")
 _FIXTURE_JOB_RE = re.compile(r"^/v1/browser/runners/(awr1_[A-Za-z0-9_-]{22})/fixture-jobs$")
 
-_OPERATION_POLICIES = {
+OPERATION_RATE_POLICIES = MappingProxyType({
     "create_pairing": (6, 60),
     "confirm_pairing": (12, 60),
     "revoke_runner": (6, 60),
     "delete_runner": (6, 60),
     "create_fixture_job": (12, 60),
     "delete_owner": (2, 300),
-}
+})
 
 _NOT_FOUND_CODES = {"not_found", "runner_not_found"}
 _CONFLICT_CODES = {
@@ -155,8 +156,8 @@ class InMemoryAccountRateLimiter:
     """Thread-safe local fixed-window reference; not a production perimeter."""
 
     def __init__(self, policies: Mapping[str, tuple[int, int]] | None = None):
-        raw = dict(_OPERATION_POLICIES if policies is None else policies)
-        if set(raw) != set(_OPERATION_POLICIES):
+        raw = dict(OPERATION_RATE_POLICIES if policies is None else policies)
+        if set(raw) != set(OPERATION_RATE_POLICIES):
             raise ValueError("account rate-limit policy must cover every browser operation")
         normalized: dict[str, tuple[int, int]] = {}
         for operation, value in raw.items():
@@ -441,7 +442,7 @@ class BrowserAuthorizationGateway:
             "schemaVersion": BROWSER_GATEWAY_SCHEMA,
             "evidenceClass": BROWSER_GATEWAY_EVIDENCE_CLASS,
             "ownerDerivationClass": OWNER_DERIVATION_CLASS,
-            "operations": sorted(_OPERATION_POLICIES),
+            "operations": sorted(OPERATION_RATE_POLICIES),
             "maxBodyBytes": MAX_BROWSER_BODY_BYTES,
             "principalMaxAgeSeconds": MAX_PRINCIPAL_AGE_SECONDS,
             "principalMaxFutureSeconds": MAX_PRINCIPAL_FUTURE_SECONDS,
@@ -460,6 +461,10 @@ class BrowserAuthorizationGateway:
             "requestAcceptsOwnerId": False,
             "rateLimiterBoundary": "injected_owner_scoped_fail_closed",
             "localRateLimiterReference": "in_memory_account_fixed_window",
+            "localRatePolicies": {
+                operation: {"limit": limit, "windowSeconds": window_seconds}
+                for operation, (limit, window_seconds) in sorted(OPERATION_RATE_POLICIES.items())
+            },
             "productionAuthority": dict(PRODUCTION_AUTHORITY),
         }
 

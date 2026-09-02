@@ -278,6 +278,27 @@ support access. Those eight deployment-specific facts and every production or
 launch authority flag remain held. Contract and exact boundary:
 [`docs/BUILDERWARS_REFERENCE_DATA_MAP.md`](docs/BUILDERWARS_REFERENCE_DATA_MAP.md).
 
+## Beta capacity readiness — operator-fill target, local correctness only
+
+BuilderWars now exposes its exact local browser-operation policies and turns an
+explicit operator-filled population and request mix into a deterministic,
+source-bound capacity-test candidate. It deliberately emits no default user,
+runner, spectator, queue, concurrency, cost, or SLO number.
+
+```powershell
+python -B bin\builderwars_capacity.py --template
+python -B bin\check_builderwars_capacity.py
+```
+
+The checker proves fixed-window quota atomicity across 32 synthetic owners and
+1,024 concurrent missing replay reads against an ephemeral SQLite reference.
+It applies no latency or throughput threshold and makes no production-capacity
+claim. An operator-approved target, durable multi-instance limits, production
+topology, load generator, thresholds, cost budget, telemetry, backpressure,
+rollback, cleanup, and acceptance receipt remain protected. Contract and exact
+boundary:
+[`docs/BUILDERWARS_BETA_CAPACITY_READINESS.md`](docs/BUILDERWARS_BETA_CAPACITY_READINESS.md).
+
 ## Launch threat model — repository-grounded, protected gaps held
 
 BuilderWars now carries an executable public-beta threat model covering the
@@ -286,7 +307,7 @@ multi-tenant hosted reference, signed runner
 protocol, customer-local provider authority, entrant process boundary,
 publication lineage, the source-bound reference data map, deletion/recovery,
 availability, and release provenance. It binds ten threats to eight trust
-boundaries and 19 exact source anchors.
+boundaries and 20 exact source anchors.
 
 ```powershell
 python bin\check_builderwars_threat_model.py
@@ -295,7 +316,8 @@ python bin\check_builderwars_threat_model.py
 The checker validates coverage, source symbols and file digests, risk ordering,
 hostile contract mutations, and zero production authority. A green result is
 not a penetration test or production security approval. Browser principal to
-owner mapping, production-store conformance, rate limits, secret/consent
+owner mapping, a named beta target, production-store conformance, durable rate
+limits, secret/consent
 receipts, OS-level isolation or continued disablement, monitoring, the final production data map,
 served-byte parity, and independent security acceptance remain protected. Model:
 [`docs/BUILDERWARS_THREAT_MODEL.md`](docs/BUILDERWARS_THREAT_MODEL.md).
