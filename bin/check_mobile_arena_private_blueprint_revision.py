@@ -210,9 +210,9 @@ async function main() {
   check(receipt.serialized === canonical(packet), "blueprint-revision export is canonical JSON");
   check(receipt.serialized === again.serialized, "same accepted review creates the same draft receipt");
   check(receipt.serialized.length <= adapter.PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH, "blueprint revision stays inside explicit size cap");
-  check(packet.boundary.includes("applies only the exact reviewed allowlisted guard"), "boundary limits the exact applied guard");
+  check(packet.boundary.includes("applies only the reviewed allowlisted guard"), "boundary limits the exact applied guard");
   check(packet.boundary.includes("uncommitted, unadopted, unqualified, unplayed"), "boundary preserves local draft state");
-  check(packet.boundary.includes("call a provider"), "boundary refuses provider calls");
+  check(packet.boundary.includes("provider authority"), "boundary refuses provider calls");
 
   const imported = await adapter.verifyPortablePrivateBlueprintRevisionDraft(receipt.serialized);
   check(imported.verificationStatus === "verified_private_local_blueprint_revision_draft", "fresh import remains a private local blueprint draft");

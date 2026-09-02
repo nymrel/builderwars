@@ -211,9 +211,9 @@ async function main() {
   check(receipt.serialized === canonical(packet), "guard-completion export is canonical JSON");
   check(receipt.serialized === again.serialized, "same completion input creates same receipt");
   check(receipt.serialized.length <= adapter.PRIVATE_BLUEPRINT_GUARD_COMPLETION_MAX_LENGTH, "guard completion stays inside size cap");
-  check(packet.boundary.includes("exact explicitly unknown guard keys"), "boundary limits exact unknown guards");
+  check(packet.boundary.includes("explicit unknown guard keys"), "boundary limits exact unknown guards");
   check(packet.boundary.includes("not commit-ready"), "boundary preserves commit-readiness hold");
-  check(packet.boundary.includes("call a provider"), "boundary refuses provider calls");
+  check(packet.boundary.includes("provider authority"), "boundary refuses provider calls");
 
   const imported = await adapter.verifyPortablePrivateBlueprintGuardCompletion(receipt.serialized);
   check(imported.verificationStatus === "verified_private_local_blueprint_guard_completion_proposal", "fresh import remains a private local completion proposal");

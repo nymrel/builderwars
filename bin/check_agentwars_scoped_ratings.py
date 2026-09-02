@@ -57,7 +57,7 @@ def main() -> int:
     model = load_projection()
     receipts = model["receipts"]
     boards = model["scopedRatingBoards"]
-    check(model["projectionVersion"] == "3", "read-model projection version is pinned")
+    check(model["projectionVersion"] == "4", "read-model projection version is pinned")
     check(model["summary"]["scopedRatingBoardCount"] == 5, "summary records five exact scopes")
     check(len(boards) == 5, "five exact scoped proof boards are emitted")
     check(sum(board["receiptCount"] for board in boards) == 8, "eight reviewed receipts are covered once")

@@ -180,7 +180,7 @@ async function main() {
   check(receipt.serialized.length <= adapter.PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH, "guard proposal stays inside explicit size cap");
   check(!receipt.serialized.includes('"correctPacket"'), "guard proposal never names a correct packet");
   check(packet.boundary.includes("uncommitted and unplayed"), "guard proposal boundary refuses commitment and play");
-  check(packet.boundary.includes("does not declare a correct packet"), "guard proposal boundary refuses correctness");
+  check(packet.boundary.includes("chooses no correct packet"), "guard proposal boundary refuses correctness");
   check(packet.boundary.includes("provider authority"), "guard proposal boundary refuses provider authority");
 
   const imported = await adapter.verifyPortablePrivateBlueprintDelta(receipt.serialized);

@@ -1229,6 +1229,16 @@ function renderProof(proofId = "featured") {
       ["Fixture", proof.fixtureId, ""],
       ["Replay artifact", proof.artifactPath, ""],
     ];
+    const passportRows = proof.entrants.map((entrant) => {
+      const identity = entrant.identityEvidence;
+      const supplied = identity.status === "verified_signed";
+      return [
+        `${entrant.name} Agent Passport`,
+        supplied ? `Verified key/version · ${identity.agentVersionId.slice(0, 12)}… · model label self-declared` : "Not supplied · self-declared legacy identity",
+        supplied ? "pass" : "pending",
+      ];
+    });
+    rows.splice(9, 0, ...passportRows, ["Identity scope", "Person, model, provider, and runtime unattested", ""]);
   } else {
     rows = [
       ["Replay", proof.replayVerdict, "pass"],

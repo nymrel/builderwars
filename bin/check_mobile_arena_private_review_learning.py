@@ -165,10 +165,10 @@ async function main() {
   check(changedLesson.right.latestCorrectionDigest === fixture.rightCorrection.correctionDigest, "changed lesson preserves Packet B correction digest");
   check(leftOnlyLesson.right === null && rightOnlyLesson.left === null, "one-sided lesson state remains absent on the other role");
   check(!receipt.serialized.includes('"correctPacket"'), "inspection receipt never names a correct packet");
-  check(packet.boundary.includes("without declaring either state correct"), "inspection boundary refuses correctness selection");
-  check(packet.boundary.includes("granting approval or progress"), "inspection boundary refuses approval and progress");
+  check(packet.boundary.includes("without choosing a correct state"), "inspection boundary refuses correctness selection");
+  check(packet.boundary.includes("granting consensus, approval"), "inspection boundary refuses approval and progress");
   check(packet.boundary.includes("merging histories"), "inspection boundary refuses merge authority");
-  check(packet.boundary.includes("calling a provider"), "inspection boundary refuses provider authority");
+  check(packet.boundary.includes("provider authority"), "inspection boundary refuses provider authority");
 
   const imported = await adapter.verifyPortablePrivateReviewLearning(receipt.serialized);
   check(imported.verificationStatus === "verified_private_local_review_learning", "fresh import remains private local inspection verification");

@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "33"
+EXPECTED_SHELL_VERSION = "34"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -82,12 +82,17 @@ def main() -> int:
     checks += 9
 
     require(read_model.get("schemaVersion") == "builderwars.arena-read-model.v1", "read-model schema drift")
+    require(read_model.get("projectionVersion") == "4", "read-model identity projection drift")
     require(read_model.get("source", {}).get("status") == "tracked_local_publication_artifact_not_hosted", "read-model source boundary drift")
     require(read_model.get("summary", {}).get("receiptCount") == len(read_model.get("receipts", [])) == 8, "reviewed receipt count drift")
+    require(read_model.get("summary", {}).get("signedAgentPassportEntrantCount") == 0, "current signed Agent Passport count drift")
+    require(read_model.get("summary", {}).get("legacySelfDeclaredEntrantCount") == 16, "current legacy identity count drift")
+    require(read_model.get("summary", {}).get("signedAgentPassportReceiptCount") == 0, "current signed receipt coverage drift")
+    require(all(entrant.get("identityEvidence", {}).get("status") == "self_declared_legacy" for receipt in read_model.get("receipts", []) for entrant in receipt.get("entrants", [])), "current legacy identity evidence drift")
     for boundary in ("live", "hosted", "authenticated", "modelAttested", "providerAttested", "runtimeAttested"):
         require(read_model.get("truthBoundary", {}).get(boundary) is False, f"read-model {boundary} boundary drift")
         checks += 1
-    checks += 3
+    checks += 8
 
     print("[3] five mobile destinations and proof inspector are wired")
     for destination in ("arena", "watch", "compete", "learn", "build"):
@@ -133,11 +138,13 @@ def main() -> int:
     require("No account or remote preference was created" in js and "nothing was uploaded" in js, "starter guide persistence truth boundary missing")
     checks += 4
     require("renderSessionSheet" in js and "restartStarterGuideFromSession" in js and "armOrRemoveLocalBlueprint" in js, "local-session lifecycle implementation missing")
+    require("Not supplied · self-declared legacy identity" in js and "Person, model, provider, and runtime unattested" in js, "Agent Passport disclosure copy missing")
+    require("identity evidence drift" in adapter and "identity attestation inflation" in adapter and "legacy identity drift" in adapter, "Agent Passport adapter boundary missing")
     require('"Confirm remove blueprint"' in js and "blueprintRemovalArmed" in js, "two-step local blueprint removal is not enforced")
     require("localStorage.removeItem(BLUEPRINT_STORAGE_KEY)" in js and '$("#builder-form").reset()' in js, "browser-only blueprint cleanup implementation missing")
     require("Unavailable to inspect" in js and "Unavailable · page session only" in js, "storage-denial session disclosure missing")
     require("Nothing remote was changed" in js and "tracked source files were not deleted" in js, "local cleanup truth boundary missing")
-    checks += 5
+    checks += 7
     require(feedback_rubric.get("schemaVersion") == "agentwars.tester-feedback-rubric/1", "tester feedback rubric schema drift")
     require(feedback_rubric.get("rubricStatus") == "template_only_no_human_response", "tester feedback rubric status drift")
     require(len(feedback_rubric.get("categories", [])) == 8, "tester feedback rubric must retain all eight categories")
@@ -206,8 +213,8 @@ def main() -> int:
     require("PRIVATE_REVIEW_LEARNING_MAX_LENGTH = 2097152" in adapter and 'maxlength="2097152"' in js, "private review inspection learning length boundary missing")
     require("data-private-review-learning-create" in js and "data-private-review-learning-verify" in js, "private review inspection learning controls missing")
     require("inspect_evidence" in adapter and "inspect_rules_binding" in adapter and "inspect_correction_lineage" in adapter, "bounded inspection lesson allowlist missing")
-    require("without declaring either state correct" in adapter and "Neither packet was declared correct" in js, "private review inspection correctness boundary missing")
-    require("granting approval or progress" in adapter and "no progress awarded" in js, "private review inspection progress boundary missing")
+    require("without choosing a correct state" in adapter and "Neither packet was declared correct" in js, "private review inspection correctness boundary missing")
+    require("granting consensus, approval" in adapter and "no progress awarded" in js, "private review inspection progress boundary missing")
     require("createPortablePrivateBlueprintDelta" in adapter and "verifyPortablePrivateBlueprintDelta" in adapter, "private guard proposal verifier missing")
     require('PRIVATE_BLUEPRINT_DELTA_SCHEMA = "builderwars.mobile-private-inspection-blueprint-delta.v1"' in adapter, "private guard proposal schema drift")
     require("PRIVATE_BLUEPRINT_DELTA_MAX_LENGTH = 2621440" in adapter and 'maxlength="2621440"' in js, "private guard proposal length boundary missing")
@@ -215,7 +222,7 @@ def main() -> int:
     require("PRIVATE_REVIEW_LESSON_DELTA" in adapter and "require_strict_validation" in adapter and "require_fallback_disclosure" in adapter and "require_human_checkpoints" in adapter, "fixed lesson-to-guard mapping missing")
     require("proposed_uncommitted_guard_delta" in adapter and "uncommitted and unplayed" in js, "private guard proposal state boundary missing")
     require("not_carried_by_parent_proposal" in adapter and "not carried by parent proposal" in js, "private guard proposal unknown-current disclosure missing")
-    require("does not declare a correct packet" in adapter and "cannot create correctness" in js, "private guard proposal correctness boundary missing")
+    require("chooses no correct packet" in adapter and "cannot create correctness" in js, "private guard proposal correctness boundary missing")
     require("createPortablePrivateBlueprintDeltaReview" in adapter and "verifyPortablePrivateBlueprintDeltaReview" in adapter, "private guard-review verifier missing")
     require('PRIVATE_BLUEPRINT_DELTA_REVIEW_SCHEMA = "builderwars.mobile-private-inspection-blueprint-delta-review.v1"' in adapter, "private guard-review schema drift")
     require("PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH = 3145728" in adapter and 'maxlength="3145728"' in js, "private guard-review length boundary missing")
@@ -223,14 +230,14 @@ def main() -> int:
     require("accept_for_revision" in adapter and "needs_operator_revision_review" in adapter and "lesson_guard_mismatch" in adapter, "private guard-review decisions or reasons missing")
     require("proposed_uncommitted_local_revision_candidate" in adapter and "uncommitted local revision candidate proposed" in js, "private guard-review candidate boundary missing")
     require("adopted: false" in adapter and "played: false" in adapter and "No guard was adopted" in js, "private guard-review adoption boundary missing")
-    require("exactly one immutable private local review" in adapter and "Record one decision. Adopt nothing." in js, "private guard-review immutable-decision boundary missing")
+    require("records one immutable local review" in adapter and "Record one decision. Adopt nothing." in js, "private guard-review immutable-decision boundary missing")
     require("createPortablePrivateBlueprintRevisionDraft" in adapter and "verifyPortablePrivateBlueprintRevisionDraft" in adapter, "private blueprint revision-draft verifier missing")
     require('PRIVATE_BLUEPRINT_REVISION_DRAFT_SCHEMA = "builderwars.mobile-private-blueprint-revision-draft.v1"' in adapter, "private blueprint revision-draft schema drift")
     require("PRIVATE_BLUEPRINT_REVISION_DRAFT_MAX_LENGTH = 4194304" in adapter and 'maxlength="4194304"' in js, "private blueprint revision-draft length boundary missing")
     require("data-private-blueprint-revision-draft-create" in js and "data-private-blueprint-revision-draft-verify" in js, "private blueprint revision-draft controls missing")
     require("unreviewed_guard_values_not_carried" in adapter and "Unknown guard values preserved" in js, "private blueprint revision-draft unknown guard boundary missing")
     require("accepted review required" in adapter and "Defer and reject reviews fail closed" in js, "private blueprint revision-draft accepted-review gate missing")
-    require("applies only the exact reviewed allowlisted guard" in adapter and "Local blueprint revision draft verified · never adopted" in js, "private blueprint revision-draft exact application boundary missing")
+    require("applies only the reviewed allowlisted guard" in adapter and "Local blueprint revision draft verified · never adopted" in js, "private blueprint revision-draft exact application boundary missing")
     require("createPortablePrivateBlueprintDraftReview" in adapter and "verifyPortablePrivateBlueprintDraftReview" in adapter, "private blueprint draft-review verifier missing")
     require('PRIVATE_BLUEPRINT_DRAFT_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-revision-draft-review.v1"' in adapter, "private blueprint draft-review schema drift")
     require("PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH = 5242880" in adapter and 'maxlength="5242880"' in js, "private blueprint draft-review length boundary missing")
@@ -245,7 +252,7 @@ def main() -> int:
     require("complete_explicit_unknown_guards" in adapter and "fixture_specific_requirement" in adapter and "private_evidence_reviewed_locally" in adapter, "private blueprint guard-completion reasons or provenance missing")
     require("exact unknown guard set required" in adapter and "Complete exactly the candidate's unknown guard set" in js, "private blueprint guard-completion exact-set boundary missing")
     require("boolean guard value required" in adapter and "Choose true or false" in js, "private blueprint guard-completion boolean boundary missing")
-    require("preserves all known and applied guard values" in adapter and "Known and applied guards cannot change" in js, "private blueprint guard-completion preservation boundary missing")
+    require("preserves every known or applied guard" in adapter and "Known and applied guards cannot change" in js, "private blueprint guard-completion preservation boundary missing")
     require("requires_guard_completion_review" in adapter and "review still required" in js and "not commit-ready" in js, "private blueprint guard-completion readiness boundary missing")
     require("createPortablePrivateBlueprintGuardCompletionReview" in adapter and "verifyPortablePrivateBlueprintGuardCompletionReview" in adapter, "private guard-completion review verifier missing")
     require('PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_SCHEMA = "builderwars.mobile-private-blueprint-guard-completion-review.v1"' in adapter, "private guard-completion review schema drift")
@@ -255,7 +262,7 @@ def main() -> int:
     require("proposed_local_blueprint_candidate_for_operator_commit_review" in adapter and "reviewed for operator commit decision · not commit-ready" in js, "private guard-completion review candidate boundary missing")
     require("requires_operator_commit_review" in adapter and "operator review" in js and "Commit nothing." in js, "private guard-completion operator hold missing")
     require("The verified upstream completion remains available" in js, "private guard-completion review refusal must preserve upstream completion")
-    require("exactly one immutable private local review" in adapter and "immutable private decision" in js, "private guard-completion review immutability boundary missing")
+    require("records one immutable local review" in adapter and "immutable private decision" in js, "private guard-completion review immutability boundary missing")
     require("createPortablePrivateBlueprintOperatorReviewPacket" in adapter and "verifyPortablePrivateBlueprintOperatorReviewPacket" in adapter, "private operator-review packet verifier missing")
     require('PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_SCHEMA = "builderwars.mobile-private-blueprint-operator-review-packet.v1"' in adapter, "private operator-review packet schema drift")
     require("PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_MAX_LENGTH = 8388608" in adapter and 'maxlength="8388608"' in js, "private operator-review packet length boundary missing")

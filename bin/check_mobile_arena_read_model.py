@@ -23,6 +23,7 @@ from build_mobile_arena_read_model import (  # noqa: E402
     DEFAULT_SOURCE_MANIFEST,
     READ_MODEL_SCHEMA,
     ReadModelError,
+    _receipt_card,
     build_read_model,
 )
 from publishing.scoped_ratings import verify_scoped_rating_boards  # noqa: E402
@@ -64,6 +65,40 @@ def manifest_for_dataset(manifest: dict, dataset: dict) -> dict:
     return changed
 
 
+def signed_entrant(legacy: dict, *, agent_id: str, version_id: str, parent_version_id: str | None = None) -> dict:
+    return {
+        **copy.deepcopy(legacy),
+        "entrantId": agent_id,
+        "agentVersionId": version_id,
+        "parentVersionId": parent_version_id,
+        "identityStatus": "verified_signed",
+        "claimedModelSelfDeclared": "self-declared:test-model",
+        "proofScope": {
+            "signatureProvesVersionDeclaration": True,
+            "keyBoundAgentId": True,
+            "recordedPreflightHarnessDigestBound": True,
+            "entrantIdentityAttested": False,
+            "modelAttested": False,
+            "runtimeAttested": False,
+            "personAttested": False,
+            "executionClaimsAttested": False,
+        },
+    }
+
+
+def receipt_card(receipt: dict) -> dict:
+    return _receipt_card(receipt, 0, {receipt["receiptId"]})
+
+
+def expect_receipt_rejected(receipt: dict, needle: str) -> None:
+    try:
+        receipt_card(receipt)
+    except ReadModelError as exc:
+        require(needle in str(exc), f"wrong receipt rejection for {needle!r}: {exc}")
+        return
+    raise AssertionError(f"receipt mutation should have been rejected: {needle}")
+
+
 def main() -> int:
     checks = 0
     dataset = json.loads(DEFAULT_DATASET.read_text(encoding="utf-8"))
@@ -73,7 +108,7 @@ def main() -> int:
     print("[1] tracked product compiles into the bounded read model")
     model = build_read_model(dataset, manifest, ledger)
     require(model["schemaVersion"] == READ_MODEL_SCHEMA, "read-model schema drift")
-    require(model["projectionVersion"] == "3", "read-model projection drift")
+    require(model["projectionVersion"] == "4", "read-model projection drift")
     require(model["corrections"]["entries"] == [], "tracked corpus must not fabricate corrections")
     require(model["summary"]["correctionCount"] == 0, "tracked correction count drift")
     require(model["summary"]["activeScopedRatingReceiptCount"] == 8, "all tracked receipts should remain rating-active")
@@ -85,6 +120,31 @@ def main() -> int:
     require(model["summary"]["modelInfluencedUnattestedReceiptCount"] == 1, "model-influenced truth count drift")
     require(model["summary"]["scriptedReferenceReceiptCount"] == 6, "scripted truth count drift")
     require(model["summary"]["fallbackOnlyReferenceReceiptCount"] == 1, "fallback truth count drift")
+    require(model["summary"]["signedAgentPassportReceiptCount"] == 0, "tracked corpus invents signed-passport receipts")
+    require(model["summary"]["signedAgentPassportEntrantCount"] == 0, "tracked corpus invents signed-passport entrants")
+    require(model["summary"]["legacySelfDeclaredEntrantCount"] == 16, "tracked legacy entrant count drift")
+    require(
+        all(
+            entrant["identityEvidence"]["status"] == "self_declared_legacy"
+            and entrant["identityEvidence"]["agentPassportSupplied"] is False
+            and all(
+                entrant["identityEvidence"][field] is False
+                for field in (
+                    "signatureProvesVersionDeclaration",
+                    "keyBoundAgentId",
+                    "recordedPreflightHarnessDigestBound",
+                    "entrantIdentityAttested",
+                    "modelAttested",
+                    "runtimeAttested",
+                    "personAttested",
+                    "executionClaimsAttested",
+                )
+            )
+            for receipt in model["receipts"]
+            for entrant in receipt["entrants"]
+        ),
+        "tracked legacy identity evidence drift",
+    )
     require(model["truthBoundary"]["live"] is False, "read model cannot imply live state")
     require(model["truthBoundary"]["hosted"] is False, "read model cannot imply hosted state")
     require(model["truthBoundary"]["authenticated"] is False, "read model cannot imply auth")
@@ -103,9 +163,66 @@ def main() -> int:
         "scoped boards do not verify",
     )
     require(model["readModelDigest"] == digest({key: value for key, value in model.items() if key != "readModelDigest"}), "read-model digest mismatch")
-    checks += 23
+    checks += 27
 
-    print("[2] stale generated output fails closed")
+    print("[2] signed passport coverage survives the mobile projection without attestation inflation")
+    partial = copy.deepcopy(dataset["receipts"][0])
+    prior_id = partial["entrants"][0]["entrantId"]
+    partial["entrants"][0] = signed_entrant(
+        partial["entrants"][0], agent_id="a" * 64, version_id="b" * 64
+    )
+    if partial["outcome"]["winnerEntrantId"] == prior_id:
+        partial["outcome"]["winnerEntrantId"] = "a" * 64
+    partial["truth"].update(
+        {
+            "agentVersionSignaturesVerified": True,
+            "keyBoundAgentIdsVerified": True,
+            "agentPassportCoverage": "partial",
+        }
+    )
+    projected_partial = receipt_card(partial)
+    signed = projected_partial["entrants"][0]["identityEvidence"]
+    legacy = projected_partial["entrants"][1]["identityEvidence"]
+    require(signed["status"] == "verified_signed" and signed["agentPassportSupplied"] is True, "signed status was lost")
+    require(signed["agentVersionId"] == "b" * 64 and signed["keyBoundAgentId"] is True, "signed version continuity was lost")
+    require(signed["claimedModelSelfDeclared"] == "self-declared:test-model" and signed["modelAttested"] is False, "model claim scope inflated")
+    require(legacy["status"] == "self_declared_legacy" and legacy["agentVersionId"] is None, "mixed legacy seat was inflated")
+
+    full = copy.deepcopy(partial)
+    prior_id = full["entrants"][1]["entrantId"]
+    full["entrants"][1] = signed_entrant(
+        full["entrants"][1], agent_id="c" * 64, version_id="d" * 64, parent_version_id="e" * 64
+    )
+    if full["outcome"]["winnerEntrantId"] == prior_id:
+        full["outcome"]["winnerEntrantId"] = "c" * 64
+    full["truth"]["agentPassportCoverage"] = "all"
+    projected_full = receipt_card(full)
+    require(all(row["identityEvidence"]["status"] == "verified_signed" for row in projected_full["entrants"]), "full signed coverage was lost")
+    require(projected_full["entrants"][1]["identityEvidence"]["parentVersionId"] == "e" * 64, "parent version lineage was lost")
+    checks += 6
+
+    print("[3] passport field, proof-scope, coverage, and legacy laundering fail closed")
+    hostile = copy.deepcopy(partial)
+    hostile["entrants"][0]["proofScope"]["modelAttested"] = True
+    expect_receipt_rejected(hostile, "unexpectedly attests modelAttested")
+    hostile = copy.deepcopy(partial)
+    hostile["truth"]["agentPassportCoverage"] = "all"
+    expect_receipt_rejected(hostile, "passport coverage drift")
+    hostile = copy.deepcopy(dataset["receipts"][0])
+    hostile["entrants"][0]["agentVersionId"] = "f" * 64
+    expect_receipt_rejected(hostile, "identity fields drift")
+    hostile = copy.deepcopy(partial)
+    hostile["entrants"][0]["parentVersionId"] = "bad"
+    expect_receipt_rejected(hostile, "parentVersionId")
+    hostile = copy.deepcopy(dataset["receipts"][0])
+    hostile["truth"]["agentVersionSignaturesVerified"] = True
+    expect_receipt_rejected(hostile, "invents passport truth")
+    hostile = copy.deepcopy(partial)
+    hostile["entrants"][0]["proofScope"].pop("personAttested")
+    expect_receipt_rejected(hostile, "proof scope fields drift")
+    checks += 6
+
+    print("[4] stale generated output fails closed")
     command = [sys.executable, str(ROOT / "bin" / "build_mobile_arena_read_model.py"), "--check"]
     result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=30)
     require(result.returncode == 0, result.stderr or result.stdout)
@@ -113,7 +230,7 @@ def main() -> int:
     require(tracked == model, "tracked output is not the compiled model")
     checks += 2
 
-    print("[3] dataset and source-manifest integrity mutations are rejected")
+    print("[5] dataset and source-manifest integrity mutations are rejected")
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["datasetVersion"] = "tampered"
     expect_rejected(mutated_dataset, manifest, ledger, "dataset digest mismatch")
@@ -137,7 +254,7 @@ def main() -> int:
     expect_rejected(mutated_dataset, mutated_manifest, ledger, "engine digest mismatch")
     checks += 1
 
-    print("[4] a rehashed failed proof still cannot enter the read model")
+    print("[6] a rehashed failed proof still cannot enter the read model")
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["receipts"][0]["verification"]["replayVerdict"] = "FAIL"
     rehash_dataset(mutated_dataset)
@@ -147,7 +264,7 @@ def main() -> int:
     expect_rejected(mutated_dataset, mutated_manifest, ledger, "verification replayVerdict mismatch")
     checks += 1
 
-    print("[5] allowlist drift and evidence-label drift are rejected")
+    print("[7] allowlist drift and evidence-label drift are rejected")
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["publication"]["approvedReceiptIds"] = mutated_dataset["publication"]["approvedReceiptIds"][:-1]
     mutated_dataset["publication"]["approvedReceiptCount"] -= 1
@@ -169,7 +286,7 @@ def main() -> int:
     expect_rejected(mutated_dataset, mutated_manifest, ledger, "disagrees with move-source evidence")
     checks += 1
 
-    print("[6] projection relationships fail closed after valid source rehashing")
+    print("[8] projection relationships fail closed after valid source rehashing")
     mutated_dataset = copy.deepcopy(dataset)
     mutated_dataset["futureFixtures"][0]["rulesDigest"] = "0" * 64
     rehash_dataset(mutated_dataset)
@@ -212,7 +329,7 @@ def main() -> int:
     expect_rejected(mutated_dataset, manifest_for_dataset(manifest, mutated_dataset), ledger, "entrant seats must be contiguous and unique")
     checks += 1
 
-    print("[7] check mode detects a stale or missing output")
+    print("[9] check mode detects a stale or missing output")
     with tempfile.TemporaryDirectory(prefix="builderwars-read-model-") as temp_dir:
         stale = Path(temp_dir) / "stale.json"
         stale.write_text("{}\n", encoding="utf-8")

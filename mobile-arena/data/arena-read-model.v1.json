@@ -155,8 +155,8 @@
       "week": 3
     }
   ],
-  "projectionVersion": "3",
-  "readModelDigest": "3ee821defe188169bb59e2f186ca2237488469ed4e0f66dd2bb35353baae18bb",
+  "projectionVersion": "4",
+  "readModelDigest": "5b64209bb139dddfd3789cc04d3f6a0a5a6bbbf160c658e4dd5989f2b53ac27f",
   "receipts": [
     {
       "correction": {
@@ -171,6 +171,22 @@
           "executionClaim": "unspecified",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "4bed65f24173e08d79f577448fac9dc6558b027b66ed2658cd901de91f2dea28",
           "name": "solver-harness",
           "seat": 0
         },
@@ -179,6 +195,22 @@
           "executionClaim": "unspecified",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "247fe9592254196b73d48e76958209771773f6e6227959db9a0402eaa0d053ee",
           "name": "naive-harness",
           "seat": 1
         }
@@ -234,6 +266,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
           "name": "Sunday Machine",
           "seat": 0
         },
@@ -242,6 +290,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
           "name": "Future Proof",
           "seat": 1
         }
@@ -297,6 +361,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
           "name": "Future Proof",
           "seat": 0
         },
@@ -305,6 +385,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
           "name": "Sunday Machine",
           "seat": 1
         }
@@ -360,6 +456,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
           "name": "Sunday Machine",
           "seat": 0
         },
@@ -368,6 +480,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
           "name": "Future Proof",
           "seat": 1
         }
@@ -423,6 +551,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
           "name": "Future Proof",
           "seat": 0
         },
@@ -431,6 +575,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
           "name": "Sunday Machine",
           "seat": 1
         }
@@ -486,6 +646,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
           "name": "Sunday Machine",
           "seat": 0
         },
@@ -494,6 +670,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
           "name": "Future Proof",
           "seat": 1
         }
@@ -549,6 +741,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "15b59ffcaf8463798e3ffd88ff005560da9156bd531db25c957674b3ec947f3e",
           "name": "Future Proof",
           "seat": 0
         },
@@ -557,6 +765,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "6f1f64ff77ae7aafb1425d18a3d8012cad58a30227e20e3592927f11dee2547a",
           "name": "Sunday Machine",
           "seat": 1
         }
@@ -612,6 +836,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "b6cbb479b951b46ef7ffa630fc84551237a2ca19a272e688f59713de77432305",
           "name": "Stub Iron Front",
           "seat": 0
         },
@@ -620,6 +860,22 @@
           "executionClaim": "scripted",
           "harnessVersionContentDerived": true,
           "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+          "identityEvidence": {
+            "agentPassportSupplied": false,
+            "agentVersionId": null,
+            "claimedModelSelfDeclared": null,
+            "entrantIdentityAttested": false,
+            "executionClaimsAttested": false,
+            "keyBoundAgentId": false,
+            "modelAttested": false,
+            "parentVersionId": null,
+            "personAttested": false,
+            "recordedPreflightHarnessDigestBound": false,
+            "runtimeAttested": false,
+            "signatureProvesVersionDeclaration": false,
+            "status": "self_declared_legacy"
+          },
+          "manifestDigest": "6f327227bca637bc89c3c253b95e97bd5384a65e7152b73cc197f97f914ecc6b",
           "name": "Stub Even Reserve",
           "seat": 1
         }
@@ -1175,6 +1431,7 @@
     "activeScopedRatingReceiptCount": 8,
     "correctionCount": 0,
     "fallbackOnlyReferenceReceiptCount": 1,
+    "legacySelfDeclaredEntrantCount": 16,
     "modelAttestedReceiptCount": 0,
     "modelInfluencedUnattestedReceiptCount": 1,
     "receiptCount": 8,
@@ -1182,6 +1439,8 @@
     "scopedRatingBoardCount": 5,
     "scopedRatingExcludedReceiptCount": 0,
     "scriptedReferenceReceiptCount": 6,
+    "signedAgentPassportEntrantCount": 0,
+    "signedAgentPassportReceiptCount": 0,
     "unplayedFixtureCount": 3,
     "verifiedReceiptCount": 8
   },

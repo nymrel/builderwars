@@ -145,8 +145,9 @@ STAGES: tuple[StageDefinition, ...] = (
             "publishing/corrections.py",
             "publishing/agentwars-public-correction-ledger.v1.json",
             "docs/AGENTWARS_PUBLIC_CORRECTIONS.md",
+            "docs/BUILDERWARS_MOBILE_AGENT_PASSPORTS.md",
         ),
-        not_proven=("hosted mobile route", "real user", "supported-device deployment"),
+        not_proven=("hosted mobile route", "real user", "supported-device deployment", "person, model, provider, or runtime identity"),
     ),
     StageDefinition(
         8,

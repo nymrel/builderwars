@@ -196,8 +196,8 @@ async function main() {
   check(receipt.serialized === canonical(packet), "guard-review export is canonical JSON");
   check(receipt.serialized === again.serialized, "same proposal and input create the same review receipt");
   check(receipt.serialized.length <= adapter.PRIVATE_BLUEPRINT_DELTA_REVIEW_MAX_LENGTH, "guard review stays inside explicit size cap");
-  check(packet.boundary.includes("exactly one immutable private local review"), "boundary records exactly one immutable review");
-  check(packet.boundary.includes("does not adopt the guard"), "boundary refuses guard adoption");
+  check(packet.boundary.includes("records one immutable local review"), "boundary records exactly one immutable review");
+  check(packet.boundary.includes("does not adopt or edit the guard"), "boundary refuses guard adoption");
   check(packet.boundary.includes("call a provider"), "boundary refuses provider calls");
 
   const imported = await adapter.verifyPortablePrivateBlueprintDeltaReview(receipt.serialized);

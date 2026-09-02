@@ -32,7 +32,7 @@ DATASET_SCHEMA = "agentwars.public-product.v1"
 SOURCE_MANIFEST_SCHEMA = "agentwars.public-source-manifest.v1"
 RECEIPT_SCHEMA = "agentwars.public-receipt.v1"
 READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1"
-PROJECTION_VERSION = "3"
+PROJECTION_VERSION = "4"
 DEFAULT_DATASET = ROOT / "publishing" / "agentwars-public-v1" / "dataset.json"
 DEFAULT_SOURCE_MANIFEST = (
     ROOT / "publishing" / "agentwars-public-v1" / "source-manifest.json"
@@ -48,6 +48,38 @@ MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_RECEIPTS = 10_000
 MAX_RIVALRIES = 10_000
 MAX_FIXTURES = 10_000
+LEGACY_ENTRANT_KEYS = frozenset(
+    {
+        "seat",
+        "entrantId",
+        "name",
+        "executionClaim",
+        "harnessVersionId",
+        "harnessVersionContentDerived",
+        "manifestDigest",
+    }
+)
+SIGNED_ENTRANT_KEYS = LEGACY_ENTRANT_KEYS | frozenset(
+    {
+        "agentVersionId",
+        "parentVersionId",
+        "identityStatus",
+        "claimedModelSelfDeclared",
+        "proofScope",
+    }
+)
+SIGNED_PROOF_SCOPE_KEYS = frozenset(
+    {
+        "signatureProvesVersionDeclaration",
+        "keyBoundAgentId",
+        "recordedPreflightHarnessDigestBound",
+        "entrantIdentityAttested",
+        "modelAttested",
+        "runtimeAttested",
+        "personAttested",
+        "executionClaimsAttested",
+    }
+)
 
 
 class ReadModelError(ValueError):
@@ -144,6 +176,69 @@ def _evidence_class(counts: dict[str, int], truth_status: str) -> str:
     return evidence_class
 
 
+def _identity_evidence(entrant: dict[str, Any], label: str) -> tuple[dict[str, Any], bool]:
+    """Normalize reviewed public identity evidence without inflating its scope."""
+
+    signed = entrant.get("identityStatus") == "verified_signed"
+    expected_keys = SIGNED_ENTRANT_KEYS if signed else LEGACY_ENTRANT_KEYS
+    _require(set(entrant) == expected_keys, f"{label} identity fields drift")
+    _hex64(entrant.get("manifestDigest"), f"{label}.manifestDigest")
+    if not signed:
+        return {
+            "status": "self_declared_legacy",
+            "agentPassportSupplied": False,
+            "agentVersionId": None,
+            "parentVersionId": None,
+            "claimedModelSelfDeclared": None,
+            "signatureProvesVersionDeclaration": False,
+            "keyBoundAgentId": False,
+            "recordedPreflightHarnessDigestBound": False,
+            "entrantIdentityAttested": False,
+            "modelAttested": False,
+            "runtimeAttested": False,
+            "personAttested": False,
+            "executionClaimsAttested": False,
+        }, False
+
+    proof_scope = _object(entrant.get("proofScope"), f"{label}.proofScope")
+    _require(set(proof_scope) == SIGNED_PROOF_SCOPE_KEYS, f"{label} proof scope fields drift")
+    for field in (
+        "signatureProvesVersionDeclaration",
+        "keyBoundAgentId",
+        "recordedPreflightHarnessDigestBound",
+    ):
+        _require(proof_scope.get(field) is True, f"{label} signed proof {field} drift")
+    for field in (
+        "entrantIdentityAttested",
+        "modelAttested",
+        "runtimeAttested",
+        "personAttested",
+        "executionClaimsAttested",
+    ):
+        _require(proof_scope.get(field) is False, f"{label} unexpectedly attests {field}")
+    parent_version_id = entrant.get("parentVersionId")
+    _require(
+        parent_version_id is None
+        or (type(parent_version_id) is str and HEX64_RE.fullmatch(parent_version_id) is not None),
+        f"{label}.parentVersionId must be null or lowercase hex64",
+    )
+    return {
+        "status": "verified_signed",
+        "agentPassportSupplied": True,
+        "agentVersionId": _hex64(entrant.get("agentVersionId"), f"{label}.agentVersionId"),
+        "parentVersionId": parent_version_id,
+        "claimedModelSelfDeclared": _string(entrant.get("claimedModelSelfDeclared"), f"{label}.claimedModelSelfDeclared"),
+        "signatureProvesVersionDeclaration": True,
+        "keyBoundAgentId": True,
+        "recordedPreflightHarnessDigestBound": True,
+        "entrantIdentityAttested": False,
+        "modelAttested": False,
+        "runtimeAttested": False,
+        "personAttested": False,
+        "executionClaimsAttested": False,
+    }, True
+
+
 def _receipt_card(receipt: dict[str, Any], index: int, approved_ids: set[str]) -> dict[str, Any]:
     _require(receipt.get("schemaVersion") == RECEIPT_SCHEMA, f"receipts[{index}] schema drift")
     receipt_id = _hex64(receipt.get("receiptId"), f"receipts[{index}].receiptId")
@@ -171,8 +266,10 @@ def _receipt_card(receipt: dict[str, Any], index: int, approved_ids: set[str]) -
     _require(len(entrants) >= 2, f"receipt {receipt_id} needs at least two entrants")
     entrant_cards = []
     entrant_names: dict[str, str] = {}
+    signed_passport_count = 0
     for entrant_index, raw_entrant in enumerate(entrants):
         entrant = _object(raw_entrant, f"receipts[{index}].entrants[{entrant_index}]")
+        entrant_label = f"receipts[{index}].entrants[{entrant_index}]"
         entrant_id = _hex64(entrant.get("entrantId"), f"receipts[{index}].entrants[{entrant_index}].entrantId")
         name = _string(entrant.get("name"), f"receipts[{index}].entrants[{entrant_index}].name")
         _require(entrant_id not in entrant_names, f"receipt {receipt_id} repeats entrant {entrant_id}")
@@ -180,6 +277,8 @@ def _receipt_card(receipt: dict[str, Any], index: int, approved_ids: set[str]) -
             entrant.get("harnessVersionContentDerived") is True,
             f"receipt {receipt_id} has a non-content-derived harness version",
         )
+        identity_evidence, signed = _identity_evidence(entrant, entrant_label)
+        signed_passport_count += int(signed)
         entrant_names[entrant_id] = name
         entrant_cards.append(
             {
@@ -193,10 +292,28 @@ def _receipt_card(receipt: dict[str, Any], index: int, approved_ids: set[str]) -
                     entrant.get("harnessVersionId"),
                     f"receipts[{index}].entrants[{entrant_index}].harnessVersionId",
                 ),
+                "identityEvidence": identity_evidence,
+                "manifestDigest": _hex64(
+                    entrant.get("manifestDigest"),
+                    f"receipts[{index}].entrants[{entrant_index}].manifestDigest",
+                ),
                 "name": name,
                 "seat": _integer(entrant.get("seat"), f"receipts[{index}].entrants[{entrant_index}].seat"),
             }
         )
+
+    passport_truth_fields = (
+        "agentVersionSignaturesVerified",
+        "keyBoundAgentIdsVerified",
+        "agentPassportCoverage",
+    )
+    if signed_passport_count:
+        expected_coverage = "all" if signed_passport_count == len(entrant_cards) else "partial"
+        _require(truth.get("agentVersionSignaturesVerified") is True, f"receipt {receipt_id} signature truth drift")
+        _require(truth.get("keyBoundAgentIdsVerified") is True, f"receipt {receipt_id} key-bound identity truth drift")
+        _require(truth.get("agentPassportCoverage") == expected_coverage, f"receipt {receipt_id} passport coverage drift")
+    else:
+        _require(not any(field in truth for field in passport_truth_fields), f"receipt {receipt_id} invents passport truth")
 
     game = _object(receipt.get("game"), f"receipts[{index}].game")
     outcome = _object(receipt.get("outcome"), f"receipts[{index}].outcome")
@@ -535,6 +652,11 @@ def build_read_model(
             "activeScopedRatingReceiptCount": len(active_rating_receipts),
             "correctionCount": verified_correction_ledger["summary"]["correctionCount"],
             "fallbackOnlyReferenceReceiptCount": evidence_counts["fallback_only_reference"],
+            "legacySelfDeclaredEntrantCount": sum(
+                entrant["identityEvidence"]["status"] == "self_declared_legacy"
+                for receipt in receipts
+                for entrant in receipt["entrants"]
+            ),
             "modelAttestedReceiptCount": 0,
             "modelInfluencedUnattestedReceiptCount": evidence_counts["model_influenced_unattested"],
             "receiptCount": len(receipts),
@@ -542,6 +664,15 @@ def build_read_model(
             "scriptedReferenceReceiptCount": evidence_counts["scripted_reference"],
             "scopedRatingBoardCount": len(scoped_rating_boards),
             "scopedRatingExcludedReceiptCount": verified_correction_ledger["summary"]["scopedRatingExcludedReceiptCount"],
+            "signedAgentPassportEntrantCount": sum(
+                entrant["identityEvidence"]["status"] == "verified_signed"
+                for receipt in receipts
+                for entrant in receipt["entrants"]
+            ),
+            "signedAgentPassportReceiptCount": sum(
+                any(entrant["identityEvidence"]["status"] == "verified_signed" for entrant in receipt["entrants"])
+                for receipt in receipts
+            ),
             "unplayedFixtureCount": len(fixtures),
             "verifiedReceiptCount": len(receipts),
         },

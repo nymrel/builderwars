@@ -6,7 +6,7 @@
 }(typeof globalThis !== "undefined" ? globalThis : this, function createDataAdapter() {
   const DEMO_SCHEMA = "builderwars.mobile-arena-demo.v1";
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
-  const READ_MODEL_DIGEST_PIN = "3ee821defe188169bb59e2f186ca2237488469ed4e0f66dd2bb35353baae18bb";
+  const READ_MODEL_DIGEST_PIN = "5b64209bb139dddfd3789cc04d3f6a0a5a6bbbf160c658e4dd5989f2b53ac27f";
   const SCOPED_RATING_SCHEMA = "agentwars.scoped-proof-rating-board/1";
   const SCOPED_RATING_METHOD = "reviewed_final_win_count_v1";
   const SCOPED_RATING_RESOURCE_CLASS = "reviewed_publication_receipt_v1";
@@ -130,13 +130,13 @@
   const PORTABLE_REVIEW_CORRECTION_BOUNDARY = "This append-only private correction record preserves its immutable target review and proposal lineage while recording one corrected private decision or withdrawal. Its SHA-256 links are integrity evidence, not signatures, reviewer identity, approval, or authority. It cannot rewrite history, apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
   const PORTABLE_REVIEW_CORRECTION_EXCHANGE_BOUNDARY = "This canonical packet supports independent local inspection of one still-unplayed proposal, its immutable private reviews, and their append-only correction history. Its SHA-256 digests are not signatures or identity claims. Import is memory-only and cannot rewrite a review, apply a blueprint, bind rules, qualify, execute, attest, register, rank, publish, spend, or call a provider.";
   const PORTABLE_REVIEW_COMPARISON_BOUNDARY = "This canonical receipt independently reverifies and compares two private correction packets for the exact same still-unplayed proposal. It reports digest-bound review-state differences without choosing a winner, merging histories, resolving a dispute, authenticating identity, applying a blueprint, binding rules, qualifying, executing, registering, ranking, publishing, spending, or calling a provider.";
-  const PRIVATE_REVIEW_LEARNING_BOUNDARY = "This canonical receipt independently reverifies one private comparison and maps each digest-bound comparison class to one fixed inspection-only lesson. It preserves Packet A, Packet B, and every source digest without declaring either state correct, creating consensus, granting approval or progress, adopting a blueprint, merging histories, resolving a dispute, authenticating identity, binding rules, qualifying, executing, registering, ranking, publishing, spending, or calling a provider.";
-  const PRIVATE_BLUEPRINT_DELTA_BOUNDARY = "This canonical receipt independently reverifies one comparison-linked learning receipt and maps one exact digest-bound inspection lesson to one fixed allowlisted guard requirement. It preserves the parent proposal, Packet A, Packet B, and every source digest. The requirement remains uncommitted and unplayed, does not declare a correct packet, and cannot create consensus, approval, progress, blueprint adoption, identity, merge, resolution, rules, qualification, execution, registry, ranking, publication, spending, or provider authority.";
-  const PRIVATE_BLUEPRINT_DELTA_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one private inspection-to-blueprint guard proposal and records exactly one immutable private local review. An accept-for-revision decision may create only a proposed uncommitted local revision candidate; it does not adopt the guard, edit the parent proposal, declare correctness, create consensus, grant approval or progress, authenticate identity, merge or resolve histories, bind rules, qualify, play, execute, register, rank, publish, spend, or call a provider.";
-  const PRIVATE_BLUEPRINT_REVISION_DRAFT_BOUNDARY = "This canonical receipt independently reverifies one accepted private guard-proposal review and derives exactly one versioned local blueprint-revision draft. The draft copies the bound parent blueprint identity and applies only the exact reviewed allowlisted guard while preserving every other guard as carried or unknown. It remains uncommitted, unadopted, unqualified, unplayed, unexecuted, and unpublished; it cannot authenticate identity, declare correctness, create consensus, grant approval or progress, mutate the parent, bind rules, activate a fixture, execute, register, rank, publish, spend, or call a provider.";
-  const PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one versioned local blueprint-revision draft and records exactly one immutable private local review. Accept-for-commit-candidate may derive only an uncommitted, unadopted local candidate. Explicit unknown guard values remain unknown and force commit readiness blocked; no decision authenticates identity, declares correctness, creates consensus, grants approval or progress, mutates the draft or parent, binds rules, qualifies, plays, executes, registers, ranks, publishes, spends, or calls a provider.";
-  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY = "This canonical proposal independently reverifies one accepted private blueprint-draft review candidate and supplies boolean values only for that candidate's exact explicitly unknown guard keys. Every supplied value carries bounded local identity-unattested provenance. The proposal preserves all known and applied guard values and remains uncommitted, unadopted, not commit-ready, unqualified, unplayed, unexecuted, unregistered, and unpublished; it cannot attest provenance or identity, declare correctness, create consensus, grant approval or progress, mutate source lineage, bind rules, execute, spend, or call a provider.";
-  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_BOUNDARY = "This canonical receipt independently reverifies one complete private guard-completion proposal and records exactly one immutable private local review. Accept-for-commit-review may derive only a local candidate for a later operator commit decision. It does not attest reviewer identity or guard-value provenance, make the candidate commit-ready, commit or adopt a blueprint, declare correctness, create consensus, grant approval or progress, mutate source lineage, bind rules, qualify, activate, play, execute, register, rank, publish, spend, or call a provider.";
+  const PRIVATE_REVIEW_LEARNING_BOUNDARY = "This canonical receipt reverifies one private comparison and maps each digest-bound class to one inspection-only lesson. It preserves both packets and every source digest without choosing a correct state, merging histories, or granting consensus, approval, progress, identity, blueprint, rules, execution, registry, ranking, publication, spending, or provider authority.";
+  const PRIVATE_BLUEPRINT_DELTA_BOUNDARY = "This canonical receipt reverifies one comparison-linked lesson and maps it to one allowlisted guard requirement. It preserves the parent, both packets, and every source digest. The requirement remains uncommitted and unplayed, chooses no correct packet, and grants no consensus, blueprint, identity, rules, execution, registry, ranking, publication, spending, or provider authority.";
+  const PRIVATE_BLUEPRINT_DELTA_REVIEW_BOUNDARY = "This canonical receipt reverifies one private guard proposal and records one immutable local review. Acceptance may create only an uncommitted revision candidate; it does not adopt or edit the guard, declare correctness, authenticate identity, bind rules, qualify, execute, register, rank, publish, spend, or call a provider.";
+  const PRIVATE_BLUEPRINT_REVISION_DRAFT_BOUNDARY = "This canonical receipt reverifies one accepted private guard review and derives one versioned local blueprint draft. The draft preserves its parent identity, applies only the reviewed allowlisted guard, and carries every other guard unchanged or unknown. It remains uncommitted, unadopted, unqualified, unplayed, unexecuted, and unpublished. It grants no identity, correctness, consensus, approval, source mutation, rules, activation, registry, ranking, spending, or provider authority.";
+  const PRIVATE_BLUEPRINT_DRAFT_REVIEW_BOUNDARY = "This canonical receipt reverifies one versioned local blueprint draft and records one immutable private review. Acceptance may derive only an uncommitted, unadopted candidate. Unknown guards stay unknown and block commit readiness. No decision grants identity, correctness, consensus, approval, source mutation, rules, execution, registry, ranking, publication, spending, or provider authority.";
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_BOUNDARY = "This canonical proposal reverifies one accepted private blueprint-draft review and supplies booleans only for its explicit unknown guard keys. Each value is local and identity-unattested. It preserves every known or applied guard and remains uncommitted, unadopted, not commit-ready, unqualified, unplayed, unexecuted, unregistered, and unpublished. It grants no provenance, identity, correctness, consensus, approval, source mutation, rules, execution, spending, or provider authority.";
+  const PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_BOUNDARY = "This canonical receipt reverifies one complete private guard proposal and records one immutable local review. Acceptance may derive only a candidate for a later operator commit decision. It does not attest identity or provenance, make the candidate commit-ready, commit or adopt a blueprint, bind rules, qualify, execute, register, rank, publish, spend, or call a provider.";
   const PRIVATE_BLUEPRINT_OPERATOR_REVIEW_PACKET_BOUNDARY = "This canonical packet independently reverifies one accepted private guard-completion review and prepares its exact local candidate, original-to-candidate guard diff, unrun validation plan, discard-only rollback, and smallest later operator decision. Preparation is not an operator review, identity or provenance attestation, approval, commit, adoption, qualification, activation, play, execution, registry request, ranking, publication, spending authorization, or provider call.";
   const ALLOWED_BASE_MODELS = new Set(["Arena Small", "Arena Reason", "Local runner (not paired)"]);
   const ALLOWED_HARNESS_STYLES = new Set(["Validate every move", "Budget-aware planner", "Human review checkpoints", "Naive control"]);
@@ -371,30 +371,33 @@
     return fixture;
   }
   function validateArenaReadModel(model) {
-    requireValue(isObject(model), "read model: expected object");
-    requireValue(model.schemaVersion === READ_MODEL_SCHEMA, "read model: schema drift");
-    requireValue(model.projectionVersion === "3", "read-model projection drift");
-    requireValue(typeof model.readModelDigest === "string" && HEX64.test(model.readModelDigest), "read model: digest missing");
-    requireValue(isObject(model.source), "read model: source missing");
-    requireValue(model.source.status === "tracked_local_publication_artifact_not_hosted", "read model: source status drift");
-    requireValue(model.source.publicationPolicy === "explicit_reviewed_allowlist_only", "read model: publication policy drift");
-    requireValue(HEX64.test(model.source.datasetDigest), "read model: source dataset digest drift");
-    requireValue(HEX64.test(model.source.sourceManifestDigest), "read model: source manifest digest drift");
-    requireValue(GIT_COMMIT.test(model.source.sourceCommit), "read model: source commit drift");
-    requireValue(isObject(model.truthBoundary), "read model: truth boundary missing");
+    requireValue(isObject(model), "model: expected object");
+    requireValue(model.schemaVersion === READ_MODEL_SCHEMA, "model: schema drift");
+    requireValue(model.projectionVersion === "4", "read-model projection drift");
+    requireValue(typeof model.readModelDigest === "string" && HEX64.test(model.readModelDigest), "model: digest missing");
+    requireValue(isObject(model.source), "model: source missing");
+    requireValue(model.source.status === "tracked_local_publication_artifact_not_hosted", "model: source status drift");
+    requireValue(model.source.publicationPolicy === "explicit_reviewed_allowlist_only", "model: publication policy drift");
+    requireValue(HEX64.test(model.source.datasetDigest), "model: source dataset digest drift");
+    requireValue(HEX64.test(model.source.sourceManifestDigest), "model: source manifest digest drift");
+    requireValue(GIT_COMMIT.test(model.source.sourceCommit), "model: source commit drift");
+    requireValue(isObject(model.truthBoundary), "model: truth boundary missing");
     for (const field of ["live", "hosted", "authenticated", "modelAttested", "providerAttested", "runtimeAttested"]) {
-      requireValue(model.truthBoundary[field] === false, `read model: ${field} must stay false`);
+      requireValue(model.truthBoundary[field] === false, `model: ${field} must stay false`);
     }
-    requireValue(Array.isArray(model.receipts) && model.receipts.length > 0, "read model: receipts missing");
-    requireValue(isObject(model.summary), "read model: summary missing");
-    requireValue(model.summary.receiptCount === model.receipts.length, "read model: receipt count mismatch");
-    requireValue(model.summary.verifiedReceiptCount === model.receipts.length, "read model: unverified receipt count");
-    requireValue(model.summary.modelAttestedReceiptCount === 0, "read model: model attestation count drift");
+    requireValue(Array.isArray(model.receipts) && model.receipts.length > 0, "model: receipts missing");
+    requireValue(isObject(model.summary), "model: summary missing");
+    requireValue(model.summary.receiptCount === model.receipts.length, "model: receipt count mismatch");
+    requireValue(model.summary.verifiedReceiptCount === model.receipts.length, "model: unverified receipt count");
+    requireValue(model.summary.modelAttestedReceiptCount === 0, "model: model attestation count drift");
     const receiptIds = new Set();
     const receiptFixtureIds = new Set();
     const receiptById = new Map();
     const receiptGameCounts = new Map();
     const receiptEntrantNames = new Map();
+    let signedPassportEntrants = 0;
+    let legacyEntrants = 0;
+    let signedPassportReceipts = 0;
     const evidenceClassCounts = new Map([
       ["model_influenced_unattested", 0],
       ["scripted_reference", 0],
@@ -402,54 +405,71 @@
       ["other_unattested_reference", 0],
     ]);
     for (const receipt of model.receipts) {
-      requireValue(isObject(receipt) && HEX64.test(receipt.receiptId), "read model: invalid receipt id");
-      requireValue(HEX64.test(receipt.fixtureId), `read model: invalid fixture for ${receipt.receiptId}`);
-      requireValue(!receiptIds.has(receipt.receiptId), `read model: duplicate receipt ${receipt.receiptId}`);
-      requireValue(!receiptFixtureIds.has(receipt.fixtureId), `read model: duplicate receipt fixture ${receipt.fixtureId}`);
+      requireValue(isObject(receipt) && HEX64.test(receipt.receiptId), "model: invalid receipt id");
+      requireValue(HEX64.test(receipt.fixtureId), `model: invalid fixture for ${receipt.receiptId}`);
+      requireValue(!receiptIds.has(receipt.receiptId), `model: duplicate receipt ${receipt.receiptId}`);
+      requireValue(!receiptFixtureIds.has(receipt.fixtureId), `model: duplicate receipt fixture ${receipt.fixtureId}`);
       receiptIds.add(receipt.receiptId);
       receiptFixtureIds.add(receipt.fixtureId);
       receiptById.set(receipt.receiptId, receipt);
-      requireValue(isObject(receipt.game) && typeof receipt.game.name === "string" && receipt.game.name.length > 0 && receipt.game.version === "1", `read model: receipt game drift for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.game) && typeof receipt.game.name === "string" && receipt.game.name.length > 0 && receipt.game.version === "1", `model: receipt game drift for ${receipt.receiptId}`);
       receiptGameCounts.set(receipt.game.name, (receiptGameCounts.get(receipt.game.name) || 0) + 1);
-      requireValue(Array.isArray(receipt.entrants) && receipt.entrants.length >= 2, `read model: entrants missing for ${receipt.receiptId}`);
+      requireValue(Array.isArray(receipt.entrants) && receipt.entrants.length >= 2, `model: entrants missing for ${receipt.receiptId}`);
       const entrantIds = new Set();
       const entrantSeats = new Set();
+      let receiptHasSignedPassport = false;
       for (const entrant of receipt.entrants) {
-        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `read model: entrant binding drift for ${receipt.receiptId}`);
-        requireValue(nonNegativeInteger(entrant.seat) && !entrantSeats.has(entrant.seat), `read model: entrant seat drift for ${receipt.receiptId}`);
-        requireValue(!entrantIds.has(entrant.entrantId), `read model: duplicate entrant for ${receipt.receiptId}`);
+        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `model: entrant binding drift for ${receipt.receiptId}`);
+        requireValue(nonNegativeInteger(entrant.seat) && !entrantSeats.has(entrant.seat), `model: entrant seat drift for ${receipt.receiptId}`);
+        requireValue(!entrantIds.has(entrant.entrantId), `model: duplicate entrant for ${receipt.receiptId}`);
         entrantIds.add(entrant.entrantId);
         entrantSeats.add(entrant.seat);
         const knownEntrantName = receiptEntrantNames.get(entrant.entrantId);
-        requireValue(knownEntrantName === undefined || knownEntrantName === entrant.name, `read model: entrant name drift for ${entrant.entrantId}`);
+        requireValue(knownEntrantName === undefined || knownEntrantName === entrant.name, `model: entrant name drift for ${entrant.entrantId}`);
         receiptEntrantNames.set(entrant.entrantId, entrant.name);
+        requireValue(HEX64.test(entrant.manifestDigest) && isObject(entrant.identityEvidence), "identity evidence drift");
+        const identity = entrant.identityEvidence;
+        const signed = identity.status === "verified_signed";
+        requireValue(signed || identity.status === "self_declared_legacy", "identity status drift");
+        for (const field of ["agentPassportSupplied", "signatureProvesVersionDeclaration", "keyBoundAgentId", "recordedPreflightHarnessDigestBound"]) requireValue(identity[field] === signed, "identity proof drift");
+        for (const field of ["entrantIdentityAttested", "modelAttested", "runtimeAttested", "personAttested", "executionClaimsAttested"]) requireValue(identity[field] === false, "identity attestation inflation");
+        if (signed) {
+          requireValue(HEX64.test(identity.agentVersionId) && (identity.parentVersionId === null || HEX64.test(identity.parentVersionId)) && typeof identity.claimedModelSelfDeclared === "string" && identity.claimedModelSelfDeclared.length > 0, "signed passport drift");
+          signedPassportEntrants += 1;
+          receiptHasSignedPassport = true;
+        } else {
+          requireValue([identity.agentVersionId, identity.parentVersionId, identity.claimedModelSelfDeclared].every((value) => value === null), "legacy identity drift");
+          legacyEntrants += 1;
+        }
       }
-      requireValue([...entrantSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `read model: entrant seats are not contiguous for ${receipt.receiptId}`);
-      requireValue(isObject(receipt.proof), `read model: proof missing for ${receipt.receiptId}`);
+      if (receiptHasSignedPassport) signedPassportReceipts += 1;
+      requireValue([...entrantSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `model: entrant seats are not contiguous for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.proof), `model: proof missing for ${receipt.receiptId}`);
       requireValue(HEX64.test(receipt.proof.engineDigest), `engine digest missing for ${receipt.receiptId}`);
-      requireValue(receipt.proof.publicationApproved === true, `read model: unpublished receipt ${receipt.receiptId}`);
-      requireValue(receipt.proof.replayVerdict === "PASS", `read model: replay failed for ${receipt.receiptId}`);
-      requireValue(receipt.proof.engineDigestMatch === true, `read model: engine mismatch for ${receipt.receiptId}`);
-      requireValue(receipt.proof.verifierSnapshotMatch === true, `read model: verifier mismatch for ${receipt.receiptId}`);
-      requireValue(isObject(receipt.evidence), `read model: evidence missing for ${receipt.receiptId}`);
-      requireValue(evidenceClassCounts.has(receipt.evidence.class), `read model: evidence class drift for ${receipt.receiptId}`);
+      requireValue(receipt.proof.publicationApproved === true, `model: unpublished receipt ${receipt.receiptId}`);
+      requireValue(receipt.proof.replayVerdict === "PASS", `model: replay failed for ${receipt.receiptId}`);
+      requireValue(receipt.proof.engineDigestMatch === true, `model: engine mismatch for ${receipt.receiptId}`);
+      requireValue(receipt.proof.verifierSnapshotMatch === true, `model: verifier mismatch for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.evidence), `model: evidence missing for ${receipt.receiptId}`);
+      requireValue(evidenceClassCounts.has(receipt.evidence.class), `model: evidence class drift for ${receipt.receiptId}`);
       evidenceClassCounts.set(receipt.evidence.class, evidenceClassCounts.get(receipt.evidence.class) + 1);
       for (const field of ["modelAttested", "providerAttested", "runtimeAttested"]) {
-        requireValue(receipt.evidence[field] === false, `read model: ${field} drift for ${receipt.receiptId}`);
+        requireValue(receipt.evidence[field] === false, `model: ${field} drift for ${receipt.receiptId}`);
       }
-      requireValue(isObject(receipt.evidence.moveSourceCounts), `read model: move counts missing for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.evidence.moveSourceCounts), `model: move counts missing for ${receipt.receiptId}`);
       for (const field of ["model", "scripted", "fallback", "other"]) {
-        requireValue(nonNegativeInteger(receipt.evidence.moveSourceCounts[field]), `read model: invalid ${field} count for ${receipt.receiptId}`);
+        requireValue(nonNegativeInteger(receipt.evidence.moveSourceCounts[field]), `model: invalid ${field} count for ${receipt.receiptId}`);
       }
-      requireValue(isObject(receipt.outcome) && HEX64.test(receipt.outcome.winnerEntrantId), `read model: outcome missing for ${receipt.receiptId}`);
-      requireValue(receipt.entrants.some((entrant) => entrant.entrantId === receipt.outcome.winnerEntrantId), `read model: winner is not an entrant for ${receipt.receiptId}`);
-      requireValue(receipt.entrants.every((entrant) => entrant.harnessVersionContentDerived === true && HEX64.test(entrant.harnessVersionId)), `read model: harness version drift for ${receipt.receiptId}`);
+      requireValue(isObject(receipt.outcome) && HEX64.test(receipt.outcome.winnerEntrantId), `model: outcome missing for ${receipt.receiptId}`);
+      requireValue(receipt.entrants.some((entrant) => entrant.entrantId === receipt.outcome.winnerEntrantId), `model: winner is not an entrant for ${receipt.receiptId}`);
+      requireValue(receipt.entrants.every((entrant) => entrant.harnessVersionContentDerived === true && HEX64.test(entrant.harnessVersionId)), `model: harness version drift for ${receipt.receiptId}`);
       requireValue(isObject(receipt.correction) && ["active", "voided", "superseded"].includes(receipt.correction.state) && receipt.correction.eligibleForScopedRating === (receipt.correction.state === "active"), `correction drift for ${receipt.receiptId}`);
     }
-    requireValue(model.source.approvedReceiptCount === receiptIds.size, "read model: source receipt count mismatch");
-    requireValue(model.summary.modelInfluencedUnattestedReceiptCount === evidenceClassCounts.get("model_influenced_unattested"), "read model: model-influenced summary drift");
-    requireValue(model.summary.scriptedReferenceReceiptCount === evidenceClassCounts.get("scripted_reference"), "read model: scripted summary drift");
-    requireValue(model.summary.fallbackOnlyReferenceReceiptCount === evidenceClassCounts.get("fallback_only_reference"), "read model: fallback summary drift");
+    requireValue(model.source.approvedReceiptCount === receiptIds.size, "model: source receipt count mismatch");
+    requireValue(model.summary.modelInfluencedUnattestedReceiptCount === evidenceClassCounts.get("model_influenced_unattested"), "model: model-influenced summary drift");
+    requireValue(model.summary.scriptedReferenceReceiptCount === evidenceClassCounts.get("scripted_reference"), "model: scripted summary drift");
+    requireValue(model.summary.fallbackOnlyReferenceReceiptCount === evidenceClassCounts.get("fallback_only_reference"), "model: fallback summary drift");
+    requireValue(model.summary.signedAgentPassportEntrantCount === signedPassportEntrants && model.summary.legacySelfDeclaredEntrantCount === legacyEntrants && model.summary.signedAgentPassportReceiptCount === signedPassportReceipts, "model: agent passport summary drift");
     const boards = model.scopedRatingBoards;
     requireValue(Array.isArray(boards) && boards.length > 0, "scoped rating boards missing");
     requireValue(model.summary.scopedRatingBoardCount === boards.length, "scoped rating board summary drift");
@@ -488,98 +508,98 @@
     const activeReceiptIds = [...receiptIds].filter((id) => receiptById.get(id).correction.eligibleForScopedRating);
     requireValue(covered.size === activeReceiptIds.length && activeReceiptIds.every((id) => covered.has(id)), "rating coverage");
     requireValue(order.every((value, index) => index === 0 || order[index - 1] < value), "scoped rating board order drift");
-    requireValue(Array.isArray(model.channels), "read model: channels missing");
-    requireValue(Array.isArray(model.rivalries), "read model: rivalries missing");
-    requireValue(Array.isArray(model.futureFixtures), "read model: future fixtures missing");
-    requireValue(Array.isArray(model.rulesWeeks), "read model: rules weeks missing");
+    requireValue(Array.isArray(model.channels), "model: channels missing");
+    requireValue(Array.isArray(model.rivalries), "model: rivalries missing");
+    requireValue(Array.isArray(model.futureFixtures), "model: future fixtures missing");
+    requireValue(Array.isArray(model.rulesWeeks), "model: rules weeks missing");
     const rulesById = new Map();
     for (const rule of model.rulesWeeks) {
-      requireValue(isObject(rule) && typeof rule.rulesWeekId === "string" && rule.rulesWeekId.length > 0, "read model: invalid rules week id");
-      requireValue(!rulesById.has(rule.rulesWeekId), `read model: duplicate rules week ${rule.rulesWeekId}`);
-      requireValue(typeof rule.game === "string" && rule.game.length > 0 && rule.gameVersion === "1", `read model: rules week game drift for ${rule.rulesWeekId}`);
-      requireValue(typeof rule.label === "string" && rule.label.length > 0 && HEX64.test(rule.rulesDigest), `read model: rules week evidence drift for ${rule.rulesWeekId}`);
-      requireValue(rule.status === "playable" && nonNegativeInteger(rule.week) && rule.week > 0, `read model: rules week status drift for ${rule.rulesWeekId}`);
+      requireValue(isObject(rule) && typeof rule.rulesWeekId === "string" && rule.rulesWeekId.length > 0, "model: invalid rules week id");
+      requireValue(!rulesById.has(rule.rulesWeekId), `model: duplicate rules week ${rule.rulesWeekId}`);
+      requireValue(typeof rule.game === "string" && rule.game.length > 0 && rule.gameVersion === "1", `model: rules week game drift for ${rule.rulesWeekId}`);
+      requireValue(typeof rule.label === "string" && rule.label.length > 0 && HEX64.test(rule.rulesDigest), `model: rules week evidence drift for ${rule.rulesWeekId}`);
+      requireValue(rule.status === "playable" && nonNegativeInteger(rule.week) && rule.week > 0, `model: rules week status drift for ${rule.rulesWeekId}`);
       rulesById.set(rule.rulesWeekId, rule);
     }
     const channelGames = new Set();
     for (const channel of model.channels) {
-      requireValue(isObject(channel) && typeof channel.game === "string" && channel.game.length > 0, "read model: invalid channel game");
-      requireValue(!channelGames.has(channel.game), `read model: duplicate channel ${channel.game}`);
+      requireValue(isObject(channel) && typeof channel.game === "string" && channel.game.length > 0, "model: invalid channel game");
+      requireValue(!channelGames.has(channel.game), `model: duplicate channel ${channel.game}`);
       channelGames.add(channel.game);
-      requireValue(channel.status === "tracked_publication_read_only", `read model: channel status drift for ${channel.game}`);
-      requireValue(nonNegativeInteger(channel.publishedReceiptCount) && channel.publishedReceiptCount === receiptGameCounts.get(channel.game), `read model: channel receipt count drift for ${channel.game}`);
-      requireValue(Array.isArray(channel.rulesWeekIds) && new Set(channel.rulesWeekIds).size === channel.rulesWeekIds.length, `read model: channel rules drift for ${channel.game}`);
+      requireValue(channel.status === "tracked_publication_read_only", `model: channel status drift for ${channel.game}`);
+      requireValue(nonNegativeInteger(channel.publishedReceiptCount) && channel.publishedReceiptCount === receiptGameCounts.get(channel.game), `model: channel receipt count drift for ${channel.game}`);
+      requireValue(Array.isArray(channel.rulesWeekIds) && new Set(channel.rulesWeekIds).size === channel.rulesWeekIds.length, `model: channel rules drift for ${channel.game}`);
       const expectedRules = model.rulesWeeks.filter((rule) => rule.game === channel.game).map((rule) => rule.rulesWeekId);
-      requireValue(channel.rulesWeekIds.length === expectedRules.length && channel.rulesWeekIds.every((ruleId, index) => ruleId === expectedRules[index]), `read model: channel rules binding drift for ${channel.game}`);
+      requireValue(channel.rulesWeekIds.length === expectedRules.length && channel.rulesWeekIds.every((ruleId, index) => ruleId === expectedRules[index]), `model: channel rules binding drift for ${channel.game}`);
     }
-    requireValue(channelGames.size === receiptGameCounts.size && [...receiptGameCounts.keys()].every((game) => channelGames.has(game)), "read model: channel coverage drift");
+    requireValue(channelGames.size === receiptGameCounts.size && [...receiptGameCounts.keys()].every((game) => channelGames.has(game)), "model: channel coverage drift");
     const rivalryReceiptIds = new Set();
     const rivalryIds = new Set();
     for (const rivalry of model.rivalries) {
-      requireValue(HEX64.test(rivalry.rivalryId), "read model: invalid rivalry id");
-      requireValue(!rivalryIds.has(rivalry.rivalryId), `read model: duplicate rivalry ${rivalry.rivalryId}`);
+      requireValue(HEX64.test(rivalry.rivalryId), "model: invalid rivalry id");
+      requireValue(!rivalryIds.has(rivalry.rivalryId), `model: duplicate rivalry ${rivalry.rivalryId}`);
       rivalryIds.add(rivalry.rivalryId);
-      requireValue(Array.isArray(rivalry.entrantIds) && rivalry.entrantIds.length === 2, `read model: rivalry entrants missing for ${rivalry.rivalryId}`);
-      requireValue(rivalry.entrantIds.every((entrantId) => HEX64.test(entrantId)), `read model: invalid rivalry entrant for ${rivalry.rivalryId}`);
-      requireValue(Array.isArray(rivalry.meetings) && rivalry.meetingCount === rivalry.meetings.length && rivalry.meetingCount > 0, `read model: rivalry meeting count drift for ${rivalry.rivalryId}`);
+      requireValue(Array.isArray(rivalry.entrantIds) && rivalry.entrantIds.length === 2, `model: rivalry entrants missing for ${rivalry.rivalryId}`);
+      requireValue(rivalry.entrantIds.every((entrantId) => HEX64.test(entrantId)), `model: invalid rivalry entrant for ${rivalry.rivalryId}`);
+      requireValue(Array.isArray(rivalry.meetings) && rivalry.meetingCount === rivalry.meetings.length && rivalry.meetingCount > 0, `model: rivalry meeting count drift for ${rivalry.rivalryId}`);
       for (const [meetingIndex, meeting] of rivalry.meetings.entries()) {
-        requireValue(receiptIds.has(meeting.receiptId), `read model: unknown rivalry receipt ${meeting.receiptId}`);
-        requireValue(!rivalryReceiptIds.has(meeting.receiptId), `read model: duplicate rivalry receipt ${meeting.receiptId}`);
+        requireValue(receiptIds.has(meeting.receiptId), `model: unknown rivalry receipt ${meeting.receiptId}`);
+        requireValue(!rivalryReceiptIds.has(meeting.receiptId), `model: duplicate rivalry receipt ${meeting.receiptId}`);
         rivalryReceiptIds.add(meeting.receiptId);
         const receipt = receiptById.get(meeting.receiptId);
-        requireValue(meeting.meetingNumber === meetingIndex + 1, `read model: rivalry meeting order drift for ${rivalry.rivalryId}`);
-        requireValue(receipt.game.name === meeting.game, `read model: rivalry game drift for ${meeting.receiptId}`);
-        requireValue(receipt.outcome.winnerEntrantId === meeting.winnerEntrantId, `read model: rivalry outcome drift for ${meeting.receiptId}`);
-        requireValue(receipt.entrants.every((entrant) => rivalry.entrantIds.includes(entrant.entrantId)), `read model: rivalry entrant drift for ${meeting.receiptId}`);
-        requireValue(rivalry.entrantIds.includes(meeting.winnerEntrantId), `read model: rivalry winner drift for ${meeting.receiptId}`);
-        requireValue(isObject(meeting.runback), `read model: rivalry runback missing for ${meeting.receiptId}`);
-        requireValue(meeting.runback.parentReceiptId === meeting.receiptId, `read model: rivalry parent drift for ${meeting.receiptId}`);
-        requireValue(meeting.runback.status === "unplayed_challenge", `read model: rivalry runback activated for ${meeting.receiptId}`);
-        requireValue(HEX64.test(meeting.runback.fixtureId), `read model: invalid rivalry runback fixture for ${meeting.receiptId}`);
-        requireValue(CHALLENGE_ID.test(meeting.runback.challengeId), `read model: invalid rivalry challenge for ${meeting.receiptId}`);
+        requireValue(meeting.meetingNumber === meetingIndex + 1, `model: rivalry meeting order drift for ${rivalry.rivalryId}`);
+        requireValue(receipt.game.name === meeting.game, `model: rivalry game drift for ${meeting.receiptId}`);
+        requireValue(receipt.outcome.winnerEntrantId === meeting.winnerEntrantId, `model: rivalry outcome drift for ${meeting.receiptId}`);
+        requireValue(receipt.entrants.every((entrant) => rivalry.entrantIds.includes(entrant.entrantId)), `model: rivalry entrant drift for ${meeting.receiptId}`);
+        requireValue(rivalry.entrantIds.includes(meeting.winnerEntrantId), `model: rivalry winner drift for ${meeting.receiptId}`);
+        requireValue(isObject(meeting.runback), `model: rivalry runback missing for ${meeting.receiptId}`);
+        requireValue(meeting.runback.parentReceiptId === meeting.receiptId, `model: rivalry parent drift for ${meeting.receiptId}`);
+        requireValue(meeting.runback.status === "unplayed_challenge", `model: rivalry runback activated for ${meeting.receiptId}`);
+        requireValue(HEX64.test(meeting.runback.fixtureId), `model: invalid rivalry runback fixture for ${meeting.receiptId}`);
+        requireValue(CHALLENGE_ID.test(meeting.runback.challengeId), `model: invalid rivalry challenge for ${meeting.receiptId}`);
       }
     }
-    requireValue(rivalryReceiptIds.size === receiptIds.size, "read model: receipt missing rivalry runback lineage");
-    requireValue(model.summary.rivalryCount === rivalryIds.size, "read model: rivalry summary drift");
+    requireValue(rivalryReceiptIds.size === receiptIds.size, "model: receipt missing rivalry runback lineage");
+    requireValue(model.summary.rivalryCount === rivalryIds.size, "model: rivalry summary drift");
     const futureFixtureIds = new Set();
     for (const fixture of model.futureFixtures) {
-      requireValue(HEX64.test(fixture.fixtureId), "read model: invalid future fixture id");
-      requireValue(!futureFixtureIds.has(fixture.fixtureId), `read model: duplicate future fixture ${fixture.fixtureId}`);
+      requireValue(HEX64.test(fixture.fixtureId), "model: invalid future fixture id");
+      requireValue(!futureFixtureIds.has(fixture.fixtureId), `model: duplicate future fixture ${fixture.fixtureId}`);
       futureFixtureIds.add(fixture.fixtureId);
-      requireValue(isObject(fixture.game) && typeof fixture.game.name === "string" && fixture.game.version === "1", `read model: future fixture game drift for ${fixture.fixtureId}`);
-      requireValue(typeof fixture.rulesWeekId === "string" && fixture.rulesWeekId.length > 0, `read model: future fixture rules missing for ${fixture.fixtureId}`);
-      requireValue(HEX64.test(fixture.rulesDigest), `read model: future fixture rules digest missing for ${fixture.fixtureId}`);
-      requireValue(fixture.activationStatus === "proposed_not_activated", "read model: activated future fixture");
-      requireValue(fixture.status === "unplayed", "read model: future fixture status drift");
-      requireValue(typeof fixture.format === "string" && fixture.format.length > 0 && nonNegativeInteger(fixture.week) && fixture.week > 0, `read model: future fixture metadata drift for ${fixture.fixtureId}`);
-      requireValue(typeof fixture.closeAt === "string" && UTC_SECOND.test(fixture.closeAt) && Number.isFinite(Date.parse(fixture.closeAt)), `read model: future fixture close time drift for ${fixture.fixtureId}`);
-      requireValue(Array.isArray(fixture.matchup) && fixture.matchup.length === 2, `read model: future fixture matchup drift for ${fixture.fixtureId}`);
+      requireValue(isObject(fixture.game) && typeof fixture.game.name === "string" && fixture.game.version === "1", `model: future fixture game drift for ${fixture.fixtureId}`);
+      requireValue(typeof fixture.rulesWeekId === "string" && fixture.rulesWeekId.length > 0, `model: future fixture rules missing for ${fixture.fixtureId}`);
+      requireValue(HEX64.test(fixture.rulesDigest), `model: future fixture rules digest missing for ${fixture.fixtureId}`);
+      requireValue(fixture.activationStatus === "proposed_not_activated", "model: activated future fixture");
+      requireValue(fixture.status === "unplayed", "model: future fixture status drift");
+      requireValue(typeof fixture.format === "string" && fixture.format.length > 0 && nonNegativeInteger(fixture.week) && fixture.week > 0, `model: future fixture metadata drift for ${fixture.fixtureId}`);
+      requireValue(typeof fixture.closeAt === "string" && UTC_SECOND.test(fixture.closeAt) && Number.isFinite(Date.parse(fixture.closeAt)), `model: future fixture close time drift for ${fixture.fixtureId}`);
+      requireValue(Array.isArray(fixture.matchup) && fixture.matchup.length === 2, `model: future fixture matchup drift for ${fixture.fixtureId}`);
       const fixtureEntrantIds = new Set();
       const fixtureSeats = new Set();
       for (const entrant of fixture.matchup) {
-        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `read model: future fixture entrant drift for ${fixture.fixtureId}`);
-        requireValue(receiptEntrantNames.get(entrant.entrantId) === entrant.name, `read model: future fixture entrant is not receipt-backed for ${fixture.fixtureId}`);
-        requireValue(!fixtureEntrantIds.has(entrant.entrantId) && nonNegativeInteger(entrant.seat) && !fixtureSeats.has(entrant.seat), `read model: future fixture seat drift for ${fixture.fixtureId}`);
+        requireValue(isObject(entrant) && HEX64.test(entrant.entrantId) && typeof entrant.name === "string" && entrant.name.length > 0, `model: future fixture entrant drift for ${fixture.fixtureId}`);
+        requireValue(receiptEntrantNames.get(entrant.entrantId) === entrant.name, `model: future fixture entrant is not receipt-backed for ${fixture.fixtureId}`);
+        requireValue(!fixtureEntrantIds.has(entrant.entrantId) && nonNegativeInteger(entrant.seat) && !fixtureSeats.has(entrant.seat), `model: future fixture seat drift for ${fixture.fixtureId}`);
         fixtureEntrantIds.add(entrant.entrantId);
         fixtureSeats.add(entrant.seat);
       }
-      requireValue([...fixtureSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `read model: future fixture seats are not contiguous for ${fixture.fixtureId}`);
+      requireValue([...fixtureSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `model: future fixture seats are not contiguous for ${fixture.fixtureId}`);
       const rule = rulesById.get(fixture.rulesWeekId);
-      requireValue(rule, `read model: unknown future fixture rules week ${fixture.rulesWeekId}`);
-      requireValue(rule.game === fixture.game.name && rule.gameVersion === fixture.game.version && rule.rulesDigest === fixture.rulesDigest && rule.week === fixture.week, `read model: future fixture rules binding drift for ${fixture.fixtureId}`);
+      requireValue(rule, `model: unknown future fixture rules week ${fixture.rulesWeekId}`);
+      requireValue(rule.game === fixture.game.name && rule.gameVersion === fixture.game.version && rule.rulesDigest === fixture.rulesDigest && rule.week === fixture.week, `model: future fixture rules binding drift for ${fixture.fixtureId}`);
     }
-    requireValue(model.summary.unplayedFixtureCount === futureFixtureIds.size, "read model: future fixture summary drift");
+    requireValue(model.summary.unplayedFixtureCount === futureFixtureIds.size, "model: future fixture summary drift");
     return model;
   }
   async function verifyArenaReadModelIntegrity(modelInput) {
     const model = validateArenaReadModel(modelInput);
     requireValue(
       typeof TextEncoder !== "undefined" && globalThis.crypto?.subtle,
-      "read model: SHA-256 unavailable",
+      "model: SHA-256 unavailable",
     );
     requireValue(
       equalHex(model.readModelDigest, READ_MODEL_DIGEST_PIN),
-      "read model: digest pin mismatch",
+      "model: digest pin mismatch",
     );
     const digestPayload = Object.fromEntries(
       Object.entries(model).filter(([key]) => key !== "readModelDigest"),
@@ -587,7 +607,7 @@
     const computedDigest = await sha256Hex(canonicalJSON(digestPayload));
     requireValue(
       equalHex(computedDigest, model.readModelDigest),
-      "read model: digest mismatch",
+      "model: digest mismatch",
     );
     return model;
   }
@@ -620,6 +640,7 @@
         seat: entrant.seat,
         entrantId: entrant.entrantId,
         name: entrant.name,
+        identityEvidence: clone(entrant.identityEvidence),
       })),
       outcome: {
         winnerSeat: receipt.outcome.winnerSeat,

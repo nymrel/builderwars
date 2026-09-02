@@ -202,9 +202,9 @@ async function main() {
   check(receipt.serialized === canonical(packet), "draft review export is canonical JSON");
   check(receipt.serialized === again.serialized, "same draft review creates same receipt");
   check(receipt.serialized.length <= adapter.PRIVATE_BLUEPRINT_DRAFT_REVIEW_MAX_LENGTH, "draft review stays inside size cap");
-  check(packet.boundary.includes("uncommitted, unadopted local candidate"), "boundary limits accepted candidate state");
-  check(packet.boundary.includes("force commit readiness blocked"), "boundary preserves unknown guard blocker");
-  check(packet.boundary.includes("calls a provider"), "boundary refuses provider calls");
+  check(packet.boundary.includes("uncommitted, unadopted candidate"), "boundary limits accepted candidate state");
+  check(packet.boundary.includes("block commit readiness"), "boundary preserves unknown guard blocker");
+  check(packet.boundary.includes("provider authority"), "boundary refuses provider calls");
 
   const imported = await adapter.verifyPortablePrivateBlueprintDraftReview(receipt.serialized);
   check(imported.verificationStatus === "verified_private_local_blueprint_revision_draft_review", "fresh import remains a private local draft review");

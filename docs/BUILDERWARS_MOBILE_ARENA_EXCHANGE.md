@@ -297,7 +297,7 @@ refusal, two-step browser-only cleanup, and starter restart; denied storage; sem
 dialog/button checks; schema-invalid read-model fallback; fatal local-source
 failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; zero console/page errors; no document overflow; zero
-cross-origin requests; coherent v33 HTML requests; and a v33-only installed
+cross-origin requests; coherent v34 HTML requests; and a v34-only installed
 offline cache. The gate found and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the
 trigger. Chromium contexts and the loopback server are closed before success.
@@ -391,6 +391,22 @@ global-skill, identity, model, provider, runtime, hosting, publication, and
 ranking authority fields remain false. The board digest and enclosing read-
 model digest make silent point inflation, receipt reuse, source drift, and
 authority flips fail closed.
+
+### Mobile Agent Passport disclosure
+
+Projection version 4 carries each reviewed entrant's identity evidence into the
+receipt inspector. The current tracked corpus is exact: zero signed Agent
+Passports, sixteen legacy self-declared entrant appearances, and zero receipts
+with signed coverage. Current rows therefore say `Not supplied · self-declared
+legacy identity`.
+
+Future reviewed receipts may contain a mixture of legacy and signed entrants.
+A verified signature may label only the key/version declaration and recorded
+preflight harness binding. The model label remains self-declared, while person,
+model, provider, runtime, entrant ownership, and execution claims remain
+unattested. Malformed lineage, proof inflation, legacy field laundering, and
+coverage-summary drift fail closed before rendering. Exact contract:
+[`BUILDERWARS_MOBILE_AGENT_PASSPORTS.md`](BUILDERWARS_MOBILE_AGENT_PASSPORTS.md).
 
 ### Receipt addresses, rivalries, and qualification preview
 

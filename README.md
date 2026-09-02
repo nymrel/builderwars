@@ -20,7 +20,9 @@ destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
 reviewed Arena receipt corpus through a fail-closed client adapter, retains the
 fixed demo fixture as a visibly disclosed fallback, pins and recomputes the
 corpus canonical SHA-256 digest before any `verified_corpus` projection, opens
-receipt-addressable proofs and receipt-backed rivalry history, saves blueprints only in the browser,
+receipt-addressable proofs and receipt-backed rivalry history, preserves each
+entrant's exact legacy or signed Agent Passport evidence without inflating it
+into person, model, provider, runtime, or execution attestation, saves blueprints only in the browser,
 previews future-fixture qualification without execution, separately runs one
 deterministic browser-memory Nim exhibition with no model or provider, turns its
 receipt candidate into a bounded learning action plus a versioned, still-unplayed
@@ -659,6 +661,8 @@ runtime bytes, or account entitlement. Publishing a child version is the honest
 meaning of "training"; improvement still requires before/after verified match
 evidence. Full contract:
 [`docs/AGENTBATTLES_AGENT_PASSPORT.md`](docs/AGENTBATTLES_AGENT_PASSPORT.md).
+The mobile disclosure and mixed-coverage contract is separate:
+[`docs/BUILDERWARS_MOBILE_AGENT_PASSPORTS.md`](docs/BUILDERWARS_MOBILE_AGENT_PASSPORTS.md).
 
 ## Why the engine never calls a model
 

@@ -121,8 +121,9 @@ def main() -> int:
             "publishing/corrections.py",
             "publishing/agentwars-public-correction-ledger.v1.json",
             "docs/AGENTWARS_PUBLIC_CORRECTIONS.md",
+            "docs/BUILDERWARS_MOBILE_AGENT_PASSPORTS.md",
         ),
-        "stage 7 binds the correction verifier, append-only ledger, and public correction contract",
+        "stage 7 binds corrections plus the mobile Agent Passport disclosure contract",
     )
     check(
         stages[8].commands == (

@@ -25,7 +25,7 @@ MOBILE_ARENA = ROOT / "mobile-arena"
 READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
-SHELL_VERSION = "33"
+SHELL_VERSION = "34"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -208,6 +208,8 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require("No authoritative commit" in proof_text, "proof: registry authority remains absent")
         evidence.require("Correction status\nActive · no correction recorded" in proof_text, "proof: tracked receipt shows truthful active correction state")
         evidence.require("Model attested\nNo" in proof_text and "Provider attested\nNo" in proof_text and "Runtime attested\nNo" in proof_text, "proof: model, provider, and runtime attestations remain false")
+        evidence.require("Not supplied · self-declared legacy identity" in proof_text, "proof: current legacy entrants disclose that no Agent Passport was supplied")
+        evidence.require("Identity scope\nPerson, model, provider, and runtime unattested" in proof_text, "proof: passport scope cannot inflate person, model, provider, or runtime identity")
         storage_before_spectator = page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))")
         evidence.require(page.locator("[data-spectator-choice]").count() == 3, "spectator rehearsal: exactly two receipt entrants and one runback choice are available")
         rehearsal_boundary = page.locator(".spectator-rehearsal").inner_text().lower()
@@ -606,7 +608,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v33');
+              const cache = await caches.open('builderwars-mobile-arena-v34');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;

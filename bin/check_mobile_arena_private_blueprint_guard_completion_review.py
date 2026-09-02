@@ -216,7 +216,7 @@ async function main() {
   check(receipt.serialized === again.serialized, "same review input creates same receipt");
   check(receipt.serialized.length <= adapter.PRIVATE_BLUEPRINT_GUARD_COMPLETION_REVIEW_MAX_LENGTH, "review stays inside size cap");
   check(packet.boundary.includes("later operator commit decision"), "boundary preserves later operator decision");
-  check(packet.boundary.includes("does not attest reviewer identity or guard-value provenance"), "boundary refuses identity and provenance attestation");
+  check(packet.boundary.includes("does not attest identity or provenance"), "boundary refuses identity and provenance attestation");
   check(packet.boundary.includes("call a provider"), "boundary refuses provider calls");
 
   const imported = await adapter.verifyPortablePrivateBlueprintGuardCompletionReview(receipt.serialized);

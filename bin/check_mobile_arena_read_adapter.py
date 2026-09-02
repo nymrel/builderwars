@@ -95,6 +95,9 @@ function response(body, ok = true) {
   check(view.proofReceipts.every((proof) => proof.runback?.parentReceiptId === proof.receiptId), "projects exact proof-to-runback lineage");
   check(view.proofReceipts.every((proof) => proof.runback?.status === "unplayed_challenge"), "keeps every proof runback unplayed");
   check(view.proofReceipts.every((proof) => proof.game?.version === "1"), "projects proof game bindings");
+  check(model.summary.signedAgentPassportEntrantCount === 0 && model.summary.legacySelfDeclaredEntrantCount === 16 && model.summary.signedAgentPassportReceiptCount === 0, "tracks current legacy passport coverage exactly");
+  check(view.proofReceipts.flatMap((proof) => proof.entrants).every((entrant) => entrant.identityEvidence.status === "self_declared_legacy" && entrant.identityEvidence.agentPassportSupplied === false), "projects explicit legacy identity evidence into every proof");
+  check(view.proofReceipts.flatMap((proof) => proof.entrants).every((entrant) => [entrant.identityEvidence.entrantIdentityAttested, entrant.identityEvidence.modelAttested, entrant.identityEvidence.runtimeAttested, entrant.identityEvidence.personAttested, entrant.identityEvidence.executionClaimsAttested].every((value) => value === false)), "keeps every higher identity attestation false");
 
   await rejects((changed) => { changed.truthBoundary.live = true; }, "live must stay false");
   await rejects((changed) => { changed.receipts[0].proof.replayVerdict = "FAIL"; }, "replay failed");
@@ -135,6 +138,10 @@ function response(body, ok = true) {
   await rejects((changed) => { changed.futureFixtures[0].rulesWeekId = "missing-rules-week"; }, "unknown future fixture rules week");
   await rejects((changed) => { changed.futureFixtures[0].rulesDigest = "0".repeat(64); }, "future fixture rules binding drift");
   await rejects((changed) => { changed.receipts[0].entrants[1].seat = 0; }, "entrant seat drift");
+  await rejects((changed) => { changed.receipts[0].entrants[0].identityEvidence.status = "verified_signed"; }, "identity proof drift");
+  await rejects((changed) => { changed.receipts[0].entrants[0].identityEvidence.modelAttested = true; }, "identity attestation inflation");
+  await rejects((changed) => { changed.receipts[0].entrants[0].identityEvidence.agentVersionId = "0".repeat(64); }, "legacy identity drift");
+  await rejects((changed) => { changed.summary.signedAgentPassportEntrantCount += 1; }, "agent passport summary drift");
 
   await rejects((changed) => { changed.receipts[0].headline += " altered"; }, "digest mismatch");
   const rehashedMutation = copy(model);
