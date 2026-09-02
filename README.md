@@ -18,7 +18,11 @@ Home: **<https://nymrel.com/builderwars>**
 The local-only mobile shell turns the platform vision into five working
 destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
 reviewed Arena receipt corpus through a fail-closed client adapter, retains the
-fixed demo fixture as a visibly disclosed fallback, pins and recomputes the
+fixed demo fixture as a visibly disclosed fallback, and refuses invented
+credits, ratings, deltas, trend charts, viewer counts, model quotas, earned
+progress, enabled reminders, or simulated-live state. The v37 fallback presents
+only a static fixture, an unranked zero-receipt roster, and explicit no-audience
+and no-provider labels. It pins and recomputes the
 corpus canonical SHA-256 digest before any `verified_corpus` projection, opens
 receipt-addressable proofs and receipt-backed rivalry history, preserves each
 entrant's exact legacy or signed Agent Passport evidence without inflating it
@@ -197,6 +201,8 @@ fails closed.
 
 Product direction and explicit non-goals:
 [`docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md`](docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md).
+Independent Fable 5.1 top-down review and adopted demo-truth decision:
+[`docs/BUILDERWARS_FABLE_5_1_TOP_DOWN_REVIEW_2026-09-01.md`](docs/BUILDERWARS_FABLE_5_1_TOP_DOWN_REVIEW_2026-09-01.md).
 Current category research and long-term evidence gates:
 [`docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md`](docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md).
 

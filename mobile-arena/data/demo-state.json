@@ -1,30 +1,29 @@
 {
-  "schemaVersion": "builderwars.mobile-arena-demo.v1",
+  "schemaVersion": "builderwars.mobile-arena-demo.v2",
   "demoOnly": true,
   "sourceStatus": "local_fixture_not_live",
   "generatedAt": "2026-08-30T07:00:00Z",
   "account": {
     "displayName": "Local Builder",
     "tier": "Demo Lab",
-    "creditsRemaining": 120,
-    "creditsLabel": "simulated credits"
+    "accessLabel": "Local play only",
+    "accessDetail": "No account or provider call"
   },
   "watchlist": [
-    {"id": "aw-sunday-machine", "symbol": "SUN", "name": "Sunday Machine", "kind": "Harness", "rating": 1548, "delta": 18, "trend": [3, 4, 4, 7, 6, 9, 12]},
-    {"id": "aw-future-proof", "symbol": "FTR", "name": "Future Proof", "kind": "Harness", "rating": 1512, "delta": -6, "trend": [9, 8, 8, 7, 9, 6, 5]},
-    {"id": "aw-signal-siege", "symbol": "SIG", "name": "Signal Siege", "kind": "Creator game", "rating": 87, "delta": 4, "trend": [2, 3, 5, 4, 6, 7, 9]},
-    {"id": "aw-redraft-open", "symbol": "RDO", "name": "Redraft Open", "kind": "League", "rating": 12, "delta": 2, "trend": [1, 2, 2, 4, 5, 8, 8]}
+    {"id": "aw-sunday-machine", "symbol": "SUN", "name": "Sunday Machine", "kind": "Simulated harness", "metric": "DEMO", "metricLabel": "fixture only"},
+    {"id": "aw-future-proof", "symbol": "FTR", "name": "Future Proof", "kind": "Simulated harness", "metric": "DEMO", "metricLabel": "fixture only"},
+    {"id": "aw-signal-siege", "symbol": "SIG", "name": "Signal Siege", "kind": "Held creator game", "metric": "HELD", "metricLabel": "not admitted"},
+    {"id": "aw-redraft-open", "symbol": "RDO", "name": "Redraft Open", "kind": "Proposed league", "metric": "DRAFT", "metricLabel": "not activated"}
   ],
   "featured": {
     "id": "demo-redraft-42",
     "channel": "Fantasy Lab",
-    "status": "simulated_live",
-    "clock": "Round 5 / Pick 9",
+    "status": "simulated_fixture",
+    "clock": "Static walkthrough",
     "title": "Sunday Machine vs Future Proof",
     "subtitle": "Same fictional pool. Frozen redraft rules. Seats swap on the runback.",
     "left": {"name": "Sunday Machine", "score": 86, "accent": "lime"},
     "right": {"name": "Future Proof", "score": 79, "accent": "ivory"},
-    "momentum": [42, 48, 44, 56, 62, 68, 73, 78, 86],
     "proof": {
       "replayVerdict": "PASS_DEMO_FIXTURE",
       "registryState": "pending_registry_commit",
@@ -38,44 +37,44 @@
     }
   },
   "tape": [
-    {"time": "NOW", "type": "move", "channel": "Fantasy Lab", "headline": "Sunday Machine selects a scarcity defense", "detail": "Safe action summary · source: simulated fixture", "tone": "up"},
-    {"time": "-02m", "type": "proof", "channel": "Verifier Desk", "headline": "Seat-one transcript replay passed", "detail": "Pending registry commit · no model attestation", "tone": "neutral"},
-    {"time": "-05m", "type": "league", "channel": "Ten Fronts", "headline": "Stonewall Division closes round three", "detail": "6 entrants · 30 replay-eligible pairings", "tone": "neutral"},
-    {"time": "-09m", "type": "lesson", "channel": "Builder Academy", "headline": "New lab: why fallbacks change a result", "detail": "7 minutes · beginner", "tone": "up"},
-    {"time": "-14m", "type": "review", "channel": "Creator Queue", "headline": "Signal Siege remains held for admission", "detail": "Declarative fixture · not public competition", "tone": "risk"}
+    {"time": "DEMO", "type": "move", "channel": "Fantasy Lab", "headline": "Explore a simulated draft fixture", "detail": "Static walkthrough · not a recorded match", "tone": "neutral"},
+    {"time": "PROOF", "type": "proof", "channel": "Verifier Desk", "headline": "Inspect the fixture boundary", "detail": "No public receipt · no model attestation", "tone": "neutral"},
+    {"time": "RULES", "type": "league", "channel": "Ten Fronts", "headline": "Review a proposed competition format", "detail": "No entrants, pairings, or results are claimed", "tone": "neutral"},
+    {"time": "LEARN", "type": "lesson", "channel": "Builder Academy", "headline": "See how fallbacks affect proof", "detail": "Local lesson · no progress awarded", "tone": "neutral"},
+    {"time": "HELD", "type": "review", "channel": "Creator Queue", "headline": "Signal Siege is not admitted", "detail": "Declarative fixture · not public competition", "tone": "risk"}
   ],
   "channels": [
-    {"id": "fantasy-lab", "name": "Fantasy Lab", "description": "Redraft, dynasty, and rules-week circuits", "viewers": 312, "status": "simulated", "followed": true},
-    {"id": "verifier-desk", "name": "Verifier Desk", "description": "Receipts, corrections, and runback custody", "viewers": 84, "status": "simulated", "followed": true},
-    {"id": "ten-fronts", "name": "Ten Fronts", "description": "Strategy, allocation, and cheap-talk matches", "viewers": 147, "status": "simulated", "followed": false},
-    {"id": "builder-academy", "name": "Builder Academy", "description": "Harness labs and replay breakdowns", "viewers": 63, "status": "simulated", "followed": false},
-    {"id": "creator-queue", "name": "Creator Queue", "description": "Held games moving through admission", "viewers": 29, "status": "simulated", "followed": false}
+    {"id": "fantasy-lab", "name": "Fantasy Lab", "description": "Redraft, dynasty, and rules-week circuits", "evidenceLabel": "demo catalog · no audience data", "status": "simulated_fixture", "followed": true},
+    {"id": "verifier-desk", "name": "Verifier Desk", "description": "Receipts, corrections, and runback custody", "evidenceLabel": "demo catalog · no audience data", "status": "simulated_fixture", "followed": true},
+    {"id": "ten-fronts", "name": "Ten Fronts", "description": "Strategy, allocation, and cheap-talk matches", "evidenceLabel": "demo catalog · no audience data", "status": "simulated_fixture", "followed": false},
+    {"id": "builder-academy", "name": "Builder Academy", "description": "Harness labs and replay breakdowns", "evidenceLabel": "demo catalog · no audience data", "status": "simulated_fixture", "followed": false},
+    {"id": "creator-queue", "name": "Creator Queue", "description": "Held games moving through admission", "evidenceLabel": "demo catalog · no audience data", "status": "simulated_fixture", "followed": false}
   ],
   "leaderboard": [
-    {"rank": 1, "name": "Sunday Machine", "kind": "Harness", "record": "8-2", "rating": 1548, "verified": 8},
-    {"rank": 2, "name": "Future Proof", "kind": "Harness", "record": "7-3", "rating": 1512, "verified": 7},
-    {"rank": 3, "name": "Constraint Engine", "kind": "Agent", "record": "6-4", "rating": 1489, "verified": 6},
-    {"rank": 4, "name": "Human + Scout", "kind": "Hybrid team", "record": "5-5", "rating": 1461, "verified": 5}
+    {"position": "—", "name": "Sunday Machine", "kind": "Simulated harness", "record": "Fixture entrant · no reviewed receipts", "metric": "DEMO", "verified": 0},
+    {"position": "—", "name": "Future Proof", "kind": "Simulated harness", "record": "Fixture entrant · no reviewed receipts", "metric": "DEMO", "verified": 0},
+    {"position": "—", "name": "Constraint Engine", "kind": "Simulated agent", "record": "Fixture entrant · no reviewed receipts", "metric": "DEMO", "verified": 0},
+    {"position": "—", "name": "Human + Scout", "kind": "Simulated hybrid team", "record": "Fixture entrant · no reviewed receipts", "metric": "DEMO", "verified": 0}
   ],
   "quickMatches": [
-    {"id": "demo-agent-duel", "mode": "Agent vs Agent", "title": "Nim Blitz", "duration": "~2 min", "cost": "0 simulated credits", "ranked": false},
-    {"id": "demo-human-agent", "mode": "Human vs Agent", "title": "Draft Room", "duration": "~6 min", "cost": "0 simulated credits", "ranked": false},
-    {"id": "demo-hybrid", "mode": "Hybrid teams", "title": "Signal Defense", "duration": "~8 min", "cost": "0 simulated credits", "ranked": false}
+    {"id": "demo-agent-duel", "mode": "Agent vs Agent", "title": "Nim Blitz", "duration": "Short format", "access": "Local preview · no provider call", "ranked": false, "actionLabel": "Explore format"},
+    {"id": "demo-human-agent", "mode": "Human vs Agent", "title": "Draft Room", "duration": "Guided format", "access": "Local preview · no provider call", "ranked": false, "actionLabel": "Explore format"},
+    {"id": "demo-hybrid", "mode": "Hybrid teams", "title": "Signal Defense", "duration": "Guided format", "access": "Local preview · no provider call", "ranked": false, "actionLabel": "Explore format"}
   ],
   "freeModels": [
-    {"id": "arena-small", "name": "Arena Small", "source": "local demo stub", "quota": 40, "latency": "fast", "enabled": true},
-    {"id": "arena-reason", "name": "Arena Reason", "source": "local demo stub", "quota": 12, "latency": "measured", "enabled": true},
-    {"id": "bring-local", "name": "Bring a local runner", "source": "pairing not active", "quota": 0, "latency": "n/a", "enabled": false}
+    {"id": "arena-small", "name": "Arena Small", "source": "local demo stub", "availability": "Mock response only", "enabled": true},
+    {"id": "arena-reason", "name": "Arena Reason", "source": "local demo stub", "availability": "Mock response only", "enabled": true},
+    {"id": "bring-local", "name": "Bring a local runner", "source": "pairing not active", "availability": "Unavailable", "enabled": false}
   ],
   "lessons": [
-    {"id": "proof-101", "step": 1, "title": "Read a match receipt", "duration": "5 min", "level": "Viewer", "progress": 100},
-    {"id": "fallbacks", "step": 2, "title": "Catch silent fallbacks", "duration": "7 min", "level": "Player", "progress": 65},
-    {"id": "harness-loop", "step": 3, "title": "Version a harness", "duration": "12 min", "level": "Tinkerer", "progress": 0},
-    {"id": "game-contract", "step": 4, "title": "Design a verifiable game", "duration": "18 min", "level": "Builder", "progress": 0}
+    {"id": "proof-101", "step": 1, "title": "Read a match receipt", "duration": "Local guide", "level": "Proof basics", "progress": 0},
+    {"id": "fallbacks", "step": 2, "title": "Catch silent fallbacks", "duration": "Local guide", "level": "Replay basics", "progress": 0},
+    {"id": "harness-loop", "step": 3, "title": "Version a harness", "duration": "Local guide", "level": "Build basics", "progress": 0},
+    {"id": "game-contract", "step": 4, "title": "Design a verifiable game", "duration": "Local guide", "level": "Rules basics", "progress": 0}
   ],
   "automations": [
-    {"id": "daily-spar", "name": "Daily sparring reminder", "schedule": "09:00 local", "enabled": true, "scope": "local demo notification"},
-    {"id": "rivalry-watch", "name": "Rivalry state watch", "schedule": "on verified change", "enabled": false, "scope": "local demo notification"},
-    {"id": "lesson-streak", "name": "Learning streak", "schedule": "after 48h idle", "enabled": true, "scope": "local demo notification"}
+    {"id": "receipt-review", "name": "Receipt review reminder", "schedule": "off by default", "enabled": false, "scope": "browser session only"},
+    {"id": "rivalry-watch", "name": "Rivalry evidence watch", "schedule": "off by default", "enabled": false, "scope": "browser session only"},
+    {"id": "fixture-readiness", "name": "Fixture readiness watch", "schedule": "off by default", "enabled": false, "scope": "browser session only"}
   ]
 }

@@ -4,7 +4,7 @@
   if (typeof module !== "undefined" && module.exports) module.exports = adapter;
   if (root) root.BuilderWarsDataAdapter = adapter;
 }(typeof globalThis !== "undefined" ? globalThis : this, function createDataAdapter() {
-  const DEMO_SCHEMA = "builderwars.mobile-arena-demo.v1";
+  const DEMO_SCHEMA = "builderwars.mobile-arena-demo.v2";
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
   const READ_MODEL_DIGEST_PIN = "5b64209bb139dddfd3789cc04d3f6a0a5a6bbbf160c658e4dd5989f2b53ac27f";
   const CREATOR_GAME_LAB_SCHEMA = "builderwars.mobile-creator-game-lab.v1";
@@ -440,6 +440,19 @@
     requireValue(proof.providerAttested === false, "unsafe demo fixture: provider attestation must stay false");
     requireValue(proof.runtimeAttested === false, "unsafe demo fixture: runtime attestation must stay false");
     requireValue(proof.registryState === "pending_registry_commit", "unsafe demo fixture: registry boundary drift");
+    requireValue(fixture.featured.status === "simulated_fixture", "unsafe demo fixture: featured status drift");
+    requireValue(isObject(fixture.account) && fixture.account.accessLabel === "Local play only" && fixture.account.accessDetail === "No account or provider call", "unsafe demo fixture: access boundary drift");
+    const unearnedMetricKey = /"(?:creditsRemaining|creditsLabel|viewers|rating|delta|trend|rank|cost|quota|latency)"\s*:/;
+    requireValue(!unearnedMetricKey.test(canonicalJSON(fixture)), "unsafe demo fixture: unearned finance, audience, ranking, or capacity metric");
+    requireValue(!/\blive\b/i.test(fixture.featured.status), "unsafe demo fixture: live status claim");
+    requireValue(!/streak/i.test(canonicalJSON(fixture)), "unsafe demo fixture: unearned streak claim");
+    requireValue(fixture.watchlist.every((item) => ["DEMO", "HELD", "DRAFT"].includes(item.metric) && typeof item.metricLabel === "string"), "unsafe demo fixture: watchlist evidence label drift");
+    requireValue(fixture.leaderboard.every((row) => row.position === "—" && row.metric === "DEMO" && row.verified === 0 && row.record.includes("no reviewed receipts")), "unsafe demo fixture: demo roster must stay unranked and unverified");
+    requireValue(fixture.channels.every((channel) => channel.status === "simulated_fixture" && channel.evidenceLabel.includes("no audience data")), "unsafe demo fixture: channel evidence boundary drift");
+    requireValue(fixture.quickMatches.every((match) => match.ranked === false && match.access === "Local preview · no provider call" && match.actionLabel === "Explore format"), "unsafe demo fixture: match access boundary drift");
+    requireValue(fixture.freeModels.every((model) => typeof model.availability === "string" && !Object.hasOwn(model, "quota")), "unsafe demo fixture: model availability drift");
+    requireValue(fixture.lessons.every((lesson) => lesson.progress === 0), "unsafe demo fixture: unearned learning progress");
+    requireValue(fixture.automations.every((automation) => automation.enabled === false && automation.schedule === "off by default" && automation.scope === "browser session only"), "unsafe demo fixture: automation boundary drift");
     return fixture;
   }
   function validateArenaReadModel(model) {
@@ -869,7 +882,7 @@
       mode: "Practice",
       title: "Your blueprint vs deterministic reference",
       duration: "9 moves max",
-      cost: "local · no model",
+      access: "Local practice · no model or provider",
       ranked: false,
       enabled: false,
       previewAllowed: true,
@@ -3735,7 +3748,7 @@
       fallbackReason: null,
     };
     demo.truthBoundary = clone(model.truthBoundary);
-    demo.account = { displayName: "Local Builder", tier: "Read-only corpus", creditsRemaining: 0, creditsLabel: "live credits · disabled" };
+    demo.account = { displayName: "Local Builder", tier: "Read-only corpus", accessLabel: "Read-only proof", accessDetail: "Competition entry disabled" };
     demo.proofReceipts = proofs;
     demo.featured = featuredFromReceipt(featuredReceipt, proofById.get(featuredReceipt.receiptId));
     demo.tape = model.receipts.map((receipt, index) => ({
@@ -3752,7 +3765,7 @@
       name: gameLabel(channel.game),
       description: `${channel.publishedReceiptCount} reviewed receipt${channel.publishedReceiptCount === 1 ? "" : "s"} · read only`,
       evidenceCount: channel.publishedReceiptCount,
-      viewers: null,
+      evidenceLabel: "reviewed receipts · no audience data",
       status: channel.status,
       followed: index < 2,
     }));
@@ -3762,7 +3775,7 @@
       mode: gameLabel(fixture.format),
       title: fixture.matchup.map((entrant) => entrant.name).join(" vs "),
       duration: `Week ${fixture.week}`,
-      cost: "proposed · not activated",
+      access: "Proposed · not activated",
       ranked: false,
       enabled: false,
       previewAllowed: true,
@@ -3780,10 +3793,8 @@
       symbol: symbolFor(channel.game),
       name: gameLabel(channel.game),
       kind: "Reviewed game",
-      rating: channel.publishedReceiptCount,
+      metric: `${channel.publishedReceiptCount}R`,
       metricLabel: `${channel.publishedReceiptCount} receipt${channel.publishedReceiptCount === 1 ? "" : "s"}`,
-      delta: null,
-      trend: null,
     }));
     demo.rivalries = buildRivalryViews(model.rivalries, model.receipts);
     return demo;

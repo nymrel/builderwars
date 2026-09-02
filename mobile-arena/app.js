@@ -222,27 +222,12 @@ function restoreModalFocus(lastFocus, contains = (node) => document.contains(nod
   return true;
 }
 
-function sparkline(values, positive) {
-  const width = 110;
-  const height = 20;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(1, max - min);
-  const points = values.map((value, index) => {
-    const x = (index / (values.length - 1)) * width;
-    const y = height - 2 - ((value - min) / span) * (height - 4);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  const color = positive ? "#caff4d" : "#ff6b61";
-  return `<svg class="sparkline" viewBox="0 0 ${width} ${height}" role="img" aria-label="${positive ? "upward" : "downward"} seven-point demo trend"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
-}
-
 function renderWatchlist() {
   $("#watchlist").innerHTML = state.data.watchlist.map((item) => `
     <div class="watch-item" role="listitem">
       <div class="watch-top"><span class="watch-symbol">${escapeHTML(item.symbol)}</span><span class="watch-kind">${escapeHTML(item.kind)}</span></div>
-      <div class="watch-bottom"><span class="watch-rating">${item.rating}</span>${item.delta === null ? `<span class="watch-evidence">${escapeHTML(item.metricLabel)}</span>` : `<span class="delta ${item.delta >= 0 ? "up" : "down"}">${item.delta >= 0 ? "+" : ""}${item.delta}</span>`}</div>
-      ${Array.isArray(item.trend) ? sparkline(item.trend, item.delta >= 0) : `<span class="receipt-track" aria-label="Reviewed receipt count">verified local corpus</span>`}
+      <div class="watch-bottom"><span class="watch-metric">${escapeHTML(item.metric)}</span><span class="watch-evidence">${escapeHTML(item.metricLabel)}</span></div>
+      <span class="receipt-track">${state.data.sourceMode === "verified_corpus" ? "reviewed local corpus" : "unranked local fixture"}</span>
     </div>`).join("");
 }
 
@@ -250,7 +235,7 @@ function renderFeatured() {
   const match = state.data.featured;
   const verified = state.data.sourceMode === "verified_corpus";
   $("#featured-match").innerHTML = `
-    <div class="match-meta"><span class="${verified ? "receipt-dot" : "live-dot"}">${escapeHTML(match.statusLabel || "Sim live")}</span><span class="source-label">${escapeHTML(match.clock)}</span></div>
+    <div class="match-meta"><span class="${verified ? "receipt-dot" : "fixture-dot"}">${escapeHTML(match.statusLabel || "Simulated fixture")}</span><span class="source-label">${escapeHTML(match.clock)}</span></div>
     <div class="match-title"><p class="eyebrow">${escapeHTML(match.channel)}</p><h2>${escapeHTML(match.title)}</h2><p class="match-subtitle">${escapeHTML(match.subtitle)}</p></div>
     <div class="scoreline" aria-label="${escapeHTML(match.scoreAriaLabel || `Demo score ${match.left.score} to ${match.right.score}`)}">
       <div class="score-side"><span class="score-name">${escapeHTML(match.left.name)}</span><strong class="score accent">${match.left.score}</strong></div>
@@ -275,17 +260,18 @@ function renderChannels() {
   if (state.followingFirst) rows.sort((a, b) => Number(b.followed) - Number(a.followed));
   $("#channels").innerHTML = rows.map((channel) => `
     <div class="channel-row" data-channel-id="${escapeHTML(channel.id)}">
-      <div><p class="row-title">${escapeHTML(channel.name)}</p><p class="row-detail">${escapeHTML(channel.description)}${Number.isInteger(channel.viewers) ? ` · ${channel.viewers} demo viewers` : ""}</p></div>
+      <div><p class="row-title">${escapeHTML(channel.name)}</p><p class="row-detail">${escapeHTML(channel.description)} · ${escapeHTML(channel.evidenceLabel)}</p></div>
       <button class="follow-button ${channel.followed ? "is-followed" : ""}" type="button" data-follow="${escapeHTML(channel.id)}" aria-pressed="${channel.followed}">${channel.followed ? "Following" : "Follow"}</button>
     </div>`).join("");
 }
 
 function renderLeaderboard() {
+  const verified = state.data.sourceMode === "verified_corpus";
   $("#leaderboard").innerHTML = state.data.leaderboard.map((row) => `
     <div class="leader-row">
-      <span class="rank">${row.position || String(row.rank).padStart(2, "0")}</span>
+      <span class="roster-mark" aria-hidden="true">${escapeHTML(row.position)}</span>
       <div><p class="row-title">${escapeHTML(row.name)}</p><p class="row-detail">${escapeHTML(row.kind)} · ${escapeHTML(row.record)}</p></div>
-      <div class="leader-metric"><strong class="leader-rating">${escapeHTML(row.metric || row.rating)}</strong><span class="leader-proof">${row.verified} ${state.data.sourceMode === "verified_corpus" ? "reviewed receipts" : "demo proofs"}</span></div>
+      <div class="leader-metric"><strong class="leader-value">${escapeHTML(row.metric)}</strong><span class="leader-proof">${verified ? `${row.verified} reviewed receipts` : "not ranked"}</span></div>
     </div>`).join("");
 }
 
@@ -304,14 +290,14 @@ function renderRivalries() {
 }
 
 function renderCompete() {
-  $("#credit-readout").innerHTML = `<strong>${state.data.account.creditsRemaining}</strong>${escapeHTML(state.data.account.creditsLabel)}`;
+  $("#entry-boundary").innerHTML = `<strong>${escapeHTML(state.data.account.accessLabel)}</strong><span>${escapeHTML(state.data.account.accessDetail)}</span>`;
   $("#quick-matches").innerHTML = state.data.quickMatches.map((match) => `
     <div class="quick-row">
-      <div><span class="mode-label">${escapeHTML(match.mode)}</span><p class="row-title">${escapeHTML(match.title)}</p><p class="row-detail">${escapeHTML(match.duration)} · ${escapeHTML(match.cost)} · unranked</p></div>
-      ${match.previewAllowed ? `<button class="queue-button preview" type="button" data-qualification-preview="${escapeHTML(match.id)}">${escapeHTML(match.actionLabel)}</button>` : `<button class="queue-button" type="button" data-queue="${escapeHTML(match.id)}">${escapeHTML(match.actionLabel || "Enter demo")}</button>`}
+      <div><span class="mode-label">${escapeHTML(match.mode)}</span><p class="row-title">${escapeHTML(match.title)}</p><p class="row-detail">${escapeHTML(match.duration)} · ${escapeHTML(match.access)} · unranked</p></div>
+      ${match.previewAllowed ? `<button class="queue-button preview" type="button" data-qualification-preview="${escapeHTML(match.id)}">${escapeHTML(match.actionLabel)}</button>` : `<button class="queue-button" type="button" data-queue="${escapeHTML(match.id)}">${escapeHTML(match.actionLabel || "Explore format")}</button>`}
     </div>`).join("");
   $("#free-models").innerHTML = state.data.freeModels.map((model) => `
-    <div class="model-row"><div><p class="row-title">${escapeHTML(model.name)}</p><p class="row-detail">${escapeHTML(model.source)} · quota ${model.quota}</p></div><span class="model-status ${model.enabled ? "" : "disabled"}">${model.enabled ? escapeHTML(model.latency) : "Unavailable"}</span></div>`).join("");
+    <div class="model-row"><div><p class="row-title">${escapeHTML(model.name)}</p><p class="row-detail">${escapeHTML(model.source)}</p></div><span class="model-status ${model.enabled ? "" : "disabled"}">${escapeHTML(model.availability)}</span></div>`).join("");
 }
 
 function renderLessons() {
@@ -2360,13 +2346,15 @@ function renderSourceChrome() {
   $("#source-badge").title = verified
     ? "Reviewed local receipts; not hosted, authenticated, or live"
     : "Verified corpus unavailable or invalid; bounded demo fixture loaded";
-  $("#tape-source-label").textContent = verified ? "reviewed receipts" : "simulated fixture";
-  $("#channels-source-label").textContent = verified ? "receipt channels" : "demo audiences";
-  $("#standings-title").textContent = verified ? "Receipt board" : "Harness board";
-  $("#standings-help").textContent = verified ? "Why this is not a ranking" : "How ranking works";
+  $("#tape-title").textContent = verified ? "Receipt tape" : "Demo walkthrough";
+  $("#tape-source-label").textContent = verified ? "reviewed receipts" : "static fixture";
+  $("#channels-source-label").textContent = verified ? "receipt channels" : "demo catalog";
+  $("#standings-title").textContent = verified ? "Receipt board" : "Demo roster";
+  $("#standings-help").textContent = "Why this is not ranked";
+  $("#quick-title").textContent = verified ? "Playable and proposed formats" : "Static format previews";
   $("#quick-source-label").textContent = verified ? "proposed · inactive" : "unranked demo";
   $("#learn-proof-button").textContent = verified ? "Inspect a reviewed receipt" : "Inspect the demo receipt";
-  $("#credit-readout").setAttribute("aria-label", verified ? "No live credits. Competition entry is disabled." : "Simulated demo credits");
+  $("#entry-boundary").setAttribute("aria-label", `${state.data.account.accessLabel}. ${state.data.account.accessDetail}.`);
 }
 
 function bindEvents() {
@@ -2433,8 +2421,8 @@ function bindEvents() {
     const queue = event.target.closest("[data-queue]");
     if (queue) {
       showToast(state.data.sourceMode === "verified_corpus"
-        ? "This proposed fixture is not activated. No queue, model, provider, or credit was used."
-        : "Demo entry created. No model, provider, quota, or ranked queue was used.");
+        ? "This proposed fixture is not activated. No queue, model, provider, or spend was used."
+        : "Static format preview only. No entry, model, provider, quota, or ranked queue was created.");
       return;
     }
     const qualification = event.target.closest("[data-qualification-preview]");

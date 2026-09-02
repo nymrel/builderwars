@@ -8,7 +8,7 @@
   <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=36">
+  <link rel="stylesheet" href="styles.css?v=37">
 </head>
 <body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -43,7 +43,7 @@
         <div class="view-heading">
           <div>
             <p class="eyebrow">Arena tape</p>
-            <h1 id="arena-title">Competition, in motion.</h1>
+            <h1 id="arena-title">Where builds prove themselves.</h1>
           </div>
           <div class="heading-actions">
             <button class="text-button" id="starter-guide-button" type="button" data-starter-show aria-controls="starter-panel" aria-expanded="true">Starter guide</button>
@@ -73,7 +73,7 @@
           <article class="featured-match" id="featured-match" aria-label="Featured simulated match"></article>
           <section class="tape-panel" aria-labelledby="tape-title">
             <div class="panel-heading">
-              <h2 id="tape-title">Now</h2>
+              <h2 id="tape-title">Receipt tape</h2>
               <span class="source-label" id="tape-source-label">local source</span>
             </div>
             <div class="tape" id="tape"></div>
@@ -83,7 +83,7 @@
 
       <section class="view" id="view-watch" data-view="watch" aria-labelledby="watch-title" hidden>
         <div class="view-heading">
-          <div><p class="eyebrow">Watch</p><h1 id="watch-title">Channels and standings.</h1></div>
+          <div><p class="eyebrow">Watch</p><h1 id="watch-title">Channels and proof.</h1></div>
           <button class="filter-button" type="button" id="watch-filter">Following first</button>
         </div>
         <div class="watch-layout">
@@ -92,7 +92,7 @@
             <div class="channel-list" id="channels"></div>
           </section>
           <section aria-labelledby="standings-title">
-            <div class="panel-heading"><h2 id="standings-title">Harness board</h2><button class="text-button" id="standings-help" type="button" data-proof-open="featured">How ranking works</button></div>
+            <div class="panel-heading"><h2 id="standings-title">Demo roster</h2><button class="text-button" id="standings-help" type="button" data-proof-open="featured">Why this is not ranked</button></div>
             <div class="leaderboard" id="leaderboard"></div>
           </section>
           <section class="rivalry-section" aria-labelledby="rivalries-title">
@@ -105,15 +105,15 @@
       <section class="view" id="view-compete" data-view="compete" aria-labelledby="compete-title" hidden>
         <div class="view-heading">
           <div><p class="eyebrow">Compete</p><h1 id="compete-title">Pick a format. Learn by playing.</h1></div>
-          <div class="credit-readout" id="credit-readout" aria-label="Simulated demo credits"></div>
+          <div class="entry-boundary" id="entry-boundary" aria-label="Local play only. No account or provider call."></div>
         </div>
         <div class="compete-layout">
           <section aria-labelledby="quick-title">
-            <div class="panel-heading"><h2 id="quick-title">Quick matches</h2><span class="source-label" id="quick-source-label">local source</span></div>
+            <div class="panel-heading"><h2 id="quick-title">Competition formats</h2><span class="source-label" id="quick-source-label">local source</span></div>
             <div class="quick-list" id="quick-matches"></div>
           </section>
           <section class="lab-console" aria-labelledby="model-lab-title">
-            <div class="panel-heading"><h2 id="model-lab-title">Free model lab</h2><span class="source-label">local stubs only</span></div>
+            <div class="panel-heading"><h2 id="model-lab-title">Model sandbox</h2><span class="source-label">local stubs only</span></div>
             <div id="free-models"></div>
             <p class="fine-print">No provider is connected. No inference, account access, or billing occurs in this shell.</p>
           </section>
@@ -121,10 +121,10 @@
       </section>
 
       <section class="view" id="view-learn" data-view="learn" aria-labelledby="learn-title" hidden>
-        <div class="view-heading"><div><p class="eyebrow">Learn</p><h1 id="learn-title">From receipts to arenas.</h1></div><span class="level-chip">Level 2 · Player</span></div>
+        <div class="view-heading"><div><p class="eyebrow">Learn</p><h1 id="learn-title">From receipts to arenas.</h1></div><span class="level-chip">Receipt-guided</span></div>
         <div class="learn-layout">
           <section class="learning-path" aria-labelledby="path-title">
-            <div class="panel-heading"><h2 id="path-title">Builder path</h2><span class="source-label">local progress</span></div>
+            <div class="panel-heading"><h2 id="path-title">Builder path</h2><span class="source-label">local lessons</span></div>
             <div id="lessons"></div>
           </section>
           <aside class="lesson-focus" id="lesson-focus" aria-live="polite">
@@ -259,7 +259,7 @@
   </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
-  <script src="data-adapter.js?v=36" defer></script>
-  <script src="app.js?v=36" defer></script>
+  <script src="data-adapter.js?v=37" defer></script>
+  <script src="app.js?v=37" defer></script>
 </body>
 </html>

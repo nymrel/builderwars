@@ -51,6 +51,13 @@ async function rejects(mutator, expected) {
   try { await adapter.adaptArenaReadModel(changed, demo); } catch (error) { message = error.message; }
   check(message.includes(expected), `rejects ${expected}`);
 }
+function rejectsDemo(mutator, expected) {
+  const changed = copy(demo);
+  mutator(changed);
+  let message = "";
+  try { adapter.validateDemoFixture(changed); } catch (error) { message = error.message; }
+  check(message.includes(expected), `rejects demo ${expected}`);
+}
 function response(body, ok = true) {
   return { ok, async json() { return copy(body); } };
 }
@@ -70,7 +77,7 @@ function response(body, ok = true) {
   check(model.corrections.entries.length === 0 && model.corrections.summary.correctionCount === 0, "tracked corpus fabricates no corrections");
   check(view.proofReceipts.every((proof) => proof.correction.state === "active" && proof.correction.eligibleForScopedRating === true), "projects active no-correction truth for every tracked proof");
   check(view.tape.length === view.proofReceipts.length, "tape is receipt-backed");
-  check(view.channels.every((channel) => channel.viewers === null), "does not invent viewers");
+  check(view.channels.every((channel) => channel.evidenceLabel.includes("no audience data") && !("viewers" in channel)), "does not invent viewers");
   check(view.leaderboard.every((row) => row.record.includes("not ranked")), "does not invent ranking");
   check(model.scopedRatingBoards.length === 5, "loads five exact proof-rating scopes");
   check(model.scopedRatingBoards.reduce((total, board) => total + board.receiptCount, 0) === 8, "scoped proof boards cover eight reviewed receipts exactly once");
@@ -87,7 +94,9 @@ function response(body, ok = true) {
   check(view.rivalries.length === 3, "projects three verified rivalries");
   check(view.rivalries.every((rivalry) => view.proofReceipts.some((proof) => proof.receiptId === rivalry.latestReceiptId)), "rivalry receipt links resolve");
   check(view.rivalries.every((rivalry) => rivalry.runbackStatus === "unplayed_challenge"), "rivalry runbacks remain inactive");
-  check(view.account.creditsRemaining === 0, "does not invent live credits");
+  check(view.account.accessLabel === "Read-only proof" && view.account.accessDetail === "Competition entry disabled" && !("creditsRemaining" in view.account), "does not invent live credits");
+  check(view.watchlist.every((item) => item.metric.endsWith("R") && !("rating" in item) && !("delta" in item) && !("trend" in item)), "projects receipt counts without market signals");
+  check(view.quickMatches.every((fixture) => typeof fixture.access === "string" && !("cost" in fixture)), "projects access boundaries without simulated cost")
   check(view.featured.proof.replayVerdict === "PASS", "preserves replay verdict");
   check(view.featured.proof.receiptId.length === 64, "binds featured proof receipt");
   check(view.truthBoundary.live === false && view.truthBoundary.hosted === false, "preserves non-live boundary");
@@ -98,6 +107,18 @@ function response(body, ok = true) {
   check(model.summary.signedAgentPassportEntrantCount === 0 && model.summary.legacySelfDeclaredEntrantCount === 16 && model.summary.signedAgentPassportReceiptCount === 0, "tracks current legacy passport coverage exactly");
   check(view.proofReceipts.flatMap((proof) => proof.entrants).every((entrant) => entrant.identityEvidence.status === "self_declared_legacy" && entrant.identityEvidence.agentPassportSupplied === false), "projects explicit legacy identity evidence into every proof");
   check(view.proofReceipts.flatMap((proof) => proof.entrants).every((entrant) => [entrant.identityEvidence.entrantIdentityAttested, entrant.identityEvidence.modelAttested, entrant.identityEvidence.runtimeAttested, entrant.identityEvidence.personAttested, entrant.identityEvidence.executionClaimsAttested].every((value) => value === false)), "keeps every higher identity attestation false");
+
+  const fallback = adapter.demoFallback(demo);
+  check(fallback.sourceMode === "demo_fixture_fallback" && fallback.featured.statusLabel === "Simulated fixture", "labels the bounded static fallback")
+  check(fallback.leaderboard.every((row) => row.position === "—" && row.metric === "DEMO" && row.verified === 0), "fallback roster remains unranked and unverified")
+  check(fallback.channels.every((channel) => channel.evidenceLabel.includes("no audience data")), "fallback channels carry no audience data")
+  check(fallback.lessons.every((lesson) => lesson.progress === 0), "fallback carries no earned learning progress")
+  check(fallback.automations.every((item) => item.enabled === false), "fallback reminders are off by default")
+  rejectsDemo((changed) => { changed.account.creditsRemaining = 120; }, "unearned finance, audience, ranking, or capacity metric");
+  rejectsDemo((changed) => { changed.channels[0].viewers = 312; }, "unearned finance, audience, ranking, or capacity metric");
+  rejectsDemo((changed) => { changed.leaderboard[0].metric = "1548"; }, "demo roster must stay unranked and unverified");
+  rejectsDemo((changed) => { changed.automations[0].enabled = true; }, "automation boundary drift");
+  rejectsDemo((changed) => { changed.lessons[0].progress = 100; }, "unearned learning progress");
 
   await rejects((changed) => { changed.truthBoundary.live = true; }, "live must stay false");
   await rejects((changed) => { changed.receipts[0].proof.replayVerdict = "FAIL"; }, "replay failed");

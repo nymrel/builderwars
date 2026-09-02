@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import threading
 from contextlib import contextmanager
@@ -26,7 +27,7 @@ READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
 CREATOR_GAME_LAB_PATH = "**/data/creator-game-lab.v1.json"
-SHELL_VERSION = "36"
+SHELL_VERSION = "37"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -179,7 +180,13 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require("verified corpus ready" in page.locator("#connection-copy").inner_text().lower(), "normal: connection rail names the verified corpus")
         evidence.require("No provider is connected" in (page.locator("#connection-status").get_attribute("aria-label") or ""), "normal: connection rail denies provider linkage")
         evidence.require(page.locator("#standings-title").inner_text() == "Receipt board", "normal: reviewed receipts are not presented as a rating leaderboard")
-        evidence.require("not a ranking" in page.locator("#standings-help").inner_text().lower(), "normal: ranking boundary stays visible")
+        evidence.require("not ranked" in page.locator("#standings-help").inner_text().lower(), "normal: ranking boundary stays visible")
+        entry_boundary_text = page.locator("#entry-boundary").text_content() or ""
+        evidence.require("Read-only proof" in entry_boundary_text and "Competition entry disabled" in entry_boundary_text, "normal: compete header exposes access boundary instead of credits")
+        watch_metric_count = page.locator(".watch-item .watch-metric").count()
+        receipt_tracks = [label.lower() for label in page.locator(".watch-item .receipt-track").all_inner_texts()]
+        evidence.require(watch_metric_count == 5 and receipt_tracks.count("reviewed local corpus") == 5, f"normal: watch strip uses receipt counts without market deltas or charts (metrics={watch_metric_count}, tracks={receipt_tracks!r})")
+        evidence.require(page.locator(".live-dot, .sparkline, .delta, .credit-readout").count() == 0, "normal: shell renders no live pulse, trend chart, delta, or credit widget")
 
         for view in ("watch", "compete", "learn", "build", "arena"):
             page.locator(f'.bottom-nav [data-nav="{view}"]').click()
@@ -461,10 +468,32 @@ def fallback_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         wait_for_source(page, "demo_fixture_fallback")
         evidence.require(page.locator("#source-badge").inner_text() == "DEMO FALLBACK", "fallback: invalid read model is visibly disclosed")
         evidence.require("demo fallback ready" in page.locator("#connection-copy").inner_text().lower(), "fallback: connection rail names the bounded fallback")
-        evidence.require("Harness board" == page.locator("#standings-title").inner_text(), "fallback: demo-only board label is restored")
+        evidence.require("Demo roster" == page.locator("#standings-title").inner_text(), "fallback: unranked demo roster label is restored")
+        evidence.require("not ranked" in page.locator("#standings-help").inner_text().lower(), "fallback: ranking refusal remains visible")
         evidence.require("simulated fixture" in page.locator("#featured-match").inner_text().lower(), "fallback: featured content is labeled simulated")
+        evidence.require(page.locator("#tape-title").inner_text() == "Demo walkthrough", "fallback: static guidance replaces fake current activity")
+        evidence.require(page.locator(".fixture-dot").count() == 1 and page.locator(".fixture-dot").evaluate("node => getComputedStyle(node).animationName") == "none", "fallback: simulated fixture marker is static")
+        page.locator('.bottom-nav [data-nav="watch"]').click()
+        board_text = page.locator("#leaderboard").inner_text()
+        evidence.require("no reviewed receipts" in board_text.lower() and board_text.lower().count("not ranked") == 4, "fallback: demo entrants carry zero receipt and no-ranking boundaries")
+        evidence.require(not re.search(r"\b(?:1548|1512|1489|1461|8-2|7-3|6-4|5-5)\b", board_text), "fallback: invented ratings and records are absent")
+        channels_text = page.locator("#channels").inner_text().lower()
+        evidence.require(channels_text.count("no audience data") == 5 and "viewers" not in channels_text, "fallback: channels deny audience counts")
+        page.locator('.bottom-nav [data-nav="compete"]').click()
+        evidence.require(page.locator("#entry-boundary").inner_text().splitlines() == ["Local play only", "No account or provider call"], "fallback: access replaces simulated credits")
+        evidence.require(page.locator("#quick-title").inner_text() == "Static format previews", "fallback: inactive demo formats are not labeled as live matches")
+        evidence.require(page.locator("#quick-matches").inner_text().count("Local preview · no provider call") == 3, "fallback: every quick match denies provider execution")
+        evidence.require(page.locator("#quick-matches [data-queue]").all_inner_texts() == ["Explore format", "Explore format", "Explore format"], "fallback: demo controls do not claim queue entry")
+        model_text = page.locator("#free-models").inner_text()
+        evidence.require(model_text.count("Mock response only") == 2 and "quota" not in model_text.lower(), "fallback: local stubs expose no invented provider quota")
+        page.locator("#notifications-button").click()
+        evidence.require(page.locator("#automations input:checked").count() == 0 and "streak" not in page.locator("#automations").inner_text().lower(), "fallback: reminders are off and no streak is claimed")
+        page.locator("#automations-sheet [data-sheet-close]").click()
+        page.locator('.bottom-nav [data-nav="arena"]').click()
+        page_text = page.locator("body").inner_text().lower()
+        evidence.require(all(term not in page_text for term in ("simulated credits", "demo viewers", "learning streak", "how ranking works")), "fallback: finance and social theater copy stays absent")
         assert_observers_clean(evidence, observed, "fallback")
-        evidence.journey("verified-read-model failure with bounded demo fallback")
+        evidence.journey("verified-read-model failure with bounded demo fallback and no unearned market or audience signals")
     finally:
         context.close()
 
@@ -488,7 +517,7 @@ def semantic_drift_fallback_journey(browser: Any, base_url: str, evidence: Evide
         wait_for_source(page, "demo_fixture_fallback")
         evidence.require(page.locator("#source-badge").inner_text() == "DEMO FALLBACK", "semantic drift: inconsistent channel evidence loses the verified label")
         evidence.require("demo fallback ready" in page.locator("#connection-copy").inner_text().lower(), "semantic drift: bounded fallback remains explicit")
-        evidence.require(page.locator("#standings-title").inner_text() == "Harness board", "semantic drift: receipt board is not rendered from inconsistent evidence")
+        evidence.require(page.locator("#standings-title").inner_text() == "Demo roster", "semantic drift: receipt board is not rendered from inconsistent evidence")
         assert_observers_clean(evidence, observed, "semantic-drift")
         evidence.journey("semantically inconsistent read model fails closed")
     finally:
@@ -716,7 +745,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v36');
+              const cache = await caches.open('builderwars-mobile-arena-v37');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;

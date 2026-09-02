@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "36"
+EXPECTED_SHELL_VERSION = "37"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -85,7 +85,7 @@ def main() -> int:
     checks += 1
 
     print("[2] demo truth boundary is explicit and machine-readable")
-    require(fixture.get("schemaVersion") == "builderwars.mobile-arena-demo.v1", "fixture schema drift")
+    require(fixture.get("schemaVersion") == "builderwars.mobile-arena-demo.v2", "fixture schema drift")
     require(fixture.get("demoOnly") is True, "fixture must stay demo-only")
     require(fixture.get("sourceStatus") == "local_fixture_not_live", "fixture cannot imply live state")
     require('data-local-only="true"' in html and 'id="source-badge"' in html, "visible local-source boundary missing")
@@ -94,7 +94,23 @@ def main() -> int:
     require(fixture["featured"]["proof"]["providerAttested"] is False, "provider attestation must stay false")
     require(fixture["featured"]["proof"]["runtimeAttested"] is False, "runtime attestation must stay false")
     require(fixture["featured"]["proof"]["registryState"] == "pending_registry_commit", "registry must remain pending")
-    checks += 9
+    require(fixture["featured"]["status"] == "simulated_fixture", "demo featured state must remain a static fixture")
+    require(fixture["account"] == {"displayName": "Local Builder", "tier": "Demo Lab", "accessLabel": "Local play only", "accessDetail": "No account or provider call"}, "demo account must expose access boundary instead of credits")
+    serialized_fixture = json.dumps(fixture, sort_keys=True)
+    for forbidden_key in ("creditsRemaining", "creditsLabel", "viewers", "rating", "delta", "trend", "rank", "cost", "quota", "latency"):
+        require(f'"{forbidden_key}"' not in serialized_fixture, f"demo fixture must not carry unearned {forbidden_key} data")
+        checks += 1
+    require("streak" not in serialized_fixture.lower(), "demo fixture must not claim an unearned streak")
+    require(all(row["position"] == "—" and row["metric"] == "DEMO" and row["verified"] == 0 and "no reviewed receipts" in row["record"] for row in fixture["leaderboard"]), "demo roster must remain unranked and unverified")
+    require(all(channel["evidenceLabel"].endswith("no audience data") for channel in fixture["channels"]), "demo channels must deny audience data")
+    require(all(match["access"] == "Local preview · no provider call" and match["ranked"] is False for match in fixture["quickMatches"]), "demo matches must expose local no-provider access")
+    require(all(model["availability"] in {"Mock response only", "Unavailable"} for model in fixture["freeModels"]), "demo model stubs must not claim provider capacity")
+    require(all(lesson["progress"] == 0 for lesson in fixture["lessons"]), "demo lessons must not claim earned progress")
+    require(all(item["enabled"] is False and item["schedule"] == "off by default" and item["scope"] == "browser session only" for item in fixture["automations"]), "demo reminders must remain off and browser-session only")
+    require("live-dot" not in js and "live-pulse" not in css and "sparkline" not in js and ".delta" not in css, "demo shell must not animate or chart invented activity")
+    require('id="entry-boundary"' in html and "Simulated demo credits" not in html and "How ranking works" not in html and "Level 2 · Player" not in html, "demo shell must expose access and unranked learning boundaries")
+    require("Free model lab" not in html and "Model sandbox" in html and "Demo entry created" not in js, "demo shell must not imply free provider capacity or an entered queue")
+    checks += 23
 
     require(read_model.get("schemaVersion") == "builderwars.arena-read-model.v1", "read-model schema drift")
     require(read_model.get("projectionVersion") == "4", "read-model identity projection drift")
