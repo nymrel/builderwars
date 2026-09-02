@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "38"
+EXPECTED_SHELL_VERSION = "39"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -25,6 +25,9 @@ EXPECTED = {
     "data/arena-read-model.v1.json",
     "data/tester-feedback-rubric.v1.json",
     "data/creator-game-lab.v1.json",
+    "ten-fronts.html",
+    "ten-fronts-blitz.css",
+    "ten-fronts-blitz.js",
 }
 
 
@@ -57,6 +60,9 @@ def main() -> int:
     read_model = json.loads(read("data/arena-read-model.v1.json"))
     feedback_rubric = json.loads(read("data/tester-feedback-rubric.v1.json"))
     creator_game_lab = json.loads(read("data/creator-game-lab.v1.json"))
+    blitz_html = read("ten-fronts.html")
+    blitz_css = read("ten-fronts-blitz.css")
+    blitz_js = read("ten-fronts-blitz.js")
 
     creator_game_check = subprocess.run(
         [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_mobile_arena_creator_game.py")],
@@ -141,9 +147,17 @@ def main() -> int:
     require('aria-controls="starter-panel"' in html and 'aria-describedby="starter-boundary"' in html, "starter path accessible relationships missing")
     checks += 3
     require('aria-labelledby="local-play-title"' in html and 'id="local-play-spotlight"' in html, "prominent local-play surface must expose an accessible heading relationship")
-    require("Run the complete local proof loop" in html and "Local play is unavailable in fallback mode" in html, "local-play surface must render ready and fail-closed states")
+    require("Run a complete local proof loop" in html and "Local play is unavailable in fallback mode" in html, "local-play surface must render ready and fail-closed states")
     require('data-local-play-state="held"' in html and 'data-qualification-preview=""' in html and "action.dataset.qualificationPreview = fixture.id" in js, "local-play surface must keep fallback non-actionable and verified fixture addressable")
     require("No executable fixture loaded" in html and "No sign-in, model inference, provider access, persistence, ranking, registry, or publication" in html, "local-play surface must disclose execution and authority boundaries")
+    require('data-ten-fronts-blitz-link' in html and html.index('data-ten-fronts-blitz-link') > html.index('id="local-play-ready-template"'), "verified local-play template must expose Ten Fronts Blitz")
+    require(html.index('data-ten-fronts-blitz-link') < html.index('</template>', html.index('id="local-play-ready-template"')), "Ten Fronts link must stay inside the verified template")
+    require('data-ten-fronts-blitz-link' not in html[html.index('id="local-play-held-template"'):html.index('</template>', html.index('id="local-play-held-template"'))], "fallback template must not expose Ten Fronts execution")
+    require('id="ten-fronts-blitz-root"' in blitz_html and 'data-source-mode="loading"' in blitz_html and "noindex,nofollow" in blitz_html, "Ten Fronts page must start held and remain non-indexable")
+    require("verified_corpus" in blitz_js and 'data-blitz-state="held"' in blitz_js and "FALLBACK · EXECUTION HELD" in blitz_js, "Ten Fronts runtime must fail closed on source fallback")
+    require("browser_memory_only_not_persisted" in blitz_js and "verified_local_receipt_candidate" in blitz_js and 'replayVerdict:"PASS"' in blitz_js.replace(" ", ""), "Ten Fronts receipt/replay boundary missing")
+    require("localStorage" not in blitz_js and "sessionStorage" not in blitz_js and "fetch(" not in blitz_js, "Ten Fronts module must remain memory-only and transport-free")
+    require("prefers-reduced-motion" in blitz_css and "forced-colors" in blitz_css, "Ten Fronts accessibility modes missing")
     require("state.data.quickMatches.filter((match) => match.exhibitionAllowed !== true)" in js, "promoted local exhibition must not remain duplicated in the general format list")
     require("receipt?.qualification?.qualificationKey === qualification.qualificationKey" in adapter, "local-play result status must bind the current blueprint qualification")
     checks += 6
@@ -411,6 +425,9 @@ def main() -> int:
         f"./styles.css?v={EXPECTED_SHELL_VERSION}",
         f"./data-adapter.js?v={EXPECTED_SHELL_VERSION}",
         f"./app.js?v={EXPECTED_SHELL_VERSION}",
+        f"./ten-fronts.html?v={EXPECTED_SHELL_VERSION}",
+        f"./ten-fronts-blitz.css?v={EXPECTED_SHELL_VERSION}",
+        f"./ten-fronts-blitz.js?v={EXPECTED_SHELL_VERSION}",
         "./manifest.webmanifest",
         "./assets/arena-mark.svg",
         "./data/demo-state.json",

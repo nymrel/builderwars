@@ -20,12 +20,18 @@ destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
 reviewed Arena receipt corpus through a fail-closed client adapter, retains the
 fixed demo fixture as a visibly disclosed fallback, and refuses invented
 credits, ratings, deltas, trend charts, viewer counts, model quotas, earned
-progress, enabled reminders, or simulated-live state. The v38 fallback presents
+progress, enabled reminders, or simulated-live state. The v39 fallback presents
 only a static fixture, an unranked zero-receipt roster, and explicit no-audience
 and no-provider labels. Compete now leads with one explicit local proof-loop
 spotlight when the verified corpus is available: the current blueprint, exact
 qualification, deterministic Nim execution, independent replay, receipt
-candidate, learning action, and unplayed runback. If the corpus fails closed,
+candidate, learning action, and unplayed runback. The same verified-only
+surface now links to a separate three-round Ten Fronts Blitz route where a
+human chooses each allowlisted signal and exact 100-troop allocation against a
+deterministic, precommitted reference. Wrong sums fail closed, allocations stay
+hidden until commit, and the result becomes an independently replayed,
+memory-only receipt candidate with an observation-only learning record and an
+unplayed runback. If the corpus fails closed,
 the spotlight removes its execution control and says that only static previews
 remain. It pins and recomputes the
 corpus canonical SHA-256 digest before any `verified_corpus` projection, opens
@@ -139,6 +145,7 @@ python bin\check_mobile_arena_private_blueprint_operator_review_packet.py
 python bin\check_agentwars_corrections.py
 python bin\check_agentwars_scoped_ratings.py
 python bin\check_mobile_arena_contrast.py
+python bin\check_mobile_arena_ten_fronts_blitz.py
 python bin\check_mobile_arena_exchange.py
 python bin\check_mobile_arena_browser.py
 ```
@@ -155,7 +162,10 @@ contexts, and closes Chromium and the server before returning. Its real-browser
 journeys cover all five destinations, browser history, receipt routes, dialog
 focus and Escape restoration, qualification preview, the deterministic local
 exhibition through replay-verified receipt candidate, visible learning,
-versioned unplayed runback, discard, and reload cleanup, local persistence and
+versioned unplayed runback, discard, and reload cleanup, the human-controlled
+Ten Fronts Blitz path through allocation refusal, three reveals, independent
+replay, restart, discard, reload cleanup, offline launch, responsive reflow,
+reduced motion, and forced colors, local persistence and
 storage denial, schema-invalid source fallback, fatal local-source failure,
 reduced motion, service-worker offline reload, responsive widths from 320px to
 1040px, emulated forced-colors navigation/focus/dialog rendering, explicit
@@ -231,7 +241,7 @@ Contract and activation boundary:
 ## Mobile Arena performance budget — local source only
 
 The tracked Mobile Arena shell now has an executable raw-size and deterministic
-gzip budget. The gate measures the exact nine-file shell/data set, refuses
+gzip budget. The gate measures the exact 13-file shell/data/route set, refuses
 missing or unknown assets, attributes per-file and aggregate overruns, and keeps
 production timing, real-user experience, hosting, and launch claims false.
 

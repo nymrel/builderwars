@@ -1,6 +1,6 @@
 # BuilderWars Fable 5.1 top-down review
 
-Status: **review complete; recommendations are proposals until separately adopted**
+Status: **review complete; three bounded recommendations adopted, remaining recommendations are proposals**
 
 Review date: 2026-09-01
 
@@ -128,7 +128,7 @@ The launch ladder remains evidence gated:
 Numbers above are proposed cohort shapes, not current users, commitments,
 results, or launch claims.
 
-## Decisions adopted through the first two slices
+## Decisions adopted through the first three slices
 
 The first slice adopted the demo-truth recommendation. The mobile fallback must:
 
@@ -146,6 +146,18 @@ exhibition its own Compete spotlight, removes its duplicate format row, surfaces
 the current blueprint and four proof stages before entry, and reflects ready,
 memory-result, discard, and reload states. If the verified corpus is unavailable,
 the spotlight exposes no action and says that local execution was withheld.
+
+The third slice adopts the shortened Ten Fronts Blitz recommendation. Mobile
+Arena v39 adds a separate three-round route derived from the core game's
+higher-allocation scoring and exact-tie rule without changing the 20-round
+engine. A human selects one of three allowlisted signals and allocates exactly
+100 troops across ten public-value fronts each round. The deterministic
+reference commits first and remains hidden until the human allocation is
+submitted. The browser then builds and independently replays a memory-only
+receipt candidate, derives an observation-only learning record, and prepares a
+versioned unplayed runback. The verified corpus is required; fallback exposes
+no game controls. No identity, model, provider, persistence, registry, ranking,
+publication, spending, or production authority is created.
 
 All other Fable recommendations remain candidates for their own bounded design,
 implementation, and evidence passes.

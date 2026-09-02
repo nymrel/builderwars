@@ -40,6 +40,9 @@ ASSET_BUDGETS = (
     AssetBudget("styles.css", "style", 45_000, 12_000),
     AssetBudget("data-adapter.js", "script", 285_000, 45_000),
     AssetBudget("app.js", "script", 225_000, 40_000),
+    AssetBudget("ten-fronts.html", "route-html", 4_096, 2_048),
+    AssetBudget("ten-fronts-blitz.css", "route-style", 8_192, 3_072),
+    AssetBudget("ten-fronts-blitz.js", "route-script", 20_000, 8_192),
     AssetBudget("sw.js", "worker", 8_000, 4_000),
     AssetBudget("manifest.webmanifest", "manifest", 4_096, 2_048),
     AssetBudget("assets/arena-mark.svg", "image", 4_096, 2_048),
@@ -49,13 +52,15 @@ ASSET_BUDGETS = (
 )
 
 AGGREGATE_LIMITS = {
-    "trackedAssetCount": 10,
+    "trackedAssetCount": 13,
     "totalRawBytes": 660_000,
     "totalGzipBytes": 132_000,
     "coreShellRawBytes": 570_000,
     "coreShellGzipBytes": 96_000,
     "scriptRawBytes": 515_000,
     "scriptGzipBytes": 86_000,
+    "routeRawBytes": 32_000,
+    "routeGzipBytes": 12_000,
     "dataRawBytes": 116_000,
     "dataGzipBytes": 26_000,
 }
@@ -146,6 +151,7 @@ def _totals(rows: list[dict[str, object]]) -> dict[str, int]:
     sum_key = lambda selected, key: sum(int(row[key]) for row in selected)
     scripts = by_role("script")
     data = by_role("data")
+    route = [row for row in rows if str(row["role"]).startswith("route-")]
     core = by_path(CORE_SHELL)
     return {
         "trackedAssetCount": len(rows),
@@ -155,6 +161,8 @@ def _totals(rows: list[dict[str, object]]) -> dict[str, int]:
         "coreShellGzipBytes": sum_key(core, "gzipBytes"),
         "scriptRawBytes": sum_key(scripts, "rawBytes"),
         "scriptGzipBytes": sum_key(scripts, "gzipBytes"),
+        "routeRawBytes": sum_key(route, "rawBytes"),
+        "routeGzipBytes": sum_key(route, "gzipBytes"),
         "dataRawBytes": sum_key(data, "rawBytes"),
         "dataGzipBytes": sum_key(data, "gzipBytes"),
     }
@@ -278,11 +286,15 @@ def run_checks() -> tuple[int, dict[str, object]]:
     source_text = (MOBILE_ARENA / "index.html").read_text(encoding="utf-8")
     adapter_text = (MOBILE_ARENA / "data-adapter.js").read_text(encoding="utf-8")
     app_text = (MOBILE_ARENA / "app.js").read_text(encoding="utf-8")
+    blitz_html = (MOBILE_ARENA / "ten-fronts.html").read_text(encoding="utf-8")
     for reference in ("styles.css", "data-adapter.js", "app.js", "manifest.webmanifest", "assets/arena-mark.svg"):
         check(reference in source_text, f"HTML references the budgeted asset {reference}")
     for reference in ("data/demo-state.json", "data/arena-read-model.v1.json"):
         check(reference in adapter_text, f"read adapter references the budgeted data asset {reference}")
     check('register("sw.js")' in app_text, "runtime references the budgeted service worker")
+    check("ten-fronts.html" in source_text, "verified shell references the budgeted local game route")
+    for reference in ("styles.css", "ten-fronts-blitz.css", "data-adapter.js", "ten-fronts-blitz.js"):
+        check(reference in blitz_html, f"local game route references the budgeted asset {reference}")
 
     raw_over = dict(assets)
     app_budget = next(budget for budget in ASSET_BUDGETS if budget.path == "app.js")

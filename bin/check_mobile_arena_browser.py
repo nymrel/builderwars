@@ -27,7 +27,7 @@ READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
 CREATOR_GAME_LAB_PATH = "**/data/creator-game-lab.v1.json"
-SHELL_VERSION = "38"
+SHELL_VERSION = "39"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -89,12 +89,32 @@ def locator_visible(page: Any, selector: str) -> bool:
 
 
 def wait_for_source(page: Any, source_mode: str) -> None:
-    page.wait_for_selector(f'body[data-source-mode="{source_mode}"]', state="attached")
     page.wait_for_function(
-        "mode => document.body.dataset.sourceMode === mode && "
+        "() => document.body.dataset.sourceMode !== 'loading' && "
         "document.querySelector('#connection-status')?.dataset.state !== 'loading'",
-        arg=source_mode,
     )
+    actual = page.evaluate(
+        "() => ({mode: document.body.dataset.sourceMode || null, "
+        "state: document.querySelector('#connection-status')?.dataset.state || null, "
+        "copy: document.querySelector('#connection-copy')?.textContent?.trim() || null})"
+    )
+    if actual["mode"] != source_mode:
+        raise AcceptanceFailure(f"source resolved unexpectedly at {page.url}: expected {source_mode!r}, observed {actual!r}")
+
+
+def wait_for_blitz_source(page: Any, source_mode: str) -> None:
+    page.wait_for_function(
+        "() => document.body.dataset.sourceMode !== 'loading' && "
+        "document.querySelector('#blitz-source-status')?.dataset.state !== 'loading' && "
+        "document.querySelector('#ten-fronts-blitz-root')?.getAttribute('aria-busy') === 'false'",
+    )
+    actual = page.evaluate(
+        "() => ({mode: document.body.dataset.sourceMode || null, "
+        "state: document.querySelector('#blitz-source-status')?.dataset.state || null, "
+        "copy: document.querySelector('#blitz-source-status')?.textContent?.trim() || null})"
+    )
+    if actual["mode"] != source_mode:
+        raise AcceptanceFailure(f"Blitz source resolved unexpectedly at {page.url}: expected {source_mode!r}, observed {actual!r}")
 
 
 def install_observers(page: Any, origin: str, label: str) -> dict[str, list[str]]:
@@ -107,7 +127,8 @@ def install_observers(page: Any, origin: str, label: str) -> dict[str, list[str]
 
     def on_console(message: Any) -> None:
         if message.type in {"error", "warning"}:
-            observed["console"].append(f"{label}:{message.type}:{message.text}")
+            location = message.location.get("url", "") if isinstance(message.location, dict) else ""
+            observed["console"].append(f"{label}:{message.type}:{message.text}:{location}")
 
     def on_request(request: Any) -> None:
         request_url = urlparse(request.url)
@@ -293,9 +314,9 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         spotlight = page.locator("#local-play-spotlight")
         spotlight_text = spotlight.inner_text()
         evidence.require(spotlight.locator('[data-local-play-state="ready"]').count() == 1, "local play spotlight: safe default blueprint is visibly ready")
-        evidence.require("Run the complete local proof loop" in spotlight_text and "zero provider calls" in spotlight_text, "local play spotlight: the complete deterministic loop and provider boundary are first-class")
+        evidence.require("Run a complete local proof loop" in spotlight_text and "zero provider calls" in spotlight_text, "local play spotlight: both deterministic local formats and provider boundary are first-class")
         evidence.require("No sign-in, model inference, provider access, persistence, ranking, registry, or publication" in spotlight_text, "local play spotlight: authority boundary is visible before entry")
-        evidence.require(spotlight.locator("[data-qualification-preview]").count() == 1 and page.locator("#quick-matches").inner_text().count("Practice") == 0, "local play spotlight: one promoted practice entry exists without a duplicate format row")
+        evidence.require(spotlight.locator("[data-qualification-preview]").count() == 1 and spotlight.locator("[data-ten-fronts-blitz-link]").count() == 1 and page.locator("#quick-matches").inner_text().count("Practice") == 0, "local play spotlight: Nim and Ten Fronts are promoted without a duplicate format row")
         evidence.require(page.locator("#quick-title").inner_text() == "Other proposed formats", "local play spotlight: inactive formats remain secondary")
         preview = page.locator("#quick-matches [data-qualification-preview]").first
         evidence.require(preview.count() == 1, "qualification: a bounded proposed fixture is available")
@@ -522,6 +543,139 @@ def fallback_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         evidence.journey("verified-read-model failure with bounded demo fallback and no unearned market or audience signals")
     finally:
         context.close()
+
+
+def ten_fronts_blitz_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
+    blitz_url = base_url.replace(f"/index.html?v={SHELL_VERSION}", f"/ten-fronts.html?v={SHELL_VERSION}")
+    context = browser.new_context(viewport=VIEWPORTS[1], service_workers="allow")
+    page = context.new_page()
+    observed = install_observers(page, base_url, "ten-fronts")
+
+    def choose_and_commit(signal: str = "steady", check_invalid: bool = False) -> None:
+        page.locator(f'label:has(input[name="blitz-signal"][value="{signal}"])').click()
+        evidence.require(page.locator('[data-blitz-action="lock-signal"]').is_enabled(), "Ten Fronts: allowlisted signal enables the next phase")
+        page.locator('[data-blitz-action="lock-signal"]').click()
+        page.wait_for_selector('[data-blitz-state="allocation"]')
+        inputs = page.locator("[data-blitz-front]")
+        evidence.require(inputs.count() == 10, "Ten Fronts: all ten human allocation controls render")
+        evidence.require(page.locator(".blitz-reveal-grid").count() == 0, "Ten Fronts: reference allocation remains hidden before human commit")
+        if check_invalid:
+            inputs.first.fill("9")
+            evidence.require(page.locator('[data-blitz-action="commit-allocation"]').is_disabled(), "Ten Fronts: a 99-troop allocation is refused")
+            evidence.require("99 allocated" in page.locator("#blitz-allocation-status").inner_text(), "Ten Fronts: wrong-sum feedback names the current total")
+            inputs.first.fill("10")
+            inputs.first.fill("110")
+            inputs.nth(1).fill("-10")
+            evidence.require(page.locator('[data-blitz-action="commit-allocation"]').is_disabled(), "Ten Fronts: offsetting out-of-range values cannot masquerade as a valid 100-troop allocation")
+            inputs.first.fill("10")
+            inputs.nth(1).fill("10")
+        evidence.require(page.locator('[data-blitz-action="commit-allocation"]').is_enabled(), "Ten Fronts: an exact 100-troop allocation is committable")
+        page.locator('[data-blitz-action="commit-allocation"]').click()
+        page.wait_for_selector('[data-blitz-state="reveal"]')
+        evidence.require(page.locator(".blitz-reveal-grid li").count() == 10, "Ten Fronts: commit reveals all ten exact allocation pairs")
+        evidence.require("Exact allocation ties paid nobody" in page.locator(".blitz-command").inner_text(), "Ten Fronts: reveal discloses the exact-tie rule")
+
+    def finish_game(check_invalid: bool = False) -> None:
+        for round_index, signal in enumerate(("steady", "pressure", "feint")):
+            choose_and_commit(signal, check_invalid and round_index == 0)
+            page.locator('[data-blitz-action="next"]').click()
+            expected = "complete" if round_index == 2 else "signal"
+            page.wait_for_selector(f'[data-blitz-state="{expected}"]')
+
+    try:
+        page.goto(base_url, wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
+        page.locator('.bottom-nav [data-nav="compete"]').click()
+        link = page.locator("[data-ten-fronts-blitz-link]")
+        evidence.require(link.count() == 1 and link.is_visible(), "Ten Fronts: verified Compete view exposes one local Blitz entry")
+        storage_before = page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))")
+        link.click()
+        page.wait_for_url(f"**/ten-fronts.html?v={SHELL_VERSION}")
+        wait_for_blitz_source(page, "verified_corpus")
+        evidence.require(page.locator("#blitz-source-status").inner_text() == "VERIFIED LOCAL CORPUS", "Ten Fronts: exact source status is visible before play")
+        evidence.require(page.locator('[data-blitz-state="ready"]').count() == 1, "Ten Fronts: verified source unlocks the bounded exhibition")
+        requested = set(observed["same_origin_requests"])
+        for resource in (f"/ten-fronts.html?v={SHELL_VERSION}", f"/ten-fronts-blitz.css?v={SHELL_VERSION}", f"/ten-fronts-blitz.js?v={SHELL_VERSION}"):
+            evidence.require(resource in requested, f"Ten Fronts: route requests current local asset {resource}")
+        page.locator('[data-blitz-action="start"]').click()
+        page.wait_for_selector('[data-blitz-state="signal"]')
+        evidence.require(page.locator('input[name="blitz-signal"]').count() == 3, "Ten Fronts: exactly three allowlisted signal choices render")
+        evidence.require(page.locator("textarea").count() == 0, "Ten Fronts: no free-text game input exists")
+        finish_game(check_invalid=True)
+        result_text = page.locator('[data-blitz-state="complete"]').inner_text()
+        result_text_lower = result_text.lower()
+        evidence.require("replay\npass" in result_text_lower and "local candidate" in result_text_lower, f"Ten Fronts: completion exposes independent replay PASS as a local candidate ({result_text!r})")
+        evidence.require("Version 1 · unplayed" in result_text, "Ten Fronts: generated runback remains explicitly unplayed")
+        locator_text = page.locator(".blitz-locator").inner_text()
+        evidence.require(locator_text.startswith("builderwars-local-proof://ten-fronts-blitz/") and len(locator_text.rsplit("/", 1)[-1]) == 64, "Ten Fronts: receipt candidate has a content-shaped local locator")
+        evidence.require(page.evaluate("Object.fromEntries(Object.keys(localStorage).sort().map(key => [key, localStorage.getItem(key)]))") == storage_before, "Ten Fronts: complete play does not touch browser storage")
+        page.locator('[data-blitz-action="restart"]').click()
+        page.wait_for_selector('[data-blitz-state="signal"]')
+        evidence.require(page.locator(".blitz-locator").count() == 0, "Ten Fronts: restart clears the memory-only receipt")
+        finish_game()
+        page.locator('[data-blitz-action="discard"]').click()
+        page.wait_for_selector('[data-blitz-state="signal"]')
+        evidence.require(page.locator(".blitz-locator").count() == 0, "Ten Fronts: discard clears the memory-only result")
+        page.locator('label:has(input[name="blitz-signal"][value="steady"])').click()
+        page.locator('[data-blitz-action="lock-signal"]').click()
+        page.wait_for_selector('[data-blitz-state="allocation"]')
+        page.reload(wait_until="domcontentloaded")
+        wait_for_blitz_source(page, "verified_corpus")
+        evidence.require(page.locator('[data-blitz-state="ready"]').count() == 1, "Ten Fronts: reload clears unfinished browser-memory state")
+        for viewport in VIEWPORTS:
+            page.set_viewport_size(viewport)
+            evidence.require(page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth"), f"Ten Fronts: no document overflow at {viewport['width']}px")
+        assert_observers_clean(evidence, observed, "ten-fronts")
+        evidence.journey("human-controlled Ten Fronts Blitz through invalid allocation, three rounds, replay, restart, discard, reload, and responsive widths")
+    finally:
+        context.close()
+
+    reduced_context = browser.new_context(viewport=VIEWPORTS[1], reduced_motion="reduce", service_workers="allow")
+    reduced_page = reduced_context.new_page()
+    reduced_observed = install_observers(reduced_page, base_url, "ten-fronts-reduced")
+    try:
+        reduced_page.goto(blitz_url, wait_until="domcontentloaded")
+        wait_for_blitz_source(reduced_page, "verified_corpus")
+        reduced_page.locator('[data-blitz-action="start"]').click()
+        reduced_page.locator('label:has(input[name="blitz-signal"][value="steady"])').click()
+        reduced_page.locator('[data-blitz-action="lock-signal"]').click()
+        reduced_page.locator('[data-blitz-action="commit-allocation"]').click()
+        reduced_page.wait_for_selector('[data-blitz-state="reveal"]')
+        evidence.require(reduced_page.locator(".blitz-reveal-grid li").first.evaluate("node => getComputedStyle(node).animationName") == "none", "Ten Fronts: reduced motion removes reveal animation")
+        assert_observers_clean(evidence, reduced_observed, "ten-fronts-reduced")
+        evidence.journey("Ten Fronts reduced-motion reveal")
+    finally:
+        reduced_context.close()
+
+    forced_context = browser.new_context(viewport=VIEWPORTS[1], forced_colors="active", service_workers="allow")
+    forced_page = forced_context.new_page()
+    forced_observed = install_observers(forced_page, base_url, "ten-fronts-forced")
+    try:
+        forced_page.goto(blitz_url, wait_until="domcontentloaded")
+        wait_for_blitz_source(forced_page, "verified_corpus")
+        start = forced_page.locator('[data-blitz-action="start"]')
+        start.focus()
+        outline = start.evaluate("node => ({style:getComputedStyle(node).outlineStyle,width:parseFloat(getComputedStyle(node).outlineWidth)})")
+        evidence.require(outline["style"] != "none" and outline["width"] >= 3, f"Ten Fronts: forced-colors focus remains visible ({outline!r})")
+        assert_observers_clean(evidence, forced_observed, "ten-fronts-forced")
+        evidence.journey("Ten Fronts forced-colors focus")
+    finally:
+        forced_context.close()
+
+    fallback_context = browser.new_context(viewport=VIEWPORTS[0], service_workers="allow")
+    fallback_page = fallback_context.new_page()
+    fallback_observed = install_observers(fallback_page, base_url, "ten-fronts-fallback")
+    try:
+        fallback_page.route(READ_MODEL_PATH, lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
+        fallback_page.goto(blitz_url, wait_until="domcontentloaded")
+        wait_for_blitz_source(fallback_page, "demo_fixture_fallback")
+        evidence.require(fallback_page.locator("#blitz-source-status").inner_text() == "FALLBACK · EXECUTION HELD", "Ten Fronts: source fallback is explicitly labeled")
+        evidence.require(fallback_page.locator('[data-blitz-state="held"]').count() == 1, "Ten Fronts: fallback withholds the executable fixture")
+        evidence.require(fallback_page.locator("#ten-fronts-blitz-root button, #ten-fronts-blitz-root input").count() == 0, "Ten Fronts: held fallback exposes no execution controls")
+        assert_observers_clean(evidence, fallback_observed, "ten-fronts-fallback")
+        evidence.journey("Ten Fronts source fallback holds execution")
+    finally:
+        fallback_context.close()
 
 
 def semantic_drift_fallback_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
@@ -771,7 +925,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v38');
+              const cache = await caches.open('builderwars-mobile-arena-v39');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;
@@ -782,6 +936,8 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         evidence.require(cache_state["keys"] == [SHELL_CACHE_NAME], f"offline: exactly the current shell cache is installed ({cache_state['keys']!r})")
         for resource in (f"/index.html?v={SHELL_VERSION}", f"/styles.css?v={SHELL_VERSION}", f"/data-adapter.js?v={SHELL_VERSION}", f"/app.js?v={SHELL_VERSION}"):
             evidence.require(resource in cache_state["urls"], f"offline: current shell cache contains {resource}")
+        for resource in (f"/ten-fronts.html?v={SHELL_VERSION}", f"/ten-fronts-blitz.css?v={SHELL_VERSION}", f"/ten-fronts-blitz.js?v={SHELL_VERSION}"):
+            evidence.require(resource in cache_state["urls"], f"offline: current shell cache contains local game asset {resource}")
         evidence.require("/data/tester-feedback-rubric.v1.json" in cache_state["urls"], "offline: canonical tester rubric is cached with the current shell")
         evidence.require("/data/creator-game-lab.v1.json" in cache_state["urls"], "offline: reviewed creator-game lab is cached with the current shell")
         evidence.require(not any("?v=30" in resource for resource in cache_state["urls"]), "offline: current shell cache excludes retired v30 URLs")
@@ -798,6 +954,11 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         page.locator('.bottom-nav [data-nav="learn"]').click()
         assert_view(evidence, page, "learn")
         evidence.require(page.locator("#creator-game-lesson .creator-admission-list li").count() == 8, "offline: verified creator-game admission lesson remains available")
+        page.locator('.bottom-nav [data-nav="compete"]').click()
+        page.locator("[data-ten-fronts-blitz-link]").click()
+        page.wait_for_url(f"**/ten-fronts.html?v={SHELL_VERSION}")
+        wait_for_blitz_source(page, "verified_corpus")
+        evidence.require(page.locator('[data-blitz-state="ready"]').count() == 1, "offline: cached Ten Fronts route remains qualified and playable")
         evidence.require(not observed["external_requests"], f"offline: zero cross-origin requests ({observed['external_requests']})")
         evidence.require(not observed["console"], f"offline: zero console warnings or errors ({observed['console']})")
         evidence.require(not observed["page_errors"], f"offline: zero uncaught page errors ({observed['page_errors']})")
@@ -823,6 +984,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         browser = playwright.chromium.launch(headless=not args.headed)
         try:
             normal_journey(browser, base_url, evidence, args.headed)
+            ten_fronts_blitz_journey(browser, base_url, evidence)
             fallback_journey(browser, base_url, evidence)
             semantic_drift_fallback_journey(browser, base_url, evidence)
             fatal_source_journey(browser, base_url, evidence)

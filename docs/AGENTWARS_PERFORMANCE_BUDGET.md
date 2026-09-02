@@ -19,15 +19,19 @@ opens no browser, socket, provider, account, deployment, or analytics source.
 
 | Asset | Role | Raw limit | Deterministic gzip limit |
 | --- | --- | ---: | ---: |
-| `index.html` | HTML | 20,000 B | 8,000 B |
+| `index.html` | HTML | 24,000 B | 9,000 B |
 | `styles.css` | Style | 45,000 B | 12,000 B |
-| `data-adapter.js` | Script | 262,144 B | 40,000 B |
+| `data-adapter.js` | Script | 285,000 B | 45,000 B |
 | `app.js` | Script | 225,000 B | 40,000 B |
+| `ten-fronts.html` | Route HTML | 4,096 B | 2,048 B |
+| `ten-fronts-blitz.css` | Route style | 8,192 B | 3,072 B |
+| `ten-fronts-blitz.js` | Route script | 20,000 B | 8,192 B |
 | `sw.js` | Worker | 8,000 B | 4,000 B |
 | `manifest.webmanifest` | Manifest | 4,096 B | 2,048 B |
 | `assets/arena-mark.svg` | Image | 4,096 B | 2,048 B |
 | `data/arena-read-model.v1.json` | Data | 65,536 B | 12,000 B |
 | `data/demo-state.json` | Data | 16,384 B | 8,000 B |
+| `data/creator-game-lab.v1.json` | Data | 16,384 B | 8,000 B |
 
 Unknown, missing, empty, or non-byte assets fail closed. The HTML, read adapter,
 and runtime must continue to reference their budgeted stylesheet, scripts,
@@ -37,17 +41,22 @@ manifest, icon, reviewed corpus, demo fallback, and service worker.
 
 | Metric | Limit |
 | --- | ---: |
-| Tracked assets | 9 |
-| Total raw bytes | 625,000 B |
-| Total deterministic gzip bytes | 125,000 B |
-| Core shell raw bytes | 540,000 B |
-| Core shell deterministic gzip bytes | 90,000 B |
-| Script raw bytes | 485,000 B |
-| Script deterministic gzip bytes | 80,000 B |
-| Data raw bytes | 100,000 B |
-| Data deterministic gzip bytes | 20,000 B |
+| Tracked assets | 13 |
+| Total raw bytes | 660,000 B |
+| Total deterministic gzip bytes | 132,000 B |
+| Core shell raw bytes | 570,000 B |
+| Core shell deterministic gzip bytes | 96,000 B |
+| Core script raw bytes | 515,000 B |
+| Core script deterministic gzip bytes | 86,000 B |
+| Lazy route raw bytes | 32,000 B |
+| Lazy route deterministic gzip bytes | 12,000 B |
+| Data raw bytes | 116,000 B |
+| Data deterministic gzip bytes | 26,000 B |
 
 The core shell is `index.html`, `styles.css`, `data-adapter.js`, and `app.js`.
+The lazy route is `ten-fronts.html`, `ten-fronts-blitz.css`, and
+`ten-fronts-blitz.js`; it is cached for direct and offline navigation but does
+not inflate the main page's core-script subtotal.
 The limits intentionally leave bounded headroom; raising one requires a reviewed
 contract change rather than silently normalizing growth.
 
@@ -59,6 +68,13 @@ raw/gzip ceilings remain unchanged. The added source validates channel,
 rules-week, rivalry, fixture, participant, seat, timestamp, and summary
 relationships before rendering; the budget change does not waive compressed
 size or production-performance proof.
+
+The 2026-09-02 Ten Fronts Blitz slice adds a separately loaded, minified local
+game route while preserving the existing 660,000-byte aggregate ceiling. The
+accepted 13-asset receipt is 659,604 raw / 114,065 deterministic gzip bytes;
+the core shell is 563,110 / 92,825, core scripts are 497,359 / 78,969, and the
+lazy route is 27,983 / 9,415. This is deliberately tight. New route growth must
+be paid for by source reduction or a separately reviewed budget decision.
 
 ## Receipt and adversarial gate
 
