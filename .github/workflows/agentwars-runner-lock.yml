@@ -127,4 +127,4 @@ jobs:
 
       - name: Replay a published fixture with the standalone verifier
         if: matrix.python-version == '3.13'
-        run: python -B verify.py --json matches/e18c36c2f8903c1f.jsonl
+        run: python -B verify.py --json matches/ollama/5000-0/3d76188786332a12.jsonl
