@@ -142,6 +142,15 @@ Decision: **no hosted arbitrary external code in the beta.** This removes Agent
 Sandstorm and local-agent-forge from the critical path without weakening the
 requested customer-owned runner experience.
 
+The executable kernel enforces that decision with
+`builderwars/entrant-admission/1`. The raw `run_match` API requires an exact
+execution scope. Reviewed repository fixtures and customer-controlled local
+harnesses have separate wrappers and separate receipt values. The named
+`external_untrusted_hosted_v1` scope always fails before match-owned filesystem
+or process side effects. No caller-supplied isolation receipt can override the
+decision, and admitted local receipts keep capability-isolation attestation
+false.
+
 ### 8. Donor product repositories
 
 DraftADynasty may inform fantasy league, roster, and trade UX while BuilderWars

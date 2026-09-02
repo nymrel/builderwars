@@ -25,6 +25,14 @@ sys.path.insert(0, ROOT)
 from arena.canonical import digest  # noqa: E402
 from arena.transcript import load  # noqa: E402
 from publishing.projection import PublicationError, project_receipt  # noqa: E402
+from publishing.measurement import (  # noqa: E402
+    EVENT_SCHEMA,
+    EVENT_VALUE_ALLOWLISTS,
+)
+from publishing.runback import (  # noqa: E402
+    RunbackError,
+    compile_runback_surface_admission,
+)
 
 BUNDLE_VERSION = "1"
 SOURCE_LABEL = "agentwars_share_bundle"
@@ -32,41 +40,6 @@ CAMPAIGN_ID = "agentwars_verified_moments_v1"
 OUTPUT_NAMES = ("manifest.json", "card.svg", "match.html", "copy.md")
 MATCH_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
 MAX_TRANSCRIPT_BYTES = 64 * 1024 * 1024
-
-EVENT_SCHEMA = {
-    "share_intent_recorded": {
-        "required": ["match_id", "clip_id", "share_method"],
-        "optional": ["surface", "campaign_id", "creative_id"],
-    },
-    "share_landing_viewed": {
-        "required": ["match_id", "clip_id", "source_label", "campaign_id", "creative_id"],
-        "optional": ["surface"],
-    },
-    "replay_started": {
-        "required": ["match_id", "clip_id"],
-        "optional": ["surface"],
-    },
-    "replay_verified": {
-        "required": ["match_id", "clip_id", "verdict"],
-        "optional": ["surface"],
-    },
-    "spectator_vote_cast": {
-        "required": ["match_id", "clip_id", "vote"],
-        "optional": ["surface"],
-    },
-    "league_join_clicked": {
-        "required": ["match_id", "clip_id"],
-        "optional": ["surface"],
-    },
-}
-
-EVENT_VALUE_ALLOWLISTS = {
-    "share_method": ["native", "copy", "download"],
-    "surface": ["receipt_card", "share_landing", "match_page"],
-    "verdict": ["PASS", "FAIL"],
-    "vote": ["seat0", "seat1", "runback"],
-}
-
 
 class BundleError(ValueError):
     pass
@@ -493,7 +466,13 @@ def _stable_transcript_bytes(transcript_path):
     return payload
 
 
-def build_manifest(transcript_path, public_base_url=None):
+def build_manifest(
+    transcript_path,
+    public_base_url=None,
+    *,
+    runback_proof=None,
+    previous_lineage_state=None,
+):
     """Derive every output from one immutable byte snapshot of the receipt."""
     payload = _stable_transcript_bytes(transcript_path)
     with tempfile.TemporaryDirectory(prefix="agentwars-transcript-snapshot-") as snapshot_root:
@@ -502,10 +481,21 @@ def build_manifest(transcript_path, public_base_url=None):
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
-        return _build_manifest_from_snapshot(snapshot_path, public_base_url)
+        return _build_manifest_from_snapshot(
+            snapshot_path,
+            public_base_url,
+            runback_proof=runback_proof,
+            previous_lineage_state=previous_lineage_state,
+        )
 
 
-def _build_manifest_from_snapshot(transcript_path, public_base_url=None):
+def _build_manifest_from_snapshot(
+    transcript_path,
+    public_base_url=None,
+    *,
+    runback_proof=None,
+    previous_lineage_state=None,
+):
     try:
         public_receipt, _public_records = project_receipt(transcript_path)
     except PublicationError as error:
@@ -558,8 +548,35 @@ def _build_manifest_from_snapshot(transcript_path, public_base_url=None):
         "seed": runback_seed,
         "seats": [entrants[1]["name"], entrants[0]["name"]],
     }
+    runback_surface = None
+    if (runback_proof is None) != (previous_lineage_state is None):
+        raise BundleError(
+            "runback proof and previous lineage state must be supplied together"
+        )
+    if runback_proof is not None:
+        try:
+            runback_surface = compile_runback_surface_admission(
+                public_receipt,
+                parent_transcript_path=transcript_path,
+                proof=runback_proof,
+                previous_state=previous_lineage_state,
+            )
+        except RunbackError as error:
+            raise BundleError("runback surface admission failed closed") from error
     base_url = normalize_base_url(public_base_url)
     status = truth_status(entrants, sources)
+    rivalry = {
+        "id": rivalry_id,
+        "historyStatus": "not_loaded",
+        "meetingNumber": None,
+        "runback": {
+            "status": "unplayed_challenge",
+            "challengeId": "challenge_" + digest(challenge_core)[:16],
+            **challenge_core,
+        },
+    }
+    if runback_surface is not None:
+        rivalry["runbackSurface"] = runback_surface
     core = {
         "schemaVersion": BUNDLE_VERSION,
         "product": "AgentWars",
@@ -577,16 +594,7 @@ def _build_manifest_from_snapshot(transcript_path, public_base_url=None):
         },
         "story": story,
         "highlight": highlight,
-        "rivalry": {
-            "id": rivalry_id,
-            "historyStatus": "not_loaded",
-            "meetingNumber": None,
-            "runback": {
-                "status": "unplayed_challenge",
-                "challengeId": "challenge_" + digest(challenge_core)[:16],
-                **challenge_core,
-            },
-        },
+        "rivalry": rivalry,
         "entrants": entrants,
         "moveSourceClaims": sources,
         "truth": {
@@ -649,9 +657,16 @@ def render_card(manifest):
     chain = html.escape(str(manifest["match"]["chainHead"])[:16])
     creative = html.escape(manifest["campaign"]["creativeId"])
     runback = manifest["rivalry"]["runback"]
-    runback_line = html.escape(
-        f"RUN IT BACK · SEED {runback['seed']} · SEATS SWAPPED · UNPLAYED CHALLENGE"
-    )
+    runback_surface = manifest["rivalry"].get("runbackSurface")
+    if runback_surface is not None:
+        child = runback_surface["acceptedEdge"]["childReceiptId"][:16]
+        runback_line = html.escape(
+            f"RUNBACK VERIFIED / PENDING REGISTRY COMMIT · SEED {runback['seed']} · CHILD {child}…"
+        )
+    else:
+        runback_line = html.escape(
+            f"RUN IT BACK · SEED {runback['seed']} · SEATS SWAPPED · UNPLAYED CHALLENGE"
+        )
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
 <title id="title">{headline}</title>
 <desc id="desc">Replay-verified AgentWars {html.escape(game.lower())} result. {result_line}</desc>
@@ -696,6 +711,23 @@ def render_html(manifest):
     )
     moment = manifest["highlight"]
     runback = manifest["rivalry"]["runback"]
+    runback_surface = manifest["rivalry"].get("runbackSurface")
+    if runback_surface is not None:
+        child = html.escape(runback_surface["acceptedEdge"]["childReceiptId"])
+        runback_block = (
+            f'<div class="card"><p class="eyebrow">Runback verified / pending registry commit</p>'
+            f'<p>Replay candidate: seed {runback["seed"]}, seats swapped.</p>'
+            f'<p>Child receipt <code>{child}</code>. Exact replay and lineage digests are '
+            f'bound, but no authoritative registry compare-and-swap is proven. No provider, '
+            f'model, runtime, rating, or winner narrative is inferred.</p></div>'
+        )
+    else:
+        runback_block = (
+            f'<div class="card"><p class="eyebrow">Run it back</p>'
+            f'<p>Unplayed challenge: seed {runback["seed"]}, seats swapped.</p>'
+            f'<p>This is a proposed rematch, not a result. Challenge '
+            f'<code>{html.escape(runback["challengeId"])}</code>.</p></div>'
+        )
     if moment["kind"] == "top_scoring_pick":
         player = moment["player"]
         moment_text = (
@@ -716,7 +748,7 @@ def render_html(manifest):
 <body><main><p class="eyebrow">AgentWars · {html.escape(manifest['match']['game'])}</p>
 <h1>{html.escape(story['headline'])}</h1><p class="result">{html.escape(story['resultLine'])}</p>
 <div class="card"><p class="verified">Replay verified</p><p>{html.escape(moment_text)}</p><p>{html.escape(moment['label'])}</p><p><strong>{html.escape(story['question'])}</strong></p></div>
-<div class="card"><p class="eyebrow">Run it back</p><p>Unplayed challenge: seed {runback['seed']}, seats swapped.</p><p>This is a proposed rematch, not a result. Challenge <code>{html.escape(runback['challengeId'])}</code>.</p></div>
+{runback_block}
 <h2>Execution receipt</h2><div class="table-wrap"><table><thead><tr><th>Entrant</th><th>Declared class</th><th>Model-source claims</th><th>Fallbacks</th><th>Scripted</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
 <p>{html.escape(manifest['truth']['boundary'])}</p>
 <h2>Verify it</h2><p>Local command template (replace the placeholder with the receipt path): <code>{html.escape(manifest['verification']['localCommandTemplate'])}</code></p>
@@ -733,6 +765,7 @@ def render_copy(manifest):
     total_scripted = sum(row["scripted"] for row in sources.values())
     url = manifest["campaign"]["candidateUrl"]
     runback = manifest["rivalry"]["runback"]
+    runback_surface = manifest["rivalry"].get("runbackSurface")
     link_line = f"\n\nCandidate route, not yet verified live: {url}" if url else ""
     provenance = (
         f"Entrant notes label {total_model} recorded move(s) model-sourced, "
@@ -742,6 +775,28 @@ def render_copy(manifest):
     headline = markdown_text(story["headline"])
     result_line = markdown_text(story["resultLine"])
     question = markdown_text(story["question"])
+    if runback_surface is not None:
+        runback_copy = (
+            f"Runback replay verified / pending registry commit: seed {runback['seed']}, "
+            f"seats swapped, child `{runback_surface['acceptedEdge']['childReceiptId']}`. "
+            "Exact replay and lineage digests are bound, but no authoritative registry "
+            "compare-and-swap is proven. No provider, model, runtime, rating, or winner "
+            "narrative is inferred."
+        )
+        runback_gate = (
+            "- Treat `runbackSurface` as internal pending evidence only. Require product/share "
+            "canonical bytes to match, then use a future authoritative registry contract to "
+            "compare-and-swap the exact previous lineage-state digest."
+        )
+    else:
+        runback_copy = (
+            f"Runback proposed: seed {runback['seed']}, seats swapped. It is an unplayed "
+            "challenge, not another result."
+        )
+        runback_gate = (
+            "- Keep the legacy runback labeled `unplayed_challenge`; a child receipt alone "
+            "never authorizes any surface upgrade."
+        )
     return f'''# AgentWars verified moment — draft only
 
 **STATUS: DRAFT. NOT POSTED. NO AUDIENCE OR PERFORMANCE CLAIM.**
@@ -754,7 +809,7 @@ def render_copy(manifest):
 
 The match replay verifies. {question}{link_line}
 
-Runback proposed: seed {runback['seed']}, seats swapped. It is an unplayed challenge, not another result.
+{runback_copy}
 
 ## Community title
 
@@ -780,12 +835,23 @@ Match `{manifest['match']['id']}` · chain `{manifest['match']['chainHead']}`{li
 - Prove the tagged tuple reaches an allowlisted event counter.
 - Name one channel, owner, numeric threshold, and stop-loss date before opening a growth experiment.
 - Keep `model_attested=false` visible anywhere the move-source split appears.
-- Keep the runback labeled `unplayed_challenge` until a child replay receipt exists.
+{runback_gate}
 '''
 
 
-def build_outputs(transcript_path, public_base_url=None):
-    manifest = build_manifest(transcript_path, public_base_url)
+def build_outputs(
+    transcript_path,
+    public_base_url=None,
+    *,
+    runback_proof=None,
+    previous_lineage_state=None,
+):
+    manifest = build_manifest(
+        transcript_path,
+        public_base_url,
+        runback_proof=runback_proof,
+        previous_lineage_state=previous_lineage_state,
+    )
     return {
         "manifest.json": json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         "card.svg": render_card(manifest),
@@ -794,8 +860,20 @@ def build_outputs(transcript_path, public_base_url=None):
     }
 
 
-def write_bundle(transcript_path, out_dir, public_base_url=None):
-    outputs = build_outputs(transcript_path, public_base_url)
+def write_bundle(
+    transcript_path,
+    out_dir,
+    public_base_url=None,
+    *,
+    runback_proof=None,
+    previous_lineage_state=None,
+):
+    outputs = build_outputs(
+        transcript_path,
+        public_base_url,
+        runback_proof=runback_proof,
+        previous_lineage_state=previous_lineage_state,
+    )
     destination = os.path.abspath(out_dir)
     if os.path.exists(destination):
         raise BundleError("output directory already exists; choose a new path")

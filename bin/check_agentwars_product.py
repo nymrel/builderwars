@@ -19,16 +19,18 @@ sys.path.insert(0, os.path.join(ROOT, "bin"))
 from arena import match as match_module  # noqa: E402
 from arena import passport as passport_module  # noqa: E402
 from arena.canonical import GENESIS, chain, digest  # noqa: E402
-from arena.match import run_match  # noqa: E402
+from arena.match import run_reference_match as run_match  # noqa: E402
 from build_share_bundle import build_manifest  # noqa: E402
 from export_site import install_artifact  # noqa: E402
 from publishing import projection as projection_module  # noqa: E402
+import publishing.product as product_module  # noqa: E402
 from publishing.product import (  # noqa: E402
     RULES_WEEKS,
     _build_integrity,
     _title_state,
     assemble_dataset,
     build_product,
+    build_rivalries,
     verify_artifact,
     write_public_artifact,
 )
@@ -38,6 +40,12 @@ from publishing.projection import (  # noqa: E402
     project_receipt,
     source_counts_digest,
     ten_fronts_scores,
+)
+from publishing.runback import (  # noqa: E402
+    accept_runback,
+    empty_lineage_state,
+    issue_runback,
+    require_same_surface_bytes,
 )
 
 PUBLICATION_MANIFEST = os.path.join(ROOT, "docs", "AGENTWARS_PUBLICATION_MANIFEST.v1.json")
@@ -652,6 +660,219 @@ def check_public_safety_and_product_mechanics():
     require(sum(row["ties"] for row in title["leaderboard"]) == 0, "void receipt is not a tie")
 
 
+def check_pending_runback_surface_binding():
+    with tempfile.TemporaryDirectory(prefix="agentwars-product-runback-") as work:
+        first = run_match(
+            game_name="fantasy_redraft",
+            seed=9910,
+            entrants=[
+                _scripted_manifest("Runback Sunday", "win-now"),
+                _scripted_manifest("Runback Future", "long-game"),
+            ],
+            out_dir=os.path.join(work, "parent"),
+            match_id="product-surface-parent",
+        )
+        second = run_match(
+            game_name="fantasy_redraft",
+            seed=9911,
+            entrants=[
+                _scripted_manifest("Runback Future", "long-game"),
+                _scripted_manifest("Runback Sunday", "win-now"),
+            ],
+            out_dir=os.path.join(work, "child"),
+            match_id="product-surface-child",
+        )
+        parent, _parent_records = project_receipt(first["transcript"])
+        child, _child_records = project_receipt(second["transcript"])
+        challenge = issue_runback(parent, transcript_path=first["transcript"])
+        acceptance = accept_runback(
+            challenge,
+            parent,
+            child,
+            parent_transcript_path=first["transcript"],
+            child_transcript_path=second["transcript"],
+        )
+        runback_proof = {
+            "acceptance": acceptance,
+            "challenge": challenge,
+            "parentReceipt": parent,
+            "parentTranscriptPath": first["transcript"],
+            "childReceipt": child,
+            "childTranscriptPath": second["transcript"],
+        }
+        surface_inputs = {
+            parent["receiptId"]: {
+                "proof": runback_proof,
+                "previousState": empty_lineage_state(),
+            }
+        }
+        default = build_rivalries([parent, child])
+        require(
+            all(
+                meeting["runback"]["status"] == "unplayed_challenge"
+                for rivalry in default
+                for meeting in rivalry["history"]
+            ),
+            "product rivalry defaults remain unplayed without proof inputs",
+        )
+        for rivalry in default:
+            for meeting in rivalry["history"]:
+                legacy = meeting["runback"]
+                require(
+                    set(legacy)
+                    == {
+                        "status",
+                        "challengeId",
+                        "parentReceiptId",
+                        "fixtureId",
+                        "game",
+                        "seed",
+                        "entrantIdsBySeat",
+                    }
+                    and type(legacy["entrantIdsBySeat"]) is list
+                    and all(type(value) is str for value in legacy["entrantIdsBySeat"]),
+                    "default product runback preserves exact legacy v1 keys and value types",
+                )
+                require(
+                    "runbackSurface" not in meeting,
+                    "default product payload omits proof surface sibling",
+                )
+        projected = build_rivalries(
+            [parent, child],
+            transcript_paths={
+                parent["receiptId"]: first["transcript"],
+                child["receiptId"]: second["transcript"],
+            },
+            surface_inputs=surface_inputs,
+        )
+        product_surface = next(
+            meeting["runbackSurface"]
+            for rivalry in projected
+            for meeting in rivalry["history"]
+            if meeting["receiptId"] == parent["receiptId"]
+        )
+        share_surface = build_manifest(
+            first["transcript"],
+            runback_proof=runback_proof,
+            previous_lineage_state=empty_lineage_state(),
+        )["rivalry"]["runbackSurface"]
+        require(
+            product_surface["status"]
+            == "completed_runback_pending_registry_commit",
+            "product proof projection remains pending registry commit",
+        )
+        require_same_surface_bytes(product_surface, share_surface)
+        expect_publication_error(
+            lambda: build_rivalries(
+                [parent],
+                transcript_paths={parent["receiptId"]: first["transcript"]},
+                surface_inputs=surface_inputs,
+            ),
+            "exact approved product receipt",
+        )
+
+        source_rows = []
+        for sequence, (receipt, transcript) in enumerate(
+            ((parent, first["transcript"]), (child, second["transcript"]))
+        ):
+            totals = {
+                key: sum(row[key] for row in receipt["moveSourceClaims"])
+                for key in ("model", "fallback", "scripted", "other")
+            }
+            source_rows.append(
+                {
+                    "sequence": sequence,
+                    "sourcePath": f"matches/runback-proof/{sequence}.jsonl",
+                    "sourceFileSha256": file_sha256(transcript),
+                    "sourceChainHead": receipt["receiptId"],
+                    "sourceCounts": totals,
+                    "decision": "approved_for_publication",
+                    "titleEligible": False,
+                    "label": f"runback proof {sequence}",
+                    "absoluteSourcePath": transcript,
+                }
+            )
+        publication = {
+            "entries": source_rows,
+            "futureFixtures": [],
+            "manifestDigest": "a" * 64,
+        }
+        with unittest.mock.patch.object(
+            product_module, "load_publication_manifest", return_value=publication
+        ), unittest.mock.patch.object(
+            product_module, "_rules_registry", return_value=[]
+        ):
+            dataset, _source_manifest, _outputs = build_product(
+                ROOT,
+                PUBLICATION_MANIFEST,
+                runback_surface_inputs=surface_inputs,
+            )
+            pending_meeting = next(
+                meeting
+                for rivalry in dataset["rivalries"]
+                for meeting in rivalry["history"]
+                if meeting["receiptId"] == parent["receiptId"]
+            )
+            require(
+                pending_meeting["runback"]["status"] == "unplayed_challenge"
+                and pending_meeting["runbackSurface"] == product_surface,
+                "build_product preserves legacy runback beside internal pending proof bytes",
+            )
+            destination = os.path.join(work, "must-not-publish")
+            expect_publication_error(
+                lambda: write_public_artifact(
+                    ROOT,
+                    PUBLICATION_MANIFEST,
+                    destination,
+                    runback_surface_inputs=surface_inputs,
+                ),
+                "cannot be published",
+            )
+            require(
+                not os.path.exists(destination),
+                "pending public-artifact refusal leaves zero partial output",
+            )
+            tampered = os.path.join(work, "self-consistent-tampered-artifact")
+            write_public_artifact(ROOT, PUBLICATION_MANIFEST, tampered)
+            dataset_path = os.path.join(tampered, "dataset.json")
+            public_dataset_path = os.path.join(tampered, "public", "dataset.json")
+            tampered_dataset = read_json(dataset_path)
+            target_meeting = next(
+                meeting
+                for rivalry in tampered_dataset["rivalries"]
+                for meeting in rivalry["history"]
+                if meeting["receiptId"] == parent["receiptId"]
+            )
+            target_meeting["runbackSurface"] = product_surface
+            tampered_dataset.pop("datasetDigest")
+            tampered_dataset["datasetDigest"] = digest(tampered_dataset)
+            write_json(dataset_path, tampered_dataset)
+            write_json(public_dataset_path, tampered_dataset)
+
+            source_manifest_path = os.path.join(tampered, "source-manifest.json")
+            tampered_source = read_json(source_manifest_path)
+            tampered_source["datasetDigest"] = tampered_dataset["datasetDigest"]
+            tampered_source.pop("manifestDigest")
+            tampered_source["manifestDigest"] = digest(tampered_source)
+            write_json(source_manifest_path, tampered_source)
+
+            install_path = os.path.join(tampered, "install-manifest.json")
+            install = read_json(install_path)
+            install["datasetDigest"] = tampered_dataset["datasetDigest"]
+            install["sourceManifestDigest"] = tampered_source["manifestDigest"]
+            for row in install["files"]:
+                target = os.path.join(tampered, *row["path"].split("/"))
+                row["sha256"] = file_sha256(target)
+                row["bytes"] = os.path.getsize(target)
+            install.pop("installDigest")
+            install["installDigest"] = digest(install)
+            write_json(install_path, install)
+            expect_publication_error(
+                lambda: verify_artifact(tampered),
+                "cannot be published",
+            )
+
+
 def _rechained_copy(source, destination, mutate):
     """Copy a transcript, apply one hostile mutation, then repair its hash chain."""
     with open(source, "r", encoding="utf-8") as handle:
@@ -975,6 +1196,7 @@ def main():
     check_ten_fronts_score_extractor()
     check_ten_fronts_public_source()
     check_public_safety_and_product_mechanics()
+    check_pending_runback_surface_binding()
     print("AgentWars public product contracts: PASS")
     print("8 approved receipts / 3 closed future fixtures / fail-closed replay + publication gates")
     return 0

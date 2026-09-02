@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# BuilderWars Mobile Arena is a local launch candidate.
+# Indexing stays disabled until protected stages 11-13 pass.

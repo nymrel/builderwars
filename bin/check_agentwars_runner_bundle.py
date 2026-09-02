@@ -238,6 +238,7 @@ def main() -> int:
         bundle_root = extract / BUNDLE_ROOT
         check(bundle_root.is_dir() and not bundle_root.is_symlink(), "verified archive extracts under one fixed root")
         readme = (bundle_root / "README.md").read_text(encoding="utf-8")
+        start_here = (bundle_root / "START_HERE.md").read_text(encoding="utf-8")
         windows_entrypoint = r".\.venv\Scripts\python.exe -B bin\agentwars.py"
         posix_entrypoint = "./.venv/bin/python -B bin/agentwars.py"
         windows_passport_entrypoint = (
@@ -282,8 +283,84 @@ def main() -> int:
             ),
             "bundled README contains no writable-bytecode verifier, runner, or passport invocation",
         )
+        check(
+            r".\.venv\Scripts\python.exe -B bin\qualify_agentwars_starter.py --out starter-proof"
+            in start_here
+            and "./.venv/bin/python -B bin/qualify_agentwars_starter.py --out starter-proof"
+            in start_here
+            and "does **not** qualify" in start_here
+            and "Network egress and filesystem confinement are not enforced" in start_here,
+            "bundled START_HERE exposes the exact offline command and non-attestation boundary",
+        )
         compile_result = run_isolated(["-m", "compileall", "-q", "."], bundle_root)
         check(compile_result.returncode == 0, "bundled Python compiles in an isolated interpreter")
+
+        starter_out = work / "starter-proof"
+        starter_result = run_isolated(
+            ["bin/qualify_agentwars_starter.py", "--out", str(starter_out)],
+            bundle_root,
+        )
+        starter_receipt = json.loads((starter_out / "qualification.json").read_text(encoding="utf-8"))
+        starter_blueprint = json.loads((starter_out / "blueprint.json").read_text(encoding="utf-8"))
+        starter_legality = json.loads((starter_out / "legality-guarantor.json").read_text(encoding="utf-8"))
+        starter_learning = json.loads((starter_out / "learning-action.json").read_text(encoding="utf-8"))
+        starter_runback = json.loads((starter_out / "runback-proposal.json").read_text(encoding="utf-8"))
+        check(
+            starter_result.returncode == 0
+            and starter_receipt["status"] == "pass_local_scripted_environment"
+            and starter_receipt["allReplaysVerified"] is True
+            and starter_receipt["allMovesScripted"] is True
+            and starter_receipt["fixtureCount"] == 2,
+            "extracted bundle completes the two-fixture offline starter qualification",
+        )
+        check(
+            starter_receipt["truth"]["providerRouteConfigured"] is False
+            and starter_receipt["truth"]["providerCredentialsProvisioned"] is False
+            and starter_receipt["truth"]["customerHarnessQualified"] is False
+            and starter_receipt["truth"]["rankingAuthorized"] is False
+            and starter_receipt["truth"]["publicationAuthorized"] is False,
+            "bundled starter proof remains provider-free, harness-unqualified, unranked, and unpublished",
+        )
+        check(
+            starter_blueprint["schemaVersion"] == "agentwars.starter_blueprint.v1"
+            and starter_receipt["blueprintDigest"] == starter_blueprint["blueprintDigest"]
+            and starter_receipt["rulesBinding"] == starter_blueprint["gameBinding"]
+            and starter_receipt["resourceClass"] == starter_blueprint["resourceClass"],
+            "extracted starter binds a versioned blueprint to exact rules and resource class",
+        )
+        check(
+            starter_legality["schemaVersion"] == "agentwars.starter_legality_guarantor.v1"
+            and starter_legality["status"] == "eligible_local_scripted_reference_only"
+            and starter_legality["blueprintDigest"] == starter_blueprint["blueprintDigest"]
+            and starter_receipt["legalityDigest"] == starter_legality["legalityDigest"]
+            and starter_legality["truth"]["legalAdviceProvided"] is False
+            and starter_legality["truth"]["providerTermsComplianceAttested"] is False
+            and starter_legality["truth"]["customerExecutionAuthorized"] is False,
+            "extracted starter proves format eligibility before execution without legal or provider authority",
+        )
+        check(
+            starter_learning["schemaVersion"] == "agentwars.starter_learning_action.v1"
+            and starter_learning["status"] == "observation_only"
+            and starter_learning["proofBinding"]["legalityDigest"]
+            == starter_legality["legalityDigest"]
+            and starter_learning["proofBinding"]["qualificationReceiptDigest"]
+            == starter_receipt["receiptDigest"]
+            and starter_learning["recommendedAction"]["status"] == "not_started",
+            "extracted starter derives a proof-linked learning action without executing it",
+        )
+        check(
+            starter_runback["schemaVersion"] == "agentwars.starter_runback_proposal.v1"
+            and starter_runback["lineage"]["parentLearningDigest"]
+            == starter_learning["learningDigest"]
+            and starter_runback["lineage"]["parentLegalityDigest"]
+            == starter_legality["legalityDigest"]
+            and starter_runback["lineage"]["parentQualificationReceiptDigest"]
+            == starter_receipt["receiptDigest"]
+            and starter_runback["status"] == "unplayed_proposal"
+            and starter_runback["qualificationStatus"] == "not_run"
+            and starter_runback["executionStatus"] == "disabled",
+            "extracted starter derives one versioned, unqualified, unplayed runback",
+        )
 
         dependency_result = run_isolated(
             ["bin/check_agentwars_dependency_lock.py", "--root", ".", "--json"],
@@ -293,7 +370,7 @@ def main() -> int:
         check(
             dependency_result.returncode == 0
             and dependency_receipt["status"] == "pass"
-            and dependency_receipt["artifactCount"] == 43
+            and dependency_receipt["artifactCount"] == 44
             and dependency_receipt["dependencyLockSha256"]
             == EXPECTED_DEPENDENCY_LOCK_SHA256
             and dependency_receipt["downloads"]

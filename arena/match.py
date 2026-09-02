@@ -29,7 +29,13 @@ import time
 from .canonical import digest
 from .games import load as load_game
 from .integrity import engine_digest, engine_files, script_digest
+from .admission import (
+    CUSTOMER_CONTROLLED_LOCAL_V1,
+    REFERENCE_REVIEWED_LOCAL_V1,
+    require_execution_scope,
+)
 from .sandbox import POLICY, Entrant, EntrantFailure
+from .reference_sources import require_reviewed_reference_entrants
 from .scoring import referee_projection, score
 from .transcript import TranscriptWriter
 
@@ -219,12 +225,17 @@ def run_match(
     game_name,
     seed,
     entrants,
+    execution_scope,
     out_dir,
     move_timeout_s=15.0,
     match_id=None,
     keep_scratch=False,
     provisioned_envs=None,
 ):
+    # This must remain the first operation: an unsupported hosted-untrusted
+    # request is refused before manifest/passport reads, output directories,
+    # scratch state, transcript files, or entrant processes can be created.
+    entrant_admission = require_execution_scope(execution_scope)
     if len(entrants) != 2:
         raise ValueError("this runner plays two-seat games; got %d entrants" % len(entrants))
     if not isinstance(seed, int) or isinstance(seed, bool):
@@ -239,6 +250,10 @@ def run_match(
     move_timeout_s = float(move_timeout_s)
     for manifest in entrants:
         validate_manifest(manifest)
+    reviewed_sources = []
+    if execution_scope == REFERENCE_REVIEWED_LOCAL_V1:
+        reviewed_sources = require_reviewed_reference_entrants(entrants)
+    entrant_admission["reviewed_sources"] = reviewed_sources
     seat_envs = _normalize_provisioned_envs(entrants, provisioned_envs)
     if entrants[0]["name"].casefold() == entrants[1]["name"].casefold():
         raise ValueError("entrant names must be unique within a match")
@@ -320,6 +335,7 @@ def run_match(
                     }
                     for i, e in enumerate(entrants)
                 ],
+                "entrant_admission": entrant_admission,
                 "sandbox_policy": POLICY,
                 "attestation": {
                     "model_attested": False,
@@ -606,6 +622,22 @@ def run_match(
                 )
                 raise cleanup_error from active_exception
             raise cleanup_error
+
+
+def run_reference_match(**kwargs):
+    """Run an exact registry-bound repository reference pair on a local host."""
+
+    if "execution_scope" in kwargs:
+        raise TypeError("run_reference_match fixes execution_scope")
+    return run_match(execution_scope=REFERENCE_REVIEWED_LOCAL_V1, **kwargs)
+
+
+def run_customer_local_match(**kwargs):
+    """Run customer-controlled entrants only on the customer's local host."""
+
+    if "execution_scope" in kwargs:
+        raise TypeError("run_customer_local_match fixes execution_scope")
+    return run_match(execution_scope=CUSTOMER_CONTROLLED_LOCAL_V1, **kwargs)
 
 
 def _encodable(value):

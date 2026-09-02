@@ -26,7 +26,7 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, BIN)
 
 from arena.canonical import GENESIS, chain, digest  # noqa: E402
-from arena.match import run_match, validate_manifest  # noqa: E402
+from arena.match import run_reference_match as run_match, validate_manifest  # noqa: E402
 from arena.transcript import load  # noqa: E402
 from provider_hub.catalog import get_provider  # noqa: E402
 from publishing.projection import verify_with_snapshot  # noqa: E402

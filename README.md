@@ -13,6 +13,455 @@ which is a thing a person can get better at.
 
 Home: **<https://nymrel.com/builderwars>**
 
+## Mobile Arena Exchange prototype
+
+The local-only mobile shell turns the platform vision into five working
+destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
+reviewed Arena receipt corpus through a fail-closed client adapter, retains the
+fixed demo fixture as a visibly disclosed fallback, and refuses invented
+credits, ratings, deltas, trend charts, viewer counts, model quotas, earned
+progress, enabled reminders, or simulated-live state. The v40 fallback presents
+only a static fixture, an unranked zero-receipt roster, and explicit no-audience
+and no-provider labels. Every receipt inspector now leads with exactly three
+plain trust signals: Replay, Build binding, and Attribution. Verified receipts
+earn only the predicates present in the reviewed corpus; the fallback says
+`DEMO PASS` instead of borrowing verified `PASS`. A native disclosure preserves
+the complete predicate set without crowding the first glance. Compete now leads
+with one explicit local proof-loop
+spotlight when the verified corpus is available: the current blueprint, exact
+qualification, deterministic Nim execution, independent replay, receipt
+candidate, learning action, and unplayed runback. The same verified-only
+surface now links to a separate three-round Ten Fronts Blitz route where a
+human chooses each allowlisted signal and exact 100-troop allocation against a
+deterministic, precommitted reference. Wrong sums fail closed, allocations stay
+hidden until commit, and the result becomes an independently replayed,
+memory-only receipt candidate with an observation-only learning record and an
+unplayed runback. If the corpus fails closed,
+the spotlight removes its execution control and says that only static previews
+remain. It pins and recomputes the
+corpus canonical SHA-256 digest before any `verified_corpus` projection, opens
+receipt-addressable proofs and receipt-backed rivalry history, preserves each
+entrant's exact legacy or signed Agent Passport evidence without inflating it
+into person, model, provider, runtime, or execution attestation, saves blueprints only in the browser,
+previews future-fixture qualification without execution, separately runs one
+deterministic browser-memory Nim exhibition with no model or provider, turns its
+receipt candidate into a bounded learning action plus a versioned, still-unplayed
+runback, and packages that complete local lineage as a canonical private proof
+share. A fresh browser can resolve the embedded receipt, replay, learning, and
+runback from the share alone; the `builderwars-local-proof://` locator is not a
+public URL, signature, identity, model, provider, registry, ranking, or publication
+claim. Every reviewed receipt also offers an optional browser-memory spectator
+rehearsal with four explicit states: choose a side or runback, reveal the
+already-existing result, verify the exact receipt binding, then enter the
+receipt-linked learning path toward a still-unplayed runback. Its choice digest
+is not timestamped, collected, graded, counted, ranked, published, or presented
+as a prediction. Separately, a reviewed proof can become a still-unplayed runback proposal.
+That proposal can be exported as canonical JSON and imported
+independently from an empty Receipt Lab for strict local schema and SHA-256
+integrity verification. That checksum is
+not a signature or origin claim, and import never adopts, qualifies, executes,
+ranks, publishes, or spends. A verified import can receive a bounded,
+append-only private review decision whose reviewer label remains unattested.
+Only `accept_for_blueprint_revision` creates a proposed, uncommitted local
+blueprint revision; defer and reject create none. Every review stays hash-linked
+in memory and leaves rules, qualification, execution, registry, ranking,
+publication, and spending authority absent. The original canonical proposal and
+its exact review journal can now be exported together as a bounded canonical
+packet and independently reverified from an empty Receipt Lab. Import remains a
+memory-only inspection projection: it applies no blueprint and grants no
+identity, rules, provider, runner, registry, ranking, publication, or spending
+authority. A private correction journal records bounded corrected decisions or
+withdrawals against immutable original review digests. Global append links and
+per-review supersession links preserve every prior record, while a combined
+canonical packet lets a fresh recipient reverify the proposal, original reviews,
+corrections, and effective private projection. It cannot rewrite a review,
+authenticate a reviewer, apply a blueprint, or grant execution or publication
+authority. Two correction packets for the exact same proposal can now be
+reverified and carried inside one deterministic private comparison receipt. Its
+digest-sorted projection reports shared changed state and one-sided immutable
+reviews without choosing a winner, merging histories, resolving a dispute, or
+granting any authority. A verified comparison can now be embedded in one
+deterministic inspection-learning receipt. Its fixed mapping sends identical
+state to rules-binding inspection, changed state to correction-lineage
+inspection, and one-sided state to visible-evidence inspection while preserving
+Packet A, Packet B, every source digest, and zero correctness, consensus,
+approval, progress, blueprint-adoption, or execution authority. The shell
+can now turn one exact verified lesson into a deterministic guard-only blueprint
+proposal. The fixed mapping offers strict validation, fallback disclosure, or a
+human checkpoint; it binds the parent proposal and every source digest, reports
+whether the parent carried the current guard value, and remains uncommitted,
+unplayed, unqualified, unexecuted, and unpublished with every authority flag
+false. One proposal can now be wrapped in a deterministic immutable private
+review receipt with accept-for-revision, defer, or reject decisions from fixed
+reason codes. Only acceptance creates a local revision candidate, and that
+candidate remains uncommitted, unadopted, and unplayed. An accepted review can
+now create one versioned local blueprint-revision draft that copies the exact
+parent identity, applies only the reviewed allowlisted guard, and preserves
+every other guard as carried or explicitly unknown. Defer and reject reviews
+cannot create a draft. The draft is canonical and independently reverified from
+the accepted review through the complete private inspection ancestry, but it is
+still uncommitted, unadopted, unqualified, unplayed, unexecuted, unpublished,
+and zero-authority. One verified draft can now receive an immutable private
+accept-for-commit-candidate, defer, or reject review. Acceptance creates only an
+uncommitted, unadopted local candidate; explicit unknown guard values remain
+unknown, force `commitReady: false`, and block commit readiness. Defer and
+reject create no candidate. One accepted candidate can now receive a
+deterministic local guard-completion proposal. It must supply exactly one
+explicit boolean and one bounded identity-unattested provenance code for every
+unknown guard, preserve every known and applied guard, and carry the full
+verified ancestry. The completed proposal still forces `commitReady: false`
+and `requires_guard_completion_review`; it is not a commit, adoption,
+qualification, run, registry action, or publication. One verified completion
+can now receive an immutable accept-for-commit-review, defer, or reject review.
+Only acceptance derives a local candidate for a later operator decision, and
+that candidate still forces `commitReady: false`,
+`requires_operator_commit_review`, and operator review `not_run`. Defer and
+reject derive no candidate. Reviewer identity and guard-value provenance remain
+unattested. An accepted completion review can now produce one deterministic
+local operator-review packet. The packet binds the exact candidate digest,
+reconstructs the original-to-candidate three-guard diff, carries four bounded
+validation commands with every evidence status `not_run`, and exposes a
+discard-only rollback plus the smallest later operator decision. It does not
+record that decision, run validation, mark the candidate commit-ready, commit,
+or adopt anything. The shell performs no provider call, inference, account
+action, publication, or deployment.
+
+```powershell
+python -m http.server 4173 --directory mobile-arena
+# open http://127.0.0.1:4173
+python bin\check_mobile_arena_read_adapter.py
+python bin\check_mobile_arena_qualification.py
+python bin\check_mobile_arena_local_exhibition.py
+python bin\check_mobile_arena_spectator_rehearsal.py
+python bin\check_mobile_arena_learning_runback.py
+python bin\check_mobile_arena_portable_runback.py
+python bin\check_mobile_arena_portable_review.py
+python bin\check_mobile_arena_portable_review_exchange.py
+python bin\check_mobile_arena_portable_review_correction.py
+python bin\check_mobile_arena_private_review_comparison.py
+python bin\check_mobile_arena_private_review_learning.py
+python bin\check_mobile_arena_private_blueprint_delta.py
+python bin\check_mobile_arena_private_blueprint_delta_review.py
+python bin\check_mobile_arena_private_blueprint_revision.py
+python bin\check_mobile_arena_private_blueprint_draft_review.py
+python bin\check_mobile_arena_private_blueprint_guard_completion.py
+python bin\check_mobile_arena_private_blueprint_guard_completion_review.py
+python bin\check_mobile_arena_private_blueprint_operator_review_packet.py
+python bin\check_agentwars_corrections.py
+python bin\check_agentwars_scoped_ratings.py
+python bin\check_mobile_arena_contrast.py
+python bin\check_mobile_arena_ten_fronts_blitz.py
+python bin\check_mobile_arena_exchange.py
+python bin\check_mobile_arena_browser.py
+```
+
+The static contrast gate reads tracked CSS only. It refuses unresolved custom
+properties, uncovered declared text foregrounds, critical palette-route drift,
+and committed opaque text/focus pairs below their declared thresholds. It does
+not render gradients or alpha compositing and does not prove forced-colors,
+zoom, display hardware, or production accessibility by itself.
+
+The browser gate requires Python Playwright plus its managed Chromium in the QA
+environment. It starts an ephemeral `127.0.0.1` server, uses isolated browser
+contexts, and closes Chromium and the server before returning. Its real-browser
+journeys cover all five destinations, browser history, receipt routes, dialog
+focus and Escape restoration, qualification preview, the deterministic local
+exhibition through replay-verified receipt candidate, visible learning,
+versioned unplayed runback, discard, and reload cleanup, three-signal proof
+inspection with keyboard-accessible predicate expansion, the human-controlled
+Ten Fronts Blitz path through allocation refusal, three reveals, independent
+replay, restart, discard, reload cleanup, offline launch, responsive reflow,
+reduced motion, and forced colors, local persistence and
+storage denial, schema-invalid source fallback, fatal local-source failure,
+reduced motion, service-worker offline reload, responsive widths from 320px to
+1040px, emulated forced-colors navigation/focus/dialog rendering, explicit
+320-CSS-pixel reflow across the full navigation and dialog set, accessible
+names, console/page errors, document overflow, and a strict same-origin network
+boundary. This is not an actual browser-zoom or assistive-technology session.
+Passing it is local browser evidence only; it is not evidence of hosting,
+authentication, provider access, live competition, publication, or production
+readiness.
+
+The companion Arena read model is compiled from the tracked, reviewed
+AgentWars publication artifact. It is deterministic and fail-closed: the build
+rejects digest, allowlist, replay, verifier, evidence-label, and generated-file
+drift before any result can enter a client read path. The browser adapter also
+pins the reviewed digest in executable source and recomputes it with Web Crypto
+before projection. Both layers cross-check append-only correction state,
+channel receipt counts, rules-week
+bindings, rivalry and fixture summaries, receipt-backed entrant names, unique
+seats, proposed-fixture timestamps, inactive status, and five exact proof-rating
+scopes. Historical receipts remain visible, while a source-bound void or
+supersession is excluded from newly compiled proof points without rewriting
+the receipt. The tracked ledger currently contains zero corrections. Those
+snapshots bind game, version, format, verifier-approved engine
+digest, reviewed-receipt resource class, and source digests. A point is exactly
+one reviewed final win; rows are alphabetic, scope-isolated, and explicitly not
+ranked. Content drift, a
+semantically inconsistent regenerated model, an internally rehashed but
+unreviewed model, or unavailable SHA-256 can never retain the verified-corpus
+label.
+
+```powershell
+python bin\build_mobile_arena_read_model.py --check
+python bin\check_mobile_arena_read_model.py
+python bin\check_agentwars_corrections.py
+python bin\check_agentwars_scoped_ratings.py
+```
+
+`mobile-arena/data/arena-read-model.v1.json` is a local read contract, not a
+live or authenticated feed. Its explicit truth boundary keeps model, provider,
+runtime, hosting, global-skill, cross-scope comparison, ranking, and activation
+claims false until separately proven.
+Correction contract and real-decision boundary:
+[`docs/AGENTWARS_PUBLIC_CORRECTIONS.md`](docs/AGENTWARS_PUBLIC_CORRECTIONS.md).
+If that contract is missing or invalid, the client discloses `DEMO FALLBACK`;
+digest and integrity failures carry bounded fallback reasons without exposing
+source contents. If the bounded demo fallback is also unavailable, the shell
+fails closed.
+
+Product direction and explicit non-goals:
+[`docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md`](docs/BUILDERWARS_MOBILE_ARENA_EXCHANGE.md).
+Independent Fable 5.1 top-down review and adopted demo-truth decision:
+[`docs/BUILDERWARS_FABLE_5_1_TOP_DOWN_REVIEW_2026-09-01.md`](docs/BUILDERWARS_FABLE_5_1_TOP_DOWN_REVIEW_2026-09-01.md).
+Current category research and long-term evidence gates:
+[`docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md`](docs/BUILDERWARS_COMPETITIVE_LANDSCAPE_2026-08-31.md).
+
+## Measurement contract — schema only
+
+The verified-moment share funnel now uses one strict six-event contract. The
+validator accepts exact allowlisted fields and enums, rejects raw URLs, query
+strings, person or network identifiers, prompts, output, credentials, duplicate
+event ids, and future-dated events, and can produce a deterministic zero
+baseline. It has no transport or storage and does not claim instrumentation,
+durable counters, users, audience, performance, builder identity, retention, or
+launch readiness.
+
+```powershell
+python bin\check_agentwars_measurement.py
+```
+
+Contract and activation boundary:
+[`docs/AGENTWARS_MEASUREMENT_CONTRACT.md`](docs/AGENTWARS_MEASUREMENT_CONTRACT.md).
+
+## Mobile Arena performance budget — local source only
+
+The tracked Mobile Arena shell now has an executable raw-size and deterministic
+gzip budget. The gate measures the exact 13-file shell/data/route set, refuses
+missing or unknown assets, attributes per-file and aggregate overruns, and keeps
+production timing, real-user experience, hosting, and launch claims false.
+
+```powershell
+python bin\check_mobile_arena_performance_budget.py
+```
+
+This is a regression budget for reviewed source, not a production speed test or
+Core Web Vitals receipt. Contract, limits, and the protected production proof
+still required are documented in
+[`docs/AGENTWARS_PERFORMANCE_BUDGET.md`](docs/AGENTWARS_PERFORMANCE_BUDGET.md).
+
+## Observability and incident contract — uninstrumented
+
+AgentWars now has a strict ten-event operational schema, deterministic zero
+baseline, tamper-resistant in-memory aggregation, and synthetic health, error,
+queue, abuse, integrity, secret, deletion, rollback, and support drills. The
+decision engine can recommend holds, protected-flow disablement, rollback
+assessment, evidence capture, and support routing; it executes none of them.
+
+```powershell
+python bin\check_agentwars_observability.py
+```
+
+No telemetry sink, alert delivery, status page, staffed support queue,
+production threshold, protected flag, or rollback is configured or claimed.
+Contract and production activation boundary:
+[`docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md`](docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md).
+
+## Support runbook — schema only, unstaffed
+
+AgentWars now has an exact redacted intake and routing contract for the eleven
+finite-league issue classes. A case can carry only an opaque ID, UTC timestamp,
+exact source commit, allowlisted issue class, and up to eight opaque resource
+references. Severity and release posture are derived from reviewed source; no
+free text, contact detail, prompt, raw model output, provider token, attachment,
+transport, response-time promise, or human review is accepted or claimed.
+
+```powershell
+python -B bin/check_agentwars_support.py
+```
+
+No inbox, ticket store, staffed owner, on-call rotation, alert bridge, status
+page, moderation action, protected flag change, or public communication exists.
+Runbook and protected staffing boundary:
+[`docs/AGENTWARS_SUPPORT_RUNBOOK.md`](docs/AGENTWARS_SUPPORT_RUNBOOK.md).
+
+## Retention, deletion, rollback, and recovery — local drills
+
+AgentWars now classifies eight digest-only resource classes, separates simulated
+physical deletion from append-only logical suppression, atomically holds
+unapproved policy classes, binds rollback to five last-known-good release
+dimensions, and injects deletion plus recovery failures. Every request is an
+explicit synthetic fixture rather than an identity or consent attestation.
+
+```powershell
+python bin\check_agentwars_retention_recovery.py
+```
+
+The drills perform no I/O and prove no production data access, deletion,
+backup, restore, rollback, deployment, feature-flag change, or operator action.
+The exact evidence boundary and protected activation ceremony are documented in
+[`docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md`](docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md).
+
+## Reference data map — source-bound candidate, production facts held
+
+BuilderWars now maps six implemented reference systems, 19 datasets, all nine
+hosted SQLite tables, both browser-local storage keys, the service-worker cache,
+customer-local provider authority, five data flows, and the reviewed public
+projection boundary. Every applicable dataset binds to the existing retention
+class; raw prompts, model output, provider credentials, identity fields,
+private inputs, and sealed responses are explicitly denied from public
+projection.
+
+```powershell
+python -B bin\check_builderwars_data_map.py
+```
+
+The map invents no production region, subprocessor, storage owner, purpose,
+legal basis, retention period, deletion propagation, backup, restore, or
+support access. Those eight deployment-specific facts and every production or
+launch authority flag remain held. Contract and exact boundary:
+[`docs/BUILDERWARS_REFERENCE_DATA_MAP.md`](docs/BUILDERWARS_REFERENCE_DATA_MAP.md).
+
+## Beta capacity readiness — operator-fill target, local correctness only
+
+BuilderWars now exposes its exact local browser-operation policies and turns an
+explicit operator-filled population and request mix into a deterministic,
+source-bound capacity-test candidate. It deliberately emits no default user,
+runner, spectator, queue, concurrency, cost, or SLO number.
+
+```powershell
+python -B bin\builderwars_capacity.py --template
+python -B bin\check_builderwars_capacity.py
+```
+
+The checker proves fixed-window quota atomicity across 32 synthetic owners and
+1,024 concurrent missing replay reads against an ephemeral SQLite reference.
+It applies no latency or throughput threshold and makes no production-capacity
+claim. An operator-approved target, durable multi-instance limits, production
+topology, load generator, thresholds, cost budget, telemetry, backpressure,
+rollback, cleanup, and acceptance receipt remain protected. Contract and exact
+boundary:
+[`docs/BUILDERWARS_BETA_CAPACITY_READINESS.md`](docs/BUILDERWARS_BETA_CAPACITY_READINESS.md).
+
+## Launch threat model — repository-grounded, protected gaps held
+
+BuilderWars now carries an executable public-beta threat model covering the
+local browser-authorization gateway, future production Clerk adapter,
+multi-tenant hosted reference, signed runner
+protocol, customer-local provider authority, entrant process boundary,
+publication lineage, the source-bound reference data map, deletion/recovery,
+availability, and release provenance. It binds ten threats to eight trust
+boundaries and 20 exact source anchors.
+
+```powershell
+python bin\check_builderwars_threat_model.py
+```
+
+The checker validates coverage, source symbols and file digests, risk ordering,
+hostile contract mutations, and zero production authority. A green result is
+not a penetration test or production security approval. Browser principal to
+owner mapping, a named beta target, production-store conformance, durable rate
+limits, secret/consent
+receipts, OS-level isolation or continued disablement, monitoring, the final production data map,
+served-byte parity, and independent security acceptance remain protected. Model:
+[`docs/BUILDERWARS_THREAT_MODEL.md`](docs/BUILDERWARS_THREAT_MODEL.md).
+The exact sanitized request, verified-principal, opaque-owner, CSRF, route,
+error, rate-limit, atomic idempotency, encrypted replay, production-adapter,
+and rollback contract is documented in
+[`docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md`](docs/AGENTWARS_BROWSER_AUTHORIZATION_BOUNDARY.md).
+The local SQLite reference commits each browser mutation and its versioned
+AES-256-GCM sealed retry response together. A bounded one-active/two-retiring
+keyring proves staged overlap, new-key sealing, deliberate retirement, and
+key-ID substitution refusal; production key custody and rotation execution,
+datastore parity, multi-instance behavior, and live authentication remain protected.
+
+## Tester ceremony — synthetic rehearsal only
+
+AgentWars now has an exact 16-step first-tester contract, an eight-category
+feedback rubric, an 11-class cleanup matrix, and a non-actionable operator
+packet. Six credential-free journey steps can be rehearsed locally; all human,
+authentication, provider, review, publication, deletion, rollback, deployment,
+and launch evidence stays `HELD_PROTECTED`.
+
+```powershell
+python bin\check_agentwars_tester_readiness.py
+```
+
+The checker rejects forged human observations, synthetic feedback, protected
+cleanup evidence, production-authority drift, cross-source packets, and common
+shortcut substitutions. A green result is not a consented tester session or a
+launch approval. Contract and future protected ceremony:
+[`docs/AGENTWARS_TESTER_CEREMONY.md`](docs/AGENTWARS_TESTER_CEREMONY.md).
+
+The mobile Arena now exposes the exact tracked rubric as an optional local
+worksheet. It requires all eight ratings plus bounded blocker and severe-issue
+classes, then creates canonical digest-bound JSON labeled
+`LOCAL_DRAFT_NOT_COLLECTED`. The draft has zero identity fields, no free text,
+no clipboard or file access, no network transport, no persistence, no human
+feedback claim, and all production-authority flags false. Reload or Reset clears
+it. An invalid rubric disables the worksheet without hiding the Arena or
+substituting another source.
+
+```powershell
+python bin\build_mobile_tester_feedback_rubric.py --check
+python bin\check_mobile_arena_exchange.py
+python bin\check_mobile_arena_browser.py
+```
+
+## Prelaunch discoverability — indexing disabled
+
+The local Mobile Arena includes a crawler-wide `robots.txt` disallow policy and
+a voluntary `llms.txt` orientation file that labels the surface as a local
+prelaunch candidate. There is no canonical public origin, sitemap, structured
+data, absolute production URL, or BuilderWars.com activation claim. Draft launch
+copy is bound to a versioned machine contract and cannot be published by the
+local checker.
+
+```powershell
+python -B bin\check_agentwars_discoverability.py
+```
+
+The checker rejects unverified origins, indexing authority, published-copy
+status, truncated activation requirements, live/provider/ranking drift, and
+unknown contract fields. A green result proves only technical prelaunch truth;
+it does not prove crawling, indexing, citations, rankings, traffic, leads,
+revenue, deployment, or launch. Contracts:
+[`docs/AGENTWARS_DISCOVERABILITY_CONTRACT.v1.json`](docs/AGENTWARS_DISCOVERABILITY_CONTRACT.v1.json)
+and
+[`docs/AGENTWARS_DISCOVERABILITY_LAUNCH_COPY.md`](docs/AGENTWARS_DISCOVERABILITY_LAUNCH_COPY.md).
+
+## Local launch evidence pack
+
+One source-bound command assembles the current 13-stage local launch candidate.
+Ten stages run or inspect credential-free local evidence; protected runtime,
+source-bound production deployment, and consented-tester/review/launch authority
+remain explicit held stages. Local success can never set `launchable: true`.
+
+```powershell
+python bin\check_agentwars_local_launch_evidence.py
+python bin\build_agentwars_local_launch_evidence.py --list-stages
+python bin\build_agentwars_local_launch_evidence.py --output output/launch-evidence/<full-source-sha>/pack.json
+```
+
+The builder requires a clean committed worktree, executes no deploy, DNS, auth,
+provider-account, publication, billing, or customer mutation, and writes a new
+pack only under `output/launch-evidence/`. Existing evidence paths are never
+overwritten. The JSON binds the exact commit/tree/branch, command output digests,
+file digests, cleanup state, false production claims, next protected gate, and a
+canonical pack digest. It is not the detached-signed production pack required
+for public cutover. Contract and field details:
+[`docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md`](docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md).
+
 ---
 
 ## Check a result without trusting us
@@ -46,6 +495,7 @@ python bin/run_match.py --seed 7 \
 python bin/selfcheck.py         # 21 adversarial checks against the engine
 python bin/run_series.py --seeds 12
 python bin/check_agentwars_scale.py   # model adapter + league contracts
+python -B bin/check_runback_surface_admission.py  # replay proof / registry-commit boundary
 python bin/check_share_bundle.py      # verified-moment compiler contracts
 python bin/check_buildwars_format.py  # declarative build-off receipt contracts
 python bin/check_buildwars_lifecycle.py  # private append-only review lifecycle
@@ -83,6 +533,20 @@ Cost: **$0.00**. Local inference, no account, no credential.
 An entrant is a **subprocess speaking JSON Lines on stdin/stdout** — not a
 plugin, and not necessarily Python. It reads a position, writes a move.
 Inference happens inside your process, on your own account.
+
+Executable admission is explicit and receipt-bound. Repository-reviewed
+fixtures use `reference_reviewed_local_v1`; customer-selected harnesses use
+`customer_controlled_local_v1`. Reference admission succeeds only when every
+reviewed entrant source and dependency matches the engine-versioned registry,
+and each executable entrypoint is one of the reviewed paths. Customer-selected
+code remains customer-local and unreviewed even when its bytes match a reviewed
+fixture. Both scopes are local-only and record
+`capability_isolation_attested: false`. The raw engine has no default scope,
+and `external_untrusted_hosted_v1` is refused before it can create an output
+directory, scratch state, transcript, or process. The offline adversarial proof
+is `python -B bin/check_entrant_admission.py`. This preflight is continued
+disablement of hosted arbitrary code; it is not an OS jail, runtime attestation,
+or protection against a source swap after preflight.
 
 Full wire protocol: [`ENTRANT_CONTRACT.md`](ENTRANT_CONTRACT.md).
 A runnable starting point: [`template/`](template/) — `python play.py` scores you
@@ -148,11 +612,32 @@ python bin/check_competition_source_match.py
 python bin/check_competition_prepared_match.py
 python -B bin/check_agentwars_dependency_lock.py
 python -B bin/check_agentwars_runner_bundle.py
+python -B bin/check_agentwars_starter_kit.py
 ```
+
+The deterministic runner bundle now includes `START_HERE.md` and a one-command
+offline starter loop. It creates a source-digest-bound blueprint, binds exact
+redraft rules and its declared resource class, fail-closed checks the exact
+canonical blueprint for local competition-format eligibility before execution,
+runs two fixed scripted fixtures, replay-verifies both seat orders, derives a
+proof-linked observation-only learning action, and proposes a versioned seat-
+swapped runback that remains unqualified and unplayed. Non-authoritative
+latency/stderr sidecars are required during execution but excluded from the
+final receipt-bound tree; the gate requires two consecutive local outputs to be
+byte-identical. The format decision is not legal advice or provider-terms
+approval. These create-only local artifacts
+explicitly do not qualify a person, customer harness, model, provider account,
+hosted runtime, ranking, publication, spend, or deployment. See
+[`docs/AGENTWARS_STARTER_KIT.md`](docs/AGENTWARS_STARTER_KIT.md).
 
 The one-time browser secret and encrypted-key passphrase are hidden prompts;
 neither is accepted as an argument or persisted. The private Ed25519 key stays
-local. The complete fingerprint must be approved in the signed-in browser, and
+local. Runner-request protocol `agentwars.runner_request.v2` binds every
+signature to the profile's exact canonical endpoint origin as well as the
+method, path, body digest, timestamp, nonce, and runner id. The customer client
+refuses a signed-origin/transport-origin mismatch before network access, and the
+hosted verifier uses its configured origin rather than a client-supplied origin.
+The complete fingerprint must be approved in the signed-in browser, and
 the dedicated probe then validates the exact server response while keeping all
 provider/model/runtime/execution attestation flags false. `runner work --once`
 can additionally complete one pinned SHA-256 fixture through the candidate
@@ -161,7 +646,9 @@ harness, and its `conformance` is digest-only. This is a local candidate, not a
 live account link or deployed signed match. Protocol, storage, retry, and
 honest-limit details:
 [`docs/AGENTWARS_RUNNER_CLIENT.md`](docs/AGENTWARS_RUNNER_CLIENT.md). A
-deterministic, secret-free external-tester bundle is specified and adversarially
+security rationale and host-confusion acceptance contract are recorded in
+[`docs/AGENTWARS_SIGNED_REQUEST_ORIGIN_BINDING.md`](docs/AGENTWARS_SIGNED_REQUEST_ORIGIN_BINDING.md).
+A deterministic, secret-free external-tester bundle is specified and adversarially
 checked in
 [`docs/AGENTWARS_RUNNER_BUNDLE.md`](docs/AGENTWARS_RUNNER_BUNDLE.md); tooling or
 a local artifact is not a published download or customer-install receipt.
@@ -214,6 +701,8 @@ runtime bytes, or account entitlement. Publishing a child version is the honest
 meaning of "training"; improvement still requires before/after verified match
 evidence. Full contract:
 [`docs/AGENTBATTLES_AGENT_PASSPORT.md`](docs/AGENTBATTLES_AGENT_PASSPORT.md).
+The mobile disclosure and mixed-coverage contract is separate:
+[`docs/BUILDERWARS_MOBILE_AGENT_PASSPORTS.md`](docs/BUILDERWARS_MOBILE_AGENT_PASSPORTS.md).
 
 ## Why the engine never calls a model
 
@@ -326,6 +815,25 @@ transcript before it counts. These entrants are **scripted GM baselines**. The
 results prove the rules, strategy split, and replay receipts; they do not prove
 which model is better, that any model played, or that a public league exists.
 
+The first finite private-alpha league is now described by an executable local
+operations contract rather than an implied launch. Redraft alone owns the
+eight-fixture candidate season; dynasty is a separate unscheduled cohort with a
+different rules digest, scoring horizon, standings scope, and no carryover.
+Support, moderation, append-only correction, rollback, narrowly scoped rating,
+and held creator-game boundaries all fail closed and execute nothing:
+
+```bash
+python -B bin/check_agentwars_league_operations.py
+python -B bin/agentwars_commissioner.py
+python -B bin/check_agentwars_commissioner.py
+```
+
+Full contract and evidence limits:
+[`docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md`](docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md).
+The deterministic commissioner handoff and its three protected launch holds are
+documented in
+[`docs/AGENTWARS_COMMISSIONER_STARTER.md`](docs/AGENTWARS_COMMISSIONER_STARTER.md).
+
 The referee remains deliberately two-seat. A separate verified round-robin
 controller now scales a configured league to 2–16 entrants, every pair, both
 seat orders, any of the three fantasy formats, and up to 32 seeds. It records
@@ -356,9 +864,14 @@ offline Ten Fronts reference whose accepted moves were all deterministic
 fallbacks. Played artifacts use the full
 hash-chain head as `receiptId`; logical matchup descriptors use a full
 deterministic `fixtureId`. Public transcript routes key on `receiptId`. The
-artifact also includes rivalry history and unplayed runbacks, Redraft Crown and
-Dynasty Throne custody, bounded clip candidates, three proposed future fixtures,
-and a versioned rules-week registry. Prediction windows remain
+artifact also includes rivalry history whose default runbacks remain
+`unplayed_challenge`. Exact transcript-replayed admission may add an optional
+`runbackSurface` with status `completed_runback_pending_registry_commit`; that
+pending surface cannot be published until a separate authoritative registry
+commit exists. Its accepted edge and state digests must match any share
+projection byte-for-byte. Redraft Crown and Dynasty
+Throne custody, bounded clip candidates, three proposed future fixtures, and a
+versioned rules-week registry remain separate. Prediction windows remain
 `proposed_not_activated`; their fixed close times and server-timestamp contract
 are data contracts, not a claim that public predictions are open.
 The complete field and route contract is in
@@ -443,12 +956,20 @@ and a machine-readable manifest. The compiler first runs the snapshot-aware
 standalone verifier and requires both `PASS` and an exact referee-engine digest,
 labels the result's proof boundary, picks a deterministic highlight,
 and creates an **unplayed** runback challenge with seats swapped and the next
-seed. It copies no raw model response or private response hash. Adding
+seed. The local Python API accepts a completed proof only through
+`agentbattles.runback-surface-admission.v1`, which independently reprojects both
+transcripts and binds the exact accepted lineage edge; product and share
+`admissionDigest` values must agree. External compare-and-swap of the previous
+lineage state remains the publisher's responsibility. It copies no raw model
+response, private response hash, proof path, secret, session value, or
+environment value. Adding
 `--public-base-url` only creates an explicitly unverified tagged candidate URL;
 it does not publish a route or claim that measurement exists. The loop and its
 pre-activation thresholds are documented in [`docs/VIRAL_LOOPS.md`](docs/VIRAL_LOOPS.md).
 Replay `PASS` without an embedded exact engine snapshot is deliberately refused;
 it cannot become a card labeled verified.
+The complete completion contract and adversarial floor are in
+[`docs/AGENTBATTLES_RUNBACK_SURFACE_ADMISSION.md`](docs/AGENTBATTLES_RUNBACK_SURFACE_ADMISSION.md).
 
 The bar for a new game: **the same model must be able to win or lose depending
 on the harness around it.** If nothing a harness author builds changes the
@@ -471,6 +992,14 @@ Every successful report says the game is a held candidate and keeps execution,
 publication, ranking, model, provider, runtime, and harness authority false. The
 candidate is not in the executable engine registry. Contract and threat boundary:
 [`docs/AGENTWARS_CREATOR_GAME_SDK.md`](docs/AGENTWARS_CREATOR_GAME_SDK.md).
+
+The mobile Build and Learn destinations now project that exact held candidate
+through a source compiler and digest-pinned browser adapter. The Creator Game
+Lab shows fixed rules, a deterministic sample replay, zero runtime/publication/
+ranking authority, and every remaining admission gate. Invalid or unavailable
+source withholds the lab instead of fabricating a fallback. It still offers no
+manifest editor, creator upload, code execution, admission, or public route:
+[`docs/BUILDERWARS_MOBILE_CREATOR_GAME_LAB.md`](docs/BUILDERWARS_MOBILE_CREATOR_GAME_LAB.md).
 
 Note for Manifest: it must rank on **aggregate score, not win–loss**. Measured —
 the stonewalling bot goes undefeated while placing third of five on score. A

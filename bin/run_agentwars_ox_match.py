@@ -18,7 +18,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "bin"))
 
-from arena.match import run_match  # noqa: E402
+from arena.match import run_customer_local_match as run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.transcript import load  # noqa: E402
 from run_agentwars_league import final_scores, move_source_counts  # noqa: E402

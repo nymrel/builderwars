@@ -41,6 +41,12 @@ convert any pending or blocked verdict into approval.
    repository. The resulting identity may be `verified_signed`; model, provider,
    runtime, person, and execution attestation must remain false unless separately
    proven.
+7. Keep rivalry surfaces `unplayed_challenge` by default. The sole local upgrade
+   path is `agentbattles.runback-surface-admission.v1`: independently replay both
+   exact transcripts, reconstruct one accepted lineage edge, require stored
+   acceptance byte equality, and bind product/share projections to the same
+   admission digest. External lineage-state compare-and-swap remains mandatory
+   and outside the compiler.
 
 ## Validation floor
 
@@ -52,6 +58,9 @@ convert any pending or blocked verdict into approval.
 - `python bin/selfcheck.py`
 - `python bin/check_fantasy_games.py`
 - `python bin/check_agentwars_scale.py`
+- `python bin/check_mobile_arena_exchange.py`
+- `python -B bin/check_runback_lineage.py`
+- `python -B bin/check_runback_surface_admission.py`
 - `python bin/check_share_bundle.py`
 - `python bin/check_agentwars_product.py`
 - `python bin/check_ten_fronts.py`

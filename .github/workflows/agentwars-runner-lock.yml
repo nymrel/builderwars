@@ -92,7 +92,9 @@ jobs:
       - name: Prove exact distributions and Ed25519 runtime
         run: >-
           python -c "import importlib.metadata as metadata;
+          import sys;
           expected={'cryptography':'50.0.1','cffi':'2.1.1','pycparser':'3.0'};
+          expected.update({'typing-extensions':'4.16.0'} if sys.version_info[:2] == (3, 10) else {});
           actual={name:metadata.version(name) for name in expected};
           assert actual == expected, (actual, expected);
           from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey;

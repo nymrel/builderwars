@@ -23,7 +23,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_VERSION = "agentwars.runner_dependencies.v1"
 ARTIFACT_STATUS = "candidate_not_published"
-EVIDENCE_DATE = "2026-08-26"
+EVIDENCE_DATE = "2026-09-01"
 INDEX_ORIGIN = "https://pypi.org/simple"
 PYTHON_VERSIONS = ("3.10", "3.11", "3.12", "3.13", "3.14")
 MAX_FILE_BYTES = 2 * 1024 * 1024
@@ -276,10 +276,21 @@ PYCPARSER_ARTIFACTS = (
     ),
 )
 
+TYPING_EXTENSIONS_ARTIFACTS = (
+    (
+        "typing_extensions-4.16.0-py3-none-any.whl",
+        "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+        45571,
+    ),
+)
+
 PACKAGE_ROWS = (
     {
         "artifacts": CRYPTOGRAPHY_ARTIFACTS,
-        "dependencies": ("cffi==2.1.1",),
+        "dependencies": (
+            "cffi==2.1.1",
+            'typing-extensions==4.16.0 ; python_version == "3.10"',
+        ),
         "licenseExpression": "Apache-2.0 OR BSD-3-Clause",
         "name": "cryptography",
         "requiresPython": "!=3.9.0,!=3.9.1,>=3.9",
@@ -300,6 +311,14 @@ PACKAGE_ROWS = (
         "name": "pycparser",
         "requiresPython": ">=3.10",
         "version": "3.0",
+    },
+    {
+        "artifacts": TYPING_EXTENSIONS_ARTIFACTS,
+        "dependencies": (),
+        "licenseExpression": "PSF-2.0",
+        "name": "typing-extensions",
+        "requiresPython": ">=3.9",
+        "version": "4.16.0",
     },
 )
 
@@ -439,6 +458,10 @@ def _render_requirements() -> bytes:
                 + ' ; python_version >= "3.11" and python_version < "3.15"',
                 python_311_plus,
             )
+        elif package["name"] == "typing-extensions":
+            append_requirement(
+                requirement + ' ; python_version == "3.10"', artifacts
+            )
         else:
             append_requirement(requirement, artifacts)
     return ("\n".join(lines).rstrip() + "\n").encode("ascii")
@@ -467,6 +490,7 @@ def _expected_lock() -> dict[str, Any]:
             "https://pypi.org/pypi/cffi/2.1.1/json",
             "https://pypi.org/pypi/cryptography/50.0.1/json",
             "https://pypi.org/pypi/pycparser/3.0/json",
+            "https://pypi.org/pypi/typing-extensions/4.16.0/json",
         ],
         "packages": packages,
         "platforms": [dict(row) for row in PLATFORMS],
@@ -511,7 +535,13 @@ def _validate_lock_bytes(raw: bytes) -> dict[str, Any]:
     ]
     filenames = [artifact["filename"] for artifact in artifacts]
     digests = [artifact["sha256"] for artifact in artifacts]
-    if len(filenames) != 43 or len(filenames) != len(set(filenames)):
+    expected_artifact_count = sum(
+        len(package["artifacts"]) for package in PACKAGE_ROWS
+    )
+    if (
+        len(filenames) != expected_artifact_count
+        or len(filenames) != len(set(filenames))
+    ):
         raise DependencyLockError("dependency artifact allowlist is invalid")
     if len(digests) != len(set(digests)):
         raise DependencyLockError("dependency artifact hashes are not unique")
@@ -543,7 +573,9 @@ def verify_dependency_bytes(
     if value["requirementsLockSha256"] != _sha256(requirements_raw):
         raise DependencyLockError("requirements lock digest is invalid")
     return {
-        "artifactCount": 43,
+        "artifactCount": sum(
+            len(package["artifacts"]) for package in PACKAGE_ROWS
+        ),
         "artifactStatus": ARTIFACT_STATUS,
         "credentialReads": 0,
         "dependencyLockSha256": _sha256(lock_raw),
@@ -623,7 +655,13 @@ def _expect_refusal(action, phrase: str) -> None:
 def _self_test(lock_raw: bytes, requirements_raw: bytes, wrapper_raw: bytes) -> int:
     receipt = verify_dependency_bytes(lock_raw, requirements_raw, wrapper_raw)
     checks = 8
-    if receipt["artifactCount"] != 43 or receipt["platformCount"] != 6:
+    expected_artifact_count = sum(
+        len(package["artifacts"]) for package in PACKAGE_ROWS
+    )
+    if (
+        receipt["artifactCount"] != expected_artifact_count
+        or receipt["platformCount"] != len(PLATFORMS)
+    ):
         raise AssertionError("dependency lock receipt counts drifted")
     duplicate = lock_raw.replace(
         b"{\n", b'{\n  "schemaVersion": "duplicate",\n', 1
@@ -679,6 +717,20 @@ def _self_test(lock_raw: bytes, requirements_raw: bytes, wrapper_raw: bytes) -> 
             lock_raw,
             requirements_raw.replace(
                 b' ; python_version == "3.10"', b"", 1
+            ),
+            wrapper_raw,
+        ),
+        "requirements lock bytes",
+    )
+    checks += 1
+
+    _expect_refusal(
+        lambda: verify_dependency_bytes(
+            lock_raw,
+            requirements_raw.replace(
+                b'typing-extensions==4.16.0 ; python_version == "3.10"',
+                b"typing-extensions==4.16.0",
+                1,
             ),
             wrapper_raw,
         ),

@@ -56,11 +56,12 @@ from check_agentwars_dependency_lock import verify_dependency_bytes  # noqa: E40
 SOURCE_PATH_BY_BUNDLE_PATH = {
     path: path
     for path in EXPECTED_BUNDLE_PATHS
-    if path not in {"README.md", "verify_bundle.py"}
+    if path not in {"README.md", "START_HERE.md", "verify_bundle.py"}
 }
 SOURCE_PATH_BY_BUNDLE_PATH.update(
     {
         "README.md": "docs/AGENTWARS_RUNNER_BUNDLE.md",
+        "START_HERE.md": "docs/AGENTWARS_STARTER_KIT.md",
         "verify_bundle.py": "bin/verify_agentwars_runner_bundle.py",
     }
 )

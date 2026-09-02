@@ -16,7 +16,11 @@ from pathlib import Path
 from arena.canonical import digest
 from arena.games import REGISTRY
 from arena.integrity import engine_digest, script_digest
-from arena.match import EXECUTION_CLAIMS, run_match, validate_manifest
+from arena.match import (
+    EXECUTION_CLAIMS,
+    run_customer_local_match as run_match,
+    validate_manifest,
+)
 from arena.replay import verify
 from arena.transcript import load as load_transcript
 

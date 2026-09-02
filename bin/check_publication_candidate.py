@@ -17,7 +17,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.dont_write_bytecode = True
 
-from arena.match import run_match  # noqa: E402
+from arena.match import run_customer_local_match as run_match  # noqa: E402
 from publishing.projection import project_receipt  # noqa: E402
 from publishing.promotion import (  # noqa: E402
     APPROVAL_DECISION,

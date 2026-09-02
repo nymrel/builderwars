@@ -723,7 +723,7 @@ def _check_match_interrupt_cleanup(root: Path, helper: Path) -> None:
         Entrant, "ask", autospec=True, side_effect=interrupt_second_ask
     ):
         try:
-            arena_match.run_match(
+            arena_match.run_customer_local_match(
                 game_name="fantasy_redraft",
                 seed=9400,
                 entrants=manifests,
@@ -771,7 +771,7 @@ def _check_cleanup_error_precedence(root: Path, helper: Path) -> None:
     ]
     with mock.patch.object(arena_match, "Entrant", FailingCleanupEntrant):
         try:
-            arena_match.run_match(
+            arena_match.run_customer_local_match(
                 game_name="fantasy_redraft",
                 seed=9401,
                 entrants=manifests,

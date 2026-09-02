@@ -52,12 +52,12 @@ EXECUTABLE_PROVIDER_IDS = (
 )
 DISABLED_PROVIDER_IDS = ("claude_code",)
 PROVIDER_POLICY_EVIDENCE_DATE = "2026-08-27"
-DEPENDENCY_POLICY_EVIDENCE_DATE = "2026-08-26"
+DEPENDENCY_POLICY_EVIDENCE_DATE = "2026-09-01"
 EXPECTED_DEPENDENCY_LOCK_SHA256 = (
-    "47eadaacd1c4e869c0481aac6588d627cb9451b046236a0e4cdc059ab53162d2"
+    "86d6c4173b5c6913dcef5dd22fc1b7ce2ea50e44c7544856a399881f2bde2148"
 )
 EXPECTED_REQUIREMENTS_LOCK_SHA256 = (
-    "635fbdb4b20cb3d6a00456cc4882bdb8e23ba0a2da2ca6ed6db170dd212697ce"
+    "3f257f9605a4511cf46027538ea3b41fdc00b9dfe683eaf16fb30e05b6fa7db6"
 )
 EXPECTED_REQUIREMENTS_WRAPPER_SHA256 = (
     "b824c364f028ffdb511122a12520d2e8dbaf2e095fec66b68f952978376aa019"
@@ -83,11 +83,13 @@ EXPECTED_DEPENDENCY_POLICY = {
 EXPECTED_BUNDLE_PATHS = (
     "LICENSE",
     "README.md",
+    "START_HERE.md",
     "agent_identity/__init__.py",
     "agent_identity/keys.py",
     "agent_identity/lineage.py",
     "agent_identity/passport.py",
     "arena/__init__.py",
+    "arena/admission.py",
     "arena/canonical.py",
     "arena/games/__init__.py",
     "arena/games/fantasy_core.py",
@@ -100,6 +102,7 @@ EXPECTED_BUNDLE_PATHS = (
     "arena/match.py",
     "arena/passport.py",
     "arena/process_tree.py",
+    "arena/reference_sources.py",
     "arena/replay.py",
     "arena/sandbox.py",
     "arena/scoring.py",
@@ -109,6 +112,7 @@ EXPECTED_BUNDLE_PATHS = (
     "bin/agentwars.py",
     "bin/check_agentwars_dependency_lock.py",
     "bin/create_agent_passport.py",
+    "bin/qualify_agentwars_starter.py",
     "bin/run_agentwars_cross_provider_match.py",
     "bin/run_agentwars_league.py",
     "competitions/__init__.py",
@@ -144,6 +148,7 @@ EXECUTABLE_BUNDLE_PATHS = frozenset(
         "bin/agentwars.py",
         "bin/check_agentwars_dependency_lock.py",
         "bin/create_agent_passport.py",
+        "bin/qualify_agentwars_starter.py",
         "bin/run_agentwars_cross_provider_match.py",
         "bin/run_agentwars_league.py",
         "verify.py",

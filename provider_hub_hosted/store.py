@@ -55,8 +55,13 @@ LEASE_SECONDS = 60
 NONCE_RETENTION_SECONDS = 900
 MAX_REQUEST_AGE_SECONDS = 300
 MAX_REQUEST_FUTURE_SECONDS = 60
+BROWSER_IDEMPOTENCY_TTL_SECONDS = 86_400
+MIN_SEALED_BROWSER_RESPONSE_BYTES = 28
+MAX_SEALED_BROWSER_RESPONSE_BYTES = 131_072
 
 _OWNER_ID_RE = re.compile(r"^awu1_[A-Za-z0-9_-]{22}$")
+_IDEMPOTENCY_KEY_RE = re.compile(r"^awi1_[A-Za-z0-9_-]{22}$")
+_BROWSER_OPERATION_RE = re.compile(r"^[a-z][a-z0-9_]{2,63}$")
 _JOB_ID_RE = re.compile(r"^awj1_[A-Za-z0-9_-]{22}$")
 _ATTEMPT_ID_RE = re.compile(r"^awa1_[A-Za-z0-9_-]{22}$")
 _SEED_RE = re.compile(r"^[A-Za-z0-9_-]{22}$")
@@ -203,6 +208,16 @@ class ResultRecord:
     result: Mapping[str, object]
 
 
+@dataclasses.dataclass(frozen=True)
+class BrowserMutationRecord:
+    """Opaque result of one atomic local browser mutation or its replay."""
+
+    duplicate: bool
+    status_code: int
+    sealed_response: bytes = dataclasses.field(repr=False)
+    expires_at: str
+
+
 def validate_owner_id(value: str) -> str:
     if not isinstance(value, str) or _OWNER_ID_RE.fullmatch(value) is None:
         raise HostedStoreError("invalid_owner", "owner id is invalid")
@@ -210,6 +225,17 @@ def validate_owner_id(value: str) -> str:
         _decode_base64url(value.removeprefix("awu1_"), 16, "owner id")
     except HostedStoreError as error:
         raise HostedStoreError("invalid_owner", "owner id is invalid") from error
+    return value
+
+
+def validate_idempotency_key(value: str) -> str:
+    """Validate one public, random browser mutation idempotency key."""
+    if not isinstance(value, str) or _IDEMPOTENCY_KEY_RE.fullmatch(value) is None:
+        raise HostedStoreError("invalid_idempotency_key", "idempotency key is invalid")
+    try:
+        _decode_base64url(value.removeprefix("awi1_"), 16, "idempotency key")
+    except HostedStoreError as error:
+        raise HostedStoreError("invalid_idempotency_key", "idempotency key is invalid") from error
     return value
 
 
@@ -342,6 +368,7 @@ class HostedControlPlaneStore:
         self._connection.execute("PRAGMA synchronous = FULL")
         self._connection.execute("PRAGMA journal_mode = WAL")
         self._connection.execute("PRAGMA trusted_schema = OFF")
+        self._transaction_depth = 0
         self._migrate()
 
     def close(self) -> None:
@@ -357,19 +384,42 @@ class HostedControlPlaneStore:
     @contextlib.contextmanager
     def _transaction(self) -> Iterator[sqlite3.Connection]:
         with self._lock:
-            self._connection.execute("BEGIN IMMEDIATE")
+            depth = self._transaction_depth
+            savepoint = f"agentwars_nested_{depth}"
+            if depth == 0:
+                self._connection.execute("BEGIN IMMEDIATE")
+            else:
+                self._connection.execute(f"SAVEPOINT {savepoint}")
+            self._transaction_depth = depth + 1
             try:
                 yield self._connection
             except BaseException:
-                self._connection.rollback()
+                if depth == 0:
+                    self._connection.rollback()
+                else:
+                    with contextlib.suppress(sqlite3.Error):
+                        self._connection.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                    with contextlib.suppress(sqlite3.Error):
+                        self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
                 raise
             else:
                 try:
-                    self._connection.commit()
+                    if depth == 0:
+                        self._connection.commit()
+                    else:
+                        self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
                 except BaseException:
-                    with contextlib.suppress(sqlite3.Error):
-                        self._connection.rollback()
+                    if depth == 0:
+                        with contextlib.suppress(sqlite3.Error):
+                            self._connection.rollback()
+                    else:
+                        with contextlib.suppress(sqlite3.Error):
+                            self._connection.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                        with contextlib.suppress(sqlite3.Error):
+                            self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
                     raise
+            finally:
+                self._transaction_depth = depth
 
     def _now_ms(self, now: dt.datetime | None) -> int:
         return _epoch_ms(self._clock() if now is None else now)
@@ -485,6 +535,27 @@ class HostedControlPlaneStore:
             payload_json TEXT NOT NULL,
             created_at_ms INTEGER NOT NULL
         ) STRICT;
+
+        CREATE TABLE IF NOT EXISTS browser_idempotency (
+            owner_id TEXT NOT NULL,
+            idempotency_key TEXT NOT NULL,
+            operation TEXT NOT NULL,
+            request_sha256 TEXT NOT NULL,
+            state TEXT NOT NULL CHECK (state IN ('pending','completed')),
+            response_status INTEGER,
+            sealed_response BLOB,
+            created_at_ms INTEGER NOT NULL,
+            expires_at_ms INTEGER NOT NULL,
+            PRIMARY KEY (owner_id, idempotency_key),
+            CHECK (
+                (state = 'pending' AND response_status IS NULL AND sealed_response IS NULL)
+                OR
+                (state = 'completed' AND response_status BETWEEN 200 AND 299 AND sealed_response IS NOT NULL)
+            )
+        ) WITHOUT ROWID, STRICT;
+
+        CREATE INDEX IF NOT EXISTS browser_idempotency_expiry
+            ON browser_idempotency(expires_at_ms);
         """
         with self._lock:
             try:
@@ -499,6 +570,120 @@ class HostedControlPlaneStore:
         if not isinstance(raw, bytes) or len(raw) != size:
             raise HostedStoreError("entropy_failure", "random source returned invalid bytes")
         return prefix + base64url_no_pad(raw)
+
+    def run_browser_mutation_idempotent(
+        self,
+        owner_id: str,
+        idempotency_key: str,
+        operation: str,
+        request_sha256: str,
+        *,
+        execute: Callable[[], tuple[int, bytes]],
+        now: dt.datetime | None = None,
+        ttl_seconds: int = BROWSER_IDEMPOTENCY_TTL_SECONDS,
+    ) -> BrowserMutationRecord:
+        """Run and record one browser mutation in the same SQLite transaction.
+
+        The callback may call other store methods. Nested store transactions use
+        savepoints, so the domain mutation and opaque replay response either
+        commit together or roll back together. The sealed response is opaque to
+        the store and must be authenticated/encrypted by the browser gateway.
+        """
+        owner_id = validate_owner_id(owner_id)
+        idempotency_key = validate_idempotency_key(idempotency_key)
+        if type(operation) is not str or _BROWSER_OPERATION_RE.fullmatch(operation) is None:
+            raise HostedStoreError("invalid_operation", "browser operation is invalid")
+        request_sha256 = _digest(request_sha256, "browser request digest")
+        if not callable(execute):
+            raise TypeError("idempotent browser mutation execute callback must be callable")
+        if type(ttl_seconds) is not int or not 60 <= ttl_seconds <= BROWSER_IDEMPOTENCY_TTL_SECONDS:
+            raise HostedStoreError("invalid_idempotency_ttl", "idempotency ttl is invalid")
+        now_ms = self._now_ms(now)
+        expires_ms = now_ms + ttl_seconds * 1000
+
+        with self._transaction() as connection:
+            connection.execute(
+                "DELETE FROM browser_idempotency WHERE expires_at_ms <= ?",
+                (now_ms,),
+            )
+            existing = connection.execute(
+                """SELECT operation, request_sha256, state, response_status,
+                          sealed_response, expires_at_ms
+                   FROM browser_idempotency
+                   WHERE owner_id = ? AND idempotency_key = ?""",
+                (owner_id, idempotency_key),
+            ).fetchone()
+            if existing is not None:
+                if existing["operation"] != operation or not hmac.compare_digest(
+                    existing["request_sha256"], request_sha256
+                ):
+                    raise HostedStoreError(
+                        "idempotency_conflict",
+                        "idempotency key was already used for a different request",
+                    )
+                if existing["state"] != "completed":
+                    raise HostedStoreError(
+                        "idempotency_in_progress",
+                        "idempotency operation is still in progress",
+                    )
+                status_code = existing["response_status"]
+                sealed_response = existing["sealed_response"]
+                if (
+                    type(status_code) is not int
+                    or not 200 <= status_code <= 299
+                    or type(sealed_response) is not bytes
+                    or not MIN_SEALED_BROWSER_RESPONSE_BYTES
+                    <= len(sealed_response)
+                    <= MAX_SEALED_BROWSER_RESPONSE_BYTES
+                ):
+                    raise HostedStoreError(
+                        "idempotency_corrupt",
+                        "idempotency replay state is invalid",
+                    )
+                return BrowserMutationRecord(
+                    True,
+                    status_code,
+                    sealed_response,
+                    _instant_from_ms(existing["expires_at_ms"]),
+                )
+
+            connection.execute(
+                """INSERT INTO browser_idempotency(
+                       owner_id, idempotency_key, operation, request_sha256,
+                       state, created_at_ms, expires_at_ms
+                   ) VALUES (?, ?, ?, ?, 'pending', ?, ?)""",
+                (owner_id, idempotency_key, operation, request_sha256, now_ms, expires_ms),
+            )
+            status_code, sealed_response = execute()
+            if (
+                type(status_code) is not int
+                or not 200 <= status_code <= 299
+                or type(sealed_response) is not bytes
+                or not MIN_SEALED_BROWSER_RESPONSE_BYTES
+                <= len(sealed_response)
+                <= MAX_SEALED_BROWSER_RESPONSE_BYTES
+            ):
+                raise HostedStoreError(
+                    "invalid_idempotency_response",
+                    "idempotency callback returned an invalid sealed response",
+                )
+            updated = connection.execute(
+                """UPDATE browser_idempotency
+                   SET state = 'completed', response_status = ?, sealed_response = ?
+                   WHERE owner_id = ? AND idempotency_key = ? AND state = 'pending'""",
+                (status_code, sealed_response, owner_id, idempotency_key),
+            ).rowcount
+            if updated != 1:
+                raise HostedStoreError(
+                    "idempotency_conflict",
+                    "idempotency completion did not commit atomically",
+                )
+            return BrowserMutationRecord(
+                False,
+                status_code,
+                sealed_response,
+                _instant_from_ms(expires_ms),
+            )
 
     def create_pairing_challenge(
         self,

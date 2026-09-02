@@ -245,6 +245,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         try:
             canonical = canonical_runner_request(
+                origin=f"http://127.0.0.1:{self.server.server_port}",
                 method="POST",
                 path=self.path,
                 body_sha256=hashlib.sha256(body).hexdigest(),
@@ -319,6 +320,7 @@ def check_vector():
     material = public_key_material(key)
     signed = sign_runner_request(
         key,
+        origin="https://nymrel.com",
         method="POST",
         path=RUNNER_PROBE_PATH,
         body=RUNNER_PROBE_BODY,
@@ -331,7 +333,8 @@ def check_vector():
     check(signed.nonce == "AAECAwQFBgcICQoLDA0ODw", "nonce vector")
     check(signed.body_sha256 == "1aa3fcaa140a9ff20462c086d284d4afcadc4d1ddaf901da62ca02b414fd842f", "body digest vector")
     expected = (
-        "agentwars.runner_request.v1\n"
+        "agentwars.runner_request.v2\n"
+        "origin:https://nymrel.com\n"
         "method:POST\n"
         "path:/api/builderwars/runners/probe\n"
         "body-sha256:1aa3fcaa140a9ff20462c086d284d4afcadc4d1ddaf901da62ca02b414fd842f\n"
@@ -342,7 +345,7 @@ def check_vector():
     check(signed.canonical == expected, "canonical message exact")
     check(signed.canonical.endswith("\n") and not signed.canonical.endswith("\n\n"), "TypeScript join emits one trailing LF")
     check("\r" not in signed.canonical, "canonical message contains no CR")
-    check(signed.signature == "FATK2J0R9j77xCut44eEfz7ovRcY7Xv1y6J2BgilIS65yh4LSX4zCUDz2UI2upX63PwNGf3PA1h9E6HKgzpDBA", "signature vector")
+    check(signed.signature == "FfNbb_lIe1MxzlqvWVwtmXtrl888BWX5Bk-YK6K25G8T6QOQ90hpxC5TKpVZZ-T-GKeyx7zPf9wGLkvT22g1Aw", "signature vector")
     key.public_key().verify(decode_base64url(signed.signature), signed.canonical.encode("utf-8"))
     check(set(signed.headers) == {
         "Content-Type", "agentwars-protocol", "agentwars-runner-id",
@@ -373,6 +376,7 @@ def check_origins_and_bodies():
     for hostile in (b"", b"[]", b'{"a":1.5}', b'{"a":NaN}', b'{"a":1,"a":2}', b"not-json"):
         expect_error(lambda hostile=hostile: validate_json_body(hostile), RunnerClientError)
     canonical_fields = {
+        "origin": "https://nymrel.com",
         "method": "POST",
         "path": "/api/builderwars/runners/probe",
         "body_sha256": "d" * 64,
@@ -389,6 +393,7 @@ def check_origins_and_bodies():
         RunnerClientError,
     )
     for field, hostile, message_part in (
+        ("origin", "https://nymrel.com.evil", "origin"),
         ("method", "GET", "method"),
         ("path", "/api/probe?admin=1", "path"),
         ("path", "/api/probe\nrunner-id:awr1_fake", "path"),
@@ -401,6 +406,36 @@ def check_origins_and_bodies():
             RunnerClientError,
             message_part,
         )
+
+    signed = sign_runner_request(
+        Ed25519PrivateKey.from_private_bytes(bytes(range(32))),
+        origin="https://nymrel.com",
+        method="POST",
+        path=RUNNER_PROBE_PATH,
+        body=RUNNER_PROBE_BODY,
+        runner_id="awr1_" + "A" * 22,
+        timestamp="2026-08-25T13:00:00.000Z",
+        nonce_bytes=bytes(range(16)),
+    )
+
+    class NeverOpen:
+        called = False
+
+        def open(self, _request, *, timeout):
+            self.called = True
+            raise AssertionError(f"transport unexpectedly called with timeout {timeout}")
+
+    opener = NeverOpen()
+    expect_error(
+        lambda: send_signed_request(
+            origin="http://127.0.0.1:4173",
+            signed=signed,
+            opener=opener,
+        ),
+        RunnerClientError,
+        "origin",
+    )
+    check(not opener.called, "origin mismatch is refused before transport")
 
 
 def check_state_and_roundtrip():
@@ -527,6 +562,7 @@ def check_state_and_roundtrip():
             )
             signed = sign_runner_request(
                 second_key,
+                origin=origin,
                 method="POST",
                 path=RUNNER_PROBE_PATH,
                 body=RUNNER_PROBE_BODY,
@@ -537,6 +573,7 @@ def check_state_and_roundtrip():
                 generated_nonces.add(
                     sign_runner_request(
                         second_key,
+                        origin=origin,
                         method="POST",
                         path=RUNNER_PROBE_PATH,
                         body=json.dumps({"probe": probe}, separators=(",", ":")).encode("utf-8"),

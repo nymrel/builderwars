@@ -12,7 +12,6 @@ from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from provider_hub.local_runner import (
-    PAIRING_PROTOCOL,
     REQUEST_PROTOCOL,
     RUNNER_PROBE_BODY,
     RUNNER_PROBE_PATH,
@@ -108,12 +107,13 @@ class HostedControlPlaneTests(unittest.TestCase):
         self.random = DeterministicBytes()
         self.now = START
         self.clock = MutableClock(self.now)
+        self.origin = "https://nymrel.com"
         self.store = HostedControlPlaneStore(
             self.database,
             random_bytes=self.random,
             clock=self.clock,
         )
-        self.control = HostedControlPlane(self.store)
+        self.control = HostedControlPlane(self.store, allowed_origin=self.origin)
         self.owner = owner_id(1)
         self.other_owner = owner_id(2)
         self.nonce_counter = 0
@@ -178,6 +178,7 @@ class HostedControlPlaneTests(unittest.TestCase):
         method="POST",
         key=None,
         runner_id=None,
+        origin=None,
         protocol_version=REQUEST_PROTOCOL,
         nonce_bytes=None,
         advance_clock=True,
@@ -190,6 +191,7 @@ class HostedControlPlaneTests(unittest.TestCase):
             nonce_bytes = self.nonce_counter.to_bytes(16, "big")
         signed = sign_runner_request(
             key or paired["key"],
+            origin=origin or self.origin,
             method=method,
             path=path,
             body=body,
@@ -216,6 +218,7 @@ class HostedControlPlaneTests(unittest.TestCase):
         stamp = canonical_instant(now)
         body_sha256 = hashlib.sha256(body).hexdigest()
         canonical = canonical_runner_request(
+            origin=self.origin,
             method="POST",
             path=path,
             body_sha256=body_sha256,
@@ -432,7 +435,7 @@ class HostedControlPlaneTests(unittest.TestCase):
             random_bytes=self.random,
             clock=self.clock,
         )
-        self.control = HostedControlPlane(self.store)
+        self.control = HostedControlPlane(self.store, allowed_origin=self.origin)
 
         expiring = self.control.create_pairing(self.other_owner, now=self.now)
         expiring_key = Ed25519PrivateKey.generate()
@@ -1087,11 +1090,41 @@ class HostedControlPlaneTests(unittest.TestCase):
             attacker,
             path=RUNNER_PROBE_PATH,
             body=RUNNER_PROBE_BODY,
-            protocol_version=PAIRING_PROTOCOL,
+            protocol_version="agentwars.runner_request.v1",
         )
         with self.assertRaises(SignedRequestError) as wrong_protocol:
             self.control.probe(downgraded, now=self.now)
         self.assertEqual(wrong_protocol.exception.code, "invalid_protocol")
+
+    def test_server_origin_binding_rejects_host_confusion_without_nonce_burn(self):
+        paired = self.pair()
+        nonce_bytes = b"o" * 16
+        before = self.store.row_counts()["nonces"]
+        wrong_origin = self.signed(
+            paired,
+            origin="http://127.0.0.1:4173",
+            path=RUNNER_PROBE_PATH,
+            body=RUNNER_PROBE_BODY,
+            nonce_bytes=nonce_bytes,
+        )
+        with self.assertRaises(SignedRequestError) as refused:
+            self.control.probe(wrong_origin, now=self.now)
+        self.assertEqual(refused.exception.code, "invalid_signature")
+        self.assertEqual(self.store.row_counts()["nonces"], before)
+
+        accepted = self.control.probe(
+            self.signed(
+                paired,
+                origin=self.origin,
+                path=RUNNER_PROBE_PATH,
+                body=RUNNER_PROBE_BODY,
+                nonce_bytes=nonce_bytes,
+                advance_clock=False,
+            ),
+            now=self.now,
+        )
+        self.assertEqual(accepted.payload["status"], "accepted")
+        self.assertEqual(self.store.row_counts()["nonces"], before + 1)
 
     def test_delete_owner_preserves_other_tenant_and_public_replay(self):
         first = self.pair(label="Private Alpha Label")
@@ -1313,6 +1346,7 @@ class HostedControlPlaneTests(unittest.TestCase):
             verify_signed_request(
                 self.store,
                 substituted,
+                expected_origin=self.origin,
                 now=self.now,
                 expected_path=RUNNER_PROBE_PATH,
             )

@@ -38,7 +38,7 @@ import agent_identity as identity_contract  # noqa: E402
 from arena import passport as arena_passport  # noqa: E402
 from arena.canonical import GENESIS, chain  # noqa: E402
 from arena.integrity import file_digest, script_digest  # noqa: E402
-from arena.match import match_id_for, run_match  # noqa: E402
+from arena.match import match_id_for, run_reference_match as run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from entrants.backends import execution_claim_for_backend  # noqa: E402
 
