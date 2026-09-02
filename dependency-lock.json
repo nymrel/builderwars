@@ -1,11 +1,12 @@
 {
   "artifactStatus": "candidate_not_published",
-  "evidenceDate": "2026-08-26",
+  "evidenceDate": "2026-09-01",
   "indexOrigin": "https://pypi.org/simple",
   "metadataSources": [
     "https://pypi.org/pypi/cffi/2.1.1/json",
     "https://pypi.org/pypi/cryptography/50.0.1/json",
-    "https://pypi.org/pypi/pycparser/3.0/json"
+    "https://pypi.org/pypi/pycparser/3.0/json",
+    "https://pypi.org/pypi/typing-extensions/4.16.0/json"
   ],
   "packages": [
     {
@@ -138,7 +139,8 @@
         }
       ],
       "dependencies": [
-        "cffi==2.1.1"
+        "cffi==2.1.1",
+        "typing-extensions==4.16.0 ; python_version == \"3.10\""
       ],
       "licenseExpression": "Apache-2.0 OR BSD-3-Clause",
       "name": "cryptography",
@@ -447,6 +449,28 @@
       "name": "pycparser",
       "requiresPython": ">=3.10",
       "version": "3.0"
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 45571,
+          "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+          "platform": "any",
+          "pythonVersions": [
+            "3.10",
+            "3.11",
+            "3.12",
+            "3.13",
+            "3.14"
+          ],
+          "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+        }
+      ],
+      "dependencies": [],
+      "licenseExpression": "PSF-2.0",
+      "name": "typing-extensions",
+      "requiresPython": ">=3.9",
+      "version": "4.16.0"
     }
   ],
   "platforms": [
@@ -487,7 +511,7 @@
     ]
   },
   "requirementsLockFile": "requirements.lock",
-  "requirementsLockSha256": "635fbdb4b20cb3d6a00456cc4882bdb8e23ba0a2da2ca6ed6db170dd212697ce",
+  "requirementsLockSha256": "3f257f9605a4511cf46027538ea3b41fdc00b9dfe683eaf16fb30e05b6fa7db6",
   "schemaVersion": "agentwars.runner_dependencies.v1",
   "truth": {
     "crossPlatformRuntimeAttested": false,

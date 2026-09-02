@@ -370,7 +370,7 @@ def main() -> int:
         check(
             dependency_result.returncode == 0
             and dependency_receipt["status"] == "pass"
-            and dependency_receipt["artifactCount"] == 43
+            and dependency_receipt["artifactCount"] == 44
             and dependency_receipt["dependencyLockSha256"]
             == EXPECTED_DEPENDENCY_LOCK_SHA256
             and dependency_receipt["downloads"]

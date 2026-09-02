@@ -141,10 +141,11 @@ privileged checkout. The locked install matrix is ordinary CPython 3.10 through
 glibc 2.17+ or musl 1.2+ on x86-64/arm64. Unsupported platforms fail closed
 rather than compiling an unreviewed source distribution. In particular,
 current `cryptography` releases no longer publish macOS x86-64 wheels.
-The 2026-08-26 local acceptance ran the installed dependency chain and runner
-contracts on Windows x86-64 CPython 3.11.15 and 3.13.5. Python 3.10 wheel
-selection was hash-reconciled but not executed; Python 3.12/3.14 and every
-non-Windows target remain lock coverage, not runtime attestation.
+The 2026-09-01 local acceptance installed the exact lock and ran `pip check`,
+the exact-version/Ed25519 proof, offline dependency policy, and runner CLI smoke
+on Windows x86-64 CPython 3.10.18, 3.11.15, 3.12.11, 3.13.5, and the locally
+available 3.14.0b4 beta. Stable Python 3.14 and every non-Windows target remain
+lock coverage, not runtime attestation.
 
 Windows PowerShell:
 
@@ -167,13 +168,16 @@ python3 -m venv .venv
 `requirements.txt` is only a compatibility wrapper around
 `requirements.lock`. The lock fixes the index to PyPI, requires binary wheels,
 requires hashes, uses interpreter markers to separate the 3.10 and 3.11+
-ABI3 wheels, and pins `cryptography==50.0.1`, `cffi==2.1.1`, and
-`pycparser==3.0` across 43 reviewed wheel hashes. The evidence snapshot is
-2026-08-26; `cryptography` 50.0.1 was selected after its 2026-08-25 wheel
-refresh to OpenSSL 4.0.2. Source metadata:
+ABI3 wheels, and pins `cryptography==50.0.1`, `cffi==2.1.1`,
+`pycparser==3.0`, plus `typing-extensions==4.16.0` only on Python 3.10,
+across 44 reviewed wheel hashes. The evidence snapshot is 2026-09-01;
+`cryptography` 50.0.1 requires `typing-extensions>=4.13.2` below Python 3.11,
+and was selected after its 2026-08-25 wheel refresh to OpenSSL 4.0.2. Source
+metadata:
 [cryptography](https://pypi.org/pypi/cryptography/50.0.1/json),
 [cffi](https://pypi.org/pypi/cffi/2.1.1/json), and
-[pycparser](https://pypi.org/pypi/pycparser/3.0/json).
+[pycparser](https://pypi.org/pypi/pycparser/3.0/json), and
+[typing-extensions](https://pypi.org/pypi/typing-extensions/4.16.0/json).
 
 The default installation still contacts PyPI. That is a tester-authorized
 package-manager action, not an action taken by the bundle builder, artifact
