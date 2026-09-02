@@ -7,7 +7,11 @@
 }(typeof globalThis !== "undefined" ? globalThis : this, function createDataAdapter() {
   const DEMO_SCHEMA = "builderwars.mobile-arena-demo.v1";
   const READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1";
-  const READ_MODEL_DIGEST_PIN = "c29a4c2d08f18bb3e60c6a0bc57f285057e0b2a38a8c4fde6a3cdadc21a94e89";
+  const READ_MODEL_DIGEST_PIN = "902151f8d7fa56f2199372afe85c235e08ccec92256c5d9bbb04f44e8025dc08";
+  const SCOPED_RATING_SCHEMA = "agentwars.scoped-proof-rating-board/1";
+  const SCOPED_RATING_METHOD = "reviewed_final_win_count_v1";
+  const SCOPED_RATING_RESOURCE_CLASS = "reviewed_publication_receipt_v1";
+  const SCOPED_RATING_STATUS = "LOCAL_SCOPED_PROOF_POINTS_NOT_RANKED";
   const VIEW_SCHEMA = "builderwars.mobile-arena-view.v1";
   const TESTER_FEEDBACK_SCHEMA = "agentwars.tester-feedback-rubric/1";
   const TESTER_FEEDBACK_DRAFT_SCHEMA = "builderwars.mobile-tester-feedback-draft/1";
@@ -389,7 +393,7 @@
   function validateArenaReadModel(model) {
     requireValue(isObject(model), "unsafe arena read model: expected object");
     requireValue(model.schemaVersion === READ_MODEL_SCHEMA, "unsafe arena read model: schema drift");
-    requireValue(model.projectionVersion === "1", "unsafe arena read model: projection drift");
+    requireValue(model.projectionVersion === "2", "unsafe arena read model: projection drift");
     requireValue(typeof model.readModelDigest === "string" && HEX64.test(model.readModelDigest), "unsafe arena read model: digest missing");
     requireValue(isObject(model.source), "unsafe arena read model: source missing");
     requireValue(model.source.status === "tracked_local_publication_artifact_not_hosted", "unsafe arena read model: source status drift");
@@ -443,6 +447,7 @@
       }
       requireValue([...entrantSeats].sort((left, right) => left - right).every((seat, index) => seat === index), `unsafe arena read model: entrant seats are not contiguous for ${receipt.receiptId}`);
       requireValue(isObject(receipt.proof), `unsafe arena read model: proof missing for ${receipt.receiptId}`);
+      requireValue(HEX64.test(receipt.proof.engineDigest), `engine digest missing for ${receipt.receiptId}`);
       requireValue(receipt.proof.publicationApproved === true, `unsafe arena read model: unpublished receipt ${receipt.receiptId}`);
       requireValue(receipt.proof.replayVerdict === "PASS", `unsafe arena read model: replay failed for ${receipt.receiptId}`);
       requireValue(receipt.proof.engineDigestMatch === true, `unsafe arena read model: engine mismatch for ${receipt.receiptId}`);
@@ -466,6 +471,44 @@
     requireValue(model.summary.modelInfluencedUnattestedReceiptCount === evidenceClassCounts.get("model_influenced_unattested"), "unsafe arena read model: model-influenced summary drift");
     requireValue(model.summary.scriptedReferenceReceiptCount === evidenceClassCounts.get("scripted_reference"), "unsafe arena read model: scripted summary drift");
     requireValue(model.summary.fallbackOnlyReferenceReceiptCount === evidenceClassCounts.get("fallback_only_reference"), "unsafe arena read model: fallback summary drift");
+
+    const boards = model.scopedRatingBoards;
+    requireValue(Array.isArray(boards) && boards.length > 0, "scoped rating boards missing");
+    requireValue(model.summary.scopedRatingBoardCount === boards.length, "scoped rating board summary drift");
+    const covered = new Set();
+    const order = [];
+    for (const board of boards) {
+      const scope = board.scope;
+      requireValue(isObject(scope) && board.schemaVersion === SCOPED_RATING_SCHEMA && board.status === SCOPED_RATING_STATUS && HEX64.test(board.scopeId) && HEX64.test(board.boardDigest), "scoped rating schema drift");
+      requireValue(scope.ratingMethod === SCOPED_RATING_METHOD && scope.resourceClass === SCOPED_RATING_RESOURCE_CLASS && HEX64.test(scope.engineDigest), "scoped rating scope drift");
+      requireValue(isObject(board.sourceBindings) && equalHex(board.sourceBindings.datasetDigest, model.source.datasetDigest) && equalHex(board.sourceBindings.sourceManifestDigest, model.source.sourceManifestDigest), "scoped rating source binding drift");
+      requireValue(isObject(board.authority) && Object.values(board.authority).length === 9 && Object.values(board.authority).every((value) => value === false), "scoped rating authority drift");
+      requireValue(isObject(board.boundary) && board.boundary.statement.includes("not ranked"), "scoped rating boundary drift");
+      requireValue(Array.isArray(board.receiptIds) && board.receiptIds.length === board.receiptCount, "scoped rating receipt count drift");
+      const stats = new Map();
+      for (const receiptId of board.receiptIds) {
+        requireValue(!covered.has(receiptId), "duplicate scoped rating receipt");
+        covered.add(receiptId);
+        const receipt = receiptById.get(receiptId);
+        requireValue(receipt && receipt.game.name === scope.gameName && receipt.game.version === scope.gameVersion && receipt.game.format === scope.format, "scoped rating game binding drift");
+        requireValue(equalHex(receipt.proof.engineDigest, scope.engineDigest), "scoped rating engine binding drift");
+        for (const entrant of receipt.entrants) {
+          const row = stats.get(entrant.entrantId) || { name: entrant.name, receipts: 0, wins: 0 };
+          row.receipts += 1;
+          row.wins += Number(entrant.entrantId === receipt.outcome.winnerEntrantId);
+          stats.set(entrant.entrantId, row);
+        }
+      }
+      requireValue(Array.isArray(board.entrants) && board.entrants.length === stats.size, "scoped rating entrant coverage drift");
+      for (const entrant of board.entrants) {
+        const row = stats.get(entrant.entrantId);
+        requireValue(row && entrant.name === row.name && entrant.receiptCount === row.receipts && entrant.wins === row.wins && entrant.losses === row.receipts - row.wins && entrant.ratingPoints === row.wins && entrant.ratingUnit === "reviewed_final_win", "scoped rating record drift");
+        requireValue(entrant.status === "not_ranked" && entrant.eligibleForPublicRanking === false, "scoped rating eligibility drift");
+      }
+      order.push(`${scope.gameName}\u0000${scope.gameVersion}\u0000${scope.format || ""}\u0000${board.scopeId}`);
+    }
+    requireValue(covered.size === receiptIds.size && [...receiptIds].every((id) => covered.has(id)), "scoped rating receipt coverage drift");
+    requireValue(order.every((value, index) => index === 0 || order[index - 1] < value), "scoped rating board order drift");
 
     requireValue(Array.isArray(model.channels), "unsafe arena read model: channels missing");
     requireValue(Array.isArray(model.rivalries), "unsafe arena read model: rivalries missing");
@@ -646,34 +689,17 @@
     };
   }
 
-  function buildReceiptBoard(receipts) {
-    const entrants = new Map();
-    for (const receipt of receipts) {
-      for (const entrant of receipt.entrants) {
-        const current = entrants.get(entrant.entrantId) || {
-          id: entrant.entrantId,
-          name: entrant.name,
-          receipts: 0,
-          wins: 0,
-          harnessVersions: new Set(),
-        };
-        current.receipts += 1;
-        if (entrant.entrantId === receipt.outcome.winnerEntrantId) current.wins += 1;
-        current.harnessVersions.add(entrant.harnessVersionId);
-        entrants.set(entrant.entrantId, current);
-      }
-    }
-    return [...entrants.values()]
-      .sort((left, right) => left.name.localeCompare(right.name))
-      .map((entrant) => ({
-        id: entrant.id,
+  function buildReceiptBoard(scopedRatingBoards) {
+    return scopedRatingBoards.flatMap((board) => board.entrants.map((entrant) => ({
+        id: `${board.scopeId}:${entrant.entrantId}`,
         position: "—",
         name: entrant.name,
-        kind: `${entrant.harnessVersions.size} content-bound harness version${entrant.harnessVersions.size === 1 ? "" : "s"}`,
-        record: `${entrant.wins} reviewed win${entrant.wins === 1 ? "" : "s"} · not ranked`,
-        metric: `${entrant.receipts}R`,
-        verified: entrant.receipts,
-      }));
+        kind: `${gameLabel(board.scope.gameName)} · exact evidence scope`,
+        record: `${entrant.wins} reviewed win${entrant.wins === 1 ? "" : "s"} · ${entrant.ratingPoints} proof point${entrant.ratingPoints === 1 ? "" : "s"} · not ranked`,
+        metric: `${entrant.receiptCount}R`,
+        verified: entrant.receiptCount,
+        scopeId: board.scopeId,
+      })));
   }
 
   function buildRivalryViews(rivalries, receipts) {
@@ -3794,7 +3820,7 @@
       status: channel.status,
       followed: index < 2,
     }));
-    demo.leaderboard = buildReceiptBoard(model.receipts);
+    demo.leaderboard = buildReceiptBoard(model.scopedRatingBoards);
     demo.quickMatches = model.futureFixtures.map((fixture) => ({
       id: fixture.fixtureId,
       mode: gameLabel(fixture.format),

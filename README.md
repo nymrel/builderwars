@@ -125,6 +125,7 @@ python bin\check_mobile_arena_private_blueprint_draft_review.py
 python bin\check_mobile_arena_private_blueprint_guard_completion.py
 python bin\check_mobile_arena_private_blueprint_guard_completion_review.py
 python bin\check_mobile_arena_private_blueprint_operator_review_packet.py
+python bin\check_agentwars_scoped_ratings.py
 python bin\check_mobile_arena_exchange.py
 python bin\check_mobile_arena_browser.py
 ```
@@ -150,7 +151,11 @@ drift before any result can enter a client read path. The browser adapter also
 pins the reviewed digest in executable source and recomputes it with Web Crypto
 before projection. Both layers cross-check channel receipt counts, rules-week
 bindings, rivalry and fixture summaries, receipt-backed entrant names, unique
-seats, proposed-fixture timestamps, and inactive status. Content drift, a
+seats, proposed-fixture timestamps, inactive status, and five exact proof-rating
+scopes. Those snapshots bind game, version, format, verifier-approved engine
+digest, reviewed-receipt resource class, and source digests. A point is exactly
+one reviewed final win; rows are alphabetic, scope-isolated, and explicitly not
+ranked. Content drift, a
 semantically inconsistent regenerated model, an internally rehashed but
 unreviewed model, or unavailable SHA-256 can never retain the verified-corpus
 label.
@@ -158,11 +163,13 @@ label.
 ```powershell
 python bin\build_mobile_arena_read_model.py --check
 python bin\check_mobile_arena_read_model.py
+python bin\check_agentwars_scoped_ratings.py
 ```
 
 `mobile-arena/data/arena-read-model.v1.json` is a local read contract, not a
 live or authenticated feed. Its explicit truth boundary keeps model, provider,
-runtime, hosting, ranking, and activation claims false until separately proven.
+runtime, hosting, global-skill, cross-scope comparison, ranking, and activation
+claims false until separately proven.
 If that contract is missing or invalid, the client discloses `DEMO FALLBACK`;
 digest and integrity failures carry bounded fallback reasons without exposing
 source contents. If the bounded demo fallback is also unavailable, the shell

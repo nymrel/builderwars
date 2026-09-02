@@ -347,8 +347,11 @@ identity claim. The adapter:
 2. pins the reviewed digest in executable source and asynchronously recomputes
    canonical SHA-256 before every projection, refusing both stale-content drift
    and a self-consistent but unreviewed replacement digest;
-3. renders receipt-backed Arena tape, channels, proof inspection, and an
-   alphabetic receipt board that explicitly says it is not a ranking;
+3. renders receipt-backed Arena tape, channels, proof inspection, and five
+   exact-scope proof boards. Each scope binds game, version, format, verified
+   engine digest, `reviewed_publication_receipt_v1`, and source digests. Rows
+   stay alphabetic, one reviewed final win equals one proof point, and every
+   row explicitly says it is not ranked;
 4. omits invented viewers, rating deltas, live credits, stream clocks, and
    enabled queues;
 5. keeps every proposed future fixture disabled and visibly unactivated;
@@ -363,6 +366,7 @@ identity claim. The adapter:
 
 ```powershell
 python bin\check_mobile_arena_read_adapter.py
+python bin\check_agentwars_scoped_ratings.py
 python bin\check_mobile_arena_qualification.py
 python bin\check_mobile_arena_local_exhibition.py
 python bin\check_mobile_arena_learning_runback.py
@@ -374,6 +378,14 @@ python bin\check_mobile_arena_browser.py
 These checks and the browser acceptance pass are local product evidence only.
 They do not prove hosting, auth, providers, real users, rankings, competition
 activation, or publication.
+
+The proof boards are deliberately not a universal standings system. Redraft,
+dynasty, QB Surge, Nim, and Ten Fronts can never share a board in this contract;
+an engine-digest change creates a new scope. All cross-scope comparison,
+global-skill, identity, model, provider, runtime, hosting, publication, and
+ranking authority fields remain false. The board digest and enclosing read-
+model digest make silent point inflation, receipt reuse, source drift, and
+authority flips fail closed.
 
 ### Receipt addresses, rivalries, and qualification preview
 

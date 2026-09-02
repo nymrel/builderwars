@@ -24,6 +24,7 @@ from build_mobile_arena_read_model import (  # noqa: E402
     ReadModelError,
     build_read_model,
 )
+from publishing.scoped_ratings import verify_scoped_rating_boards  # noqa: E402
 
 
 def require(predicate: bool, message: str) -> None:
@@ -63,6 +64,7 @@ def main() -> int:
     print("[1] tracked product compiles into the bounded read model")
     model = build_read_model(dataset, manifest)
     require(model["schemaVersion"] == READ_MODEL_SCHEMA, "read-model schema drift")
+    require(model["projectionVersion"] == "2", "read-model projection drift")
     require(model["source"]["datasetDigest"] == dataset["datasetDigest"], "source digest not carried")
     require(model["summary"]["receiptCount"] == 8, "expected eight reviewed receipts")
     require(model["summary"]["verifiedReceiptCount"] == 8, "every projected receipt must be verified")
@@ -74,8 +76,20 @@ def main() -> int:
     require(model["truthBoundary"]["authenticated"] is False, "read model cannot imply auth")
     require(all(row["proof"]["publicationApproved"] for row in model["receipts"]), "unapproved proof projected")
     require(all(row["proof"]["replayVerdict"] == "PASS" for row in model["receipts"]), "non-PASS replay projected")
+    require(all(len(row["proof"]["engineDigest"]) == 64 for row in model["receipts"]), "exact engine digest missing")
+    require(model["summary"]["scopedRatingBoardCount"] == 5, "expected five exact rating scopes")
+    require(sum(row["receiptCount"] for row in model["scopedRatingBoards"]) == 8, "scoped boards do not cover eight receipts")
+    require(
+        verify_scoped_rating_boards(
+            model["scopedRatingBoards"],
+            model["receipts"],
+            dataset_digest=model["source"]["datasetDigest"],
+            source_manifest_digest=model["source"]["sourceManifestDigest"],
+        ) == model["scopedRatingBoards"],
+        "scoped boards do not verify",
+    )
     require(model["readModelDigest"] == digest({key: value for key, value in model.items() if key != "readModelDigest"}), "read-model digest mismatch")
-    checks += 13
+    checks += 18
 
     print("[2] stale generated output fails closed")
     command = [sys.executable, str(ROOT / "bin" / "build_mobile_arena_read_model.py"), "--check"]
@@ -100,6 +114,13 @@ def main() -> int:
     mutated_manifest["entries"][0]["publicTranscriptBytes"] += 1
     rehash_manifest(mutated_manifest)
     expect_rejected(dataset, mutated_manifest, "transcript byte count mismatch")
+    checks += 1
+
+    mutated_dataset = copy.deepcopy(dataset)
+    mutated_dataset["receipts"][0]["verification"]["engineDigest"] = "0" * 64
+    rehash_dataset(mutated_dataset)
+    mutated_manifest = manifest_for_dataset(manifest, mutated_dataset)
+    expect_rejected(mutated_dataset, mutated_manifest, "engine digest mismatch")
     checks += 1
 
     print("[4] a rehashed failed proof still cannot enter the read model")

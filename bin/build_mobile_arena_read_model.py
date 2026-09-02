@@ -24,13 +24,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from arena.canonical import digest  # noqa: E402
+from publishing.scoped_ratings import build_scoped_rating_boards  # noqa: E402
 
 
 DATASET_SCHEMA = "agentwars.public-product.v1"
 SOURCE_MANIFEST_SCHEMA = "agentwars.public-source-manifest.v1"
 RECEIPT_SCHEMA = "agentwars.public-receipt.v1"
 READ_MODEL_SCHEMA = "builderwars.arena-read-model.v1"
-PROJECTION_VERSION = "1"
+PROJECTION_VERSION = "2"
 DEFAULT_DATASET = ROOT / "publishing" / "agentwars-public-v1" / "dataset.json"
 DEFAULT_SOURCE_MANIFEST = (
     ROOT / "publishing" / "agentwars-public-v1" / "source-manifest.json"
@@ -151,6 +152,7 @@ def _receipt_card(receipt: dict[str, Any], index: int, approved_ids: set[str]) -
     for key in ("engineDigestMatch", "verifierSnapshotMatch"):
         _require(verification.get(key) is True, f"receipt {receipt_id} has false {key}")
     artifact_path = _string(verification.get("artifactPath"), f"receipts[{index}].verification.artifactPath")
+    engine_digest = _hex64(verification.get("engineDigest"), f"receipts[{index}].verification.engineDigest")
     _require(artifact_path.startswith("public/m/") and artifact_path.endswith(".jsonl"), f"receipt {receipt_id} has unsafe artifact path")
     _require(".." not in artifact_path and "\\" not in artifact_path, f"receipt {receipt_id} has unsafe artifact path")
 
@@ -224,6 +226,7 @@ def _receipt_card(receipt: dict[str, Any], index: int, approved_ids: set[str]) -
         },
         "proof": {
             "artifactPath": artifact_path,
+            "engineDigest": engine_digest,
             "engineDigestMatch": True,
             "publicationApproved": True,
             "replayVerdict": "PASS",
@@ -454,6 +457,11 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
         )
 
     _validate_projection_relationships(receipts, fixtures, rules)
+    scoped_rating_boards = build_scoped_rating_boards(
+        receipts,
+        dataset_digest=dataset_digest,
+        source_manifest_digest=manifest_digest,
+    )
 
     evidence_counts = Counter(row["evidence"]["class"] for row in receipts)
     game_counts = Counter(row["game"]["name"] for row in receipts)
@@ -477,6 +485,7 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
         "rivalries": rivalries,
         "rulesWeeks": rules,
         "schemaVersion": READ_MODEL_SCHEMA,
+        "scopedRatingBoards": scoped_rating_boards,
         "source": {
             "approvedReceiptCount": len(approved_ids),
             "datasetDigest": dataset_digest,
@@ -494,6 +503,7 @@ def build_read_model(dataset: dict[str, Any], source_manifest: dict[str, Any]) -
             "receiptCount": len(receipts),
             "rivalryCount": len(rivalries),
             "scriptedReferenceReceiptCount": evidence_counts["scripted_reference"],
+            "scopedRatingBoardCount": len(scoped_rating_boards),
             "unplayedFixtureCount": len(fixtures),
             "verifiedReceiptCount": len(receipts),
         },

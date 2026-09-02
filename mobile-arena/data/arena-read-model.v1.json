@@ -117,8 +117,8 @@
       "week": 3
     }
   ],
-  "projectionVersion": "1",
-  "readModelDigest": "c29a4c2d08f18bb3e60c6a0bc57f285057e0b2a38a8c4fde6a3cdadc21a94e89",
+  "projectionVersion": "2",
+  "readModelDigest": "902151f8d7fa56f2199372afe85c235e08ccec92256c5d9bbb04f44e8025dc08",
   "receipts": [
     {
       "entrants": [
@@ -168,6 +168,7 @@
       },
       "proof": {
         "artifactPath": "public/m/46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703.jsonl",
+        "engineDigest": "268af65826d74f2d806baddb31dd66f0d7e809f483268f07c6136879670ccd81",
         "engineDigestMatch": true,
         "publicationApproved": true,
         "replayVerdict": "PASS",
@@ -224,6 +225,7 @@
       },
       "proof": {
         "artifactPath": "public/m/a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca.jsonl",
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
         "engineDigestMatch": true,
         "publicationApproved": true,
         "replayVerdict": "PASS",
@@ -280,6 +282,7 @@
       },
       "proof": {
         "artifactPath": "public/m/9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34.jsonl",
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
         "engineDigestMatch": true,
         "publicationApproved": true,
         "replayVerdict": "PASS",
@@ -336,6 +339,7 @@
       },
       "proof": {
         "artifactPath": "public/m/1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a.jsonl",
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
         "engineDigestMatch": true,
         "publicationApproved": true,
         "replayVerdict": "PASS",
@@ -392,6 +396,7 @@
       },
       "proof": {
         "artifactPath": "public/m/2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb.jsonl",
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
         "engineDigestMatch": true,
         "publicationApproved": true,
         "replayVerdict": "PASS",
@@ -448,6 +453,7 @@
       },
       "proof": {
         "artifactPath": "public/m/0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4.jsonl",
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
         "engineDigestMatch": true,
         "publicationApproved": true,
         "replayVerdict": "PASS",
@@ -504,6 +510,7 @@
       },
       "proof": {
         "artifactPath": "public/m/f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897.jsonl",
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
         "engineDigestMatch": true,
         "publicationApproved": true,
         "replayVerdict": "PASS",
@@ -560,6 +567,7 @@
       },
       "proof": {
         "artifactPath": "public/m/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.jsonl",
+        "engineDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
         "engineDigestMatch": true,
         "publicationApproved": true,
         "replayVerdict": "PASS",
@@ -730,6 +738,341 @@
     }
   ],
   "schemaVersion": "builderwars.arena-read-model.v1",
+  "scopedRatingBoards": [
+    {
+      "authority": {
+        "crossScopeComparison": false,
+        "globalSkill": false,
+        "hosted": false,
+        "identityAttested": false,
+        "modelAttested": false,
+        "providerAttested": false,
+        "publication": false,
+        "ranking": false,
+        "runtimeAttested": false
+      },
+      "boardDigest": "99b06eb69f8dc025a34ff8346159ee138f7d466b8ceefdef054625a7b0b6b8ef",
+      "boundary": {
+        "statement": "One point is one reviewed final win in this exact evidence scope; rows are alphabetic and not ranked."
+      },
+      "entrants": [
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 2,
+          "name": "Sunday Machine",
+          "ratingPoints": 0,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 2,
+          "status": "not_ranked",
+          "wins": 0
+        },
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 0,
+          "name": "Future Proof",
+          "ratingPoints": 2,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 2,
+          "status": "not_ranked",
+          "wins": 2
+        }
+      ],
+      "receiptCount": 2,
+      "receiptIds": [
+        "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
+        "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb"
+      ],
+      "schemaVersion": "agentwars.scoped-proof-rating-board/1",
+      "scope": {
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+        "format": "dynasty",
+        "gameName": "fantasy_dynasty",
+        "gameVersion": "1",
+        "ratingMethod": "reviewed_final_win_count_v1",
+        "resourceClass": "reviewed_publication_receipt_v1"
+      },
+      "scopeId": "d4b42383c624731b443ec4c583b7018b0f92b39ca26fb1a6bd0da64badd12535",
+      "sourceBindings": {
+        "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
+        "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8"
+      },
+      "status": "LOCAL_SCOPED_PROOF_POINTS_NOT_RANKED"
+    },
+    {
+      "authority": {
+        "crossScopeComparison": false,
+        "globalSkill": false,
+        "hosted": false,
+        "identityAttested": false,
+        "modelAttested": false,
+        "providerAttested": false,
+        "publication": false,
+        "ranking": false,
+        "runtimeAttested": false
+      },
+      "boardDigest": "2a75b3c8c4329054f1d9c2f1b77de700a241cc60aa901fa91efdd2f926496fec",
+      "boundary": {
+        "statement": "One point is one reviewed final win in this exact evidence scope; rows are alphabetic and not ranked."
+      },
+      "entrants": [
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 0,
+          "name": "Sunday Machine",
+          "ratingPoints": 2,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 2,
+          "status": "not_ranked",
+          "wins": 2
+        },
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 2,
+          "name": "Future Proof",
+          "ratingPoints": 0,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 2,
+          "status": "not_ranked",
+          "wins": 0
+        }
+      ],
+      "receiptCount": 2,
+      "receiptIds": [
+        "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
+        "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897"
+      ],
+      "schemaVersion": "agentwars.scoped-proof-rating-board/1",
+      "scope": {
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+        "format": "qb_surge",
+        "gameName": "fantasy_qb_surge",
+        "gameVersion": "1",
+        "ratingMethod": "reviewed_final_win_count_v1",
+        "resourceClass": "reviewed_publication_receipt_v1"
+      },
+      "scopeId": "d6885be833bd61bcfe2c9172e328d485de2089732c5ae4cb387dedc356bc9d85",
+      "sourceBindings": {
+        "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
+        "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8"
+      },
+      "status": "LOCAL_SCOPED_PROOF_POINTS_NOT_RANKED"
+    },
+    {
+      "authority": {
+        "crossScopeComparison": false,
+        "globalSkill": false,
+        "hosted": false,
+        "identityAttested": false,
+        "modelAttested": false,
+        "providerAttested": false,
+        "publication": false,
+        "ranking": false,
+        "runtimeAttested": false
+      },
+      "boardDigest": "a887d992f1a28b9a4b8246b31c38e76ffc57d8adc43dabf2be1cec1782de7ed3",
+      "boundary": {
+        "statement": "One point is one reviewed final win in this exact evidence scope; rows are alphabetic and not ranked."
+      },
+      "entrants": [
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "5a95760ea25bb37bfcd8efaebc2f8df0557eef12095e1208cbce18aa2590a5ff",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 0,
+          "name": "Sunday Machine",
+          "ratingPoints": 2,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 2,
+          "status": "not_ranked",
+          "wins": 2
+        },
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "b4b95d2d061392f2162b927b11053a327464fa7b362dda113f566e4e28642deb",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 2,
+          "name": "Future Proof",
+          "ratingPoints": 0,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 2,
+          "status": "not_ranked",
+          "wins": 0
+        }
+      ],
+      "receiptCount": 2,
+      "receiptIds": [
+        "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
+        "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca"
+      ],
+      "schemaVersion": "agentwars.scoped-proof-rating-board/1",
+      "scope": {
+        "engineDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328",
+        "format": "redraft",
+        "gameName": "fantasy_redraft",
+        "gameVersion": "1",
+        "ratingMethod": "reviewed_final_win_count_v1",
+        "resourceClass": "reviewed_publication_receipt_v1"
+      },
+      "scopeId": "d70b9e309de213c84d44528022baa9865610e889bcac4269e9fd125a6dc7c9d2",
+      "sourceBindings": {
+        "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
+        "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8"
+      },
+      "status": "LOCAL_SCOPED_PROOF_POINTS_NOT_RANKED"
+    },
+    {
+      "authority": {
+        "crossScopeComparison": false,
+        "globalSkill": false,
+        "hosted": false,
+        "identityAttested": false,
+        "modelAttested": false,
+        "providerAttested": false,
+        "publication": false,
+        "ranking": false,
+        "runtimeAttested": false
+      },
+      "boardDigest": "3b62c8cd33a1dcf3a5277db5153c76cb1bb47325761abd9cc0f10e7f3c6a689a",
+      "boundary": {
+        "statement": "One point is one reviewed final win in this exact evidence scope; rows are alphabetic and not ranked."
+      },
+      "entrants": [
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "60ca6cb6612515c581507bceec3fff9cf73740ef470411b50cc04eba7f157a0e",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 0,
+          "name": "solver-harness",
+          "ratingPoints": 1,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 1,
+          "status": "not_ranked",
+          "wins": 1
+        },
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "a74e2f6708e94c25eda990a9b3961d5d7bbc508e590ca14d2aadb0bc2595b42b",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 1,
+          "name": "naive-harness",
+          "ratingPoints": 0,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 1,
+          "status": "not_ranked",
+          "wins": 0
+        }
+      ],
+      "receiptCount": 1,
+      "receiptIds": [
+        "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703"
+      ],
+      "schemaVersion": "agentwars.scoped-proof-rating-board/1",
+      "scope": {
+        "engineDigest": "268af65826d74f2d806baddb31dd66f0d7e809f483268f07c6136879670ccd81",
+        "format": null,
+        "gameName": "nim",
+        "gameVersion": "1",
+        "ratingMethod": "reviewed_final_win_count_v1",
+        "resourceClass": "reviewed_publication_receipt_v1"
+      },
+      "scopeId": "390018097d9431a7785f4566c66056ffbb4e79ed9c3401af0658297caabc9151",
+      "sourceBindings": {
+        "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
+        "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8"
+      },
+      "status": "LOCAL_SCOPED_PROOF_POINTS_NOT_RANKED"
+    },
+    {
+      "authority": {
+        "crossScopeComparison": false,
+        "globalSkill": false,
+        "hosted": false,
+        "identityAttested": false,
+        "modelAttested": false,
+        "providerAttested": false,
+        "publication": false,
+        "ranking": false,
+        "runtimeAttested": false
+      },
+      "boardDigest": "8cfb75476072707c1451c03ff458efada0943b4b9d7a87bbcb5355d0fc553607",
+      "boundary": {
+        "statement": "One point is one reviewed final win in this exact evidence scope; rows are alphabetic and not ranked."
+      },
+      "entrants": [
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 0,
+          "name": "Stub Iron Front",
+          "ratingPoints": 1,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 1,
+          "status": "not_ranked",
+          "wins": 1
+        },
+        {
+          "eligibleForPublicRanking": false,
+          "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+          "harnessVersionIds": [
+            "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f"
+          ],
+          "losses": 1,
+          "name": "Stub Even Reserve",
+          "ratingPoints": 0,
+          "ratingUnit": "reviewed_final_win",
+          "receiptCount": 1,
+          "status": "not_ranked",
+          "wins": 0
+        }
+      ],
+      "receiptCount": 1,
+      "receiptIds": [
+        "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4"
+      ],
+      "schemaVersion": "agentwars.scoped-proof-rating-board/1",
+      "scope": {
+        "engineDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
+        "format": null,
+        "gameName": "ten_fronts",
+        "gameVersion": "1",
+        "ratingMethod": "reviewed_final_win_count_v1",
+        "resourceClass": "reviewed_publication_receipt_v1"
+      },
+      "scopeId": "47dd8533520ced3457c7e510b217cf07a3f2c97da37dd137e92f44f109128c56",
+      "sourceBindings": {
+        "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
+        "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8"
+      },
+      "status": "LOCAL_SCOPED_PROOF_POINTS_NOT_RANKED"
+    }
+  ],
   "source": {
     "approvedReceiptCount": 8,
     "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
@@ -746,6 +1089,7 @@
     "modelInfluencedUnattestedReceiptCount": 1,
     "receiptCount": 8,
     "rivalryCount": 3,
+    "scopedRatingBoardCount": 5,
     "scriptedReferenceReceiptCount": 6,
     "unplayedFixtureCount": 3,
     "verifiedReceiptCount": 8

@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "31"
+EXPECTED_SHELL_VERSION = "32"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -399,6 +399,20 @@ def main() -> int:
     )
     require(tester_feedback_check.returncode == 0, f"tester feedback adapter check failed: {tester_feedback_check.stderr.strip()}")
     require("PASS" in tester_feedback_check.stdout, "tester feedback adapter check did not report PASS")
+    checks += 2
+
+    scoped_ratings_check = subprocess.run(
+        [str(Path(shutil.which("python") or "python")), str(ROOT / "bin" / "check_agentwars_scoped_ratings.py")],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(scoped_ratings_check.returncode == 0, f"scoped proof-rating regression failed: {scoped_ratings_check.stderr.strip()}")
+    require("PASS" in scoped_ratings_check.stdout, "scoped proof-rating regression did not report PASS")
     checks += 2
 
     adapter_check = subprocess.run(

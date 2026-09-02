@@ -70,6 +70,12 @@ function response(body, ok = true) {
   check(view.tape.length === view.proofReceipts.length, "tape is receipt-backed");
   check(view.channels.every((channel) => channel.viewers === null), "does not invent viewers");
   check(view.leaderboard.every((row) => row.record.includes("not ranked")), "does not invent ranking");
+  check(model.scopedRatingBoards.length === 5, "loads five exact proof-rating scopes");
+  check(model.scopedRatingBoards.reduce((total, board) => total + board.receiptCount, 0) === 8, "scoped proof boards cover eight reviewed receipts exactly once");
+  check(view.leaderboard.length === model.scopedRatingBoards.reduce((total, board) => total + board.entrants.length, 0), "projects one alphabetic row per scoped entrant record");
+  check(view.leaderboard.every((row) => row.record.includes("proof point") && row.position === "—"), "labels proof points without positions");
+  check(view.leaderboard.every((row) => model.scopedRatingBoards.some((board) => board.scopeId === row.scopeId)), "binds every displayed row to an exact scope");
+  check(new Set(model.scopedRatingBoards.map((board) => board.scope.gameName)).size === 5, "never combines unlike games into one board");
   const proposedFixtures = view.quickMatches.filter((fixture) => !fixture.exhibitionAllowed);
   const localExhibitions = view.quickMatches.filter((fixture) => fixture.exhibitionAllowed);
   check(proposedFixtures.length === 3 && proposedFixtures.every((fixture) => fixture.enabled === false), "keeps proposed fixtures inactive");
@@ -91,7 +97,15 @@ function response(body, ok = true) {
   await rejects((changed) => { changed.truthBoundary.live = true; }, "live must stay false");
   await rejects((changed) => { changed.receipts[0].proof.replayVerdict = "FAIL"; }, "replay failed");
   await rejects((changed) => { changed.receipts[0].proof.publicationApproved = false; }, "unpublished receipt");
+  await rejects((changed) => { delete changed.receipts[0].proof.engineDigest; }, "engine digest missing");
   await rejects((changed) => { changed.summary.receiptCount += 1; }, "receipt count mismatch");
+  await rejects((changed) => { changed.summary.scopedRatingBoardCount += 1; }, "scoped rating board summary drift");
+  await rejects((changed) => { changed.scopedRatingBoards[0].authority.ranking = true; }, "scoped rating authority drift");
+  await rejects((changed) => { changed.scopedRatingBoards[0].scope.engineDigest = "0".repeat(64); }, "scoped rating engine binding drift");
+  await rejects((changed) => { changed.scopedRatingBoards[0].entrants[0].ratingPoints += 100; }, "scoped rating record drift");
+  await rejects((changed) => { changed.scopedRatingBoards[1].receiptIds[0] = changed.scopedRatingBoards[0].receiptIds[0]; }, "duplicate scoped rating receipt");
+  await rejects((changed) => { changed.scopedRatingBoards.reverse(); }, "scoped rating board order drift");
+  await rejects((changed) => { changed.scopedRatingBoards = []; changed.summary.scopedRatingBoardCount = 0; }, "scoped rating boards missing");
   await rejects((changed) => { changed.futureFixtures[0].activationStatus = "activated"; }, "activated future fixture");
   await rejects((changed) => { changed.receipts[0].entrants[0].harnessVersionContentDerived = false; }, "harness version drift");
   await rejects((changed) => { changed.rivalries[0].meetings[0].receiptId = "0".repeat(64); }, "unknown rivalry receipt");
@@ -188,7 +202,7 @@ function response(body, ok = true) {
     require(result.returncode == 0, f"Arena read-adapter check failed: {result.stderr.strip()}")
     payload = json.loads(result.stdout)
     require(payload.get("status") == "PASS", "Arena read adapter did not report PASS")
-    require(payload.get("checks", 0) >= 66, "Arena read adapter coverage unexpectedly shrank")
+    require(payload.get("checks", 0) >= 80, "Arena read adapter coverage unexpectedly shrank")
     print(f"BuilderWars mobile Arena read adapter: PASS ({payload['checks']} checks)")
     print("verified corpus / disclosed demo fallback / fail-closed local source boundary")
     return 0
