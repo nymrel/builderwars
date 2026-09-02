@@ -223,6 +223,24 @@ production threshold, protected flag, or rollback is configured or claimed.
 Contract and production activation boundary:
 [`docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md`](docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md).
 
+## Support runbook — schema only, unstaffed
+
+AgentWars now has an exact redacted intake and routing contract for the eleven
+finite-league issue classes. A case can carry only an opaque ID, UTC timestamp,
+exact source commit, allowlisted issue class, and up to eight opaque resource
+references. Severity and release posture are derived from reviewed source; no
+free text, contact detail, prompt, raw model output, provider token, attachment,
+transport, response-time promise, or human review is accepted or claimed.
+
+```powershell
+python -B bin/check_agentwars_support.py
+```
+
+No inbox, ticket store, staffed owner, on-call rotation, alert bridge, status
+page, moderation action, protected flag change, or public communication exists.
+Runbook and protected staffing boundary:
+[`docs/AGENTWARS_SUPPORT_RUNBOOK.md`](docs/AGENTWARS_SUPPORT_RUNBOOK.md).
+
 ## Retention, deletion, rollback, and recovery — local drills
 
 AgentWars now classifies eight digest-only resource classes, separates simulated

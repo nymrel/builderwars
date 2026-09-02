@@ -147,16 +147,17 @@ def main() -> int:
             (evidence_builder.PYTHON, "bin/check_agentwars_measurement.py"),
             (evidence_builder.PYTHON, "bin/check_mobile_arena_performance_budget.py"),
             (evidence_builder.PYTHON, "bin/check_agentwars_observability.py"),
+            (evidence_builder.PYTHON, "-B", "bin/check_agentwars_support.py"),
             (evidence_builder.PYTHON, "bin/check_agentwars_retention_recovery.py"),
             (evidence_builder.PYTHON, "bin/check_agentwars_tester_readiness.py"),
             (evidence_builder.PYTHON, "-B", "bin/check_agentwars_discoverability.py"),
         ),
-        "stage 10 runs the exact measurement, performance, observability, retention/recovery, tester-readiness, and discoverability gates",
+        "stage 10 runs the exact measurement, performance, observability, support, retention/recovery, tester-readiness, and discoverability gates",
     )
     check(stages[10].stage_id == "protected_runtime_configuration", "protected runtime is the first held gate")
 
     commands = [command for stage in stages for command in stage.commands]
-    check(len(commands) == 22, "local evidence contract has exactly 22 bounded commands")
+    check(len(commands) == 23, "local evidence contract has exactly 23 bounded commands")
     check(all(command and command[0] == evidence_builder.PYTHON for command in commands), "every executable stage uses the current Python runtime directly")
     flattened = " ".join(token for command in commands for token in command).lower()
     for forbidden in ("curl ", "invoke-webrequest", "vercel", "cloudflare", "git push", "deploy", "publish", "oauth", "clerk"):
