@@ -89,11 +89,13 @@ STAGES: tuple[StageDefinition, ...] = (
             (PYTHON, "bin/check_agentwars_product.py"),
             (PYTHON, "bin/check_fantasy_games.py"),
             (PYTHON, "-B", "bin/check_agentwars_league_operations.py"),
+            (PYTHON, "-B", "bin/check_agentwars_commissioner.py"),
             (PYTHON, "-B", "bin/check_agentwars_starter_kit.py"),
             (PYTHON, "bin/check_agentwars_scale.py"),
         ),
         evidence_files=(
             "docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md",
+            "docs/AGENTWARS_COMMISSIONER_STARTER.md",
             "docs/AGENTWARS_STARTER_KIT.md",
         ),
         not_proven=(

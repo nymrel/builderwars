@@ -704,10 +704,15 @@ and held creator-game boundaries all fail closed and execute nothing:
 
 ```bash
 python -B bin/check_agentwars_league_operations.py
+python -B bin/agentwars_commissioner.py
+python -B bin/check_agentwars_commissioner.py
 ```
 
 Full contract and evidence limits:
 [`docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md`](docs/AGENTWARS_FINITE_FANTASY_LEAGUE_OPERATIONS.md).
+The deterministic commissioner handoff and its three protected launch holds are
+documented in
+[`docs/AGENTWARS_COMMISSIONER_STARTER.md`](docs/AGENTWARS_COMMISSIONER_STARTER.md).
 
 The referee remains deliberately two-seat. A separate verified round-robin
 controller now scales a configured league to 2–16 entrants, every pair, both
