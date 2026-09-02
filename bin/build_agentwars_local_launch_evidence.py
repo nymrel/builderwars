@@ -190,6 +190,7 @@ STAGES: tuple[StageDefinition, ...] = (
             (PYTHON, "bin/check_agentwars_observability.py"),
             (PYTHON, "bin/check_agentwars_retention_recovery.py"),
             (PYTHON, "bin/check_agentwars_tester_readiness.py"),
+            (PYTHON, "-B", "bin/check_agentwars_discoverability.py"),
         ),
         evidence_files=(
             "docs/BUILDERWARS_COM_DOMAIN_CUTOVER_CONTRACT.md",
@@ -200,6 +201,10 @@ STAGES: tuple[StageDefinition, ...] = (
             "docs/AGENTWARS_OBSERVABILITY_INCIDENT_CONTRACT.md",
             "docs/AGENTWARS_RETENTION_DELETION_ROLLBACK_RECOVERY.md",
             "docs/AGENTWARS_TESTER_CEREMONY.md",
+            "docs/AGENTWARS_DISCOVERABILITY_CONTRACT.v1.json",
+            "docs/AGENTWARS_DISCOVERABILITY_LAUNCH_COPY.md",
+            "mobile-arena/robots.txt",
+            "mobile-arena/llms.txt",
             "docs/AGENTWARS_LOCAL_LAUNCH_EVIDENCE_PACK.md",
         ),
         not_proven=("consented human tester and feedback", "production deletion and backup/restore", "production rollback rehearsal", "production telemetry and alert delivery", "production performance", "staffed support response", "legal approval"),

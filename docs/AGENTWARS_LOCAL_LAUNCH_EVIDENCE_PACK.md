@@ -37,7 +37,7 @@ It deliberately records the protected downstream nodes as held.
 | 7 | Mobile static contracts | Checks deterministic mobile, truth, offline, and accessibility contracts | Hosted route, real user, deployed device support |
 | 8 | Real-browser acceptance | Runs Chromium navigation, failure, storage, responsive, offline, and accessibility journeys | Production browser, authenticated journey, external performance |
 | 9 | Hosted security, abuse, cleanup, browser authorization, and threat model | Runs local hosted-control-plane refusal, rollback, cleanup, browser-gateway, atomic-idempotency, and bounded key-rotation adversarial tests plus the repository-grounded 10-threat/8-boundary security model | Live Clerk/session verification, durable production store/rate-limit/deletion/idempotency parity, owner-pepper and idempotency-response-key custody/rotation execution, OS isolation, penetration review, and security approval |
-| 10 | Launch contracts, measurement, performance, observability, retention/deletion, incident, recovery, and tester-readiness drills | Runs strict measurement and observability zero-baseline gates, deterministic incident/support drills, classified atomic deletion simulation, source-bound rollback/recovery failure drills, deterministic Mobile Arena asset budgets, an exact fail-closed 16-step synthetic tester rehearsal, and digests the governing contracts | Consented human tester and feedback, durable/live counters and telemetry, real deletion, backup/restore, alert delivery, staffed support, production rollback/performance, legal approval |
+| 10 | Launch contracts, measurement, performance, observability, retention/deletion, incident, recovery, tester-readiness, and discoverability drills | Runs strict measurement and observability zero-baseline gates, deterministic incident/support drills, classified atomic deletion simulation, source-bound rollback/recovery failure drills, deterministic Mobile Arena asset budgets, an exact fail-closed 16-step synthetic tester rehearsal, and a prelaunch search/AI contract with indexing disabled | Consented human tester and feedback, durable/live counters and telemetry, real deletion, backup/restore, alert delivery, staffed support, production rollback/performance, canonical origin, indexing, citations, audience, legal approval |
 | 11 | Protected runtime configuration | Executes nothing; records `HELD_PROTECTED` | Clerk, Redis, webhook, peppers, reviewer keys, rate limits, flags |
 | 12 | Source-bound deployment and rollback | Executes nothing; records `HELD_PROTECTED` | Target, DNS/TLS, served bytes, performance, observability, rollback |
 | 13 | Tester, review, and launch authority | Executes nothing; records `HELD_PROTECTED` | Consented customer, genuine provider match, deletion, detached review, launch decision |
@@ -117,6 +117,10 @@ The JSON includes:
   eight-category uncollected feedback rubric, 11-class cleanup matrix, and
   non-actionable operator packet with every human and production authority
   field false;
+- a versioned discoverability and launch-copy contract, crawler-wide prelaunch
+  disallow policy, voluntary AI-orientation file, absent sitemap/canonical/
+  structured-data claims, and explicit zero indexing, citation, audience,
+  publication, and launch authority;
 - post-run source/tree/cleanliness proof;
 - false production claims and the next protected gate; and
 - `packDigest`, the SHA-256 of canonical JSON before that field is added.

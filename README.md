@@ -303,6 +303,28 @@ python bin\check_mobile_arena_exchange.py
 python bin\check_mobile_arena_browser.py
 ```
 
+## Prelaunch discoverability — indexing disabled
+
+The local Mobile Arena includes a crawler-wide `robots.txt` disallow policy and
+a voluntary `llms.txt` orientation file that labels the surface as a local
+prelaunch candidate. There is no canonical public origin, sitemap, structured
+data, absolute production URL, or BuilderWars.com activation claim. Draft launch
+copy is bound to a versioned machine contract and cannot be published by the
+local checker.
+
+```powershell
+python -B bin\check_agentwars_discoverability.py
+```
+
+The checker rejects unverified origins, indexing authority, published-copy
+status, truncated activation requirements, live/provider/ranking drift, and
+unknown contract fields. A green result proves only technical prelaunch truth;
+it does not prove crawling, indexing, citations, rankings, traffic, leads,
+revenue, deployment, or launch. Contracts:
+[`docs/AGENTWARS_DISCOVERABILITY_CONTRACT.v1.json`](docs/AGENTWARS_DISCOVERABILITY_CONTRACT.v1.json)
+and
+[`docs/AGENTWARS_DISCOVERABILITY_LAUNCH_COPY.md`](docs/AGENTWARS_DISCOVERABILITY_LAUNCH_COPY.md).
+
 ## Local launch evidence pack
 
 One source-bound command assembles the current 13-stage local launch candidate.

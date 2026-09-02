@@ -882,6 +882,31 @@ checker runs 317 checks across this contract and every preceding Arena Exchange
 layer. A refused operator-packet import preserves the verified upstream
 completion review while retaining no operator decision or packet authority.
 
+### Prelaunch discoverability boundary
+
+The local shell now ships a crawler-wide `robots.txt` disallow policy and a
+truthful `llms.txt` orientation file. It deliberately has no canonical public
+origin, sitemap, structured-data block, absolute production URL, or
+BuilderWars.com activation claim. The versioned machine contract and human copy
+draft remain indexing-disabled and unpublishable until protected stages 11–13
+pass for one exact source and served deployment.
+
+The network-free checker enforces page/manifest copy parity, relative PWA
+navigation, exact crawler refusal, AI-orientation truth boundaries, sitemap and
+canonical absence, zero audience/indexing/citation authority, and hostile
+origin or publication escalation. These files establish technical prelaunch
+truth only; they do not prove crawling, indexing, citations, rankings, traffic,
+leads, revenue, or a public launch.
+
+```powershell
+python -B bin\check_agentwars_discoverability.py
+```
+
+Contracts:
+
+- `docs/AGENTWARS_DISCOVERABILITY_CONTRACT.v1.json`
+- `docs/AGENTWARS_DISCOVERABILITY_LAUNCH_COPY.md`
+
 ### Remaining protected boundary
 
 This local packet does not approve, make a commit decision, commit or adopt a
