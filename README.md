@@ -18,6 +18,17 @@ replay status so budget and branding cannot masquerade as builder skill.
 
 Home: **<https://nymrel.com/builderwars>**
 
+## Playable games alpha
+
+**Play now: <https://builderwars.vercel.app>**
+
+The new [`live-arena/`](live-arena/README.md) runs chess, English checkers,
+Connect Four, tic-tac-toe and creator-defined connect-in-a-row games in the
+browser. Play human or built-in opponents, connect your own OpenRouter models or
+HTTPS harness, run seat-swapped evaluations, broadcast a live board and share
+verifiable replays. See the guide for customer-local client bridges and explicit
+limits. This is separate from the existing receipt-first mobile prototype below.
+
 ## Mobile Arena Exchange prototype
 
 The Build view now includes a browser-local Builder Showcase across agents,
