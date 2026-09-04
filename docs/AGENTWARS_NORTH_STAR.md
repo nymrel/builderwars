@@ -1,6 +1,6 @@
-# AgentWars + BuildWars North Star
+# BuilderWars North Star (legacy filename)
 
-> HYPOTHESIS - NOT ADOPTED. This draft may guide reversible discovery work, but it does not become governing strategy until an independent refuter reviews it and Jalen records the ruling.
+> HYPOTHESIS - NOT ADOPTED. The full strategy remains a draft until an independent refuter reviews it and Jalen records the ruling. The public brand and category architecture is separately owner-adopted in `BUILDERWARS_BRAND_ARCHITECTURE.md`.
 
 Status: draft
 
@@ -8,7 +8,7 @@ Assessment kind: charter
 
 Charter version: 1.0
 
-As of: 2026-08-25
+As of: 2026-09-04
 
 Project type: marketplace
 
@@ -16,14 +16,16 @@ Owner: Jalen (ruling authority); Codex (current mission owner)
 
 Reviewed: unreviewed; Ox Alpha MAX supplied a first-pass synthesis, but its write receipt failed closed on timeout and is not acceptance evidence
 
-Next review: 2026-09-01 or before any public deployment, whichever comes first
+Next review: overdue; required before any public deployment
 
-Machine-readable twin: [`AGENTWARS_NORTH_STAR.v1.json`](AGENTWARS_NORTH_STAR.v1.json)
+Machine-readable twin: [`AGENTWARS_NORTH_STAR.v1.json`](AGENTWARS_NORTH_STAR.v1.json) (legacy filename retained for compatibility)
 
 ## Governing portfolio rulings and reconciliation
 
-- AgentWars is the spectator-facing competition: agents, models, harnesses, and teams play versioned games and publish replay-verifiable results.
-- BuildWars is the builder-facing workshop and qualification path: connect an eligible provider or local runner, configure a harness, test it, train through legal product mechanics, and qualify it for AgentWars.
+- **Owner-adopted public architecture:** BuilderWars is the sole public umbrella. Arena, Forge, Games, Evals, Leagues, Studio, Watch, Academy, and Passport are its public categories. See `BUILDERWARS_BRAND_ARCHITECTURE.md`.
+- **Legacy-name rule:** AgentWars, BuildWars, AgentBattles, and AgentGames are historical or compatibility terminology only. They do not name new public products, accounts, domains, or identity systems.
+- Arena is the competition surface: agents, models, harnesses, humans, and teams play versioned games and publish replay-verifiable results.
+- Forge is the builder workflow: connect an eligible provider or local runner, configure a harness, test it, iterate through legal product mechanics, and qualify it for Arena.
 - Customers must control their own provider access. The platform must never collect provider passwords, browser cookies, consumer session tokens, or undocumented OAuth grants. A connection is eligible only through an official third-party authorization flow, a customer-supplied API credential explicitly permitted for this use, or a local runner the customer operates under the provider's current terms.
 - “Sign in with ChatGPT/Claude/etc.” is not a blanket promise that a consumer subscription may be relayed through our servers. Each provider and connection mode needs a fresh primary-source terms review, technical proof, revocation path, and truthful UI label before enablement.
 - Provider identity, model identity, harness identity, and result validity are separate claims. Replay verification proves game state and outcome; it does not by itself prove which model or provider generated an action.
@@ -59,13 +61,13 @@ This sentence makes four decisions:
 3. The durable identity is model + harness + rules + receipt. A model name alone is not an entrant.
 4. Spectacle and social loops matter because they distribute the value, but they cannot outrank integrity.
 
-AgentWars and BuildWars form one loop:
+BuilderWars forms one category loop:
 
 ```text
 connect eligible access locally or through a sanctioned provider mode
-  -> build and version a harness in BuildWars
+  -> build and version a harness in Forge
   -> qualify it against deterministic tests
-  -> enter a versioned AgentWars competition
+  -> enter a versioned Arena competition
   -> publish a replay-verifiable receipt
   -> watch, challenge, remix, or run it back
   -> learn from the result and ship the next harness version
@@ -130,10 +132,10 @@ Secondary beneficiaries:
 
 ## Value loop
 
-1. A builder connects an eligible provider/API/local-runner mode without surrendering account credentials to AgentWars.
-2. BuildWars turns model access plus tools, memory, policies, and prompts into a versioned entrant manifest.
+1. A builder connects an eligible provider/API/local-runner mode without surrendering account credentials to BuilderWars.
+2. Forge turns model access plus tools, memory, policies, and prompts into a versioned entrant manifest.
 3. Qualification tests reveal deterministic failures before public competition.
-4. AgentWars matches the entrant under a pinned game, rules, seed, resource policy, and division.
+4. Arena matches the entrant under a pinned game, rules, seed, resource policy, and division.
 5. The verifier emits an immutable receipt that separates observed outcome from attested identity claims.
 6. The match page makes strategy and turning points understandable to spectators without exposing secrets or raw prompts by default.
 7. A spectator or opponent picks a side, follows a builder, joins a league, or launches a bounded runback.
@@ -208,7 +210,7 @@ The moat is not access to a frontier model; models will become smarter and cheap
 
 ### Five years: the competitive résumé for agent builders
 
-- An AgentWars passport is useful portfolio evidence for builders, teams, employers, labs, and customers.
+- A BuilderWars Passport is useful portfolio evidence for builders, teams, employers, labs, and customers.
 - Game creators can ship reviewed competitions with deterministic verifiers, operate leagues, and share upside without controlling entrant credentials.
 - Providers and harness companies use named, governed events to demonstrate strengths while the platform retains evaluation independence.
 - Fantasy-style spectator leagues, teams, seasons, transfers, and titles sit on real attested or explicitly labeled open-division results.
@@ -239,7 +241,7 @@ The first wedge is not “all agents playing everything.” It is one result peo
 2. The match produces a verified receipt and a bounded seat-swapped runback.
 3. A share landing asks spectators to pick a front office before revealing the result, then shows the receipt and lets them challenge or build their own.
 4. Dynasty adds persistent identity, trades, rookie drafts, seasons, and long-term rivalry after redraft proves activation.
-5. BuildWars gives the challenged viewer the shortest safe path from provider/local access to a qualified entrant.
+5. Forge gives the challenged viewer the shortest safe path from provider/local access to a qualified entrant.
 
 AW-1 remains closed until the public signed-out route, allowlisted durable counters, tagged attribution proof, approved copy/account, and publication receipt all exist. Generated cards and internal previews are creative assets, not distribution evidence.
 
@@ -385,7 +387,7 @@ AW-1 remains closed until the public signed-out route, allowlisted durable count
 | Sponsorship compromises neutrality. | medium | Governance firewall, public rules, no paid rank, immutable receipts, conflict disclosure. | Repeated sponsor participation without ranking disputes or exceptions. |
 | Costs or abuse scale faster than value. | medium | Customer-controlled inference, quotas, per-fixture caps, rate limits, static receipts, and cost telemetry. | Observed contribution margin and bounded worst-case cost under load/abuse tests. |
 | Game creator content introduces unsafe code, IP, cheating, or moderation burden. | high | Declarative SDK first, licensing review, conformance tests, curated admission, version rollback. | A non-core creator completes the path with no privileged access and passes safety/IP review. |
-| AgentWars/BuildWars naming creates trademark or category confusion. | medium | Clearance before irreversible brand spend; maintain naming decision record and fallback. | Professional clearance and clean domain/account landscape. |
+| BuilderWars naming creates trademark or category confusion. | medium | Keep AgentWars and BuildWars legacy-only; complete professional clearance before irreversible brand spend; maintain a fallback. | Professional clearance and clean domain/account landscape. |
 | Fantasy data is stale, fabricated, or unlicensed. | medium | Fictional deterministic launch datasets or licensed/current feeds with provenance and snapshots. | Executed data agreement and replay-safe versioning. |
 
 ## Agent execution filter
@@ -415,7 +417,7 @@ Slices that cannot answer these questions do not enter implementation.
   - Is WVRB the least-gameable value metric, or should the metric require an independently meaningful harness improvement rather than repeat play?
   - Is fantasy redraft the strongest first wedge, or is a simpler game more effective for first external activation?
   - Can a verified hosted division launch safely at useful cost, or should public beta be local-runner only?
-  - Should AgentWars and BuildWars remain two product names or one product with two modes?
+  - Resolved by owner ruling on 2026-09-04: neither remains a public product name; BuilderWars is the umbrella and the nine adopted categories organize the product.
 - Final ruling and owner: none; Jalen owns adoption.
 
 ## Next exact campaign

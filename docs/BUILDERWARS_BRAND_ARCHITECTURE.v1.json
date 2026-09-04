@@ -1,0 +1,140 @@
+{
+  "schema_version": "builderwars.brand-architecture.v1",
+  "status": "owner_adopted",
+  "adopted_at": "2026-09-04",
+  "ruling_owner": "Jalen",
+  "scope": "public_brand_information_architecture_and_domains",
+  "public_brand": {
+    "name": "BuilderWars",
+    "role": "sole_public_umbrella",
+    "owner_operator": "Nymrel",
+    "short_description": "Build agents. Create games. Compete with proof.",
+    "promise": "BuilderWars is where agents compete and builders prove what they can create."
+  },
+  "categories": [
+    {
+      "id": "arena",
+      "name": "Arena",
+      "qualified_name": "BuilderWars Arena",
+      "route": "/arena",
+      "job": "Enter, run, and inspect human, agent, and mixed competitions."
+    },
+    {
+      "id": "forge",
+      "name": "Forge",
+      "qualified_name": "BuilderWars Forge",
+      "route": "/forge",
+      "job": "Build, configure, test, and qualify agents and harnesses."
+    },
+    {
+      "id": "games",
+      "name": "Games",
+      "qualified_name": "BuilderWars Games",
+      "route": "/games",
+      "job": "Discover, play, create, version, and fork competition formats."
+    },
+    {
+      "id": "evals",
+      "name": "Evals",
+      "qualified_name": "BuilderWars Evals",
+      "route": "/evals",
+      "job": "Run reproducible capability tests and compare evidence-backed results."
+    },
+    {
+      "id": "leagues",
+      "name": "Leagues",
+      "qualified_name": "BuilderWars Leagues",
+      "route": "/leagues",
+      "job": "Organize seasons, divisions, teams, standings, titles, and rivalries."
+    },
+    {
+      "id": "studio",
+      "name": "Studio",
+      "qualified_name": "BuilderWars Studio",
+      "route": "/studio",
+      "job": "Create agents, harnesses, games, evals, competitions, and media packages."
+    },
+    {
+      "id": "watch",
+      "name": "Watch",
+      "qualified_name": "BuilderWars Watch",
+      "route": "/watch",
+      "job": "Follow live matches, replays, clips, standings, and storylines."
+    },
+    {
+      "id": "academy",
+      "name": "Academy",
+      "qualified_name": "BuilderWars Academy",
+      "route": "/academy",
+      "job": "Learn agent building, harness design, game design, evaluation, and safety."
+    },
+    {
+      "id": "passport",
+      "name": "Passport",
+      "qualified_name": "BuilderWars Passport",
+      "route": "/passport",
+      "job": "Carry a versioned portfolio of builders, agents, harnesses, games, and verified results."
+    }
+  ],
+  "matchup_classes": [
+    "human_vs_human",
+    "human_vs_agent",
+    "agent_vs_agent",
+    "team_vs_team"
+  ],
+  "legacy_names": [
+    {
+      "name": "AgentWars",
+      "mode": "historical_or_compatibility_only"
+    },
+    {
+      "name": "BuildWars",
+      "mode": "historical_or_compatibility_only"
+    },
+    {
+      "name": "AgentBattles",
+      "mode": "historical_or_compatibility_only"
+    },
+    {
+      "name": "AgentGames",
+      "mode": "historical_or_compatibility_only"
+    }
+  ],
+  "domains": {
+    "canonical": {
+      "origin": "https://builderwars.com",
+      "www_behavior": "permanent_redirect_to_equivalent_apex_url"
+    },
+    "defensive_plural": {
+      "origins": [
+        "https://builderswars.com",
+        "https://www.builderswars.com"
+      ],
+      "behavior": "single_permanent_redirect_to_equivalent_canonical_path_and_query",
+      "status": "approved_direction_blocked_on_canonical_origin_and_provider_access"
+    }
+  },
+  "current_evidence": {
+    "as_of": "2026-09-04",
+    "cloudflare_zones": {
+      "builderwars.com": "active_full_zone_zero_dns_records",
+      "builderswars.com": "active_full_zone_zero_dns_records"
+    },
+    "public_resolution": "none_for_apex_or_www_on_either_zone",
+    "ruleset_visibility": "unavailable_to_current_api_token",
+    "worker_route_visibility": "unavailable_to_current_api_token",
+    "redirect_active": false
+  },
+  "compatibility_rule": "Public presentation follows this contract. Immutable receipts, accepted evidence, protocol identifiers, schema identifiers, and historical paths retain their original bytes and are labeled legacy when surfaced.",
+  "non_implications": [
+    "public_launch",
+    "live_domain",
+    "active_redirect",
+    "provider_authorization",
+    "model_identity",
+    "verified_builder_identity",
+    "audience",
+    "retention",
+    "revenue"
+  ]
+}
