@@ -301,6 +301,32 @@ legend { margin-bottom: 8px; }
 .qualification-row { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
 .qualification-row strong { color: var(--risk); }
 .qualification-row strong.ready { color: var(--lime); }
+.builder-showcase { margin-top: 22px; padding: 18px; display: grid; gap: 16px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 90%, var(--lime) 10%), var(--surface)); }
+.showcase-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.showcase-heading h2 { max-width: 680px; margin: 3px 0 0; font-size: clamp(20px, 5vw, 34px); line-height: 1.04; }
+.showcase-score { flex: 0 0 auto; min-width: 78px; padding: 10px 12px; display: grid; gap: 2px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); text-align: right; }
+.showcase-score strong { color: var(--lime); font-size: 20px; line-height: 1; }
+.showcase-score span { color: var(--muted); font-size: 8px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.showcase-intro, .showcase-boundary { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.showcase-capabilities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.showcase-capability { min-width: 0; }
+.showcase-capability-button { width: 100%; min-height: 82px; padding: 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr); grid-template-rows: auto auto; align-items: center; gap: 7px 9px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+.showcase-capability-button.is-active { border-color: color-mix(in srgb, var(--lime) 72%, var(--line)); background: color-mix(in srgb, var(--surface) 88%, var(--lime) 12%); }
+.showcase-mark { width: 34px; height: 34px; display: grid; place-items: center; grid-row: 1; border-radius: 9px; background: var(--surface-2); color: var(--lime); font-size: 10px; font-weight: 900; letter-spacing: .05em; }
+.showcase-capability-button > span:nth-child(2) { min-width: 0; display: grid; gap: 3px; }
+.showcase-capability-button strong { font-size: 12px; }
+.showcase-capability-button small { overflow: hidden; color: var(--muted); font-size: 8px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.showcase-inclusion { grid-column: 1 / -1; color: var(--muted); font-size: 8px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.showcase-inclusion.is-included { color: var(--lime); }
+.showcase-focus { min-width: 0; padding: 16px; display: grid; gap: 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.showcase-focus-copy { min-width: 0; }
+.showcase-focus h3 { margin: 6px 0; font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
+.showcase-focus p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.showcase-proof-state { margin: 0; display: grid; gap: 10px; }
+.showcase-proof-state div { min-width: 0; display: grid; gap: 3px; }
+.showcase-proof-state dt { color: var(--muted); font-size: 8px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.showcase-proof-state dd { margin: 0; font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; }
+.showcase-focus .secondary-button { width: 100%; }
 .bottom-nav { position: fixed; z-index: 30; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding: 8px 8px env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(5, 1fr); background: color-mix(in srgb, #0a0c0b 94%, transparent); border-top: 1px solid var(--line); backdrop-filter: blur(20px); }
 .nav-item { min-width: 54px; min-height: 56px; border: 0; background: none; color: var(--muted); display: grid; justify-items: center; align-content: center; gap: 4px; cursor: pointer; font-size: 9px; font-weight: 750; }
 .nav-item svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
@@ -389,6 +415,7 @@ legend { margin-bottom: 8px; }
   .brand { gap: 7px; font-size: 14px; }
   .demo-badge { display: none; }
   .topbar-actions { gap: 4px; }
+  .view-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
   .starter-heading { grid-template-columns: 1fr; gap: 4px; }
   .starter-dismiss { justify-self: start; }
 }
@@ -401,6 +428,9 @@ legend { margin-bottom: 8px; }
   .starter-grid { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; padding-bottom: 0; }
   .arena-layout { grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr); align-items: start; }
   .watch-layout, .compete-layout, .learn-layout, .build-layout { grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); }
+  .showcase-capabilities { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .showcase-focus { grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr) auto; align-items: center; }
+  .showcase-focus .secondary-button { width: auto; min-width: 190px; }
   .local-play-shell { grid-column: 1 / -1; }
   .local-play-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .receipt-learning, .creator-game-lesson { grid-column: 1 / -1; }
@@ -435,7 +465,8 @@ legend { margin-bottom: 8px; }
   *, *::before, *::after { box-shadow: none !important; text-shadow: none !important; }
   .topbar, .connection-strip, .bottom-nav, .bottom-sheet, .starter-panel,
   .card, .watch-item, .filter-button, .follow-button, .primary-button,
-  .secondary-button, .queue-button, .danger-button, .local-play-card, input, select, textarea,
+  .secondary-button, .queue-button, .danger-button, .local-play-card, .builder-showcase,
+  .showcase-score, .showcase-capability-button, .showcase-focus, input, select, textarea,
   fieldset, .proof-trust-strip, .proof-trust-chip, .proof-predicates, .proof-predicates > summary::after { border-color: CanvasText; }
   .topbar, .connection-strip, .bottom-nav, .bottom-sheet, .starter-panel,
   .card, .watch-item, input, select, textarea { background: Canvas; color: CanvasText; }

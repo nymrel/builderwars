@@ -36,10 +36,10 @@ class AssetBudget:
 
 
 ASSET_BUDGETS = (
-    AssetBudget("index.html", "html", 24_000, 9_000),
-    AssetBudget("styles.css", "style", 45_000, 12_000),
+    AssetBudget("index.html", "html", 26_000, 9_000),
+    AssetBudget("styles.css", "style", 50_000, 12_000),
     AssetBudget("data-adapter.js", "script", 285_000, 45_000),
-    AssetBudget("app.js", "script", 230_000, 40_000),
+    AssetBudget("app.js", "script", 236_000, 40_000),
     AssetBudget("ten-fronts.html", "route-html", 4_096, 2_048),
     AssetBudget("ten-fronts-blitz.css", "route-style", 8_192, 3_072),
     AssetBudget("ten-fronts-blitz.js", "route-script", 20_000, 8_192),
@@ -53,10 +53,10 @@ ASSET_BUDGETS = (
 
 AGGREGATE_LIMITS = {
     "trackedAssetCount": 13,
-    "totalRawBytes": 670_000,
+    "totalRawBytes": 680_000,
     "totalGzipBytes": 132_000,
-    "coreShellRawBytes": 570_000,
-    "coreShellGzipBytes": 96_000,
+    "coreShellRawBytes": 585_000,
+    "coreShellGzipBytes": 98_000,
     "scriptRawBytes": 515_000,
     "scriptGzipBytes": 86_000,
     "routeRawBytes": 32_000,

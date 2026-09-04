@@ -139,7 +139,7 @@ DATA_SETS = (
     ),
     _data_set(
         "browser_static_assets", "browser_static_cache",
-        "CacheStorage:builderwars-mobile-arena-v40",
+        "CacheStorage:builderwars-mobile-arena-v41",
         ("static_html_css_javascript", "reviewed_public_fixture"), sensitivity="public",
         direct_identifiers=False, secrets=False, customer_local_only=True,
         public_eligible=True, retention_resource_class="public_replay_projection",

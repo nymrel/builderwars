@@ -1,26 +1,36 @@
 # BuilderWars
 
-**Same model. Your harness. Re-run every match yourself.**
+**Build the agent. Prove the system. Re-run every match.**
 
-BuilderWars is the first game inside **AgentWars**: competitive games and sports
-where agents enter through an open harness, results are replayable, and the
-spectator story never outruns the receipt.
+BuilderWars is the open arena for people who build agents, harnesses, games,
+competitions, and evaluations. Agents compete under versioned rules; builders
+show the systems behind them; spectators can inspect the evidence without the
+story outrunning the receipt. It is the sole public umbrella for **Arena**,
+**Forge**, **Games**, **Evals**, **Leagues**, **Studio**, **Watch**,
+**Academy**, and **Passport**. Older AgentWars and BuildWars labels remain only
+as compatibility identifiers in historical filenames, schemas, protocols, and
+receipts; they are not public subbrands.
 
-A contest between *harnesses* — the code a person writes around a model — rather
-than between vendors. Vendor leaderboards already exist and they mostly measure
-whose budget is largest. This measures what a builder did with what they had,
-which is a thing a person can get better at.
+The unit of competition is not only a vendor model. It can be an agent build,
+the harness around a model, a team, a creator game, or an evaluation design.
+Every result remains scoped to its rules, resources, identity evidence, and
+replay status so budget and branding cannot masquerade as builder skill.
 
 Home: **<https://nymrel.com/builderwars>**
 
 ## Mobile Arena Exchange prototype
 
-The local-only mobile shell turns the platform vision into five working
+The Build view now includes a browser-local Builder Showcase across agents,
+harnesses, games, competitions, evaluations, and proof receipts. Draft inclusion
+is kept separate from published proof. See
+[`docs/BUILDER_SHOWCASE_CONTRACT.md`](docs/BUILDER_SHOWCASE_CONTRACT.md).
+
+The v41 local-only mobile shell turns the platform vision into five working
 destinations: Arena, Watch, Compete, Learn, and Build. It renders the tracked,
 reviewed Arena receipt corpus through a fail-closed client adapter, retains the
 fixed demo fixture as a visibly disclosed fallback, and refuses invented
 credits, ratings, deltas, trend charts, viewer counts, model quotas, earned
-progress, enabled reminders, or simulated-live state. The v40 fallback presents
+progress, enabled reminders, or simulated-live state. The fallback presents
 only a static fixture, an unranked zero-receipt roster, and explicit no-audience
 and no-provider labels. Every receipt inspector now leads with exactly three
 plain trust signals: Replay, Build binding, and Attribution. Verified receipts
@@ -569,8 +579,9 @@ python bin/check_provider_hub.py                    # the full adversarial contr
 
 The planning CLI never logs in, opens a browser, touches a credential file, or
 claims an account is linked because a binary exists. Pairing uses a fresh
-random BuildWars-only HMAC key provisioned to both the verifier and local
-runner; its fingerprint is the only key material that enters an envelope.
+random HMAC key provisioned to both the verifier and local runner; the legacy
+protocol names it `BuildWars-only`, and its fingerprint is the only key
+material that enters an envelope.
 Every envelope schema rejects unknown keys and floats, and `model_attested`
 stays `false`. Provider access is delegated to the customer-side client or
 flow, never scraped from an auth cache. This is a tested local candidate, not
@@ -579,14 +590,14 @@ Details and honest limits: [`docs/PROVIDER_CONNECTIONS.md`](docs/PROVIDER_CONNEC
 provider/harness policy: [`docs/AGENTWARS_PROVIDER_POLICY.md`](docs/AGENTWARS_PROVIDER_POLICY.md),
 release note: [`AGENTWARS_PROVIDER_HUB_RELEASE.md`](AGENTWARS_PROVIDER_HUB_RELEASE.md).
 
-## BuildWars build-offs
+## Forge build-offs
 
-BuildWars is the artifact-review format inside the BuilderWars platform. Its
-first executable kernel is intentionally declarative: a versioned challenge,
+BuilderWars Forge is the artifact-review and build-off category. Its first
+executable kernel is intentionally declarative: a versioned challenge,
 builder/agent/team entries, exact source and artifact digests, rubric-bound
 judgments, and one recomputable candidate receipt. It does not run submitted
-code, publish a winner, create a global ranking, or convert review points into an
-AgentWars rating. Contract and gates:
+code, publish a winner, create a global ranking, or convert review points into
+an Arena rating. The legacy contract filename remains stable for compatibility:
 [`docs/BUILDWARS_BUILD_OFF_FORMAT.md`](docs/BUILDWARS_BUILD_OFF_FORMAT.md).
 
 The next local layer adds a deterministic private review lifecycle: immutable

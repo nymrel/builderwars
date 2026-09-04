@@ -93,6 +93,8 @@ const state = {
   testerFeedbackDraft: null,
   testerFeedbackSerialized: "",
   testerFeedbackError: null,
+  selectedBuilderCapability: "agent",
+  builderShowcaseCapabilities: new Set(["agent", "harness"]),
   lastFocus: null,
 };
 
@@ -104,6 +106,15 @@ const STARTER_GUIDE_STORAGE_KEY = "builderwars.mobile-arena.starter-guide.v1";
 const STARTER_GUIDE_COMPLETE = "complete";
 const BLUEPRINT_MAX_LENGTH = 2048;
 const BLUEPRINT_GUARD_KEYS = ["strictValidation", "fallbackDisclosure", "humanCheckpoints"];
+const BUILDER_CAPABILITY_IDS = ["agent", "harness", "game", "competition", "evaluation", "receipt"];
+const BUILDER_CAPABILITY_LABELS = {
+  agent: "Agent",
+  harness: "Harness",
+  game: "Game",
+  competition: "Competition",
+  evaluation: "Evaluation",
+  receipt: "Receipt",
+};
 const PORTABLE_REVIEW_DECISION_LABELS = {
   accept_for_blueprint_revision: "Accept for blueprint revision only",
   defer: "Defer private review",
@@ -922,12 +933,15 @@ function updateConnectionStatus() {
 function blueprintFromForm() {
   const form = new FormData($("#builder-form"));
   return {
+    builderName: String(form.get("builderName") || "Local Builder").trim().slice(0, 36),
+    builderFocus: String(form.get("builderFocus") || "Full-stack agent systems"),
     agentName: String(form.get("agentName") || "Untitled Agent").trim().slice(0, 36),
     baseModel: String(form.get("baseModel")),
     harnessStyle: String(form.get("harnessStyle")),
     strictValidation: form.has("strictValidation"),
     fallbackDisclosure: form.has("fallbackDisclosure"),
     humanCheckpoints: form.has("humanCheckpoints"),
+    showcaseCapabilities: BUILDER_CAPABILITY_IDS.filter((capabilityId) => state.builderShowcaseCapabilities.has(capabilityId)),
     localOnly: true,
   };
 }
@@ -994,6 +1008,10 @@ function hydrateLocalBlueprint() {
       return;
     }
     state.blueprintStored = true;
+    const builderName = typeof blueprint.builderName === "string" ? blueprint.builderName.trim().slice(0, 36) : "";
+    if (builderName) $("#builder-name").value = builderName;
+    const focusOptions = [...$("#builder-focus").options].map((option) => option.value);
+    if (focusOptions.includes(blueprint.builderFocus)) $("#builder-focus").value = blueprint.builderFocus;
     const name = blueprint.agentName.trim().slice(0, 36);
     if (name) $("#agent-name").value = name;
     const baseOptions = [...$("#base-model").options].map((option) => option.value);
@@ -1002,6 +1020,11 @@ function hydrateLocalBlueprint() {
     if (harnessOptions.includes(blueprint.harnessStyle)) $("#harness-style").value = blueprint.harnessStyle;
     for (const key of BLUEPRINT_GUARD_KEYS) {
       if (typeof blueprint[key] === "boolean") $(`[name="${key}"]`).checked = blueprint[key];
+    }
+    if (Array.isArray(blueprint.showcaseCapabilities)) {
+      state.builderShowcaseCapabilities = new Set(
+        blueprint.showcaseCapabilities.filter((capabilityId) => BUILDER_CAPABILITY_IDS.includes(capabilityId)),
+      );
     }
   } catch {
     state.blueprintStored = false;
@@ -1170,6 +1193,8 @@ function armOrRemoveLocalBlueprint() {
     if (localStorage.getItem(BLUEPRINT_STORAGE_KEY) !== null) throw new Error("browser storage retained blueprint");
     state.blueprintStored = false;
     disarmBlueprintRemoval({ render: false });
+    state.selectedBuilderCapability = "agent";
+    state.builderShowcaseCapabilities = new Set(["agent", "harness"]);
     $("#builder-form").reset();
     renderBlueprint();
     renderCompete();
@@ -1200,7 +1225,95 @@ function renderBlueprint() {
       : "Guards needed · not run";
     qualificationStatus.classList.toggle("ready", blueprint.strictValidation && blueprint.fallbackDisclosure);
   }
+  renderBuilderShowcase(blueprint);
   return blueprint;
+}
+
+function builderCapabilityRows(blueprint) {
+  const gameTitle = state.creatorGameLab?.manifest?.title || "No reviewed game loaded";
+  const receiptCount = Array.isArray(state.data?.proofReceipts) ? state.data.proofReceipts.length : 0;
+  return [
+    {
+      id: "agent",
+      mark: "AG",
+      artifact: blueprint.agentName || "Untitled Agent",
+      evidence: "Local blueprint",
+      description: "The decision-maker that enters a rules-bound arena.",
+      nextProof: "Qualify the exact agent build against a versioned game and resource class.",
+    },
+    {
+      id: "harness",
+      mark: "HR",
+      artifact: blueprint.harnessStyle,
+      evidence: "Declared configuration",
+      description: "The prompts, tools, parsing, memory, and guards around a model.",
+      nextProof: "Bind the harness version and source digest, then expose fallback and intervention counts.",
+    },
+    {
+      id: "game",
+      mark: "GM",
+      artifact: gameTitle,
+      evidence: state.creatorGameLab ? "Reviewed candidate · not admitted" : "No verified local candidate",
+      description: "A versioned environment with legible choices, scoring, and replay rules.",
+      nextProof: "Pass every creator-game admission gate before accepting code or awarding rank.",
+    },
+    {
+      id: "competition",
+      mark: "CX",
+      artifact: "Nim 2×2 harness study",
+      evidence: "Tracked protocol · not live",
+      description: "A controlled format that separates model, harness, seat, and seed effects.",
+      nextProof: "Complete the matched-seed matrix and publish only replay-passing result classes.",
+    },
+    {
+      id: "evaluation",
+      mark: "EV",
+      artifact: "Replay + source accounting",
+      evidence: "Local verifier surface",
+      description: "The measurement layer that turns a performance claim into inspectable evidence.",
+      nextProof: "Bind exact rules, environment, budget, source counts, and verifier snapshot.",
+    },
+    {
+      id: "receipt",
+      mark: "PR",
+      artifact: `${receiptCount} reviewed local receipt${receiptCount === 1 ? "" : "s"}`,
+      evidence: "Arena corpus · not builder-owned",
+      description: "Portable proof of what ran, under which rules, and what replay verified.",
+      nextProof: "Attach a builder-owned, identity-bound receipt without claiming model or provider attestation.",
+    },
+  ];
+}
+
+function renderBuilderShowcase(blueprint = blueprintFromForm()) {
+  const capabilities = builderCapabilityRows(blueprint);
+  if (!BUILDER_CAPABILITY_IDS.includes(state.selectedBuilderCapability)) state.selectedBuilderCapability = "agent";
+  const selected = capabilities.find((capability) => capability.id === state.selectedBuilderCapability) || capabilities[0];
+  const builderName = blueprint.builderName || "Local Builder";
+  const includedCount = state.builderShowcaseCapabilities.size;
+  $("#showcase-draft-count").textContent = `${includedCount}/${BUILDER_CAPABILITY_IDS.length}`;
+  $("#showcase-capabilities").innerHTML = capabilities.map((capability) => {
+    const included = state.builderShowcaseCapabilities.has(capability.id);
+    const active = capability.id === selected.id;
+    return `<div class="showcase-capability" role="listitem">
+      <button class="showcase-capability-button ${active ? "is-active" : ""}" type="button" data-showcase-select="${capability.id}" aria-pressed="${active}">
+        <span class="showcase-mark" aria-hidden="true">${capability.mark}</span>
+        <span><strong>${capability.id === "receipt" ? "Proof" : BUILDER_CAPABILITY_LABELS[capability.id]}</strong><small>${escapeHTML(capability.evidence)}</small></span>
+        <span class="showcase-inclusion ${included ? "is-included" : ""}">${included ? "Draft" : "Add"}</span>
+      </button>
+    </div>`;
+  }).join("");
+  const included = state.builderShowcaseCapabilities.has(selected.id);
+  $("#showcase-focus").innerHTML = `
+    <div class="showcase-focus-copy">
+      <span class="mode-label">${escapeHTML(builderName)} · ${escapeHTML(blueprint.builderFocus)}</span>
+      <h3>${escapeHTML(BUILDER_CAPABILITY_LABELS[selected.id])}: ${escapeHTML(selected.artifact)}</h3>
+      <p>${escapeHTML(selected.description)}</p>
+    </div>
+    <dl class="showcase-proof-state">
+      <div><dt>Evidence now</dt><dd>${escapeHTML(selected.evidence)}</dd></div>
+      <div><dt>Next proof</dt><dd>${escapeHTML(selected.nextProof)}</dd></div>
+    </dl>
+    <button class="secondary-button" type="button" data-showcase-toggle="${selected.id}" aria-pressed="${included}">${included ? "Remove from local draft" : "Add to local draft"}</button>`;
 }
 
 function renderAutomations() {
@@ -3096,6 +3209,23 @@ function bindEvents() {
   });
   $("#watch-filter").addEventListener("click", () => { state.followingFirst = !state.followingFirst; $("#watch-filter").textContent = state.followingFirst ? "Default order" : "Following first"; renderChannels(); });
   $("#builder-form").addEventListener("input", () => { renderBlueprint(); renderCompete(); });
+  $("#builder-showcase").addEventListener("click", (event) => {
+    const selectButton = event.target.closest("[data-showcase-select]");
+    if (selectButton) {
+      state.selectedBuilderCapability = selectButton.dataset.showcaseSelect;
+      renderBuilderShowcase();
+      $("#showcase-focus")?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+      return;
+    }
+    const toggleButton = event.target.closest("[data-showcase-toggle]");
+    if (!toggleButton) return;
+    const capabilityId = toggleButton.dataset.showcaseToggle;
+    if (!BUILDER_CAPABILITY_IDS.includes(capabilityId)) return;
+    if (state.builderShowcaseCapabilities.has(capabilityId)) state.builderShowcaseCapabilities.delete(capabilityId);
+    else state.builderShowcaseCapabilities.add(capabilityId);
+    renderBuilderShowcase();
+    showToast("Local showcase draft updated. Save the blueprint to retain it in this browser; nothing was published.");
+  });
   $("#builder-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const blueprint = renderBlueprint();

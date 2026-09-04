@@ -27,7 +27,7 @@ READ_MODEL_PATH = "**/data/arena-read-model.v1.json"
 DEMO_FIXTURE_PATH = "**/data/demo-state.json"
 TESTER_RUBRIC_PATH = "**/data/tester-feedback-rubric.v1.json"
 CREATOR_GAME_LAB_PATH = "**/data/creator-game-lab.v1.json"
-SHELL_VERSION = "40"
+SHELL_VERSION = "41"
 SHELL_CACHE_NAME = f"builderwars-mobile-arena-v{SHELL_VERSION}"
 VIEW_NAMES = ("arena", "watch", "compete", "learn", "build")
 VIEWPORTS = (
@@ -215,6 +215,15 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.journey("five-destination navigation")
 
         page.locator('.bottom-nav [data-nav="build"]').click()
+        evidence.require(page.locator("#showcase-capabilities .showcase-capability").count() == 6, "builder showcase: all six craft surfaces are visible")
+        evidence.require(page.locator("#showcase-draft-count").inner_text() == "2/6", "builder showcase: tracked default includes only agent and harness drafts")
+        showcase_boundary = page.locator(".showcase-boundary").inner_text().lower()
+        evidence.require(all(term in showcase_boundary for term in ("browser-local", "no builder identity", "ownership", "authorship", "ranking", "publication")), "builder showcase: identity, ownership, authorship, ranking, and publication boundaries are explicit")
+        page.locator('[data-showcase-select="receipt"]').click()
+        evidence.require("not builder-owned" in page.locator("#showcase-focus").inner_text().lower(), "builder showcase: Arena receipts cannot imply builder ownership")
+        evidence.require(page.locator('[data-showcase-toggle="receipt"]').get_attribute("aria-pressed") == "false", "builder showcase: referenced proof is not included by default")
+        page.locator('[data-showcase-select="agent"]').click()
+        evidence.journey("six-surface local Builder Showcase and proof-ownership boundary")
         creator_lab = page.locator("#creator-game-lab")
         evidence.require(creator_lab.is_visible(), "creator game: reviewed candidate lab is visible in Build")
         creator_text = creator_lab.inner_text()
@@ -419,6 +428,12 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.journey("deterministic local exhibition through receipt, learning, runback, portable proof resolution, discard, and reload cleanup")
 
         page.locator('.bottom-nav [data-nav="build"]').click()
+        page.locator("#builder-name").fill("Nymrel Studio")
+        page.locator("#builder-focus").select_option("Competition design")
+        page.locator('[data-showcase-select="game"]').click()
+        page.locator('[data-showcase-toggle="game"]').click()
+        evidence.require(page.locator("#showcase-draft-count").inner_text() == "3/6", "builder showcase: adding one capability updates only the local draft")
+        evidence.require("nothing was published" in page.locator("#toast").inner_text().lower(), "builder showcase: draft mutation denies publication")
         page.locator("#agent-name").fill("Browser Proof")
         page.locator("#builder-form button[type=submit]").click()
         evidence.require("saved locally" in page.locator("#toast").inner_text().lower(), "persistence: blueprint save is disclosed as browser-local")
@@ -426,6 +441,10 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         wait_for_source(page, "verified_corpus")
         page.locator('.bottom-nav [data-nav="build"]').click()
         evidence.require(page.locator("#agent-name").input_value() == "Browser Proof", "persistence: local blueprint survives reload")
+        evidence.require(page.locator("#builder-name").input_value() == "Nymrel Studio" and page.locator("#builder-focus").input_value() == "Competition design", "builder showcase: local builder identity draft survives explicit save and reload")
+        evidence.require(page.locator("#showcase-draft-count").inner_text() == "3/6", "builder showcase: selected capability set survives explicit save and reload")
+        page.locator('[data-showcase-select="game"]').click()
+        evidence.require(page.locator('[data-showcase-toggle="game"]').get_attribute("aria-pressed") == "true", "builder showcase: restored capability is announced as included")
         evidence.journey("local blueprint persistence")
 
         page.locator("#profile-button").click()
@@ -484,6 +503,7 @@ def normal_journey(browser: Any, base_url: str, evidence: Evidence, headed: bool
         evidence.require(page.locator("#session-blueprint-status").inner_text() == "Not saved", "local cleanup: session status reflects removal")
         evidence.require(remove_button.is_disabled(), "local cleanup: removal disables when no saved blueprint remains")
         evidence.require(page.locator("#agent-name").input_value() == "Fourth Quarter", "local cleanup: visible blueprint form returns to tracked defaults")
+        evidence.require(page.locator("#builder-name").input_value() == "Local Builder" and page.locator("#showcase-draft-count").inner_text() == "2/6", "local cleanup: Builder Showcase returns to tracked defaults")
         cleanup_toast = page.locator("#toast").inner_text().lower()
         evidence.require("browser-only blueprint removed" in cleanup_toast and "tracked source files were not deleted" in cleanup_toast, "local cleanup: receipt and source preservation is explicit")
         page.locator("[data-session-restart-starter]").click()
@@ -966,7 +986,7 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         cache_state = page.evaluate(
             """async () => {
               const keys = (await caches.keys()).sort();
-              const cache = await caches.open('builderwars-mobile-arena-v40');
+              const cache = await caches.open('builderwars-mobile-arena-v41');
               const urls = (await cache.keys()).map((request) => {
                 const url = new URL(request.url);
                 return `${url.pathname}${url.search}`;
