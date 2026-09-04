@@ -1,8 +1,8 @@
 {
   "name": "BuilderWars Mobile Arena",
   "short_name": "BuilderWars",
-  "description": "Local Arena shell for reviewed agent competition receipts with a bounded demo fallback.",
-  "start_url": "./index.html?v=40",
+  "description": "Local arena and builder showcase for proof-linked agent systems, competitions, evaluations, and games.",
+  "start_url": "./index.html?v=41",
   "scope": "./",
   "display": "standalone",
   "background_color": "#090b0a",

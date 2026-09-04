@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / "mobile-arena"
-EXPECTED_SHELL_VERSION = "40"
+EXPECTED_SHELL_VERSION = "41"
 EXPECTED = {
     "index.html",
     "styles.css",
@@ -139,6 +139,17 @@ def main() -> int:
     for required in ("proof-sheet", "automations-sheet", "qualification-sheet", "session-sheet", "tester-feedback-sheet", "tester-feedback-form", "tester-feedback-categories", "tester-feedback-output", "tester-feedback-json", "builder-form", "featured-match", "local-play-spotlight", "quick-matches", "rivalries", "receipt-learning", "proof-learning-button"):
         require(f'id="{required}"' in html, f"missing interactive surface: {required}")
         checks += 1
+    for required in ("builder-name", "builder-focus", "builder-showcase", "builder-showcase-title", "showcase-draft-count", "showcase-capabilities", "showcase-focus"):
+        require(f'id="{required}"' in html, f"missing Builder Showcase surface: {required}")
+        checks += 1
+    require("Build agents. Prove systems." in html and "One identity. Six ways to prove the work." in html, "Builder Showcase purpose hierarchy missing")
+    require(all(f'{capability}: ' in js for capability in ("agent", "harness", "game", "competition", "evaluation", "receipt")), "Builder Showcase must define all six proof surfaces")
+    require('BUILDER_CAPABILITY_IDS = ["agent", "harness", "game", "competition", "evaluation", "receipt"]' in js, "Builder Showcase capability order drift")
+    require("renderBuilderShowcase" in js and "data-showcase-select" in js and "data-showcase-toggle" in js, "Builder Showcase interaction wiring missing")
+    require("not builder-owned" in js and "A local claim is not published proof" in html, "Builder Showcase ownership and publication boundary missing")
+    require("No builder identity, ownership, authorship, admission, ranking, or publication is attested." in html, "Builder Showcase authority boundary missing")
+    require("showcaseCapabilities" in js and "state.builderShowcaseCapabilities = new Set" in js, "Builder Showcase must use the existing bounded blueprint lifecycle")
+    checks += 7
     for required in ("starter-panel", "starter-title", "starter-boundary", "starter-guide-button", "starter-persistence"):
         require(f'id="{required}"' in html, f"missing first-run starter surface: {required}")
         checks += 1

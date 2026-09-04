@@ -19,10 +19,10 @@ opens no browser, socket, provider, account, deployment, or analytics source.
 
 | Asset | Role | Raw limit | Deterministic gzip limit |
 | --- | --- | ---: | ---: |
-| `index.html` | HTML | 24,000 B | 9,000 B |
-| `styles.css` | Style | 45,000 B | 12,000 B |
+| `index.html` | HTML | 26,000 B | 9,000 B |
+| `styles.css` | Style | 50,000 B | 12,000 B |
 | `data-adapter.js` | Script | 285,000 B | 45,000 B |
-| `app.js` | Script | 230,000 B | 40,000 B |
+| `app.js` | Script | 236,000 B | 40,000 B |
 | `ten-fronts.html` | Route HTML | 4,096 B | 2,048 B |
 | `ten-fronts-blitz.css` | Route style | 8,192 B | 3,072 B |
 | `ten-fronts-blitz.js` | Route script | 20,000 B | 8,192 B |
@@ -42,10 +42,10 @@ manifest, icon, reviewed corpus, demo fallback, and service worker.
 | Metric | Limit |
 | --- | ---: |
 | Tracked assets | 13 |
-| Total raw bytes | 670,000 B |
+| Total raw bytes | 680,000 B |
 | Total deterministic gzip bytes | 132,000 B |
-| Core shell raw bytes | 570,000 B |
-| Core shell deterministic gzip bytes | 96,000 B |
+| Core shell raw bytes | 585,000 B |
+| Core shell deterministic gzip bytes | 98,000 B |
 | Core script raw bytes | 515,000 B |
 | Core script deterministic gzip bytes | 86,000 B |
 | Lazy route raw bytes | 32,000 B |
@@ -86,6 +86,17 @@ v40 receipt is 664,908 raw / 115,238 deterministic gzip bytes; the core shell is
 568,414 / 93,999, core scripts are 500,124 / 79,761, the lazy route is 27,983 /
 9,414, and `app.js` is 227,725 / 37,183. This is a reviewed source-maintainability
 adjustment, not a transfer-performance waiver or production measurement.
+
+The 2026-09-04 Builder Showcase slice makes six separate builder craft surfaces
+visible and adds a saved local portfolio draft. The reviewed v41 adjustment
+raises only the raw limits for `index.html`, `styles.css`, and `app.js`, the
+total raw limit, and the core raw/gzip limits. All per-asset gzip, total gzip,
+script, route, and data ceilings stay fixed. The accepted receipt is 677,072 raw
+/ 118,016 deterministic gzip bytes; the core shell is 580,563 / 96,769,
+scripts are 507,098 / 81,635, and `app.js` is 234,699 / 39,057. The compressed
+core increase over v40 is 2,770 bytes; only 769 bytes of that required new
+headroom. This is a deliberate product-capability budget, not production timing
+or real-user performance evidence.
 
 ## Receipt and adversarial gate
 

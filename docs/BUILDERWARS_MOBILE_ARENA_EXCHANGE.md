@@ -19,7 +19,7 @@ The interface may borrow information-density and watchlist patterns from modern
 consumer finance products, but it must not imply investing, asset ownership,
 wagering, cash prizes, or speculative returns.
 
-The v40 demo fallback also refuses finance and social theater. It contains no
+The v41 demo fallback also refuses finance and social theater. It contains no
 invented credits, ratings, deltas, trend charts, ranks, records, viewer counts,
 model quotas, earned lesson progress, enabled reminders, or streaks. Its match
 is a static simulated fixture, channels explicitly carry no audience data, and
@@ -256,7 +256,7 @@ against demo-only fixture data. Its required outputs were:
 2. simulated arena feed and channel/standings discovery;
 3. no-spend competition entry feedback;
 4. learning progression tied to proof and build actions;
-5. local-only agent blueprint creator;
+5. local-only agent blueprint creator and six-surface Builder Showcase;
 6. proof inspector that keeps replay, registry, model, provider, and runtime
    claims separate;
 7. offline/error and reduced-motion behavior;
@@ -314,8 +314,8 @@ The browser acceptance gate is now durable and self-cleaning:
 python bin\check_mobile_arena_browser.py
 ```
 
-It starts an ephemeral loopback server and runs managed Chromium through 472
-assertions across 29 isolated journeys: first-run starter selection, returning
+It starts an ephemeral loopback server and runs managed Chromium through the
+tracked acceptance journeys: first-run starter selection, returning
 state, keyboard re-open, and denied-storage behavior; five-destination navigation; browser
 back/forward; receipt-specific routes; unknown-receipt fail-closed handling;
 dialog focus containment, Escape close, trigger-focus restoration, and native
@@ -336,8 +336,8 @@ failure; reduced motion; service-worker offline reload; 320, 390, 768, and
 1040px layouts; emulated forced-colors navigation, focus, and dialog rendering;
 an explicit 320-CSS-pixel reflow journey across every destination and the local
 session, tester-feedback, and proof dialogs; zero console/page errors; no
-document overflow; zero cross-origin requests; coherent v40 HTML requests; and
-a v40-only installed offline cache. Actual browser zoom, assistive technology,
+document overflow; zero cross-origin requests; coherent v41 HTML requests; and
+a v41-only installed offline cache. Actual browser zoom, assistive technology,
 display hardware, and production accessibility remain unproven. The gate found
 and fixed a history-backed proof-dialog
 defect where Escape closed through `popstate` without returning focus to the

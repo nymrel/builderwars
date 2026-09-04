@@ -8,7 +8,7 @@
   <title>BuilderWars — Mobile Arena Exchange</title>
   <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=40">
+  <link rel="stylesheet" href="styles.css?v=41">
 </head>
 <body data-local-only="true" data-source-mode="loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
@@ -148,9 +148,17 @@
       </section>
 
       <section class="view" id="view-build" data-view="build" aria-labelledby="build-title" hidden>
-        <div class="view-heading"><div><p class="eyebrow">Build</p><h1 id="build-title">Create a local agent blueprint.</h1></div><span class="source-label">never executed</span></div>
+        <div class="view-heading"><div><p class="eyebrow">Build</p><h1 id="build-title">Build agents. Prove systems.</h1></div><span class="source-label">never executed · local draft</span></div>
         <div class="build-layout">
           <form class="builder-form" id="builder-form">
+            <div class="field-row">
+              <label for="builder-name">Builder or studio</label>
+              <input id="builder-name" name="builderName" maxlength="36" value="Local Builder" autocomplete="off">
+            </div>
+            <div class="field-row">
+              <label for="builder-focus">Primary craft</label>
+              <select id="builder-focus" name="builderFocus"><option>Full-stack agent systems</option><option>Agent behavior</option><option>Harness engineering</option><option>Game design</option><option>Competition design</option><option>Evaluation science</option></select>
+            </div>
             <div class="field-row">
               <label for="agent-name">Agent name</label>
               <input id="agent-name" name="agentName" maxlength="36" value="Fourth Quarter" autocomplete="off">
@@ -181,6 +189,16 @@
             <button class="text-button" type="button" data-nav="compete">Choose a proposed fixture</button>
           </aside>
         </div>
+        <section class="builder-showcase" id="builder-showcase" aria-labelledby="builder-showcase-title">
+          <div class="showcase-heading">
+            <div><p class="eyebrow">Builder profile preview</p><h2 id="builder-showcase-title">One identity. Six ways to prove the work.</h2></div>
+            <div class="showcase-score" aria-live="polite"><strong id="showcase-draft-count">2/6</strong><span>in local draft</span></div>
+          </div>
+          <p class="showcase-intro">Compose a portfolio across agents, harnesses, games, competitions, evaluations, and receipts. A local claim is not published proof.</p>
+          <div class="showcase-capabilities" id="showcase-capabilities" role="list" aria-label="Builder capability portfolio"></div>
+          <article class="showcase-focus" id="showcase-focus" aria-live="polite"></article>
+          <p class="showcase-boundary">Browser-local draft only. No builder identity, ownership, authorship, admission, ranking, or publication is attested.</p>
+        </section>
         <section class="creator-game-lab" aria-labelledby="creator-game-title">
           <div class="panel-heading"><h2 id="creator-game-title">Creator Game Lab</h2><span class="source-label">held candidate · read only</span></div>
           <div id="creator-game-lab" aria-live="polite"><p class="fine-print">Verifying the reviewed local candidate.</p></div>
@@ -205,7 +223,7 @@
           <li><span>03</span><strong>Run + replay</strong><small>Bounded to <span data-local-play-duration></span> · zero provider calls</small></li>
           <li><span>04</span><strong>Inspect</strong><small>Receipt candidate, learning, and unplayed runback</small></li>
         </ol>
-        <div class="local-play-actions"><button class="primary-button" type="button" data-qualification-preview="" aria-describedby="local-play-boundary">Review Nim setup</button><a class="secondary-button" href="ten-fronts.html?v=40" data-ten-fronts-blitz-link>Play Ten Fronts Blitz</a><button class="text-button" type="button" data-nav="build">Edit blueprint</button></div>
+        <div class="local-play-actions"><button class="primary-button" type="button" data-qualification-preview="" aria-describedby="local-play-boundary">Review Nim setup</button><a class="secondary-button" href="ten-fronts.html?v=41" data-ten-fronts-blitz-link>Play Ten Fronts Blitz</a><button class="text-button" type="button" data-nav="build">Edit blueprint</button></div>
         <p class="local-play-boundary" id="local-play-boundary">No sign-in, model inference, provider access, persistence, ranking, registry, or publication. Every attestation remains false.</p>
       </article>
     </template>
@@ -284,7 +302,7 @@
   </aside>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
-  <script src="data-adapter.js?v=40" defer></script>
-  <script src="app.js?v=40" defer></script>
+  <script src="data-adapter.js?v=41" defer></script>
+  <script src="app.js?v=41" defer></script>
 </body>
 </html>
