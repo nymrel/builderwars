@@ -415,6 +415,7 @@ legend { margin-bottom: 8px; }
   .brand { gap: 7px; font-size: 14px; }
   .demo-badge { display: none; }
   .topbar-actions { gap: 4px; }
+  .view-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
   .starter-heading { grid-template-columns: 1fr; gap: 4px; }
   .starter-dismiss { justify-self: start; }
 }
