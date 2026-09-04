@@ -1,9 +1,9 @@
 {
   "charter_version": "1.0",
-  "as_of": "2026-08-25",
+  "as_of": "2026-09-04",
   "assessment_kind": "charter",
-  "project_id": "agentwars-buildwars",
-  "project_name": "AgentWars + BuildWars",
+  "project_id": "builderwars",
+  "project_name": "BuilderWars",
   "project_type": "marketplace",
   "lifecycle_state": "active",
   "lifecycle_detail": "Launch foundation and candidate reconciliation; not publicly launched",
@@ -161,10 +161,10 @@
     "ten_year": "Mainstream competitive infrastructure for increasingly capable agents across strategy, software, research, simulation, and human-agent team games, grounded in an independently useful replay corpus and governance standard."
   },
   "value_loop": [
-    "A builder connects an eligible provider, API, or local-runner mode without surrendering account credentials to AgentWars.",
-    "BuildWars turns model access plus tools, memory, policies, and prompts into a versioned entrant manifest.",
+    "A builder connects an eligible provider, API, or local-runner mode without surrendering account credentials to BuilderWars.",
+    "Forge turns model access plus tools, memory, policies, and prompts into a versioned entrant manifest.",
     "Qualification tests reveal deterministic failures before public competition.",
-    "AgentWars matches the entrant under a pinned game, rules, seed, resource policy, and division.",
+    "Arena matches the entrant under a pinned game, rules, seed, resource policy, and division.",
     "The verifier emits an immutable receipt that separates observed outcome from attested identity claims.",
     "A spectator or opponent understands the result and picks a side, follows, joins a league, or launches a bounded runback.",
     "The builder changes the harness and publishes another version.",
@@ -219,11 +219,21 @@
     "Do not fabricate or use unlicensed fantasy player data"
   ],
   "economics_or_sustainability": "Launch with free viewing and a bounded free builder path. Prefer customer-controlled inference and cheap deterministic verification, storage, and static receipt delivery. Meter and cap hosted inference or sandbox compute. Consider private leagues, team workspaces, advanced analysis, verified-division event fees, organizer tooling, commercial exports, and creator revenue share only after retention and cost evidence. Sponsorship can fund events but never rank or rules. Pricing and revenue remain uncommitted hypotheses.",
-  "distribution_or_adoption_wedge": "Start with one understandable genuine fantasy redraft result: two agent front offices, the same frozen player pool and rules, a replay-verifiable receipt, and a bounded seat-swapped runback. A tagged share landing asks spectators to pick a side, reveals the receipt, and offers the shortest safe BuildWars path. Add dynasty persistence after redraft proves activation. AW-1 remains closed until its public route, durable counters, attribution, approval, and publication gates exist.",
+  "distribution_or_adoption_wedge": "Start with one understandable genuine fantasy redraft result: two agent front offices, the same frozen player pool and rules, a replay-verifiable receipt, and a bounded seat-swapped runback. A tagged share landing asks spectators to pick a side, reveals the receipt, and offers the shortest safe Forge path. Add dynasty persistence after redraft proves activation. The historical AW-1 experiment remains closed until its public route, durable counters, attribution, approval, and publication gates exist.",
   "governing_rulings": [
     {
+      "source": "Owner ruling 2026-09-04",
+      "ruling": "BuilderWars is the sole public umbrella. Arena, Forge, Games, Evals, Leagues, Studio, Watch, Academy, and Passport are its public categories.",
+      "reconciliation": "Adopted for public naming and information architecture; the broader North Star remains draft pending independent refutation and an owner ruling."
+    },
+    {
+      "source": "Owner ruling 2026-09-04",
+      "ruling": "AgentWars, BuildWars, AgentBattles, and AgentGames are historical or compatibility terminology only.",
+      "reconciliation": "Preserve immutable receipts, schemas, protocols, paths, and accepted evidence; do not create new public sub-brands, accounts, or domains from the legacy names."
+    },
+    {
       "source": "Operator direction through 2026-08-25",
-      "ruling": "AgentWars and BuildWars should become a mainstream competitive and social evaluation surface for models, agents, harnesses, providers, fantasy leagues, and creator games.",
+      "ruling": "BuilderWars should become a mainstream competitive and social evaluation surface for models, agents, harnesses, providers, fantasy leagues, and creator games.",
       "reconciliation": "Treat the vision as an aspiration and roadmap, while all present-tense public claims remain bounded by repository evidence."
     },
     {
@@ -555,18 +565,26 @@
       "Whether the builder, a team or organization, or the spectator is the correct primary beneficiary",
       "Whether WVRB is the least-gameable value metric or should require independently meaningful harness improvement",
       "Whether fantasy redraft or a simpler game is the strongest first external activation wedge",
-      "Whether a verified hosted division can launch safely at useful cost or public beta should be local-runner only",
-      "Whether AgentWars and BuildWars should remain separate names or one product with two modes"
+      "Whether a verified hosted division can launch safely at useful cost or public beta should be local-runner only"
     ],
     "final_ruling": null,
     "ruling_owner": null,
-    "next_review": null
+    "next_review": null,
+    "resolved_disagreements": [
+      "Owner ruling 2026-09-04: BuilderWars is the sole public umbrella; AgentWars and BuildWars are legacy-only."
+    ]
   },
   "change_log": [
     {
       "date": "2026-08-25",
       "change": "Drafted launch-scale North Star, evidence ledger, provider and execution boundary, metric, roadmap, and exact first campaign.",
       "owner": "Codex, informed by Ox Alpha MAX"
+    },
+    {
+      "date": "2026-09-04",
+      "change": "Reconciled the draft North Star with the owner-adopted BuilderWars umbrella, nine public categories, and legacy-name rule without adopting the full charter.",
+      "owner": "Jalen (brand ruling); Codex (reconciliation)"
     }
-  ]
+  ],
+  "brand_architecture_ref": "docs/BUILDERWARS_BRAND_ARCHITECTURE.v1.json"
 }
