@@ -186,7 +186,10 @@ def run_isolated(arguments: list[str], cwd: Path) -> subprocess.CompletedProcess
 
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="agentwars-runner-bundle-check-") as raw_work:
-        work = Path(raw_work)
+        # macOS exposes its temporary root through /var -> /private/var. Resolve
+        # that platform alias before testing the builder's intentional refusal
+        # of user-supplied symlink or reparse-point ancestors.
+        work = Path(raw_work).resolve(strict=True)
         first = work / "first"
         second = work / "second"
         first_receipt = build_bundle(first, _source_policy=_TEST_SOURCE_POLICY)
