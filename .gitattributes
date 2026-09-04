@@ -1,0 +1,3 @@
+# Security and replay artifacts are verified byte-for-byte. Keep every text
+# checkout on canonical LF endings so Windows runners inspect the same bytes.
+* text=auto eol=lf

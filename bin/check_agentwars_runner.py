@@ -19,6 +19,7 @@ import json
 import os
 import pathlib
 import socket
+import socketserver
 import subprocess
 import sys
 import tempfile
@@ -291,10 +292,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
 
+class LoopbackThreadingHTTPServer(http.server.ThreadingHTTPServer):
+    """HTTP test server that never performs hostname resolution while binding."""
+
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        host, port = self.server_address[:2]
+        self.server_name = host
+        self.server_port = port
+
+
 @contextlib.contextmanager
 def local_server():
     state = ServerState()
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server = LoopbackThreadingHTTPServer(("127.0.0.1", 0), Handler)
     server.agentwars_state = state
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
