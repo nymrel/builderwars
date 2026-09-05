@@ -1120,6 +1120,9 @@ dialog [id$="fields"] {
   }
 }
 @media (max-width: 359px) {
+  .sidebar nav button span {
+    display: none;
+  }
   .page-heading {
     flex-direction: column;
   }
