@@ -125,7 +125,11 @@ export async function resultImage(record: RecordData): Promise<Blob> {
   text("BuilderWars", 48, 67, 38, "#c8fa75");
   text("A Nymrel product", 915, 64, 20, "#aeb8b0", 240);
   text(summary.complete ? "EXHIBITION RESULT" : "UNFINISHED EXHIBITION", 540, 146, 18, "#c8fa75");
-  text(summary.title, 540, 209, 40);
+  // Keep the referee outcome and seat visible even when a contender name clips.
+  const imageTitle = summary.complete && summary.state.winner !== null
+    ? `Winner · Seat ${summary.state.winner + 1}: ${summary.names[summary.state.winner]}`
+    : summary.title;
+  text(imageTitle, 540, 209, 40);
   text(summary.record.rules.name, 540, 251, 25, "#d4ddce");
   text(`${summary.names[0]} vs ${summary.names[1]}`, 540, 299, 22);
   text(`1: ${summary.entrants[0]}`, 540, 329, 17, "#b0bcb4");

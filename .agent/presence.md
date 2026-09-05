@@ -1,5 +1,13 @@
 # BuilderWars lane presence
 
+Open last used by Codex, September5, result-card follow-through. Exact live claim
+`codex-builderwars-card-outcome-20260905` owns sharing.ts, tests, docs and this
+mirror: winner/seat now survives long-name truncation.137Node tests/build and the
+full isolated browser gate passed; PNG inspected, bounded independent code review
+approved. Owned preview/browser processes stopped. No inference/provider/store
+changes. PR34 cross-family review and CI remain separate gates. This note never
+extends an expired or released claim.
+
 Open last used by Codex, September5 03:00 PDT. PR33 exact640d955 passed all five
 checks on attempt2 and merged as fabe467; exact-main CI33958805607 also passed.
 New gameplay/capture/draft increment:136tests/build pass;2actual local games split

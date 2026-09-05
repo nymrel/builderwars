@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { RULES, createProof, verifyProof } from "../src/runtime";
-import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch } from "../src/sharing";
+import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage } from "../src/sharing";
 import type { RecordData } from "../src/records";
 
 function match(): RecordData {
@@ -81,4 +81,47 @@ test("reproducible legacy entrant declarations never certify a built-in model", 
   assert.equal(summarizeMatch(result.record).entrants[0], "Unrecognized bot declaration · frontier-world-champion");
   record.agents[0].model = "tactician";
   assert.equal(summarizeMatch(record).entrants[0], "Declared built-in · tactician");
+});
+
+test("exported image preserves winner and seat before truncating long names", async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const lines: { text: string; x: number; y: number }[] = [];
+  const context = {
+    font: "", fillStyle: "",
+    measureText(value: string) { return { width: Array.from(value).length * 22 }; },
+    fillText(text: string, x: number, y: number) { lines.push({ text, x, y }); },
+    fillRect() {}, beginPath() {}, arc() {}, fill() {},
+  };
+  Object.defineProperty(globalThis, "document", { configurable: true, value: {
+    createElement(tag: string) {
+      assert.equal(tag, "canvas");
+      return { width: 0, height: 0, getContext: () => context,
+        toBlob: (callback: (blob: Blob) => void) => callback(new Blob([], { type: "image/png" })) };
+    },
+  } });
+  try {
+    const record = match();
+    record.agents.forEach(a => { a.name = "Very long contender model and harness declaration ".repeat(2).slice(0, 64); });
+    await resultImage(record);
+    const headline = () => [...lines].reverse().find(line => line.x === 540 && line.y === 209)!.text;
+    assert.match(headline(), /^Winner · Seat 1: /);
+    assert(headline().endsWith("…"));
+    assert(context.measureText(headline()).width <= 590);
+    // The replay, not the untrusted status or names, identifies the other seat.
+    record.events = ["0", "1", "0", "1", "2", "1", "2", "1"].map((move, i) =>
+      ({ ...record.events[0], move, ply: i + 1, seat: (i % 2) as 0 | 1 }));
+    await resultImage(record);
+    assert.match(headline(), /^Winner · Seat 2: /);
+    record.events.pop();
+    await resultImage(record);
+    assert.equal(headline(), "Unfinished match");
+    record.rules = RULES.tictactoe;
+    record.events = ["0", "1", "2", "4", "3", "5", "7", "6", "8"].map((move, i) =>
+      ({ ...record.events[0], move, ply: i + 1, seat: (i % 2) as 0 | 1 }));
+    await resultImage(record);
+    assert.equal(headline(), "Draw");
+  } finally {
+    if (original) Object.defineProperty(globalThis, "document", original);
+    else Reflect.deleteProperty(globalThis, "document");
+  }
 });

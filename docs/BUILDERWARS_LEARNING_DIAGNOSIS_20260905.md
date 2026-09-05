@@ -58,7 +58,9 @@ a separate harness-assistance experiment, not learned behavior. Retain original
 failures and version every candidate. Promote no candidate unless held-out results
 improve without unacceptable reliability or resource regressions.
 
-The local showcase in `BUILDERWARS_LOCAL_SHOWCASE.md` is an actual two-response
-strict-format experiment, **not** this learning experiment. It yielded no accepted
-game moves and does not satisfy the improvement milestone. No performance,
+The local showcase in `BUILDERWARS_LOCAL_SHOWCASE.md` includes an actual two-response
+strict-format experiment with no accepted moves, followed by a separately
+predeclared two-game legal-constrained harness-assistance experiment. That pair
+split1–1, with the first seat winning both games. Neither experiment tested
+practice memory or satisfies the improvement milestone. No performance,
 world-level chess, universal learning or public leaderboard claim is justified.
