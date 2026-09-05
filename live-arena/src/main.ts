@@ -22,9 +22,11 @@ import {
   type Model,
 } from "./models";
 import { Broadcast } from "./broadcast";
+import { keyboardCell } from "./board-keyboard";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
+import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } from "./resources";
 import { publicLinkOrigin } from "./public-links";
 import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
@@ -90,6 +92,8 @@ let rules = { ...RULES.chess },
   seriesAttempts: SeriesAttempt[] = [],
   pace = 500;
 let seriesLimits: { moveLimit: number; maxTokens: number } | null = null;
+let currentLimits: MatchLimits | null = null;
+let seriesRules: Rules | null = null;
 const broadcast = new Broadcast();
 let pending = false,
   replayPly: number | null = null,
@@ -209,7 +213,7 @@ for (const [id, mode] of [["setup-free", "free"], ["setup-human", "human"], ["se
 }
 async function shareSetup() {
   try {
-    const encoded = encodeSetup(makeSetup(record, numberInput("move-limit", 2, 400), numberInput("max-tokens", 256, 16384)));
+    const encoded = encodeSetup(makeSetup(record, currentLimits?.moveLimit ?? numberInput("move-limit", 2, 400), currentLimits?.maxTokens ?? numberInput("max-tokens", 256, 16384)));
     await navigator.clipboard.writeText(`${publicLinkOrigin(location.origin)}/#setup=${encoded}`);
     notify("Setup link copied. Opening it shows a preview and never starts model calls. Keys, prompts and harness addresses are excluded.");
   } catch (error) { notify((error as Error).message); }
@@ -288,12 +292,14 @@ function saveCurrent() {
   if (!library) return;
   if (savedSource === "watch" && !watchId) return;
   try {
-    const limit = Number($<HTMLInputElement>("move-limit").value);
+    const limit = currentLimits?.moveLimit ?? Number($<HTMLInputElement>("move-limit").value);
     const saved = library.save(
       record,
       savedSource,
       Number.isInteger(limit) && limit >= 2 && limit <= 400 ? limit : 80,
       savedSource === "watch" ? watchId : "",
+      currentLimits?.maxTokens ?? undefined,
+      currentLimits?.moveLimitKnown === true,
     );
     if (!saved && library.enabled() && record.events.length) {
       $("library-status").textContent =
@@ -352,7 +358,7 @@ function renderLibrary() {
                 renderLibrary();
               } else if (action === "resume") resumeSaved(entry);
               else {
-                openReplay(replay(entry.record), false);
+                openReplay(replay(entry.record), false, entry.moveLimitKnown ? validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null) : null);
                 tab("arena");
               }
             } catch (e) {
@@ -382,6 +388,7 @@ function resumeSaved(entry: SavedMatch) {
   const parsed = replay(entry.record);
   proofOrigin = "reverified_import";
   record = parsed.record;
+  currentLimits = validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true);
   $("proof-status").textContent = "Recovered record. Any new proof is a reverified snapshot, not original engine or model provenance.";
   state = parsed.state;
   rules = state.rules;
@@ -390,6 +397,7 @@ function resumeSaved(entry: SavedMatch) {
   agents = record.agents.map((a) => ({ ...a, endpoint: "", key: "" }));
   record.status = "Recovered · paused";
   $<HTMLInputElement>("move-limit").value = String(entry.moveLimit);
+  if (entry.maxTokens !== undefined) $<HTMLInputElement>("max-tokens").value = String(entry.maxTokens);
   $("leave-watch").hidden = true;
   $("rejoin-watch").hidden = true;
   $("stop-broadcast").hidden = true;
@@ -444,6 +452,26 @@ document.querySelector(".telemetry div:last-child > span")!.textContent =
   "ACCEPTED MOVE COST";
 $("move-limit").closest("details")!.querySelector("p")!.textContent =
   "Usage totals cover accepted moves only. Failed or cancelled requests may still incur charges. Set limits at your provider and check its billing. Effort is requested, not independently attested. Exhibitions are not certified rankings.";
+$("move-limit").closest("details")!.insertAdjacentHTML("beforeend", '<p id="resource-status" class="muted" role="status"></p>');
+$("agent-dialog").setAttribute("aria-labelledby", "agent-title");
+$("board").setAttribute("aria-label", "Game board. Use arrow keys to move between squares, Home or End within a row, and Enter or Space to play.");
+let boardFocus = 0;
+$("board").addEventListener("focusin", (event) => {
+  const cell = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-cell]");
+  if (!cell) return;
+  boardFocus = Number(cell.dataset.cell);
+  $("board").querySelectorAll<HTMLButtonElement>("[data-cell]").forEach((button) => {
+    button.tabIndex = button === cell ? 0 : -1;
+  });
+});
+$("board").addEventListener("keydown", (event) => {
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
+  const buttons = [...$("board").querySelectorAll<HTMLButtonElement>("[data-cell]")];
+  const next = keyboardCell(buttons.indexOf(event.target as HTMLButtonElement), event.key, state.rules.cols, buttons.length);
+  if (next === null) return;
+  event.preventDefault();
+  buttons[next].focus();
+});
 $("notice").insertAdjacentHTML(
   "beforebegin",
   '<div id="replay-controls" hidden><label id="replay-label" for="replay-position">Replay position</label><input id="replay-position" type="range" min="0" value="0"><button id="replay-prev">← Previous</button><button id="replay-next">Next →</button></div>',
@@ -483,7 +511,7 @@ $<HTMLInputElement>("replay-position").oninput = (e) =>
   seekReplay(Number((e.target as HTMLInputElement).value));
 $("replay-prev").onclick = () => seekReplay((replayPly ?? 0) - 1);
 $("replay-next").onclick = () => seekReplay((replayPly ?? 0) + 1);
-function openReplay(parsed: ReturnType<typeof replay>, save = true) {
+function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: MatchLimits | null = null) {
   stop();
   joinGeneration++;
   broadcast.close();
@@ -498,6 +526,7 @@ function openReplay(parsed: ReturnType<typeof replay>, save = true) {
   rules = parsed.state.rules;
   state = parsed.state;
   record = parsed.record;
+  currentLimits = limits;
   replayPly = record.events.length;
   spectating = true;
   render();
@@ -537,6 +566,9 @@ const glyphs: Record<string, string> = {
   bp: "♟",
 };
 function render() {
+  const active = document.activeElement as HTMLElement | null;
+  const focusedCell = active?.dataset.cell;
+  const focusedSeat = active?.dataset.seat;
   renderResult();
   document
     .querySelectorAll<HTMLButtonElement>(
@@ -583,12 +615,16 @@ function render() {
           : p
             ? `<span class="disc ${p.toLowerCase() === "w" ? "white" : "black"}">${p === p.toUpperCase() ? "♛" : ""}</span>`
             : "";
-      return `<button data-cell="${i}" class="cell ${(Math.floor(i / cols) + (i % cols)) % 2 ? "dark" : "light"} ${selected === i ? "selected" : ""} ${highlight ? "last" : ""} ${target ? "target" : ""}" aria-label="${esc(coord)} ${esc(p || "empty")}" ${spectating || (running && agents[state.turn].kind !== "human") ? "disabled" : ""}>${piece}<span class="coord">${coord}</span></button>`;
+      return `<button data-cell="${i}" class="cell ${(Math.floor(i / cols) + (i % cols)) % 2 ? "dark" : "light"} ${selected === i ? "selected" : ""} ${highlight ? "last" : ""} ${target ? "target" : ""}" aria-label="${esc(coord)} ${esc(p || "empty")}" aria-disabled="${spectating || pending || state.over || agents[state.turn].kind !== "human"}">${piece}<span class="coord">${coord}</span></button>`;
     })
     .join("");
   document
     .querySelectorAll<HTMLButtonElement>("[data-cell]")
-    .forEach((b) => (b.onclick = () => humanClick(Number(b.dataset.cell))));
+    .forEach((b) => {
+      if (boardFocus >= state.cells.length) boardFocus = 0;
+      b.tabIndex = Number(b.dataset.cell) === boardFocus ? 0 : -1;
+      b.onclick = () => humanClick(Number(b.dataset.cell));
+    });
   $("game-title").textContent = state.rules.name;
   $("ply").textContent = `PLY ${String(state.moves.length).padStart(2, "0")}`;
   $("match-status").textContent = isExhibitionLimit(state) ? "Move limit reached" : state.over
@@ -622,6 +658,10 @@ function render() {
     (id) =>
       ($<HTMLInputElement>(id).disabled = running || pending || spectating),
   );
+  $("resource-status").textContent = currentLimits
+    ? `This match: ${limitsLabel(currentLimits)}. Limits stay fixed through pause/resume. Edited fields apply to a new rematch or evaluation. Requested tokens are not a guaranteed provider compute or dollar cap.`
+    : spectating ? "Imported replay: original resource limits are unavailable. New setup links or reverified proofs use explicitly selected limits, not historical resource evidence."
+      : "Limits lock at the first attempted move. After that, edits apply only to a new rematch or evaluation.";
   $("seats").innerHTML = record.agents
     .map(
       (a, i) =>
@@ -661,6 +701,10 @@ function render() {
     b.disabled = running || spectating;
     b.classList.toggle("active", b.dataset.game === rules.kind);
   });
+  const replacement = focusedCell !== undefined
+    ? $("board").querySelector<HTMLButtonElement>(`[data-cell="${Number(focusedCell)}"]`)
+    : focusedSeat !== undefined ? $("seats").querySelector<HTMLButtonElement>(`[data-seat="${Number(focusedSeat)}"]`) : null;
+  if (replacement && !replacement.disabled) replacement.focus({ preventScroll: true });
 }
 function interruptSeries(exit: "failed" | "stopped" = "stopped") {
   if (!seriesRemaining) return;
@@ -685,6 +729,7 @@ function reset(preserveSeries = false) {
   replayPly = null;
   state = createGame(rules);
   record = freshRecord();
+  currentLimits = null;
   savedSource = "own";
   proofOrigin = "browser_session";
   $("proof-status").textContent = "Connect Four proof is available. Other games retain their standard replay export.";
@@ -699,6 +744,11 @@ function numberInput(id: string, min: number, max: number) {
   if (!Number.isInteger(n) || n < min || n > max)
     throw Error(`Choose ${id.replaceAll("-", " ")} between ${min} and ${max}.`);
   return n;
+}
+function getMatchLimits(): MatchLimits {
+  return currentLimits ??= seriesRemaining && seriesLimits
+    ? validateMatchLimits(seriesLimits.moveLimit, seriesLimits.maxTokens)
+    : validateMatchLimits(numberInput("move-limit", 2, 400), numberInput("max-tokens", 256, 16384));
 }
 function commit(
   move: string,
@@ -738,11 +788,12 @@ async function oneMove() {
     agents[state.turn].kind === "human"
   )
     return;
-  if (state.moves.length >= numberInput("move-limit", 2, 400))
+  const limits = getMatchLimits();
+  if (state.moves.length >= limits.moveLimit)
     throw Error("Exhibition move limit reached. Start a rematch.");
   const id = runId,
     config = agents[state.turn],
-    tokens = numberInput("max-tokens", 256, 16384);
+    tokens = limits.maxTokens ?? 2048; // Legacy recovery is restricted to human/built-in seats.
   controller = new AbortController();
   pending = true;
   render();
@@ -773,8 +824,7 @@ async function play() {
   if (pending) return;
   let moveLimit: number;
   try {
-    moveLimit = numberInput("move-limit", 2, 400);
-    numberInput("max-tokens", 256, 16384);
+    moveLimit = getMatchLimits().moveLimit;
   } catch (e) {
     notify((e as Error).message);
     return;
@@ -830,7 +880,7 @@ function humanClick(i: number) {
   )
     return;
   try {
-    if (state.moves.length >= numberInput("move-limit", 2, 400)) {
+    if (state.moves.length >= getMatchLimits().moveLimit) {
       notify("Move limit reached. Start a rematch.");
       return;
     }
@@ -1149,7 +1199,7 @@ $("export-proof").onclick = async () => {
   proofExporting = true;
   render();
   try {
-    const limit = numberInput("move-limit", 2, 400);
+    const limit = currentLimits?.moveLimit ?? Math.max(snapshot.events.length, numberInput("move-limit", 2, 400));
     const text = await createProof(snapshot, refereeManifest.digest, limit, origin);
     const verified = await verifyProof(text, refereeManifest.digest);
     const url = URL.createObjectURL(new Blob([text], { type: "application/x-ndjson" }));
@@ -1180,7 +1230,10 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
     const verified = await verifyProof(text, refereeManifest.digest);
     if (generation !== runId || matchId !== record.id || moveCount !== record.events.length || running || pending) throw Error("The match changed during verification. Import again when paused.");
     if (verified.record.rules.kind !== "connect4") throw Error("This release supports Connect Four proof imports. Use the matching offline verifier for other formats.");
-    openReplay(verified);
+    openReplay(verified, false);
+    // Read only after exact referee verification; this does not trust an unverified header.
+    currentLimits = validateMatchLimits(JSON.parse(text.split("\n")[0]).body.maxPlies, null);
+    saveCurrent(); render();
     $("proof-status").textContent = `${verified.record.status} · ${verified.record.events.length} plies reproduced by the matching referee. Names and models remain unverified declarations.`;
   } catch (error) {
     $("proof-status").textContent = (error as Error).message;
@@ -1279,6 +1332,8 @@ function renderSeries() {
   const entrants = seriesAttempts[0]?.record.agents;
   const number = (value: number | null, digits = 0) => value === null ? "Unknown" : value.toFixed(digits);
   $("series-results").innerHTML = `<h2>${summary.recorded} / ${seriesTotal} attempts recorded</h2>
+    <p id="series-conditions">${seriesRules ? `${esc(seriesRules.name)} · ${esc(seriesRules.kind)} · ${seriesRules.rows} × ${seriesRules.cols}${seriesRules.connect ? ` · connect ${seriesRules.connect} · ${seriesRules.gravity ? "gravity" : "no gravity"}` : ""}` : "Rules unavailable"}. ${limitsLabel(seriesLimits)}. Each game starts from the standard initial position; seats swap. Built-in randomness is unseeded; model sampling and external harness versions are not controlled or attested. This is a paired exhibition, not a matched-seed benchmark.</p>
+    <p class="muted">Rule engine: builderwars-board-js/1 · <span title="${refereeManifest.digest}">${refereeManifest.digest.slice(0, 12)}…</span>. Full digest is included in the evaluation export.</p>
     <p>${summary.completed} rule-complete games · ${summary.completePairs} complete pairs · ${summary.draws} draws</p>
     <p>${summary.capped} capped · ${summary.failed} failed · ${summary.stopped} stopped. ${seriesRemaining > 0 ? "Series in progress." : "Series not running."}</p>
     ${entrants ? `<p>Wins: A — ${esc(entrants[0].name)}: ${summary.wins[0]}; B — ${esc(entrants[1].name)}: ${summary.wins[1]}. A starts odd games; B starts even games.</p>` : ""}
@@ -1299,13 +1354,17 @@ function runSeries() {
     tab("arena");
     return;
   }
+  let nextLimits: { moveLimit: number; maxTokens: number }, nextTotal: number;
   try {
-    seriesLimits = { moveLimit: numberInput("move-limit", 2, 400), maxTokens: numberInput("max-tokens", 256, 16384) };
-    seriesTotal = numberInput("series-length", 2, 10);
-    if (![2, 4, 10].includes(seriesTotal)) throw Error("Choose 2, 4 or 10 games.");
+    nextLimits = { moveLimit: numberInput("move-limit", 2, 400), maxTokens: numberInput("max-tokens", 256, 16384) };
+    nextTotal = numberInput("series-length", 2, 10);
+    if (![2, 4, 10].includes(nextTotal)) throw Error("Choose 2, 4 or 10 games.");
   } catch (error) {
     notify((error as Error).message); tab("arena"); return;
   }
+  seriesLimits = nextLimits;
+  seriesRules = structuredClone(rules);
+  seriesTotal = nextTotal;
   seriesRemaining = seriesTotal;
   seriesAttempts = [];
   renderSeries();
@@ -1321,6 +1380,10 @@ $("export-series").onclick = () =>
     attempts: seriesAttempts.map(a => ({ recordId: a.record.id, exit: a.exit })),
     requestedGames: seriesTotal,
     limits: seriesLimits,
+    rules: seriesRules,
+    fixture: "standard-initial-position",
+    randomness: "unseeded-and-not-controlled",
+    ruleEngine: { version: "builderwars-board-js/1", digest: refereeManifest.digest },
     summary: summarizeSeries(seriesAttempts, seriesTotal),
     inProgress: seriesRemaining > 0,
     seatSwap: true,
@@ -1418,6 +1481,7 @@ async function join(id: string) {
   );
   $("rejoin-watch").hidden = false;
   // A prior unrelated game must never look like a new host's board.
+  currentLimits = null;
   state = createGame(RULES.chess);
   rules = state.rules;
   record = freshRecord();

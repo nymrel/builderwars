@@ -35,9 +35,43 @@ This table keeps the original five-day scope visible; it does not redefine compl
 | Minimal record metadata | Version, digest, game rules, move cap, entrant/model declarations and reported move metrics exist. Separate builder/agent/harness/provider declarations, fixture/randomness and token-resource metadata need explicit reconciliation with the separately owned PR27 contract before calling the full record requirement done. |
 | Replay, card, safe rematch and clip | Implemented and browser-tested; genuine built-in demo and social drafts exist. Same-model/different-harness and cost/effort narratives remain held pending eligible real evidence, not fabricated demonstrations. |
 | Supported connection route | Non-inference OpenRouter/local-bridge checks and bounded synthetic protocol tests. Real customer-client execution remains an explicitly unverified conditional cell; do not block free play on invented customer participation. |
-| Useful fair comparisons | Seat swaps, complete pairs, failures, accepted latency/tokens/cost and bounded Academy exercise exist. Explicit configuration round-trip and one-change comparison workflow still need implementation; current profile export alone is not import support. Comparison rule/fixture/resource context needs a final rendered audit. |
+| Useful fair comparisons | Profile import/export and saved-versus-draft comparison are implemented at63a8686. The next increment freezes per-match resources and renders/exports rule, standard fixture and uncontrolled-randomness context. This is not a matched-seed benchmark or automatic agent improvement. |
 | Mobile/accessibility/failure cases | Chromium/Firefox/WebKit proof plus existing viewport/failure journeys. Complete keyboard/touch/contrast and failure-matrix audit still required; physical-device evidence unavailable in this pass. |
 | Conditional hosting/PWA | Not shipped by this increment. Refresh the short eligible-infrastructure preflight once, record exact held conditions; do not add unsafe hosting or caches to satisfy a checkbox. |
 | Release and adoption | Independent review of later material changes, exact-source merge/deploy/canonical/redirect/rollback receipts, tester instructions and adoption readout or exact unavailable input remain required. External testers, WVRB and viral reach are unmeasured. |
 
 Next: finish and verify the browser CI gate, return these exact findings/resolutions to the existing Claude review lane, then implement the configuration-comparison gap and reconcile record metadata with PR27. No new scheduler or automatic model training/promotion is implied.
+
+## Match resources and keyboard review — September 5 UTC
+
+Base63a8686966cac8726e8465936316dca254360c77 has independently checked hosted CI success
+(run33943405340). This new increment still needs its own exact-head CI and cross-family release review.
+
+- Capture move/token limits once per match and retain them through pause, device recovery,
+  proof cap round trips and seat-swapped series. Later field edits apply to a new match.
+  Requested tokens are not a provider compute or billing guarantee.
+- Store explicit known-cap state separately from fallback recovery settings. Plain imported
+  or watched records must remain unknown after save/reopen. Legacy own matches retain a
+  bounded recovery policy labeled as such, not as original resource evidence.
+- Evaluation exports include rules, standard initial position, uncontrolled randomness,
+  requested resources and exact referee version/digest. Invalid new-series inputs cannot
+  overwrite completed-series conditions. Builder/harness provenance reconciliation with
+  separate PR27 is still incomplete.
+- Board squares have one tab stop, visual-order arrow/Home/End navigation, accessible
+  labels and retained focus across human and automated turns. Temporarily unavailable
+  squares remain focusable with aria-disabled; the move handler still rejects input.
+  The contender dialog has an accessible title. This is not a complete WCAG certification.
+
+One bounded independent code review found three P2 defects: unknown cap promotion after
+storage, focus loss during an automated turn, and runback ignoring edited resources.
+All three were corrected with browser regressions. The same reviewer rechecked those
+resolutions and returned no remaining findings; its13 focused unit tests passed.
+This is an independent same-family review, not a substitute for the pending cross-family
+review of the full release candidate.
+
+Local evidence:69 Node tests and production build pass; focused keyboard/touch and
+resource browser journeys pass. The expanded isolated full browser gate passed all nine
+Chromium journeys, six bridge tests, and Firefox/WebKit proof checks (session15142).
+Exact committed source belongs in the handoff. No real model calls or charges.
+The immutable referee digest remains d5135878ce69345f5e8ee214c03d53cd1593052b9bcb97d1a96363f9b6dfa823.
+No production deployment, native binary, device acceptance or store listing is claimed.

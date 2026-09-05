@@ -28,6 +28,22 @@ class MemoryStorage {
     this.data.delete(key);
   }
 }
+test("optional resource limits survive recovery without rewriting legacy unknowns", () => {
+  const storage = new MemoryStorage();
+  new MatchLibrary(storage).save(record("new"), "own", 40, "", 512, true);
+  new MatchLibrary(storage).save(record("legacy"), "own", 80);
+  const entries = new MatchLibrary(storage).list();
+  assert.equal(entries.find(e => e.record.id === "new")?.maxTokens, 512);
+  assert.equal(entries.find(e => e.record.id === "new")?.moveLimitKnown, true);
+  assert.equal(entries.find(e => e.record.id === "legacy")?.moveLimitKnown, false);
+  assert.equal(entries.find(e => e.record.id === "legacy")?.maxTokens, undefined);
+  assert.throws(() => new MatchLibrary(storage).save(record("invalid"), "own", 40, "", 20000));
+  const key = entries.find(e => e.record.id === "new")!.key;
+  const raw = JSON.parse(storage.getItem(key)!);
+  raw.maxTokens = "private";
+  storage.setItem(key, JSON.stringify(raw));
+  assert.equal(new MatchLibrary(storage).list().length, 1);
+});
 function record(id = "test"): RecordData {
   return {
     schema: "builderwars.exhibition.v1",

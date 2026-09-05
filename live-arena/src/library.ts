@@ -11,6 +11,8 @@ export type SavedMatch = {
   source: "own" | "replay" | "watch";
   watchId: string;
   moveLimit: number;
+  maxTokens?: number;
+  moveLimitKnown?: boolean;
   key: string;
 };
 type StorageLike = Pick<
@@ -63,6 +65,8 @@ export class MatchLibrary {
           !Number.isInteger(raw.moveLimit) ||
           raw.moveLimit < 2 ||
           raw.moveLimit > 400 ||
+          (raw.maxTokens !== undefined && (!Number.isInteger(raw.maxTokens) || raw.maxTokens < 256 || raw.maxTokens > 16384)) ||
+          (raw.moveLimitKnown !== undefined && typeof raw.moveLimitKnown !== "boolean") ||
           typeof raw.watchId !== "string" ||
           (raw.watchId && !validWatchId(raw.watchId))
         )
@@ -76,6 +80,8 @@ export class MatchLibrary {
           source: raw.source,
           watchId: raw.watchId,
           moveLimit: raw.moveLimit,
+          ...(raw.maxTokens === undefined ? {} : { maxTokens: raw.maxTokens }),
+          moveLimitKnown: raw.moveLimitKnown === true,
         };
         completed.set(record, state.over);
         this.cache.set(key, { text, entry });
@@ -99,6 +105,8 @@ export class MatchLibrary {
     source: SavedMatch["source"],
     moveLimit: number,
     watchId = "",
+    maxTokens?: number,
+    moveLimitKnown = false,
   ) {
     if (!this.enabled() || !record.events.length) return false;
     const parsed = replay(record);
@@ -107,6 +115,8 @@ export class MatchLibrary {
       throw Error("Invalid saved match limit.");
     if (watchId && !validWatchId(watchId))
       throw Error("Invalid saved broadcast.");
+    if (maxTokens !== undefined && (!Number.isInteger(maxTokens) || maxTokens < 256 || maxTokens > 16384))
+      throw Error("Invalid saved token limit.");
     const key = this.entryKey(source, clean.id);
     const envelope = {
       record: clean,
@@ -114,6 +124,8 @@ export class MatchLibrary {
       source,
       moveLimit,
       watchId,
+      ...(maxTokens === undefined ? {} : { maxTokens }),
+      moveLimitKnown,
     };
     const value = JSON.stringify(envelope);
     // Envelope-only eviction: validation changes or clock corrections do not

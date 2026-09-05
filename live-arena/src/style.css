@@ -372,7 +372,8 @@ main {
   background: #698362;
   color: #0c130e;
 }
-.cell:disabled {
+.cell:disabled,
+.cell[aria-disabled="true"] {
   opacity: 1;
   cursor: default;
 }
