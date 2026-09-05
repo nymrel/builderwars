@@ -1,4 +1,5 @@
 import { botMove, gamePrompt, legalMoves, type GameState } from "./runtime";
+import type { MemoryContext } from "./learning";
 export type Agent = {
   name: string;
   kind: "bot" | "human" | "openrouter" | "harness";
@@ -202,6 +203,7 @@ export async function decide(
   maxTokens: number,
   signal: AbortSignal,
   models: Model[],
+  memory?: MemoryContext,
 ): Promise<Decision> {
   const started = performance.now(),
     legal = legalMoves(s);
@@ -236,7 +238,7 @@ export async function decide(
       );
     const body: Record<string, unknown> = {
       model: a.model,
-      messages: [{ role: "user", content: gamePrompt(s, a.strategy) }],
+      messages: [{ role: "user", content: gamePrompt(s, a.strategy) + (memory ? `\n\n${memory.prompt}` : "") }],
       max_tokens: maxTokens,
       provider: { allow_fallbacks: false },
       stream: false,
@@ -284,6 +286,7 @@ export async function decide(
         model: a.model,
         effort: a.effort,
         strategy: a.strategy,
+        ...(memory ? { practiceMemory: memory.prompt } : {}),
         maxTokens,
       }),
       signal: timeout,

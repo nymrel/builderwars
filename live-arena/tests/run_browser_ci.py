@@ -17,7 +17,7 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-JOURNEYS = ("browser.py", "lifecycle.py", "connections_browser.py", "profiles_browser.py", "match_package_browser.py", "import_races_browser.py", "resources_browser.py", "accessibility_browser.py", "academy_browser.py", "proof_browser.py", "sharing_browser.py")
+JOURNEYS = ("browser.py", "lifecycle.py", "connections_browser.py", "profiles_browser.py", "match_package_browser.py", "import_races_browser.py", "resources_browser.py", "accessibility_browser.py", "academy_browser.py", "learning_browser.py", "proof_browser.py", "sharing_browser.py")
 NATIVE_JOURNEYS = ("native_browser.py", "native_files_browser.py", "import_races_browser.py", "proof_browser.py")
 
 
