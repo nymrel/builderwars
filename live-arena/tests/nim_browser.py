@@ -2,7 +2,7 @@
 import json
 import os
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 BASE = os.environ.get("BUILDERWARS_TEST_URL", "http://127.0.0.1:5178")
 with sync_playwright() as p:
@@ -64,14 +64,14 @@ with sync_playwright() as p:
     def import_record(record):
         page.locator("#import").set_input_files({"name": "nim.json", "mimeType": "application/json", "buffer": json.dumps(record).encode()})
     import_record(first)
-    assert "content binding checked" in page.locator("#notice").inner_text()
+    expect(page.locator("#notice")).to_contain_text("content binding checked")
     page.locator("#replay-position").fill("0")
     assert "Heap 1 · 3 objects" in page.locator("#board").inner_text()
     page.locator("#replay-next").click()
     assert page.locator("#ply").inner_text() == "PLY 01"
     first["agents"][0]["provenance"]["builderId"] = "imposter"
     import_record(first)
-    assert "binding mismatch" in page.locator("#notice").inner_text()
+    expect(page.locator("#notice")).to_contain_text("binding mismatch")
     assert "imposter" not in page.locator("#seats").inner_text()
     for width in (320, 390, 768, 1440):
         page.set_viewport_size({"width": width, "height": 900})
