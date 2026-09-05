@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-native/
 .native-build/
+android/app/src/debug/assets/capacitor.config.json
 ios-simulator.tar.gz
 .vercel/
 test-results/

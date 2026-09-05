@@ -1,5 +1,24 @@
 # BuilderWars lane presence
 
+Codex native storage integration, September5. Live ownership is claim
+`codex-builderwars-native-storage-integration-20260905`: live-arena/src,
+live-arena/tests and this mirror. Integrate acknowledged checkpoints with moves,
+practice memory and explicit erasure; preserve web behavior and strict restart
+tests. No production/store claims. This note does not extend a released claim.
+
+Codex recovery trace, September5 00:33 PDT. Claim
+`codex-builderwars-recovery-trace-20260905` owns tests and this mirror only.
+Add sanitized stored/visible move-count evidence around actual Android restart;
+preserve the strict two-move assertion. No application or production changes.
+The bus is authoritative; this note does not extend a released claim.
+
+Codex Android emulator evidence lane, September5 2026. Authoritative claim:
+`codex-builderwars-android-emulator-20260905`. Scope: native test harness, CI and
+dated evidence only. Web source65d357c is released and remains untouched. Add an
+actual debug-APK/WebView free game, OS background and process-restart recovery
+journey. No signing, stores, provider calls or production changes. Current state
+is local implementation, not emulator success; recheck bus liveness before writes.
+
 Codex integration/release checkpoint, 2026-09-05 06:34 UTC.
 Exact ownership is in bus claim `codex-builderwars-learning-release-20260905`;
 this dated mirror does not extend a released or expired claim. Integration b553b96

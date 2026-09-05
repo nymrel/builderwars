@@ -1,0 +1,2 @@
+# Android WebView rejects desktop Browser.setDownloadBehavior; no_defaults is 1.60+.
+playwright==1.60.0

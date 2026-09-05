@@ -30,6 +30,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
       - run: python -m unittest discover -s tests -p test_ios_simulator_smoke.py
+      - run: python -m unittest discover -s tests -p test_android_emulator_smoke.py
       - run: npm run build
   browser:
     runs-on: ubuntu-latest
@@ -72,11 +73,24 @@ jobs:
         run: |
           test -d "$JAVA_HOME_21_X64"
           test -f "$ANDROID_HOME/platforms/android-36/android.jar"
+          python3 tests/android_emulator_smoke.py --prepare-debug
           JAVA_HOME="$JAVA_HOME_21_X64" bash android/gradlew -p android --no-daemon -Pandroid.builder.sdkDownload=false assembleDebug
+      - name: Exercise free play and recovery in the actual Android WebView
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test -c /dev/kvm
+          sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          python3 -m venv .android-venv
+          .android-venv/bin/python -m pip install -r tests/requirements-android.txt
+          .android-venv/bin/python tests/android_emulator_smoke.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
         with:
           name: builderwars-android-debug-${{ github.sha }}
-          path: live-arena/android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            live-arena/android/app/build/outputs/apk/debug/app-debug.apk
+            live-arena/output/playwright/native-android/
           if-no-files-found: error
           retention-days: 7
   ios-simulator:
