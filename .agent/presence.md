@@ -1,5 +1,10 @@
 # BuilderWars lane presence
 
+IN_USE: Astra / Codex, September 5, 2026, 22:36 UTC.
+Claim codex-builderwars-exhibition-replay-20260905; scope live-arena/docs/.agent.
+Portable, truthful native exhibition replay integration. Preserve referee and
+provider eligibility; no inference or account changes in this slice.
+
 Open last used by Astra / Codex, September 5, 2026, 22:31 UTC.
 Guided human/agent connection UX shipped in PR42, merged source
 50607becdda1697f9982609d3f9d438d21267bde, after all five candidate CI checks.

@@ -1294,3 +1294,9 @@ dialog [id$="fields"] {
     background: Highlight;
   }
 }
+.exhibition-evidence { margin: 12px 0; padding: 14px 0; border-block: 1px solid var(--border, #3a4640); }
+.exhibition-evidence h2 { font-size: 1rem; margin: 0 0 8px; }
+.exhibition-evidence p { font-size: .85rem; line-height: 1.55; overflow-wrap: anywhere; }
+#exhibition-sources { white-space: pre-line; }
+#exhibition-identities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 420px) { #exhibition-identities { grid-template-columns: 1fr; gap: 0; } }

@@ -36,6 +36,7 @@ import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } fro
 import { publicLinkOrigin } from "./public-links";
 import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
 import { connectionDialogMarkup, agentSetupBrief } from "./connection-guide";
+import { EXHIBITION_SCHEMA, readExhibition, exhibitionDescription, type Exhibition } from "./exhibition";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
 import { DECLARATION_FIELDS, readDeclaration, readDeclarations, unknownDeclarations, makeMatchPackage, readMatchFile, type MatchDeclarations } from "./match-package";
 import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage, entrantLabel,
@@ -164,6 +165,7 @@ let pending = false,
   startingBroadcast = false;
 let library: MatchLibrary | null = null;
 let savedSource: SavedMatch["source"] = "own";
+let currentExhibition: Exhibition | null = null;
 let proofOrigin: "browser_session" | "reverified_import" = "browser_session";
 let proofExporting = false;
 let pendingSetup: MatchSetup | null = null;
@@ -260,16 +262,23 @@ function matchSummary() {
   return summaryCache.value;
 }
 function renderResult() {
-  $("match-result").hidden = record.events.length === 0 || running || pending;
-  if (!record.events.length || running || pending) return;
+  $("match-result").hidden = (!record.events.length && !currentExhibition) || running || pending;
+  if ((!record.events.length && !currentExhibition) || running || pending) return;
   const summary = matchSummary();
   $("result-title").textContent = summary.title;
   $("result-detail").textContent = `${summary.record.rules.name} · ${summary.plies} plies · ${summary.reason}. Last move: ${summary.lastMove}. Reported decision time ${(summary.elapsedMs / 1000).toFixed(2)}s; accepted-move cost ${summary.cost === null ? "unknown" : `$${summary.cost.toFixed(4)}`}.`;
   $("result-evidence").textContent = `${summary.evidence}. One match is not a general model ranking.`;
-  $("result-image").toggleAttribute("disabled", imageExporting);
+  if (currentExhibition) {
+    $("result-title").textContent = currentExhibition.exit === "complete" ? summary.title : currentExhibition.exit === "capped" ? "Resource-capped exhibition · no winner" : "Failed exhibition · no winner";
+    $("result-detail").textContent = `${record.events.length} legal plies · ${currentExhibition.gameAttempts} attempted calls. Reported decision time ${(summary.elapsedMs / 1000).toFixed(2)}s.`;
+    $("result-evidence").textContent = "Engine-assisted, not raw-model play. Download the full exhibition to preserve source receipts, assistance and unknown identities. One game is not a ranking or a completed four-family event.";
+  }
+  $("result-image").toggleAttribute("disabled", imageExporting || !!currentExhibition);
+  for (const id of ["copy-caption", "copy-setup"]) $(id).toggleAttribute("disabled", !!currentExhibition);
 }
 function applySetup(setup: MatchSetup, mode: "free" | "human" | "configure") {
   stop();
+  currentExhibition = null;
   joinGeneration++;
   broadcast.close();
   broadcastLink = ""; watchId = ""; spectating = false;
@@ -304,6 +313,7 @@ for (const [id, mode] of [["setup-free", "free"], ["setup-human", "human"], ["se
   };
 }
 async function shareSetup() {
+  if (currentExhibition) { notify("Configure a new match to share a setup. An exhibition file is not a provider connection or an engine configuration."); return; }
   try {
     const encoded = encodeSetup(makeSetup(record, currentLimits?.moveLimit ?? numberInput("move-limit", 2, 400), currentLimits?.maxTokens ?? numberInput("max-tokens", 256, 16384)));
     await copyOrNativeShare(`${publicLinkOrigin(location.origin)}/#setup=${encoded}`, "Setup link copied. Opening it shows a preview and never starts model calls. Keys, prompts and harness addresses are excluded.");
@@ -313,6 +323,7 @@ $("export").insertAdjacentHTML("afterend", '<button id="share-setup-settings">Sh
 $("copy-setup").onclick = () => void shareSetup();
 $("share-setup-settings").onclick = () => void shareSetup();
 $("result-image").onclick = async () => {
+  if (currentExhibition) { notify("Use Download exhibition; a result image would omit its assistance and source receipts."); return; }
   if (imageExporting) return;
   imageExporting = true; renderResult();
   const snapshot = structuredClone(record);
@@ -325,6 +336,7 @@ $("result-image").onclick = async () => {
   finally { imageExporting = false; renderResult(); }
 };
 $("copy-caption").onclick = async () => {
+  if (currentExhibition) { notify("Use Download exhibition to preserve its evidence; no caption or replay-only link was created."); return; }
   const check = fileTransfer.preparationGuard();
   try {
     const snapshot = safeReplay(record), summary = summarizeMatch(snapshot);
@@ -342,6 +354,14 @@ $("quickplay").textContent = "Play free ↗";
 $("quickplay").title = "Start a new game with two free built-in opponents. No model calls.";
 document.querySelector(".page-heading .subtitle")!.textContent = "Play free with built-in opponents, or connect your own contender.";
 $("notice").insertAdjacentHTML("afterend", `
+  <section id="exhibition-evidence" class="exhibition-evidence" aria-labelledby="exhibition-title" hidden>
+    <h2 id="exhibition-title">Engine-assisted exhibition</h2>
+    <p id="exhibition-description"></p>
+    <div id="exhibition-identities"></div>
+    <details><summary>Source receipts and limits</summary><p id="exhibition-sources" class="muted"></p></details>
+    <button id="export-exhibition">Download exhibition</button>
+    <p class="muted">This file stays local until you choose to share it. Replay-only links, images and broadcasts are unavailable here because they omit this evidence.</p>
+  </section>
   <details id="match-proof" class="match-settings">
     <summary>Verify this match</summary>
     <p class="muted">Reproduce moves and the result offline. Entrant names, models and usage are declarations—not independent identity, execution or billing proof.</p>
@@ -394,6 +414,7 @@ async function saveCurrent(candidate = record) {
       currentLimits?.moveLimitKnown === true,
       currentDeclarations,
       currentLimits !== null,
+      candidate === record ? currentExhibition ?? undefined : undefined,
     );
     if (!saved && library.enabled() && candidate.events.length) {
       $("library-status").textContent =
@@ -462,7 +483,10 @@ function renderLibrary() {
                 renderLibrary();
               } else if (action === "resume") resumeSaved(entry);
               else {
-                openReplay(replay(entry.record), false, entry.resourceSnapshotPresent || entry.moveLimitKnown || entry.maxTokens !== undefined ? validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true) : null, entry.declarations);
+                const check = importGuard();
+                const exhibition = entry.exhibition ? await readExhibition(entry.exhibition) : null;
+                check();
+                openReplay(replay(exhibition?.record ?? entry.record), false, entry.resourceSnapshotPresent || entry.moveLimitKnown || entry.maxTokens !== undefined ? validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true) : null, entry.declarations, exhibition);
                 tab("arena");
               }
             } catch (e) {
@@ -481,6 +505,7 @@ function resumeSaved(entry: SavedMatch) {
       "This match is replay-only. Connected providers must be configured again in a new match.",
     );
   stop();
+  currentExhibition = null;
   joinGeneration++;
   broadcast.close();
   broadcastLink = "";
@@ -621,7 +646,7 @@ $<HTMLInputElement>("replay-position").oninput = (e) =>
   seekReplay(Number((e.target as HTMLInputElement).value));
 $("replay-prev").onclick = () => seekReplay((replayPly ?? 0) - 1);
 $("replay-next").onclick = () => seekReplay((replayPly ?? 0) + 1);
-function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: MatchLimits | null = null, declarations = unknownDeclarations()) {
+function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: MatchLimits | null = null, declarations = unknownDeclarations(), exhibition: Exhibition | null = null) {
   stop();
   joinGeneration++;
   broadcast.close();
@@ -636,6 +661,7 @@ function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: Matc
   rules = parsed.state.rules;
   state = parsed.state;
   record = parsed.record;
+  currentExhibition = exhibition;
   currentLimits = limits;
   currentDeclarations = readDeclarations(declarations);
   replayPly = record.events.length;
@@ -681,6 +707,16 @@ function render() {
   const focusedCell = active?.dataset.cell;
   const focusedSeat = active?.dataset.seat;
   renderResult();
+  $("exhibition-evidence").hidden = !currentExhibition;
+  $("share").textContent = currentExhibition ? "Download exhibition" : "Share replay ↗";
+  $("feed-count").textContent = replayPly !== null ? "RECORDED MOVES" : "LIVE MOVES";
+  if (currentExhibition) {
+    const exhibition = currentExhibition;
+    $("exhibition-description").textContent = exhibitionDescription(currentExhibition);
+    $("exhibition-identities").innerHTML = exhibition.players.map((p, seat) => `<p><strong>${seat === 0 ? "White" : "Black"}: ${esc(p.requestedModel)}</strong><br>${esc(p.resolvedModel === null ? "Resolved identity unreported" : `Reported identity: ${p.resolvedModel} (${p.identityEvidence})`)}${exhibition.record.events.some(e => e.seat === seat) ? "" : " · no accepted decision"}</p>`).join("");
+    $("exhibition-sources").textContent = `Runner: ${currentExhibition.source.runner}\nPlan: ${currentExhibition.source.plan}\nResult: ${currentExhibition.source.result}\nOriginal proof: ${currentExhibition.source.originalProof}\nReferee: ${currentExhibition.source.referee}\nAdvisor binary: ${currentExhibition.engine.binarySha256}\nEnvelope: ${currentExhibition.digest}\nWhole-run cap: ${currentExhibition.limits.maxCalls} calls / ${currentExhibition.limits.totalMs / 1000}s. Per call: ${currentExhibition.limits.perCallMs / 1000}s. Per game: ${currentExhibition.limits.maxPliesPerGame} plies. Two fixed pairings, one seat assignment each; this file contains game ${currentExhibition.game} only. These are organizer-supplied receipts, not independently attested execution or billing.`;
+  }
+  for (const id of ["go-live", "watch-broadcast"]) $(id).toggleAttribute("disabled", !!currentExhibition);
   document
     .querySelectorAll<HTMLButtonElement>(
       "[data-saved-replay], [data-saved-resume], [data-saved-delete]",
@@ -756,7 +792,7 @@ function render() {
     spectating || running || pending || state.over,
   );
   $("quickplay").toggleAttribute("disabled", spectating || pending || running);
-  $("export-proof").toggleAttribute("disabled", rules.kind !== "connect4" || proofExporting);
+  $("export-proof").toggleAttribute("disabled", !!currentExhibition || rules.kind !== "connect4" || proofExporting);
   $("reset").toggleAttribute("disabled", spectating);
   $("replay-controls").hidden = replayPly === null;
   $<HTMLInputElement>("replay-position").max = String(record.events.length);
@@ -796,6 +832,7 @@ function render() {
   $("metric-cost").textContent = record.events.some((e) => e.cost === null)
     ? "Unknown"
     : `$${record.events.reduce((sum, e) => sum + (e.cost || 0), 0).toFixed(4)}`;
+  if (currentExhibition && (!record.events.length || currentExhibition.gameAttempts > record.events.length)) $("metric-cost").textContent = "Unknown";
   if (record.events.length)
     $("feed").innerHTML = record.events
       .slice(-30)
@@ -840,6 +877,7 @@ function stop(message = "Paused", preserveSeries = false) {
 }
 function reset(preserveSeries = false) {
   stop("Ready", preserveSeries);
+  currentExhibition = null;
   replayPly = null;
   state = createGame(rules);
   record = freshRecord();
@@ -1370,6 +1408,7 @@ function declarationFromForm() {
 $("export").insertAdjacentHTML("afterend", '<button id="export-package">Download match package</button><p class="muted">Match package: public attribution, requested limits, replay and verifier digest. Strategies and comments are omitted. Model execution and identity are not attested.</p>');
 $("export-package").insertAdjacentHTML("afterend", '<section aria-label="Match attribution"><h3>Match attribution · self-declared</h3><p id="match-attribution" class="muted" style="overflow-wrap:anywhere;white-space:pre-line"></p></section>');
 $("export-package").onclick = async () => {
+  if (currentExhibition) { await exportExhibition(); return; }
   try { await exportJson(`builderwars-${record.id}.package.json`, makeMatchPackage(record, currentDeclarations, currentLimits), "replay"); }
   catch (error) { notify((error as Error).message); }
 };
@@ -1441,11 +1480,12 @@ $("export-agent").onclick = async () => {
   catch (error) { $("dialog-status").textContent = (error as Error).message; }
 };
 $("export").onclick = async () => {
+  if (currentExhibition) { await exportExhibition(); return; }
   try { await exportJson(`builderwars-${record.id}.json`, replay(record).record, "replay"); }
   catch (error) { notify((error as Error).message); }
 };
 $("export-proof").onclick = async () => {
-  if (rules.kind !== "connect4" || proofExporting) return;
+  if (currentExhibition || rules.kind !== "connect4" || proofExporting) return;
   const snapshot = structuredClone(record);
   const origin = proofOrigin;
   const check = fileTransfer.preparationGuard();
@@ -1522,6 +1562,7 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
   }
 };
 async function shareReplay() {
+  if (currentExhibition) { await exportExhibition(); return; }
   const check = fileTransfer.preparationGuard();
   try {
     const encoded = await encodeReplay(safeReplay(record));
@@ -1539,6 +1580,20 @@ async function shareReplay() {
   }
 }
 $("share").onclick = () => void shareReplay();
+async function exportExhibition() {
+  const snapshot = currentExhibition;
+  if (!snapshot) return;
+  try {
+    const outcome = await exportJson(`builderwars-game-${snapshot.game}-${snapshot.digest.slice(0,12)}.exhibition.json`, snapshot, "replay");
+    notify(`${transferMessage(outcome)} Engine assistance, requested/reported identities, limits and source receipts retained. No automatic publication.`);
+  } catch (error) { notify((error as Error).message); }
+}
+$("export-exhibition").onclick = () => void exportExhibition();
+// Visual thesis: the existing board remains the workspace; evidence is a quiet
+// text inspector. Content: outcome, assistance, identities, then source detail.
+// Interaction: native disclosure, existing replay scrubber and focus feedback.
+$("watch-broadcast").insertAdjacentHTML("beforebegin", '<h2>Recorded exhibitions</h2><p class="muted">Open a frontier exhibition file to replay moves with its engine assistance and source receipts. Importing makes no model requests.</p><button id="import-exhibition">Import exhibition file</button><h2>Live broadcasts</h2>');
+$("import-exhibition").onclick = () => $<HTMLInputElement>("import").click();
 async function readFile(input: HTMLInputElement) {
   const f = input.files?.[0];
   if (!f) throw Error("Choose a JSON file.");
@@ -1550,9 +1605,17 @@ $<HTMLInputElement>("import").onchange = async (e) => {
   if (!input.files?.[0]) return;
   try {
     const check = importGuard();
-    const imported = readMatchFile(await readFile(input));
-    check();
-    openReplay(imported.parsed, true, imported.limits, imported.declarations);
+    const raw = await readFile(input);
+    if (raw?.schema === EXHIBITION_SCHEMA) {
+      const exhibition = await readExhibition(raw);
+      check();
+      openReplay(replay(exhibition.record), true, validateMatchLimits(exhibition.limits.maxPliesPerGame, null, true), unknownDeclarations(), exhibition);
+      tab("arena");
+    } else {
+      const imported = readMatchFile(raw);
+      check();
+      openReplay(imported.parsed, true, imported.limits, imported.declarations);
+    }
   } catch (e) {
     notify((e as Error).message);
   } finally { input.value = ""; }
@@ -1727,6 +1790,7 @@ $("academy-variant").onclick = () => {
   tab("forge");
 };
 async function goLive() {
+  if (currentExhibition) { notify("Use Download exhibition to preserve engine assistance and source receipts."); return; }
   if (startingBroadcast) return;
   if (spectating) {
     notify("Spectators cannot rebroadcast this match.");
@@ -1773,6 +1837,7 @@ async function join(id: string) {
   ensureDeviceReady();
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) throw Error("Invalid broadcast id.");
   stop();
+  currentExhibition = null;
   const generation = ++joinGeneration;
   seriesRemaining = 0;
   replayPly = null;
