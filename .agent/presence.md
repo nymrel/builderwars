@@ -1,5 +1,12 @@
 # BuilderWars lane presence
 
+Codex Android emulator evidence lane, September5 2026. Authoritative claim:
+`codex-builderwars-android-emulator-20260905`. Scope: native test harness, CI and
+dated evidence only. Web source65d357c is released and remains untouched. Add an
+actual debug-APK/WebView free game, OS background and process-restart recovery
+journey. No signing, stores, provider calls or production changes. Current state
+is local implementation, not emulator success; recheck bus liveness before writes.
+
 Codex integration/release checkpoint, 2026-09-05 06:34 UTC.
 Exact ownership is in bus claim `codex-builderwars-learning-release-20260905`;
 this dated mirror does not extend a released or expired claim. Integration b553b96
