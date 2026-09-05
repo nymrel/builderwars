@@ -1,11 +1,14 @@
 # BuilderWars lane presence
 
-Codex frozen-memory experiment, September5. Exact live claim
+Codex frozen-memory experiment checkpoint, September5. Exact live claim
 `codex-builderwars-learning-experiment-20260905`: root owns docs/runtime/evidence;
 beta_completion_audit owns only scripts/learning-comparison.ts and its unit test.
-No production source edits. Use retained genuine plain-harness lessons, disjoint
-held-out positions and capped loopback-only inference; no uplift presumed.
-PR34 review receives committed1ca032e only, not this unfinished experiment.
+No production source edits in this experiment. One24call run: baseline3/12,
+frozenmemory2/12; no benefit shown. Independent rawreceipt audit PASS. Owned
+runtime58036 stopped,8088absent; worker finished. PR34 reviewed1ca032e merged as
+5f92f990, all five candidate/main checks pass, exactarchive deployed and canonical
+cards/share/replay reverified. Current experiment follow-through is not deployed.
+Claim governs until released; this note never extends it.
 
 Open last used by Codex, September5, result-card follow-through. Exact live claim
 `codex-builderwars-card-outcome-20260905` owns sharing.ts, tests, docs and this

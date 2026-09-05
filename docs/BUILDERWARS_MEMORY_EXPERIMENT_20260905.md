@@ -55,6 +55,57 @@ does not prove the server instantly stopped computing.
 
 ## Result
 
-Not run yet. A completed result must cite the immutable execution receipt and
-all planned cells. No change to public learning claims is authorized by this
-preparation document alone.
+One run completed September5,2026,10:27:50UTC.24actual loopback inference calls,
+12positions per condition, zero failed/capped cells. The model solved3/12 without
+memory and2/12 with memory. Both conditions solved two positions; baseline alone
+solved one; memory alone solved none; both missed nine. No selective rerun.
+
+| Condition | Immediate wins | Avoidable threats | Input tokens | Output tokens |
+| --- | --- | --- | --- | --- |
+| No memory | 1/6 correct | 2/6 correct | 2009 | 120 |
+| Frozen memory | 1/6 correct | 1/6 correct | 3761 | 168 |
+
+The extra1752input and48output tokens did not buy an observed improvement on
+this set. This supports treating reminders as unproven assistance. It does not
+establish that memory always hurts, that another model would behave similarly,
+or that a12-position difference is statistically reliable. No promotion or
+production behavior change. Positions have now been observed; future tuning must
+not reuse them as untouched holdout evidence.
+
+Immutable output directory:
+`live-arena/output/playwright/learning-comparison-run-2026-09-05T10-27-50-585Z-e8f22bdd-48b5-428f-9d02-67762b67ed80/`.
+Sanitized share-summary.json SHA256:
+`1ba60d18ad750c2d335c2c1f542ba40317a25e9453f014684df5f36e35a6a6d6`.
+Original intent/private plan and all request/result receipts retained. Fixture
+digest b1b31637a80aefd699e6ebf3eb9f3d4bd9efee535f6c8a321f436a053eebe7db;
+memory digest3969d2b1c1a1f5a78b7d87429e6f51b49d4f83d0634550fbe79c8cc5da503fd1.
+These match the no-inference preparation. Original source JSON-content digest
+d8411cd60adc06287fcb1f9cd66fe3e92254af280b2cb7c0b2d36716fd891b69 is not the raw
+receipt-file hash; serialization is explicit.
+
+Executed clean source b7c1da11583b0dfa70818ea2d2d4241d4520abfc, runner SHA256
+3721a019dc9df9712949037815271edf37b3e40f592ea9f0c73b1b685eda3082.
+Seven synthetic runner tests,144total Node tests, type checks and build passed.
+Independent bounded pre-run review approved the source/fixture/containment
+contract; test success alone is not the actual model result.
+
+Post-run independent audit regenerated the plan from the original practice
+receipt and checked all24 saved requests/raw responses against the referee.
+Moves, legality, grades, usage, order and summaries reconciled. Intent10:27:50.587,
+private plan.588 and first request.589UTC confirm the plan preceded dispatch;
+every saved request preceded its result. No extra inference was used to audit.
+
+Runtime PID58036, created10:27:31.450039UTC, exact observed llama-server executable
+SHA25680ef4d0f61f6bd54858808ac79478ccad28e41e3ea27aba2968ca9e98099fd0c.
+Health returnedok and model listing matched the rehashed installed GGUF before
+execution. Requested alias, response model metadata and local executable/weight
+observations are distinct evidence; no independent provider attestation claimed.
+After completion root verified PID, creation time and executable before stopping
+only58036; process and8088listener were independently absent. Logs retained in
+output/playwright/learning-runtime-20260905-1029. No cloud calls or dollars paid.
+Hardware/electricity cost remains unknown.
+
+Next product action: keep learning claims limited to retained reminders. Design
+an opt-in versioned harness improvement against a fresh held-out set, with any
+deterministic rule assistance explicitly separated from learned behavior. Do not
+attempt to make this run pass by replacing answers or changing its scorer.
