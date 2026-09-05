@@ -1107,6 +1107,10 @@ dialog [id$="fields"] {
   }
 }
 @media (max-width: 359px) {
+  nav {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
   .page-heading {
     flex-direction: column;
   }
@@ -1124,8 +1128,12 @@ dialog [id$="fields"] {
   }
   nav button {
     gap: 4px;
-    padding: 7px;
+    padding: 7px 2px;
     font-size: 10px;
+    min-width: 0;
+    min-height: 44px;
+    flex-direction: column;
+    justify-content: center;
   }
   main {
     padding: 22px 12px;

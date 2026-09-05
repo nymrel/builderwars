@@ -20,6 +20,10 @@ Claude's studio note `20260904-2006000700-review-result--builderwars-pr29--e3a56
 - Referee digest: `d5135878ce69345f5e8ee214c03d53cd1593052b9bcb97d1a96363f9b6dfa823`.
 - No game-provider requests, spend, DNS, production settings, social posts or customer data changed. Exact-head CI and deployment must be checked after the commit; prior green heads do not count.
 
+### CI-exposed mobile defect
+
+Hosted run33942291399 at053a140 passed both Node jobs but the new Linux browser job found 320px Arena overflow. Diagnostic-only headc61467c (run33942428935) retained the failing assertion and captured the outlying navigation button geometry. The narrowest navigation now uses five equal tracks with icons above labels, rather than relying on OS-specific font widths fitting a single row. Browser tests additionally require all five tabs to remain within the viewport and at least44px tall. No global overflow hiding or reduced assertion was used. Exact follow-up CI must pass before this defect is considered release-verified.
+
 ## Launch audit: still incomplete
 
 This table keeps the original five-day scope visible; it does not redefine completion around the current candidate.

@@ -113,9 +113,11 @@ with sync_playwright() as p:
             page.locator(f'nav [data-tab={tab}]').click()
             if not page.evaluate('document.documentElement.scrollWidth <= innerWidth'):
                 print('OVERFLOW_GEOMETRY', width, tab, page.evaluate('''() => Array.from(document.querySelectorAll('body *')).map(el => {
-                  const r=el.getBoundingClientRect(); return {tag:el.tagName,id:el.id,cls:el.className,left:r.left,right:r.right,width:r.width};
+                  const r=el.getBoundingClientRect(); return {tag:el.tagName,id:el.id,cls:el.className,tab:el.dataset.tab||null,parent:el.parentElement?.className,left:r.left,right:r.right,width:r.width};
                 }).filter(r => r.width > 0 && (r.right > innerWidth + 0.5 || r.left < -0.5)).slice(0,30)'''), flush=True)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),f'overflow {width} {tab}'
+            if width == 320:
+                assert page.locator('nav button').evaluate_all('(buttons) => buttons.every(b => { const r=b.getBoundingClientRect(); return r.left>=0 && r.right<=innerWidth && r.height>=44; })')
     page.locator('nav [data-tab=arena]').click()
     page.set_viewport_size({"width":1440,"height":1000})
     page.locator('[data-game=chess]').click()
