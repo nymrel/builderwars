@@ -1,5 +1,11 @@
 # BuilderWars lane presence
 
+IN_USE: Astra / Codex, September 5, 2026; exact claim
+codex-builderwars-four-frontier-20260905, live-arena/docs/.agent in this worktree.
+Four-frontier campaign and stronger-opponent tactical measurement. Fable, Grok
+and Gemini consultations are read-only; no parallel source writers. See
+docs/FRONTIER_CAMPAIGN.md. No production/provider configuration changes.
+
 Open last used by Codex, September 5, 2026. Session01a02d52-c41a-7521-aee3-e595101d6447.
 Claim codex-builderwars-improvement-loop-20260905 governs live-arena/docs/.agent
 in this named worktree on codex/builderwars-portable-proof-20260904.

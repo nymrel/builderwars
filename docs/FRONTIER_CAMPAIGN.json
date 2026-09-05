@@ -1,0 +1,186 @@
+{
+  "charter_version": "1.0",
+  "as_of": "2026-09-05",
+  "assessment_kind": "charter",
+  "project_id": "builderwars",
+  "project_name": "BuilderWars",
+  "project_type": "customer_product",
+  "lifecycle_state": "active",
+  "lifecycle_detail": "Four-family frontier campaign; first local measurement slice. Not a change to studio-wide priority.",
+  "evidence_status": "draft",
+  "rubric_applicability": "applicable",
+  "north_star": "Help builders create demonstrably better agents, prove their abilities in fair competitions, and make that progress enjoyable to watch and reproduce.",
+  "beneficiary": {
+    "primary": "Agent and harness builders",
+    "job_to_be_done": "Improve a versioned agent and independently verify the change.",
+    "current_struggle": "Weak opponents and incomplete runs can conceal tactical errors and regressions.",
+    "desired_progress": "Reproducible comparison, useful retain decisions and earned improvement."
+  },
+  "north_star_metric": {
+    "name": "Weekly returning builders completing verified improvement cycles",
+    "definition": "Distinct consented external builders with a qualifying cycle in an earlier UTC week who complete fixed admission and use the accepted improved version in a completed non-practice match within seven days. Finalize after the use window closes.",
+    "qualifying_event": "Predeclared effect and uncertainty gates, tactical and seat vetoes, resource-class parity, accepted candidate and completed match.",
+    "exclusions": [
+      "Staff and fixtures",
+      "Bots and Sybil accounts",
+      "Practice-only or duplicated imports",
+      "Failed, capped, unverified or disqualified runs"
+    ],
+    "observable": false,
+    "data_source_status": "planned",
+    "data_source": "Account/version/admission/match joins, not implemented",
+    "baseline": null,
+    "target": null,
+    "cadence": "Weekly UTC",
+    "guardrails": [
+      "False promotions",
+      "Seat regression",
+      "Tactical error",
+      "Illegal moves and caps",
+      "Compute and latency",
+      "Consent"
+    ],
+    "gameability": "Easy games or weak opponents inflate gains; freeze qualified opposition, require absolute strength floors and relative gains.",
+    "proxies": [
+      {
+        "name": "Returning external builders completing replayable retain-or-promote comparisons",
+        "why": "Useful feedback precedes qualified improvement; planned, not currently measured.",
+        "retire_when": "Verified consented recurring account-to-admission-to-match joins exist."
+      },
+      {
+        "name": "Reproducible strength reports and tactical errors",
+        "why": "Engineering diagnostics with known limitations.",
+        "retire_when": "Real-user product metrics are verified; keep these only as diagnostics."
+      }
+    ]
+  },
+  "anti_goals": [
+    "No claim of present industry leadership",
+    "No evaluation leakage or unsupported subscription reuse",
+    "No automatic publication or fabricated audience",
+    "No Nymrel priority override"
+  ],
+  "roadmap": [
+    {
+      "phase": "1. Strength measurement",
+      "entry_evidence": [
+        "PR38 merged"
+      ],
+      "done_when": [
+        "Frozen opposition, both-seat tactical measurement and reproducible reports"
+      ],
+      "non_goals": [
+        "No promotion by nicer diagnostics"
+      ],
+      "validation": [
+        "Hand-labeled disproof fixtures, tests, build, independent review"
+      ],
+      "disproof_condition": "Grader cannot distinguish correct and deliberately wrong tactics."
+    },
+    {
+      "phase": "2. Versioned frontier harness",
+      "entry_evidence": [
+        "Phase 1 measurements"
+      ],
+      "done_when": [
+        "Immutable model/provider/effort/prompt/memory/tool versions, attempt ledger, isolated partitions"
+      ],
+      "non_goals": [
+        "No arbitrary uploaded code or hidden credential reuse"
+      ],
+      "validation": [
+        "Mutation, contamination, budget and replay rejection"
+      ],
+      "disproof_condition": "Admission cases are accessible to practice or a ranked version changes mid-match."
+    },
+    {
+      "phase": "3. Demonstrated gains",
+      "entry_evidence": [
+        "Frozen versions and admission custody"
+      ],
+      "done_when": [
+        "Repeatable matched-compute gains in two game families against nonrandom opposition, both seats and uncertainty"
+      ],
+      "non_goals": [
+        "No repeated grinding on spent holdouts"
+      ],
+      "validation": [
+        "Completion, legality, tactical and seat regression vetoes"
+      ],
+      "disproof_condition": "Gains vanish against frozen stronger opposition or fail guardrails."
+    },
+    {
+      "phase": "4. Opt-in UX",
+      "entry_evidence": [
+        "Accepted artifacts and owned paths"
+      ],
+      "done_when": [
+        "Train, compare, cancel, select, rollback and source-bound replay flows"
+      ],
+      "non_goals": [
+        "No native/store acceptance inferred from browser tests"
+      ],
+      "validation": [
+        "Responsive accessibility, cancellation/recovery, exact deployed source proof"
+      ],
+      "disproof_condition": "Users cannot distinguish candidate, retained and accepted versions or safely cancel."
+    },
+    {
+      "phase": "5. Four-family exhibition",
+      "entry_evidence": [
+        "Consented eligible routes and inference limits"
+      ],
+      "done_when": [
+        "Attributable replays, truthful share drafts, safe creator-adapter starter"
+      ],
+      "non_goals": [
+        "No automatic posts or ranking claims"
+      ],
+      "validation": [
+        "Actual identity availability, resource limits, replay and rollback"
+      ],
+      "disproof_condition": "Identity or autonomous execution cannot be substantiated."
+    }
+  ],
+  "review": {
+    "quality_score": 62,
+    "review_status": "changes_required",
+    "reviewed_by": [
+      "Fable charter refutation",
+      "Grok differentiation consult",
+      "Gemini evaluation consult"
+    ],
+    "models_used": [
+      "claude-fable-5-1 (provider-resolved)",
+      "cursor-grok-4.6-high (catalog-verified request, not response-attested)",
+      "gemini-3.1-pro-high (catalog-verified request, not response-attested)"
+    ],
+    "rubric_scores": {
+      "truth_and_evidence": 4,
+      "beneficiary_and_progress": 3,
+      "future_end_state": 3,
+      "north_star_metric": 3,
+      "value_loop": 3,
+      "moat_and_trust": 3,
+      "focus_and_anti_goals": 3,
+      "economics_and_distribution": 2,
+      "roadmap_and_gates": 3,
+      "agent_executability": 4
+    },
+    "disagreements": [
+      "62 is Fable's original-draft score, not a score for the revised draft or an average.",
+      "Rejected the assertion that the completed short-game exploratory samples were capped.",
+      "No claim that hidden seeds alone demonstrate generalization."
+    ],
+    "final_ruling": "Revised strategy remains draft. Operator-authorized first implementation proceeds after bounded review; no North Star adoption claim.",
+    "ruling_owner": "Astra / Codex owning lane",
+    "next_review": "2026-09-12"
+  },
+  "change_log": [
+    {
+      "date": "2026-09-05",
+      "change": "Drafted, refuted and revised. See FRONTIER_COUNCIL_RESULTS.md for exact route receipts and reconciliations.",
+      "owner": "Astra / Codex"
+    }
+  ]
+}

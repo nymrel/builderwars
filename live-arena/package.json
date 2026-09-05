@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "strength": "tsx scripts/measure-strength.ts",
+    "prestrength": "npm run referee",
     "improve": "tsx scripts/self-improve.ts",
     "preimprove": "npm run referee",
     "referee": "node scripts/build-referee.mjs",
