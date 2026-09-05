@@ -20,6 +20,11 @@ outcomes, missed wins and avoidable next-reply losses. Public development fixtur
 are not hidden admission data. This never promotes or changes a website contender.
 See the [frontier campaign](../docs/FRONTIER_CAMPAIGN.md) for the remaining gates.
 
+`npm.cmd run frontier -- init --id my-training --game tictactoe` creates an isolated
+local experiment; `run --id my-training` records verified errors, bounded numeric
+practice and a frozen candidate. Explicit one-shot tactical qualification never
+promotes by itself. See [versioning, custody and commands](../docs/FRONTIER_HARNESS.md).
+
 ## Play and build
 
 ```sh

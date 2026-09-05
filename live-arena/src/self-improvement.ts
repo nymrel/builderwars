@@ -114,7 +114,7 @@ export async function parsePolicy(raw: unknown): Promise<Policy> {
 }
 
 /** One-ply lookahead is explicit assistance; the value coefficients are trained. */
-export function policyMove(s: GameState, policy: Policy, rng: Random, budget: WorkBudget, epsilon = 0): string {
+export function policyMove(s: GameState, policy: Pick<Policy, "rules" | "weights">, rng: Random, budget: WorkBudget, epsilon = 0): string {
   budget.tick();
   if (!Number.isFinite(epsilon) || epsilon < 0 || epsilon > 1) throw Error("Invalid exploration probability.");
   if (rulesKey(s.rules) !== rulesKey(policy.rules)) throw Error("Policy belongs to different rules.");

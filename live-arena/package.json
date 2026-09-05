@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "frontier": "tsx scripts/frontier.ts",
+    "prefrontier": "npm run referee",
     "strength": "tsx scripts/measure-strength.ts",
     "prestrength": "npm run referee",
     "improve": "tsx scripts/self-improve.ts",

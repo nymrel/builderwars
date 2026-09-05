@@ -1,0 +1,476 @@
+{
+  "schema": "builderwars.frontier-phase2-evidence.v1",
+  "recordedAt": "2026-09-05T20:10:00Z",
+  "scope": "Local trusted-runner numeric harness workflow only; not whole-game strength or promotion",
+  "node": "v22.22.0",
+  "sourceFingerprint": "3fa852d49a2705064db4e87a74a903cbfe93c454d2db168fc1349d2beab8881d",
+  "localValidation": {
+    "tests": 179,
+    "passed": 179,
+    "build": "pass",
+    "browserEntry": "index-DAHsmVZF.js",
+    "referee": "d5135878ce69345f5e8ee214c03d53cd1593052b9bcb97d1a96363f9b6dfa823"
+  },
+  "campaigns": [
+    {
+      "id": "phase2-ttt-20260905",
+      "manifest": {
+        "schema": "builderwars.frontier-campaign.v1",
+        "id": "phase2-ttt-20260905",
+        "source": "3fa852d49a2705064db4e87a74a903cbfe93c454d2db168fc1349d2beab8881d",
+        "incumbent": "fbc284cd0adb7e35b6f3502408841c5c0e8237fefeb86139653ccaf8d616b438",
+        "identity": "218ab846d192278f15e6dda68e07a9eab02f332078314297a5a17cd14640f476",
+        "training": "223c1271398eac6fd66a3c037765becb8801254a32eac498470969a1c48a1210",
+        "development": "20e3e3f948e33552115fa861265d3975f80ac0e55479ed4e41c42b69427d8d1d",
+        "suites": [
+          "e968c74456340f954feefcf8d25e2dececf0e4058548c50db3354818baa5d76f",
+          "a3a76648a01e49d938961a9e318014d101113b562bebaa86c4afb53c2f61e6f2"
+        ],
+        "attempts": 2,
+        "alphaTotal": 0.05,
+        "alphaPerAttempt": 0.025,
+        "minimumGain": 0.05,
+        "digest": "d9c4a42eafc7ffea56ba890fe1cfa9263cc25e276bcb2ec2662d11a2ba692779"
+      },
+      "plan": {
+        "schema": "builderwars.frontier-attempt.v1",
+        "campaign": "phase2-ttt-20260905",
+        "manifest": "d9c4a42eafc7ffea56ba890fe1cfa9263cc25e276bcb2ec2662d11a2ba692779",
+        "slot": 1,
+        "suite": "e968c74456340f954feefcf8d25e2dececf0e4058548c50db3354818baa5d76f",
+        "source": "3fa852d49a2705064db4e87a74a903cbfe93c454d2db168fc1349d2beab8881d",
+        "incumbent": "fbc284cd0adb7e35b6f3502408841c5c0e8237fefeb86139653ccaf8d616b438",
+        "identity": "218ab846d192278f15e6dda68e07a9eab02f332078314297a5a17cd14640f476",
+        "training": "223c1271398eac6fd66a3c037765becb8801254a32eac498470969a1c48a1210",
+        "development": "20e3e3f948e33552115fa861265d3975f80ac0e55479ed4e41c42b69427d8d1d",
+        "options": {
+          "passes": 8,
+          "rate": 0.2,
+          "margin": 0.1
+        },
+        "alpha": 0.025,
+        "minimumGain": 0.05,
+        "digest": "039f58f316c00d93c3563cb2262e8fb96a8d60f8fbce72d933315463ddfe0932"
+      },
+      "practice": {
+        "digest": "e3c439cc2a6cd7e7006ed13e5e38cc9addc65114133a25faf509493f8b7affbd",
+        "before": [
+          {
+            "seat": 0,
+            "cases": 16,
+            "assessed": 16,
+            "illegal": 0,
+            "winOpportunities": 13,
+            "missedWins": 0,
+            "defenseOpportunities": 3,
+            "avoidableLosses": 3,
+            "missedWinRate": 0,
+            "avoidableLossRate": 1
+          },
+          {
+            "seat": 1,
+            "cases": 16,
+            "assessed": 16,
+            "illegal": 0,
+            "winOpportunities": 9,
+            "missedWins": 0,
+            "defenseOpportunities": 7,
+            "avoidableLosses": 6,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.8571428571428571
+          }
+        ],
+        "after": [
+          {
+            "seat": 0,
+            "cases": 16,
+            "assessed": 16,
+            "illegal": 0,
+            "winOpportunities": 13,
+            "missedWins": 0,
+            "defenseOpportunities": 3,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0
+          },
+          {
+            "seat": 1,
+            "cases": 16,
+            "assessed": 16,
+            "illegal": 0,
+            "winOpportunities": 9,
+            "missedWins": 0,
+            "defenseOpportunities": 7,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0
+          }
+        ],
+        "errors": 9,
+        "updates": 354
+      },
+      "development": {
+        "digest": "6e6b4d1fdf1d6e91b5a021f860f3e1a66a65763e1cba15a2734fd65f657ee4ba",
+        "before": [
+          {
+            "seat": 0,
+            "cases": 13,
+            "assessed": 13,
+            "illegal": 0,
+            "winOpportunities": 11,
+            "missedWins": 0,
+            "defenseOpportunities": 2,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0
+          },
+          {
+            "seat": 1,
+            "cases": 3,
+            "assessed": 3,
+            "illegal": 0,
+            "winOpportunities": 3,
+            "missedWins": 0,
+            "defenseOpportunities": 0,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": null
+          }
+        ],
+        "after": [
+          {
+            "seat": 0,
+            "cases": 13,
+            "assessed": 13,
+            "illegal": 0,
+            "winOpportunities": 11,
+            "missedWins": 0,
+            "defenseOpportunities": 2,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0
+          },
+          {
+            "seat": 1,
+            "cases": 3,
+            "assessed": 3,
+            "illegal": 0,
+            "winOpportunities": 3,
+            "missedWins": 0,
+            "defenseOpportunities": 0,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": null
+          }
+        ],
+        "nodes": 10644
+      },
+      "admission": {
+        "status": "completed",
+        "campaign": "phase2-ttt-20260905",
+        "slot": 1,
+        "candidate": "2abf3a74bbb461e5bafe54df5dc773a047820ba741d75a38dbba669d5171a577",
+        "plan": "039f58f316c00d93c3563cb2262e8fb96a8d60f8fbce72d933315463ddfe0932",
+        "suite": "e968c74456340f954feefcf8d25e2dececf0e4058548c50db3354818baa5d76f",
+        "tacticalQualification": "pass",
+        "before": [
+          {
+            "seat": 0,
+            "cases": 8,
+            "assessed": 8,
+            "illegal": 0,
+            "winOpportunities": 5,
+            "missedWins": 0,
+            "defenseOpportunities": 3,
+            "avoidableLosses": 3,
+            "missedWinRate": 0,
+            "avoidableLossRate": 1
+          },
+          {
+            "seat": 1,
+            "cases": 8,
+            "assessed": 8,
+            "illegal": 0,
+            "winOpportunities": 7,
+            "missedWins": 0,
+            "defenseOpportunities": 1,
+            "avoidableLosses": 1,
+            "missedWinRate": 0,
+            "avoidableLossRate": 1
+          }
+        ],
+        "after": [
+          {
+            "seat": 0,
+            "cases": 8,
+            "assessed": 8,
+            "illegal": 0,
+            "winOpportunities": 5,
+            "missedWins": 0,
+            "defenseOpportunities": 3,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0
+          },
+          {
+            "seat": 1,
+            "cases": 8,
+            "assessed": 8,
+            "illegal": 0,
+            "winOpportunities": 7,
+            "missedWins": 0,
+            "defenseOpportunities": 1,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0
+          }
+        ],
+        "audit": "456b3e4cd4f978c0546d9b1a3e0382c449fd1ef2b107a14bee6be07b038fd940",
+        "nodes": 996,
+        "providerCalls": 0,
+        "promotion": "not-authorized",
+        "reason": "Tactical qualification alone cannot promote; whole-game strength and uncertainty gates remain required.",
+        "identity": "218ab846d192278f15e6dda68e07a9eab02f332078314297a5a17cd14640f476",
+        "alphaReserved": 0.025,
+        "uncertainty": "No population bound claimed from this finite tactical fixture suite.",
+        "digest": "d45ceb2ca7be239b427561313f79e76a588b910cc782aeedee29ef94cd99c22a"
+      },
+      "rollback": {
+        "incumbent": "fbc284cd0adb7e35b6f3502408841c5c0e8237fefeb86139653ccaf8d616b438",
+        "candidate": "2abf3a74bbb461e5bafe54df5dc773a047820ba741d75a38dbba669d5171a577",
+        "selected": "fbc284cd0adb7e35b6f3502408841c5c0e8237fefeb86139653ccaf8d616b438",
+        "reason": "No whole-game admission; incumbent retained."
+      }
+    },
+    {
+      "id": "phase2-connect4-20260905",
+      "manifest": {
+        "schema": "builderwars.frontier-campaign.v1",
+        "id": "phase2-connect4-20260905",
+        "source": "3fa852d49a2705064db4e87a74a903cbfe93c454d2db168fc1349d2beab8881d",
+        "incumbent": "19078364736755e4099337341edbab95411614dc219458ffdab52c863ec9b79a",
+        "identity": "218ab846d192278f15e6dda68e07a9eab02f332078314297a5a17cd14640f476",
+        "training": "e621376fb49ed42a1f95a4cf123dfb2ec580db1e9d58b7842347e24dddab3d93",
+        "development": "eb93e2a46eaa101bbe6a44326e4c808cf287ca9868de5a8419d9e28b8383f5df",
+        "suites": [
+          "8a1c1ff76eb87f9c4235739e51a6b304a763b7db364eeba98569244b9155010b",
+          "54da22dc1ef1e18d05ba0238d56226a9b7279906f5c9f628df2568415c14aad0"
+        ],
+        "attempts": 2,
+        "alphaTotal": 0.05,
+        "alphaPerAttempt": 0.025,
+        "minimumGain": 0.05,
+        "digest": "de2027205aac1f4ff766a1479aaac8b9f39db7cda5a87a8ad607e8d7201031a7"
+      },
+      "plan": {
+        "schema": "builderwars.frontier-attempt.v1",
+        "campaign": "phase2-connect4-20260905",
+        "manifest": "de2027205aac1f4ff766a1479aaac8b9f39db7cda5a87a8ad607e8d7201031a7",
+        "slot": 1,
+        "suite": "8a1c1ff76eb87f9c4235739e51a6b304a763b7db364eeba98569244b9155010b",
+        "source": "3fa852d49a2705064db4e87a74a903cbfe93c454d2db168fc1349d2beab8881d",
+        "incumbent": "19078364736755e4099337341edbab95411614dc219458ffdab52c863ec9b79a",
+        "identity": "218ab846d192278f15e6dda68e07a9eab02f332078314297a5a17cd14640f476",
+        "training": "e621376fb49ed42a1f95a4cf123dfb2ec580db1e9d58b7842347e24dddab3d93",
+        "development": "eb93e2a46eaa101bbe6a44326e4c808cf287ca9868de5a8419d9e28b8383f5df",
+        "options": {
+          "passes": 8,
+          "rate": 0.2,
+          "margin": 0.1
+        },
+        "alpha": 0.025,
+        "minimumGain": 0.05,
+        "digest": "a8b81c20f00c0b5b2b04aae01c42f1f9d78813e7983600df64c2efa22ffa900c"
+      },
+      "practice": {
+        "digest": "1e2f02a4629d73e3846a5aad3073b8fc074dda7739cd6c9b2284d94601a9d486",
+        "before": [
+          {
+            "seat": 0,
+            "cases": 14,
+            "assessed": 14,
+            "illegal": 0,
+            "winOpportunities": 13,
+            "missedWins": 0,
+            "defenseOpportunities": 1,
+            "avoidableLosses": 1,
+            "missedWinRate": 0,
+            "avoidableLossRate": 1
+          },
+          {
+            "seat": 1,
+            "cases": 18,
+            "assessed": 18,
+            "illegal": 0,
+            "winOpportunities": 11,
+            "missedWins": 0,
+            "defenseOpportunities": 7,
+            "avoidableLosses": 6,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.8571428571428571
+          }
+        ],
+        "after": [
+          {
+            "seat": 0,
+            "cases": 14,
+            "assessed": 14,
+            "illegal": 0,
+            "winOpportunities": 13,
+            "missedWins": 0,
+            "defenseOpportunities": 1,
+            "avoidableLosses": 0,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0
+          },
+          {
+            "seat": 1,
+            "cases": 18,
+            "assessed": 18,
+            "illegal": 0,
+            "winOpportunities": 11,
+            "missedWins": 0,
+            "defenseOpportunities": 7,
+            "avoidableLosses": 3,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.42857142857142855
+          }
+        ],
+        "errors": 7,
+        "updates": 976
+      },
+      "development": {
+        "digest": "9303346721a6de2308bba80cead9e9c184ca7acc7cc32af599dc1936f92187b1",
+        "before": [
+          {
+            "seat": 0,
+            "cases": 6,
+            "assessed": 6,
+            "illegal": 0,
+            "winOpportunities": 2,
+            "missedWins": 0,
+            "defenseOpportunities": 4,
+            "avoidableLosses": 2,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.5
+          },
+          {
+            "seat": 1,
+            "cases": 10,
+            "assessed": 10,
+            "illegal": 0,
+            "winOpportunities": 4,
+            "missedWins": 0,
+            "defenseOpportunities": 6,
+            "avoidableLosses": 4,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.6666666666666666
+          }
+        ],
+        "after": [
+          {
+            "seat": 0,
+            "cases": 6,
+            "assessed": 6,
+            "illegal": 0,
+            "winOpportunities": 2,
+            "missedWins": 0,
+            "defenseOpportunities": 4,
+            "avoidableLosses": 2,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.5
+          },
+          {
+            "seat": 1,
+            "cases": 10,
+            "assessed": 10,
+            "illegal": 0,
+            "winOpportunities": 4,
+            "missedWins": 0,
+            "defenseOpportunities": 6,
+            "avoidableLosses": 1,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.16666666666666666
+          }
+        ],
+        "nodes": 31017
+      },
+      "admission": {
+        "status": "completed",
+        "campaign": "phase2-connect4-20260905",
+        "slot": 1,
+        "candidate": "812ddee9e8ff57aedd498a26e965ef63a3d2b5e2440105720a0e85d81a868d10",
+        "plan": "a8b81c20f00c0b5b2b04aae01c42f1f9d78813e7983600df64c2efa22ffa900c",
+        "suite": "8a1c1ff76eb87f9c4235739e51a6b304a763b7db364eeba98569244b9155010b",
+        "tacticalQualification": "fail",
+        "before": [
+          {
+            "seat": 0,
+            "cases": 6,
+            "assessed": 6,
+            "illegal": 0,
+            "winOpportunities": 3,
+            "missedWins": 0,
+            "defenseOpportunities": 3,
+            "avoidableLosses": 3,
+            "missedWinRate": 0,
+            "avoidableLossRate": 1
+          },
+          {
+            "seat": 1,
+            "cases": 10,
+            "assessed": 10,
+            "illegal": 0,
+            "winOpportunities": 4,
+            "missedWins": 0,
+            "defenseOpportunities": 6,
+            "avoidableLosses": 3,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.5
+          }
+        ],
+        "after": [
+          {
+            "seat": 0,
+            "cases": 6,
+            "assessed": 6,
+            "illegal": 0,
+            "winOpportunities": 3,
+            "missedWins": 0,
+            "defenseOpportunities": 3,
+            "avoidableLosses": 1,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.3333333333333333
+          },
+          {
+            "seat": 1,
+            "cases": 10,
+            "assessed": 10,
+            "illegal": 0,
+            "winOpportunities": 4,
+            "missedWins": 0,
+            "defenseOpportunities": 6,
+            "avoidableLosses": 2,
+            "missedWinRate": 0,
+            "avoidableLossRate": 0.3333333333333333
+          }
+        ],
+        "audit": "0032fe405b6b10bd40b15bc116c52dceab7118a79db1ce583de1963759045dd7",
+        "nodes": 3423,
+        "providerCalls": 0,
+        "promotion": "not-authorized",
+        "reason": "Tactical qualification alone cannot promote; whole-game strength and uncertainty gates remain required.",
+        "identity": "218ab846d192278f15e6dda68e07a9eab02f332078314297a5a17cd14640f476",
+        "alphaReserved": 0.025,
+        "uncertainty": "No population bound claimed from this finite tactical fixture suite.",
+        "digest": "4661a381bbac38cb815a7a3683aca31014ad346cbae82b6f0452b0390011e1d3"
+      },
+      "rollback": {
+        "incumbent": "19078364736755e4099337341edbab95411614dc219458ffdab52c863ec9b79a",
+        "candidate": "812ddee9e8ff57aedd498a26e965ef63a3d2b5e2440105720a0e85d81a868d10",
+        "selected": "19078364736755e4099337341edbab95411614dc219458ffdab52c863ec9b79a",
+        "reason": "No whole-game admission; incumbent retained."
+      }
+    }
+  ]
+}
