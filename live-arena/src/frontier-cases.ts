@@ -1,4 +1,4 @@
-/** Referee-verified connect-game cases. Isolation is about target-position groups. */
+/** Referee-verified connect/checkers cases. Isolation concerns target-position groups. */
 import { applyMove, createGame, replayStepper, legalMoves, sha256, type GameState, type Rules } from "./runtime";
 import { policyMove, seeded, WorkBudget } from "./self-improvement";
 import { tacticalChoices, gradeTactic } from "./strength";
@@ -8,11 +8,11 @@ export const CASE_SCHEMA = "builderwars.frontier-cases.v1";
 export type PositionCase = { history: string[]; group: string; sourceMove: string; sourceError: boolean; kind: "win" | "defense"; digest: string };
 export type CaseBundle = { schema: typeof CASE_SCHEMA; partition: "training" | "development" | "admission";
   sourceVersion: string; identity: string; rules: Rules; referee: string; cases: PositionCase[]; digest: string };
-export function supportsCases(rules: Rules) { return ["tictactoe", "connect4", "custom"].includes(rules.kind) && rules.rows * rules.cols <= 42; }
+export function supportsCases(rules: Rules) { return rules.kind === "checkers" || (["tictactoe", "connect4", "custom"].includes(rules.kind) && rules.rows * rules.cols <= 42); }
 
 export function caseState(rules: Rules, history: string[], budget?: WorkBudget) {
-  if (!supportsCases(rules) || !Array.isArray(history) || history.length < 2 || history.length > 40
-    || !history.every(m => typeof m === "string" && m.length <= 2)) throw Error("Unsupported bounded case history.");
+  if (!supportsCases(rules) || !Array.isArray(history) || history.length < 2 || history.length > (rules.kind === "checkers" ? 200 : 40)
+    || !history.every(m => typeof m === "string" && m.length <= (rules.kind === "checkers" ? 100 : 2))) throw Error("Unsupported bounded case history.");
   const step = replayStepper(rules);
   let state = createGame(rules);
   for (const move of history) { budget?.tick(); state = step(move); }
@@ -24,7 +24,17 @@ export function caseState(rules: Rules, history: string[], budget?: WorkBudget) 
  * Gravity permits horizontal reflection only; square non-gravity boards use D4.
  */
 export async function positionGroup(state: GameState): Promise<string> {
-  if (!supportsCases(state.rules)) throw Error("Position grouping supports connect games only.");
+  if (!supportsCases(state.rules)) throw Error("Position grouping supports connect games and checkers only.");
+  if (state.rules.kind === "checkers") {
+    // Horizontal reflection changes dark-square parity and is NOT a symmetry.
+    // A half-turn with colors/seat swapped preserves moves, promotion and kings.
+    // Ignore quiet/repetition clocks conservatively: history variants stay grouped.
+    const colors: Record<string, string> = { w: "b", b: "w", W: "B", B: "W", "": "" };
+    const swapped = [...state.cells].reverse().map(p => colors[p]);
+    if (swapped.some(p => p === undefined)) throw Error("Unknown checkers piece encoding.");
+    const boards = [JSON.stringify([state.turn, state.cells]), JSON.stringify([1 - state.turn, swapped])].sort();
+    return sha256(JSON.stringify([rulesKey(state.rules), boards[0]]));
+  }
   const { rows, cols, gravity } = state.rules;
   const transforms: ((r: number, c: number) => [number, number])[] = [
     (r, c) => [r, c], (r, c) => [r, cols - 1 - c],
@@ -69,7 +79,7 @@ export async function createBundle(partition: CaseBundle["partition"], version: 
 }
 export async function parseBundle(raw: unknown, source: Version, budget: WorkBudget): Promise<CaseBundle> {
   exact(raw, ["schema", "partition", "sourceVersion", "identity", "rules", "referee", "cases", "digest"], "case bundle");
-  if (JSON.stringify(raw).length > 256000 || raw.schema !== CASE_SCHEMA || !isDigest(raw.digest)) throw Error("Invalid case bundle.");
+  if (JSON.stringify(raw).length > 512000 || raw.schema !== CASE_SCHEMA || !isDigest(raw.digest)) throw Error("Invalid case bundle.");
   const result = await createBundle(raw.partition, source, raw.cases, budget);
   if (JSON.stringify(result) !== JSON.stringify(raw)) throw Error("Case bundle custody mismatch.");
   return result;
@@ -101,7 +111,7 @@ export async function validateIsolation(training: CaseBundle, development: CaseB
 export async function samplePartitions(rawVersion: Version, seed: number, counts: { training: number; development: number; admission: number; attempts: number }, budget: WorkBudget,
   prior: { public: Set<string>; reserved: Set<string> } = { public: new Set(), reserved: new Set() }) {
   const source = await parseVersion(rawVersion), rules = source.config.rules;
-  if (!supportsCases(rules)) throw Error("Tactical practice supports connect games up to 42 cells.");
+  if (!supportsCases(rules)) throw Error("Tactical practice supports bounded connect games and checkers.");
   integer(seed, 0, 0xffffffff, "sampler seed");
   for (const n of [counts.training, counts.development, counts.admission]) integer(n, 4, 128, "partition case count");
   integer(counts.attempts, 1, 4, "attempt count");
@@ -113,7 +123,7 @@ export async function samplePartitions(rawVersion: Version, seed: number, counts
     for (let attempt = 0; rows.length < count && attempt < 20000; attempt++) {
       budget.tick();
       let state = createGame(rules);
-      const length = 2 + Math.floor(random() * Math.min(26, rules.rows * rules.cols - 3));
+      const length = 2 + Math.floor(random() * (rules.kind === "checkers" ? 159 : Math.min(26, rules.rows * rules.cols - 3)));
       for (let ply = 0; ply < length && !state.over; ply++) {
         budget.tick(); const legal = legalMoves(state); state = applyMove(state, legal[Math.floor(random() * legal.length)]);
       }

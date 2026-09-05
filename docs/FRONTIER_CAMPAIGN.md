@@ -212,3 +212,9 @@ The operator-authorized first implementation proceeds.
 ## Change log
 
 - September 5: drafted from PR38 evidence and operator's four-frontier directive.
+- September 5 operator correction: prioritize mature open-source game engines and
+  actual frontier-model competition on chess/complex games now. The bounded
+  numeric learner attempt is stopped, with incumbents retained. Chess exhibitions
+  may proceed independently of failed numeric improvement; engine-assisted play
+  must disclose its assistance and cannot claim provider-weight training.
+  See `FULLGAME_DEVELOPMENT_CHECKPOINT_20260905.md`.
