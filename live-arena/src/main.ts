@@ -26,7 +26,7 @@ import { academyMarkup, freeAcademyRecipe } from "./academy";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
-import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage,
+import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage, entrantLabel,
   freeAgents, configuredAgents, type MatchSetup, type MatchSummary } from "./sharing";
 import {
   replay,
@@ -623,7 +623,7 @@ function render() {
   $("seats").innerHTML = record.agents
     .map(
       (a, i) =>
-        `<button class="seat ${state.turn === i && !state.over ? "on-turn" : ""}" data-seat="${i}" ${spectating || running ? "disabled" : ""}><span class="avatar ${i ? "dark-avatar" : ""}">${a.kind === "human" ? "You" : a.kind === "bot" ? "BW" : a.kind === "openrouter" ? "AI" : "{ }"}</span><span><strong>${esc(a.name)}</strong><small>${esc(a.kind === "bot" ? "Built-in · free" : a.kind === "human" ? "Human player" : a.model || "Choose model")}</small><small>${i === 0 ? "White / first" : "Black / second"}${a.kind === "openrouter" ? ` · ${esc(a.effort)} effort` : ""}</small></span><span class="seat-edit">↗</span></button>`,
+        `<button class="seat ${state.turn === i && !state.over ? "on-turn" : ""}" data-seat="${i}" ${spectating || running ? "disabled" : ""}><span class="avatar ${i ? "dark-avatar" : ""}">${spectating ? "?" : a.kind === "human" ? "You" : a.kind === "bot" ? "BW" : a.kind === "openrouter" ? "AI" : "{ }"}</span><span><strong>${esc(a.name)}</strong><small>${esc(spectating ? entrantLabel(a) : a.kind === "bot" ? ["tactician", "random"].includes(a.model) ? "Built-in · free" : entrantLabel(a) : a.kind === "human" ? "Human player" : a.model || "Choose model")}</small><small>${i === 0 ? "White / first" : "Black / second"}${a.kind === "openrouter" ? ` · ${esc(a.effort)} effort` : ""}</small></span><span class="seat-edit">↗</span></button>`,
     )
     .join("");
   document
@@ -1475,7 +1475,14 @@ function loadFragment() {
   else if (fragment.has("replay"))
     void decodeReplay(fragment.get("replay")!)
       .then((parsed) => {
-        if (location.hash === hash) openReplay(parsed, false);
+        if (location.hash !== hash) return;
+        if ((running || pending || (savedSource === "own" && record.events.length > 0 && !state.over)) &&
+            !window.confirm("Open this shared replay instead of your current match? Export first if you need a copy; device storage may be unavailable.")) {
+          history.replaceState(null, "", location.pathname + location.search);
+          notify("Replay dismissed. Your current match is unchanged.");
+          return;
+        }
+        openReplay(parsed, false);
       })
       .catch((e) => {
         if (location.hash === hash) notify(`Replay rejected: ${e.message}`);

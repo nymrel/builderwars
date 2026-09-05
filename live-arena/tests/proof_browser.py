@@ -10,9 +10,12 @@ BASE = os.environ.get("BUILDERWARS_TEST_URL", "http://127.0.0.1:5178").rstrip("/
 OUT = ROOT / "output" / "playwright"
 OUT.mkdir(parents=True, exist_ok=True)
 CSP = next(h["value"] for h in json.loads((ROOT / "vercel.json").read_text())["headers"][0]["headers"] if h["key"] == "Content-Security-Policy")
+ENGINE = os.environ.get("BUILDERWARS_BROWSER", "chromium")
+if ENGINE not in {"chromium", "firefox", "webkit"}:
+    raise ValueError("Unsupported browser engine")
 
 with sync_playwright() as p:
-    browser = p.chromium.launch()
+    browser = getattr(p, ENGINE).launch()
     context = browser.new_context(viewport={"width": 390, "height": 844})
     page = context.new_page()
     errors = []
@@ -68,7 +71,7 @@ with sync_playwright() as p:
     rows = [json.loads(line) for line in Path(reexport.value.path()).read_text().splitlines()]
     assert rows[0]["body"]["origin"] == "reverified_import"
     assert second.evaluate("document.documentElement.scrollWidth <= innerWidth")
-    second.screenshot(path=str(OUT / "proof-mobile.png"), full_page=True)
+    second.screenshot(path=str(OUT / f"proof-mobile-{ENGINE}.png"), full_page=True)
     # Tampered result must not replace the current replay.
     corrupt = proof_path.read_text().replace('"winner":0', '"winner":1')
     second.locator("#import-proof").set_input_files({"name": "tampered.jsonl", "mimeType": "application/x-ndjson", "buffer": corrupt.encode()})
@@ -99,4 +102,4 @@ with sync_playwright() as p:
     assert broken.locator("#board").count() == 0
     assert not errors, errors
     browser.close()
-print("PASS: browser proof -> standalone verifier -> clean import; free routing; CSP/SRI; 320px layout; tamper rejection")
+print(f"PASS ({ENGINE}): browser proof -> standalone verifier -> clean import; free routing; CSP/SRI; 320px layout; tamper rejection")

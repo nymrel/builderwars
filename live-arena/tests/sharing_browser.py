@@ -66,6 +66,31 @@ with sync_playwright() as p:
     recipient.locator('[data-cell="0"]').click()
     recipient.wait_for_function("() => Number(document.querySelector('#metric-moves').textContent) >= 2")
     recipient.locator("#start").click()
+    # A shared replay must not replace an unfinished own match without consent,
+    # including when device persistence is disabled or unavailable.
+    recipient.evaluate("localStorage.setItem('builderwars.match.opt-out', '1')")
+    prior_moves = recipient.locator("#metric-moves").inner_text()
+    prior_seats = recipient.locator("#seats").inner_text()
+    recipient.once("dialog", lambda dialog: dialog.dismiss())
+    recipient.goto(replay_url)
+    recipient.wait_for_function("() => document.querySelector('#notice').textContent.includes('Replay dismissed')")
+    assert recipient.locator("#metric-moves").inner_text() == prior_moves
+    assert recipient.locator("#seats").inner_text() == prior_seats
+    recipient.once("dialog", lambda dialog: dialog.accept())
+    recipient.goto(replay_url)
+    recipient.locator("#result-title").filter(has_text="Scripted human 1 wins").wait_for()
+    # Legal replay is still compatible with arbitrary legacy declarations, but
+    # never advertises an arbitrary frontier model as a trusted built-in.
+    declared = json.loads(json.dumps(replay_record))
+    declared["agents"][0].update(kind="bot", model="frontier-world-champion", effort="default")
+    declared_link = base64.urlsafe_b64encode(gzip.compress(json.dumps(declared).encode())).decode().rstrip("=")
+    recipient.goto(BASE + "/#replay=" + declared_link)
+    recipient.locator("#seats").filter(has_text="Unrecognized bot declaration").wait_for()
+    assert "Built-in · free" not in recipient.locator("#seats").inner_text()
+    assert "not attested" in recipient.locator("#result-evidence").inner_text()
+    recipient.locator("#runback-free").click()
+    recipient.wait_for_function("() => Number(document.querySelector('#metric-moves').textContent) >= 2")
+    recipient.locator("#start").click()
     # Original configured model is a declaration only. No key follows the setup link.
     page.locator("#reset").click()
     page.route("https://openrouter.ai/api/v1/models", lambda route: route.fulfill(json={"data": [{"id": "test/model", "name": "Test Model", "reasoning": {"supported_efforts": ["high"]}}]}))

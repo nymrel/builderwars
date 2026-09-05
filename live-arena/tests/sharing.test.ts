@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { RULES } from "../src/runtime";
+import { RULES, createProof, verifyProof } from "../src/runtime";
 import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch } from "../src/sharing";
 import type { RecordData } from "../src/records";
 
@@ -41,8 +41,12 @@ test("harness setup links carry no local model labels, URLs or private prompt", 
 });
 test("public replay and result ignore private text and forged outcome labels", () => {
   const record = match();
+  Object.assign(record.agents[0], { key: "PRIVATE KEY", endpoint: "https://private.example", accountId: "PRIVATE ACCOUNT" });
   const shared = safeReplay(record);
   assert(!JSON.stringify(shared).includes("PRIVATE"));
+  assert(!JSON.stringify(shared).includes('"endpoint"'));
+  assert(!JSON.stringify(shared).includes('"accountId"'));
+  assert(!JSON.stringify(shared).includes('"key"'));
   const result = summarizeMatch(record);
   assert.equal(result.title, "Contender 0 wins");
   assert.equal(result.complete, true);
@@ -64,5 +68,17 @@ test("result totals remain unknown on overflow and entrant declarations stay exp
   assert.equal(result.tokens, null);
   assert.match(result.entrants[0], /OpenRouter.*high effort \(declared\)/);
   record.agents[0] = { ...record.agents[0], kind: "bot", model: "tactician" };
-  assert.equal(summarizeMatch(record).entrants[0], "Built-in · tactician");
+  assert.equal(summarizeMatch(record).entrants[0], "Declared built-in · tactician");
+});
+
+test("reproducible legacy entrant declarations never certify a built-in model", async () => {
+  const record = match();
+  record.agents[0] = { ...record.agents[0], kind: "bot", model: "frontier-world-champion" };
+  const engine = "a".repeat(64);
+  const result = await verifyProof(await createProof(record, engine, 80, "reverified_import"), engine);
+  assert.equal(result.attested, false);
+  assert.equal(result.state.winner, 0);
+  assert.equal(summarizeMatch(result.record).entrants[0], "Unrecognized bot declaration · frontier-world-champion");
+  record.agents[0].model = "tactician";
+  assert.equal(summarizeMatch(record).entrants[0], "Declared built-in · tactician");
 });

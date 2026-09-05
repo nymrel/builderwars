@@ -78,6 +78,13 @@ export function configuredAgents(setup: MatchSetup): Agent[] {
   }));
 }
 const cleanText = (value: string) => value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, " ").trim();
+/** Replay metadata is a declaration, including when its legal moves verify. */
+export function entrantLabel(a: RecordData["agents"][number]) {
+  if (a.kind === "bot") return ["tactician", "random"].includes(a.model)
+    ? `Declared built-in · ${a.model}` : `Unrecognized bot declaration · ${cleanText(a.model)}`;
+  if (a.kind === "human") return "Declared human player";
+  return `${a.kind === "harness" ? "Harness" : "OpenRouter"} · ${cleanText(a.model)} · ${cleanText(a.effort)} effort (declared)`;
+}
 export function summarizeMatch(raw: RecordData) {
   const { record, state } = replay(raw);
   const names = record.agents.map((a, i) => cleanText(a.name) || `Contender ${i + 1}`);
@@ -86,7 +93,7 @@ export function summarizeMatch(raw: RecordData) {
     const total = record.events.reduce((n, e) => n + e[key]!, 0);
     return Number.isFinite(total) ? total : null;
   };
-  const entrants = record.agents.map(a => a.kind === "bot" ? `Built-in · ${a.model}` : a.kind === "human" ? "Human player" : `${a.kind === "harness" ? "Harness" : "OpenRouter"} · ${a.model} · ${a.effort} effort (declared)`);
+  const entrants = record.agents.map(entrantLabel);
   return { record, state, names, complete: isRuleComplete(state),
     title: isExhibitionLimit(state) ? "Move limit reached" : state.over ? state.winner === null ? "Draw" : `${names[state.winner]} wins` : "Unfinished match",
     reason: state.over ? state.reason : "No terminal result recorded",
