@@ -1,4 +1,4 @@
-import { botMove, gamePrompt, legalMoves, type GameState } from "./games";
+import { botMove, gamePrompt, legalMoves, type GameState } from "./runtime";
 export type Agent = {
   name: string;
   kind: "bot" | "human" | "openrouter" | "harness";

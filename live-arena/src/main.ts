@@ -9,7 +9,7 @@ import {
   validateRules,
   type Rules,
   type GameState,
-} from "./games";
+} from "./runtime";
 import {
   catalog,
   decide,
@@ -26,7 +26,11 @@ import {
   decodeReplay,
   download,
   type RecordData,
-} from "./records";
+  createProof,
+  verifyProof,
+  refereeManifest,
+  PROOF_LIMIT,
+} from "./runtime";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
@@ -81,6 +85,8 @@ let pending = false,
   startingBroadcast = false;
 let library: MatchLibrary | null = null;
 let savedSource: SavedMatch["source"] = "own";
+let proofOrigin: "browser_session" | "reverified_import" = "browser_session";
+let proofExporting = false;
 let joinGeneration = 0;
 let libraryRenderTimer: ReturnType<typeof setTimeout> | null = null;
 try {
@@ -124,6 +130,22 @@ document.querySelector("#app")!.innerHTML = `
 function notify(message: string) {
   $("notice").textContent = message;
 }
+// Visual thesis: the board stays dominant in the existing green/lime workspace.
+// Content: play free first; evidence is a secondary, plain-language disclosure.
+// Interaction: native disclosure and existing focus/hover feedback, no ornamental motion.
+$("quickplay").textContent = "Play free ↗";
+$("quickplay").title = "Start a new game with two free built-in opponents. No model calls.";
+document.querySelector(".page-heading .subtitle")!.textContent = "Play free with built-in opponents, or connect your own contender.";
+$("notice").insertAdjacentHTML("afterend", `
+  <details id="match-proof" class="match-settings">
+    <summary>Verify this match</summary>
+    <p class="muted">Reproduce moves and the result offline. Entrant names, models and usage are declarations—not independent identity, execution or billing proof.</p>
+    <p id="proof-status" class="muted" role="status">Connect Four proof is available. Other games retain their standard replay export.</p>
+    <button id="export-proof">Download proof (.jsonl)</button>
+    <a id="download-verifier" class="file-button" download href="/${refereeManifest.verifier}">Download matching verifier</a>
+    <label class="file-button">Verify a proof<input id="import-proof" type="file" accept=".jsonl,application/x-ndjson"></label>
+    <p class="muted">Keep both downloads. With Node.js 22+, run <code>node verify-&lt;engine&gt;.mjs match.jsonl</code>. No packages or network needed. Older JSON replays remain supported; imported or recovered matches are marked as reverified.</p>
+  </details>`);
 // Visual thesis: retain the quiet green/lime workspace; history is a compact list.
 // Content: one entry point, recent matches, exact retention, resume/replay actions.
 // Interaction: native disclosure and existing button feedback; no new motion layer.
@@ -248,7 +270,9 @@ function resumeSaved(entry: SavedMatch) {
   spectating = false;
   savedSource = "own";
   const parsed = replay(entry.record);
+  proofOrigin = "reverified_import";
   record = parsed.record;
+  $("proof-status").textContent = "Recovered record. Any new proof is a reverified snapshot, not original engine or model provenance.";
   state = parsed.state;
   rules = state.rules;
   // Recover into a new record so two tabs never overwrite the same continuation.
@@ -356,6 +380,8 @@ function openReplay(parsed: ReturnType<typeof replay>, save = true) {
   broadcastLink = "";
   watchId = "";
   savedSource = "replay";
+  proofOrigin = "reverified_import";
+  $("proof-status").textContent = "Imported replay. Any new proof is a reverified snapshot, not original engine or model provenance.";
   $("rejoin-watch").hidden = true;
   history.replaceState(null, "", location.pathname + location.search);
   seriesRemaining = 0;
@@ -471,7 +497,8 @@ function render() {
     "disabled",
     spectating || running || pending || state.over,
   );
-  $("quickplay").toggleAttribute("disabled", spectating || pending);
+  $("quickplay").toggleAttribute("disabled", spectating || pending || running);
+  $("export-proof").toggleAttribute("disabled", rules.kind !== "connect4" || proofExporting);
   $("reset").toggleAttribute("disabled", spectating);
   $("replay-controls").hidden = replayPly === null;
   $<HTMLInputElement>("replay-position").max = String(record.events.length);
@@ -542,6 +569,8 @@ function reset(preserveSeries = false) {
   state = createGame(rules);
   record = freshRecord();
   savedSource = "own";
+  proofOrigin = "browser_session";
+  $("proof-status").textContent = "Connect Four proof is available. Other games retain their standard replay export.";
   selected = -1;
   render();
   notify("Ready. Start a match or click Step for one move.");
@@ -736,7 +765,11 @@ function humanClick(i: number) {
 }
 $("start").onclick = () => void play();
 $("quickplay").onclick = () => {
-  if (running) return;
+  if (running || pending || spectating) return;
+  agents = [
+    { name: "Tactician", kind: "bot", model: "tactician", effort: "default", strategy: "", key: "", endpoint: "" },
+    { name: "Wildcard", kind: "bot", model: "random", effort: "default", strategy: "", key: "", endpoint: "" },
+  ];
   seriesRemaining = 0;
   reset();
   void play();
@@ -904,6 +937,52 @@ $<HTMLFormElement>("agent-form").onsubmit = (e) => {
 $("export-agent").onclick = () =>
   download("builderwars-agent.json", publicAgent(agents[selectedSeat]));
 $("export").onclick = () => download(`builderwars-${record.id}.json`, record);
+$("export-proof").onclick = async () => {
+  if (rules.kind !== "connect4" || proofExporting) return;
+  const snapshot = structuredClone(record);
+  const origin = proofOrigin;
+  proofExporting = true;
+  render();
+  try {
+    const limit = numberInput("move-limit", 2, 400);
+    const text = await createProof(snapshot, refereeManifest.digest, limit, origin);
+    const verified = await verifyProof(text, refereeManifest.digest);
+    const url = URL.createObjectURL(new Blob([text], { type: "application/x-ndjson" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `builderwars-${snapshot.id}.jsonl`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (record.id === snapshot.id) $("proof-status").textContent = `${verified.state.over ? "Completed result" : "Incomplete snapshot"} reproduced at ${snapshot.events.length} plies. Keep the matching verifier. Model identity and execution are not attested.`;
+  } catch (error) {
+    $("proof-status").textContent = (error as Error).message;
+  } finally {
+    proofExporting = false;
+    render();
+  }
+};
+$<HTMLInputElement>("import-proof").onchange = async (event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  const generation = runId;
+  const matchId = record.id;
+  const moveCount = record.events.length;
+  try {
+    if (running || pending) throw Error("Pause the current match before importing proof.");
+    if (file.size > PROOF_LIMIT) throw Error("Proof exceeds size limit.");
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+    const verified = await verifyProof(text, refereeManifest.digest);
+    if (generation !== runId || matchId !== record.id || moveCount !== record.events.length || running || pending) throw Error("The match changed during verification. Import again when paused.");
+    if (verified.record.rules.kind !== "connect4") throw Error("This release supports Connect Four proof imports. Use the matching offline verifier for other formats.");
+    openReplay(verified);
+    $("proof-status").textContent = `${verified.record.status} · ${verified.record.events.length} plies reproduced by the matching referee. Names and models remain unverified declarations.`;
+  } catch (error) {
+    $("proof-status").textContent = (error as Error).message;
+  } finally {
+    input.value = "";
+  }
+};
 async function shareReplay() {
   try {
     const encoded = await encodeReplay(record);
@@ -1078,6 +1157,8 @@ async function join(id: string) {
   spectating = true;
   watchId = id;
   savedSource = "watch";
+  proofOrigin = "reverified_import";
+  $("proof-status").textContent = "Spectator record. Any new proof is a reverified snapshot, not original engine or model provenance.";
   history.replaceState(
     null,
     "",

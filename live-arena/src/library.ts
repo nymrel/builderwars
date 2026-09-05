@@ -1,4 +1,4 @@
-import { replay, type RecordData } from "./records";
+import { replay, type RecordData } from "./runtime";
 
 export const LIBRARY_PREFIX = "builderwars.match.v1:";
 export const LIBRARY_OPT_OUT = "builderwars.match.opt-out";

@@ -6,3 +6,6 @@ __pycache__/
 
 .vercel
 .env*
+public/referee/
+src/referee-manifest.ts
+output/playwright/

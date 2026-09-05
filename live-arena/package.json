@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "referee": "node scripts/build-referee.mjs",
+    "predev": "npm run referee",
+    "prebuild": "npm run referee",
+    "pretest": "npm run referee",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "test": "tsx --test tests/*.test.ts",
@@ -14,6 +18,7 @@
     "peerjs": "1.5.5"
   },
   "devDependencies": {
+    "esbuild": "0.28.1",
     "typescript": "5.9.3",
     "vite": "7.3.6",
     "tsx": "4.21.0",

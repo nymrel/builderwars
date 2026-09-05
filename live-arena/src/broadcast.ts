@@ -1,5 +1,5 @@
 import Peer, { type DataConnection } from "peerjs";
-import { replay, type RecordData } from "./records";
+import { replay, type RecordData } from "./runtime";
 export class Broadcast {
   constructor(private createPeer: () => Peer = () => new Peer()) {}
   peer: Peer | null = null;
