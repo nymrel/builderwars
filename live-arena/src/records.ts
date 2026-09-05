@@ -7,9 +7,11 @@ import {
   type Rules,
 } from "./games";
 import { type PublicAgent, type Decision } from "./models";
+import { recordDigest, validateProvenance } from "./provenance";
 export type Event = Decision & { ply: number; seat: 0 | 1; label: string };
 export type RecordData = {
-  schema: "builderwars.exhibition.v1";
+  schema: "builderwars.exhibition.v1" | "builderwars.exhibition.v2";
+  digest?: string;
   id: string;
   createdAt: string;
   rules: Rules;
@@ -18,11 +20,14 @@ export type RecordData = {
   status: string;
 };
 export function replay(raw: unknown): { record: RecordData; state: GameState } {
+  return normalizeReplay(raw, true);
+}
+function normalizeReplay(raw: unknown, verifyDigest: boolean): { record: RecordData; state: GameState } {
   if (!raw || typeof raw !== "object" || JSON.stringify(raw).length > 350000)
     throw Error("Invalid or oversized replay.");
   const r = raw as RecordData;
   if (
-    r.schema !== "builderwars.exhibition.v1" ||
+    !["builderwars.exhibition.v1", "builderwars.exhibition.v2"].includes(r.schema) ||
     typeof r.id !== "string" ||
     r.id.length > 80 ||
     typeof r.createdAt !== "string" ||
@@ -54,6 +59,8 @@ export function replay(raw: unknown): { record: RecordData; state: GameState } {
       model: a.model,
       effort: a.effort,
       strategy: a.strategy,
+      ...(r.schema === "builderwars.exhibition.v2" && a.provenance !== undefined
+        ? { provenance: validateProvenance(a.provenance) } : {}),
     };
   });
   const rules = validateRules(r.rules);
@@ -91,8 +98,7 @@ export function replay(raw: unknown): { record: RecordData; state: GameState } {
       cost: e.cost,
     };
   });
-  return {
-    record: {
+  const normalized: RecordData = {
       schema: r.schema,
       id: r.id,
       createdAt: r.createdAt,
@@ -100,12 +106,21 @@ export function replay(raw: unknown): { record: RecordData; state: GameState } {
       agents,
       events,
       status: r.status,
-    },
-    state,
   };
+  if (r.schema === "builderwars.exhibition.v2") {
+    const digest = recordDigest(normalized);
+    if (verifyDigest && r.digest !== digest)
+      throw Error("Replay content binding mismatch. Builder claims, seats or moves changed.");
+    normalized.digest = digest;
+  }
+  return { record: normalized, state };
+}
+/** Snapshot the complete public configuration, seat order and move sequence. Not a signature. */
+export function sealRecord(record: RecordData): RecordData {
+  return normalizeReplay({ ...record, schema: "builderwars.exhibition.v2" }, false).record;
 }
 export async function encodeReplay(record: RecordData) {
-  const bytes = new TextEncoder().encode(JSON.stringify(record));
+  const bytes = new TextEncoder().encode(JSON.stringify(sealRecord(record)));
   const compressed = await new Response(
     new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip")),
   ).arrayBuffer();

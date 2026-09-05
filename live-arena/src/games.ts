@@ -5,6 +5,7 @@ export type GameKind =
   | "checkers"
   | "connect4"
   | "tictactoe"
+  | "nim"
   | "custom";
 export type Rules = {
   kind: GameKind;
@@ -13,6 +14,7 @@ export type Rules = {
   cols: number;
   connect: number;
   gravity: boolean;
+  initialHeaps?: number[];
 };
 export type GameState = {
   rules: Rules;
@@ -59,11 +61,28 @@ export const RULES: Record<string, Rules> = {
     connect: 3,
     gravity: false,
   },
+  nim: {
+    kind: "nim",
+    name: "Nim",
+    rows: 3,
+    cols: 7,
+    connect: 0,
+    gravity: false,
+    initialHeaps: [3, 5, 7],
+  },
 };
 export function validateRules(raw: unknown): Rules {
   if (!raw || typeof raw !== "object" || Array.isArray(raw))
     throw Error("Invalid game rules.");
   const r = raw as Rules;
+  if (r.kind === "nim") {
+    const heaps = r.initialHeaps === undefined ? RULES.nim.initialHeaps! : r.initialHeaps;
+    if (!Array.isArray(heaps) || ![3, 4].includes(heaps.length) ||
+        !heaps.every((h) => Number.isInteger(h) && h >= 1 && h <= 7) ||
+        heaps.reduce((x, h) => x ^ h, 0) === 0)
+      throw Error("Nim starts with 3 or 4 heaps of 1–7 objects and nonzero XOR.");
+    return { ...RULES.nim, rows: heaps.length, initialHeaps: [...heaps] };
+  }
   if (Object.keys(RULES).includes(r.kind)) return { ...RULES[r.kind] };
   if (
     r.kind !== "custom" ||
@@ -116,6 +135,10 @@ export function createGame(rules: Rules): GameState {
     s.fen = c.fen();
     s.cells = chessCells(c);
   }
+  if (r.kind === "nim")
+    r.initialHeaps!.forEach((count, heap) => {
+      for (let i = 0; i < count; i++) s.cells[heap * r.cols + i] = "o";
+    });
   if (r.kind === "checkers")
     for (let i = 0; i < 64; i++) {
       const row = Math.floor(i / 8);
@@ -189,6 +212,10 @@ function checkersMoves(s: GameState): string[] {
 }
 export function legalMoves(s: GameState): string[] {
   if (s.over) return [];
+  if (s.rules.kind === "nim")
+    return nimHeaps(s).flatMap((count, heap) =>
+      Array.from({ length: count }, (_, i) => JSON.stringify({ heap, take: i + 1 })),
+    );
   if (s.rules.kind === "chess")
     return new Chess(s.fen)
       .moves({ verbose: true })
@@ -201,6 +228,10 @@ export function legalMoves(s: GameState): string[] {
   return s.cells.flatMap((p, i) => (p ? [] : [String(i)]));
 }
 export function moveLabel(move: string, s: GameState): string {
+  if (s.rules.kind === "nim") {
+    const { heap, take } = JSON.parse(move);
+    return `Heap ${heap + 1}: take ${take}`;
+  }
   if (s.rules.kind === "chess") {
     try {
       const c = new Chess(s.fen);
@@ -230,7 +261,16 @@ export function applyMove(state: GameState, move: string): GameState {
     player = s.turn;
   s.turn = player === 0 ? 1 : 0;
   s.quiet++;
-  if (s.rules.kind === "chess") {
+  if (s.rules.kind === "nim") {
+    const { heap, take } = JSON.parse(move);
+    const count = nimHeaps(state)[heap];
+    for (let i = count - take; i < count; i++) s.cells[heap * s.rules.cols + i] = "";
+    if (s.cells.every((cell) => !cell)) {
+      s.over = true;
+      s.winner = player;
+      s.reason = "took_last_object";
+    }
+  } else if (s.rules.kind === "chess") {
     const c = new Chess();
     for (const m of state.moves)
       c.move({ from: m.slice(0, 2), to: m.slice(2, 4), promotion: m[4] });
@@ -345,6 +385,11 @@ export function botMove(s: GameState, style = "tactician"): string {
   if (!moves.length) throw Error("No legal moves.");
   if (style === "random")
     return moves[Math.floor(Math.random() * moves.length)];
+  if (s.rules.kind === "nim") {
+    const heaps = nimHeaps(s), xor = heaps.reduce((x, h) => x ^ h, 0);
+    const heap = heaps.findIndex((h) => (h ^ xor) < h);
+    return heap < 0 ? moves[0] : JSON.stringify({ heap, take: heaps[heap] - (heaps[heap] ^ xor) });
+  }
   const player = s.turn;
   let best = -Infinity,
     chosen = moves[0];
@@ -388,6 +433,16 @@ export function botMove(s: GameState, style = "tactician"): string {
   }
   return chosen;
 }
+export function nimHeaps(s: GameState): number[] {
+  return Array.from({ length: s.rules.rows }, (_, heap) =>
+    s.cells.slice(heap * s.rules.cols, (heap + 1) * s.rules.cols).filter(Boolean).length,
+  );
+}
+export function gamePosition(s: GameState): string | string[] | { heaps: number[]; to_move: 0 | 1 } {
+  return s.rules.kind === "nim" ? { heaps: nimHeaps(s), to_move: s.turn } : s.fen || s.cells;
+}
 export function gamePrompt(s: GameState, strategy: string) {
+  if (s.rules.kind === "nim")
+    return `Play normal-play Nim. Remove one or more objects from exactly one heap; taking the last object wins. You are seat ${s.turn}. Heaps: ${JSON.stringify(nimHeaps(s))}. Choose exactly one string from legal moves: ${JSON.stringify(legalMoves(s))}. Each string encodes {"heap":<0-based index>,"take":<positive integer>}. Reply with JSON {"move":"chosen legal string","comment":"short public explanation"}. Do not include private reasoning. Builder strategy: ${strategy.slice(0, 1000)}`;
   return `Play ${s.rules.name}. You control ${s.turn === 0 ? "white / player 1" : "black / player 2"}. Choose exactly one legal move. Reply with JSON {"move":"legal move","comment":"one short public explanation"}. Do not include private reasoning.\nRules: ${JSON.stringify(s.rules)}\nPosition: ${s.fen || JSON.stringify(s.cells)}\nRecent moves: ${s.moves.slice(-16).join(" ")}\nLegal moves: ${JSON.stringify(legalMoves(s))}\nBuilder strategy: ${strategy.slice(0, 1000)}`;
 }

@@ -1,5 +1,5 @@
 import Peer, { type DataConnection } from "peerjs";
-import { replay, type RecordData } from "./records";
+import { replay, sealRecord, type RecordData } from "./records";
 export class Broadcast {
   peer: Peer | null = null;
   viewers = new Set<DataConnection>();
@@ -17,9 +17,9 @@ export class Broadcast {
     this.peer = null;
   }
   publish(record: RecordData) {
-    this.record = record;
+    this.record = sealRecord(record);
     for (const c of this.viewers)
-      if (c.open) c.send({ type: "snapshot", record });
+      if (c.open) c.send({ type: "snapshot", record: this.record });
   }
   async host(
     onCount: (n: number) => void,

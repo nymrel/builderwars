@@ -109,7 +109,11 @@ with sync_playwright() as p:
         page.set_viewport_size({"width":width,"height":900})
         for tab in ['arena','forge','evals','watch','academy']:
             page.locator(f'nav [data-tab={tab}]').click()
-            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),f'overflow {width} {tab}'
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), (
+                f'overflow {width} {tab}: ' + json.dumps(page.evaluate("""() => [...document.querySelectorAll('body *')]
+                .filter(e => e.getBoundingClientRect().width && e.getBoundingClientRect().right > innerWidth + 1)
+                .map(e => ({tag:e.tagName, id:e.id, cls:e.className, width:e.getBoundingClientRect().width,
+                           right:e.getBoundingClientRect().right, text:e.textContent.slice(0,80)})).slice(0,20)""")))
     page.locator('nav [data-tab=arena]').click()
     page.set_viewport_size({"width":1440,"height":1000})
     page.locator('[data-game=chess]').click()

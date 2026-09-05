@@ -14,6 +14,19 @@
   --muted: #9ba69e;
   --line: #2b332e;
 }
+.board.nim {
+  display: block;
+  aspect-ratio: auto;
+  padding: 16px;
+  min-height: 300px;
+}
+.nim-heap { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.nim-heap h3 { margin: 0; font-size: 16px; }
+.nim-objects { color: var(--accent); font-size: 24px; margin: 10px 0; }
+.nim-takes { display: flex; flex-wrap: wrap; gap: 6px; }
+.nim-takes button { padding: 8px 10px; }
+fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 8px; }
+.seat small { overflow-wrap: anywhere; }
 * {
   box-sizing: border-box;
 }
@@ -1107,6 +1120,9 @@ dialog [id$="fields"] {
   }
 }
 @media (max-width: 359px) {
+  .sidebar nav button span {
+    display: none;
+  }
   .page-heading {
     flex-direction: column;
   }

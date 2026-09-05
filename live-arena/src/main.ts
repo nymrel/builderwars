@@ -6,6 +6,7 @@ import {
   legalMoves,
   moveLabel,
   square,
+  nimHeaps,
   validateRules,
   type Rules,
   type GameState,
@@ -19,11 +20,13 @@ import {
   type Model,
 } from "./models";
 import { Broadcast } from "./broadcast";
+import { validateProvenance } from "./provenance";
 import {
   replay,
   encodeReplay,
   decodeReplay,
   download,
+  sealRecord,
   type RecordData,
 } from "./records";
 
@@ -80,7 +83,7 @@ let pending = false,
   startingBroadcast = false;
 function freshRecord(): RecordData {
   return {
-    schema: "builderwars.exhibition.v1",
+    schema: "builderwars.exhibition.v2",
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     rules: { ...rules },
@@ -99,7 +102,7 @@ document.querySelector("#app")!.innerHTML = `
 )
   .map(
     ([key, r], i) =>
-      `<button data-game="${key}" class="${i === 0 ? "active" : ""}"><span>${["♞", "◉", "▦", "×"][i]}</span>${r.name}</button>`,
+      `<button data-game="${key}" class="${i === 0 ? "active" : ""}"><span>${["♞", "◉", "▦", "×", "◒"][i]}</span>${r.name}</button>`,
   )
   .join("")}<button id="create-game-shortcut">＋ Create game</button></div>
 <div class="arena-layout"><div class="board-column"><div class="match-top"><span><span id="match-dot" class="status-dot"></span><strong id="game-title">Chess</strong> <span id="match-status">Ready to play</span></span><span id="ply">MOVE 00</span></div><div id="board" role="group" aria-label="Game board"></div><div class="board-toolbar"><button id="start" class="primary">▶ Start match</button><button id="step">Step</button><button id="reset">↻ Rematch</button><button id="flip">⇅ Flip</button><button id="share">Share replay ↗</button></div><p id="notice" class="notice" role="status" aria-live="polite">Free built-in opponents are ready. Connect a model whenever you like.</p><div class="telemetry"><div><span>PLIES</span><strong id="metric-moves">0</strong></div><div><span>MEAN LATENCY</span><strong id="metric-latency">—</strong></div><div><span>REPORTED TOKENS</span><strong id="metric-tokens">—</strong></div><div><span>REPORTED COST</span><strong id="metric-cost">$0.0000</strong></div></div><details class="match-settings"><summary>Match settings & move history</summary><div class="settings-row"><label>Move limit<input id="move-limit" type="number" value="80" min="2" max="400"></label><label>Tokens / move<input id="max-tokens" type="number" value="2048" min="256" max="16384" step="256"></label><label>Pace<select id="pace"><option value="500">Watchable</option><option value="100">Fast</option><option value="1200">Slow</option></select></label></div><p class="muted">Model usage is billed by your provider. Effort is requested; provider execution may vary. Results are exhibition evidence, not certified rankings.</p><div id="move-history"></div><button id="export">Download match JSON</button><label class="file-button">Import replay<input id="import" type="file" accept="application/json,.json"></label></details></div>
@@ -114,6 +117,10 @@ document.querySelector("#app")!.innerHTML = `
 function notify(message: string) {
   $("notice").textContent = message;
 }
+$("strategy").closest("label")!.insertAdjacentHTML("beforebegin",
+  '<fieldset><legend>Public builder provenance · optional</legend><label>Builder ID<input id="builder-id" maxlength="96" placeholder="studio/builder"></label><label>Harness ID<input id="harness-id" maxlength="96" placeholder="studio/nim-harness"></label><label>Harness source revision / SHA-256<input id="harness-revision" maxlength="64" spellcheck="false" placeholder="40- or 64-character lowercase source hash"></label><small class="muted">All three fields are required together and shared in replays/broadcasts. Self-declared, not authenticated ownership or proof of deployed code. Never enter secrets.</small></fieldset>');
+$("game-title").closest(".match-top")!.insertAdjacentHTML("afterend",
+  '<p id="nim-rules" class="notice" hidden>Normal-play Nim: remove one or more objects from one heap. Taking the last object wins. This browser exhibition is not a controlled-study receipt.</p>');
 document.querySelector(".telemetry div:last-child > span")!.textContent =
   "ACCEPTED MOVE COST";
 document.querySelector(".match-settings > p")!.textContent =
@@ -169,7 +176,9 @@ function openReplay(parsed: ReturnType<typeof replay>) {
   spectating = true;
   render();
   notify(
-    "Every move verified. Use the replay slider to inspect the match. Leave spectator mode in Watch to play.",
+    parsed.record.schema === "builderwars.exhibition.v2"
+      ? "Moves and content binding checked. Builder identity/source remain self-declared, not authenticated. Use the replay slider to inspect."
+      : "Legacy replay: moves checked, no builder/content binding. Use the replay slider to inspect.",
   );
   $("leave-watch").hidden = false;
 }
@@ -211,7 +220,10 @@ function render() {
     );
   $("board").style.setProperty("--cols", String(cols));
   $("board").className = `board ${state.rules.kind}`;
-  $("board").innerHTML = indices
+  $("nim-rules").hidden = state.rules.kind !== "nim";
+  $("board").innerHTML = state.rules.kind === "nim"
+    ? nimHeaps(state).map((count, heap) => `<section class="nim-heap"><h3>Heap ${heap + 1} · ${count} object${count === 1 ? "" : "s"}</h3><p class="nim-objects" aria-hidden="true">${"● ".repeat(count) || "—"}</p><div class="nim-takes">${Array.from({ length: count }, (_, i) => `<button data-cell="${heap * cols + i}" aria-label="Heap ${heap + 1}: take ${i + 1}" ${spectating || pending || state.over || agents[state.turn].kind !== "human" ? "disabled" : ""}>Take ${i + 1}</button>`).join("")}</div></section>`).join("")
+    : indices
     .map((i) => {
       const p = state.cells[i],
         coord = square(i, state),
@@ -288,6 +300,12 @@ function render() {
   document
     .querySelectorAll<HTMLButtonElement>("[data-seat]")
     .forEach((b) => (b.onclick = () => openAgent(Number(b.dataset.seat))));
+  record.agents.forEach((a, i) => {
+    if (!a.provenance) return;
+    const label = document.createElement("small");
+    label.textContent = `${a.provenance.builderId} · ${a.provenance.harnessId} @ ${a.provenance.harnessRevision.slice(0, 12)} · self-declared`;
+    document.querySelector(`[data-seat="${i}"] > span:nth-child(2)`)!.append(label);
+  });
   $("metric-moves").textContent = String(record.events.length);
   $("metric-latency").textContent = record.events.length
     ? `${(record.events.reduce((sum, e) => sum + e.elapsed, 0) / record.events.length / 1000).toFixed(2)}s`
@@ -441,7 +459,7 @@ async function play() {
       break;
     }
     if (agents[state.turn].kind === "human") {
-      notify(`${agents[state.turn].name}: choose a piece and destination.`);
+      notify(`${agents[state.turn].name}: ${state.rules.kind === "nim" ? "choose how many objects to take from one heap." : "choose a piece and destination."}`);
       return;
     }
     try {
@@ -503,6 +521,8 @@ function humanClick(i: number) {
       render();
       return;
     }
+  } else if (state.rules.kind === "nim") {
+    move = JSON.stringify({ heap: Math.floor(i / state.rules.cols), take: i % state.rules.cols + 1 });
   } else move = String(state.rules.gravity ? i % state.rules.cols : i);
   if (!move || !legal.includes(move)) {
     notify("Choose one of the highlighted legal moves.");
@@ -578,6 +598,9 @@ function openAgent(seat: number) {
   $<HTMLInputElement>("harness-model").value = a.model;
   $<HTMLInputElement>("harness-effort").value = a.effort;
   $<HTMLTextAreaElement>("strategy").value = a.strategy;
+  $<HTMLInputElement>("builder-id").value = a.provenance?.builderId ?? "";
+  $<HTMLInputElement>("harness-id").value = a.provenance?.harnessId ?? "";
+  $<HTMLInputElement>("harness-revision").value = a.provenance?.harnessRevision ?? "";
   $("dialog-status").textContent = "";
   $<HTMLInputElement>("model-search").value = "";
   $<HTMLInputElement>("free-models").checked = false;
@@ -686,13 +709,23 @@ $<HTMLFormElement>("agent-form").onsubmit = (e) => {
       "Choose a model and add your OpenRouter key.";
     return;
   }
+  try {
+    const builderId = $<HTMLInputElement>("builder-id").value.trim();
+    const harnessId = $<HTMLInputElement>("harness-id").value.trim();
+    const harnessRevision = $<HTMLInputElement>("harness-revision").value.trim();
+    if (builderId || harnessId || harnessRevision)
+      a.provenance = validateProvenance({ builderId, harnessId, harnessRevision, attestation: "self-declared" });
+  } catch (error) {
+    $("dialog-status").textContent = (error as Error).message;
+    return;
+  }
   agents[selectedSeat] = a;
   $<HTMLDialogElement>("agent-dialog").close();
   reset();
 };
 $("export-agent").onclick = () =>
   download("builderwars-agent.json", publicAgent(agents[selectedSeat]));
-$("export").onclick = () => download(`builderwars-${record.id}.json`, record);
+$("export").onclick = () => download(`builderwars-${record.id}.json`, sealRecord(record));
 async function shareReplay() {
   try {
     const encoded = await encodeReplay(record);
@@ -766,7 +799,7 @@ $<HTMLInputElement>("import-rules").onchange = async (e) => {
   }
 };
 function finishSeriesGame() {
-  seriesResults.push(structuredClone(record));
+  seriesResults.push(sealRecord(record));
   seriesRemaining--;
   renderSeries();
   if (seriesRemaining > 0) {

@@ -1,4 +1,5 @@
-import { botMove, gamePrompt, legalMoves, type GameState } from "./games";
+import { botMove, gamePrompt, gamePosition, legalMoves, type GameState } from "./games";
+import { validateProvenance, type BuilderProvenance } from "./provenance";
 export type Agent = {
   name: string;
   kind: "bot" | "human" | "openrouter" | "harness";
@@ -7,10 +8,11 @@ export type Agent = {
   strategy: string;
   endpoint: string;
   key: string;
+  provenance?: BuilderProvenance;
 };
 export type PublicAgent = Pick<
   Agent,
-  "name" | "kind" | "model" | "effort" | "strategy"
+  "name" | "kind" | "model" | "effort" | "strategy" | "provenance"
 >;
 export type Model = {
   id: string;
@@ -43,6 +45,7 @@ export function publicAgent(a: Agent): PublicAgent {
     model: a.model.slice(0, 160),
     effort: a.effort.slice(0, 20),
     strategy: a.strategy.slice(0, 1000),
+    ...(a.provenance !== undefined ? { provenance: validateProvenance(a.provenance) } : {}),
   };
 }
 export function supportedEfforts(model?: Model): string[] {
@@ -136,7 +139,7 @@ export async function decide(
       comment:
         a.model === "random"
           ? "Random legal move."
-          : "Two-ply tactical search.",
+          : s.rules.kind === "nim" ? "Built-in solved Nim strategy (XOR)." : "Two-ply tactical search.",
       elapsed: performance.now() - started,
       model: `builtin/${a.model}`,
       tokens: null,
@@ -200,7 +203,7 @@ export async function decide(
       body: JSON.stringify({
         schema: "builderwars.move.v1",
         game: s.rules,
-        position: s.fen || s.cells,
+        position: gamePosition(s),
         turn: s.turn,
         moves: s.moves,
         legalMoves: legal,
