@@ -106,6 +106,10 @@ jobs:
       - name: Check the offline dependency policy
         run: python -B bin/check_agentwars_dependency_lock.py --json
 
+      - name: Check provider-pinned OpenRouter entrant path
+        if: matrix.python-version == '3.13'
+        run: python -B bin/check_openrouter_backend.py
+
       - name: Smoke-test the customer-local runner CLI
         run: python -B bin/agentwars.py runner --help
 
