@@ -5,15 +5,18 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { RULES, createGame, applyMove, legalMoves, moveLabel, gamePrompt, replay,
   encodeReplay, refereeManifest, type GameState, type RecordData } from "../src/runtime";
-import { publicAgent } from "../src/models";
+import { publicAgent, parseDecision } from "../src/models";
 import { safeReplay } from "../src/sharing";
 
 export const ENDPOINT = "http://127.0.0.1:8088/v1/chat/completions";
 export const MODEL = "qwen2.5-coder-1.5b-instruct-q4-k-m";
 export const LIMITS = Object.freeze({ maxCalls: 18, maxTokens: 64, perCallMs: 15000, totalMs: 180000 });
 export type Harness = "plain" | "tactical";
+export type ExperimentMode = "strict-json" | "gameplay";
 type Body = { model: string; messages: { role: string; content: string }[]; max_tokens: number;
-  temperature: number; seed: number; stream: boolean; cache_prompt: boolean };
+  temperature: number; seed: number; stream: boolean; cache_prompt: boolean;
+  response_format?: { type: "json_object"; schema: { type: "object";
+    properties: { move: { type: "string"; enum: string[] } }; required: ["move"]; additionalProperties: false } } };
 type Usage = { inputTokens: number | null; outputTokens: number | null; totalTokens: number | null };
 type Call = { number: number; game: number; seat: 0 | 1; harness: Harness; request: Body;
   dispatched: boolean;
@@ -21,7 +24,7 @@ type Call = { number: number; game: number; seat: 0 | 1; harness: Harness; reque
   responseProvider: string | null; usage: Usage; elapsedMs: number; failure: string | null };
 type Game = { game: number; harnesses: Harness[]; exit: "complete" | "failed" | "capped";
   failure: string | null; record: RecordData; replayUrl: string; winnerHarness: Harness | null };
-type Options = { fetchImpl: typeof fetch; now?: () => number;
+type Options = { fetchImpl: typeof fetch; now?: () => number; mode?: ExperimentMode;
   limits?: Partial<Record<keyof typeof LIMITS, number>>; onRequest?: (call: Call) => Promise<void>;
   onCall?: (call: Call) => Promise<void>;
   onGame?: (game: Game) => Promise<void> };
@@ -40,12 +43,27 @@ export function tacticalObservations(state: GameState) {
   return { immediateWins, noImmediateOpponentWin };
 }
 
-export function requestFor(state: GameState, harness: Harness): Body {
+export function requestFor(state: GameState, harness: Harness, mode: ExperimentMode = "strict-json"): Body {
   const observation = harness === "tactical"
     ? `\nReferee-computed tactical observations: ${JSON.stringify(tacticalObservations(state))}. The safety list only checks the opponent's immediate reply; it is not a solved-game guarantee.` : "";
-  return { model: MODEL, messages: [{ role: "user", content:
+  const body: Body = { model: MODEL, messages: [{ role: "user", content:
     gamePrompt(state, "") + observation + '\nReturn only JSON {"move":"one legal move"}. No markdown or explanation.' }],
   max_tokens: LIMITS.maxTokens, temperature: 0, seed: 42, stream: false, cache_prompt: false };
+  if (mode === "gameplay") body.response_format = { type: "json_object", schema: {
+    type: "object", properties: { move: { type: "string", enum: legalMoves(state) } },
+    required: ["move"], additionalProperties: false,
+  } };
+  return body;
+}
+
+function experimentFor(mode: ExperimentMode) {
+  if (mode !== "strict-json" && mode !== "gameplay") throw Error("Unsupported experiment mode");
+  return { mode, constraintAssistance: mode === "gameplay"
+    ? "Both harnesses request legal-move constrained JSON generation through the same referee-derived move enum. This is constrained gameplay, not an unassisted formatting benchmark."
+    : "No constrained generation; strict JSON.parse output grader retained",
+    decisionParser: mode === "gameplay" ? "Existing src/models.ts parseDecision; legal validation with no replacement move"
+      : "Strict JSON.parse and authoritative legal-move validation",
+  };
 }
 
 function count(raw: unknown): number | null {
@@ -69,6 +87,7 @@ function limitsFor(override: Options["limits"]) {
 }
 
 export async function runComparison(options: Options) {
+  const mode = options.mode ?? "strict-json", experiment = experimentFor(mode);
   const limits = limitsFor(options.limits), now = options.now ?? (() => performance.now());
   const started = now(), deadline = started + limits.totalMs;
   const calls: Call[] = [], games: Game[] = [];
@@ -78,7 +97,7 @@ export async function runComparison(options: Options) {
     const record: RecordData = {
       schema: "builderwars.exhibition.v1", id: `local-showcase-${randomUUID()}`,
       createdAt: new Date().toISOString(), rules: { ...RULES.tictactoe }, events: [], status: "Unfinished match",
-      agents: harnesses.map(harness => publicAgent({ name: `Local Qwen · ${harness} harness`, kind: "harness",
+      agents: harnesses.map(harness => publicAgent({ name: `Local Qwen · ${harness} harness${mode === "gameplay" ? " · constrained" : ""}`, kind: "harness",
         model: MODEL, effort: "default", strategy: harness === "plain" ? "Plain referee board and legal moves"
           : "Referee board, legal moves and immediate tactical observations",
         endpoint: ENDPOINT, key: "" })),
@@ -89,7 +108,7 @@ export async function runComparison(options: Options) {
         exit = "capped"; failure = calls.length >= limits.maxCalls ? "Total inference call cap reached" : "Total time cap reached";
         break;
       }
-      const harness = harnesses[state.turn], request = requestFor(state, harness);
+      const harness = harnesses[state.turn], request = requestFor(state, harness, mode);
       request.max_tokens = limits.maxTokens;
       const call: Call = { number: calls.length + 1, game: gameIndex + 1, seat: state.turn, harness, request,
         dispatched: false,
@@ -135,7 +154,7 @@ export async function runComparison(options: Options) {
           throw Error("Runtime reported output above the requested token cap");
         const content = data?.choices?.[0]?.message?.content;
         if (typeof content !== "string") throw Error("Missing model message content");
-        const decision = JSON.parse(content);
+        const decision = mode === "gameplay" ? parseDecision(content, legalMoves(state)) : JSON.parse(content);
         if (!decision || typeof decision.move !== "string" || !legalMoves(state).includes(decision.move))
           throw Error("Malformed or illegal model move; no repair or substitute applied");
         const next = applyMove(state, decision.move);
@@ -169,6 +188,7 @@ export async function runComparison(options: Options) {
   }
   return {
     schema: "builderwars.local-showcase.v1", createdAt: new Date().toISOString(),
+    experiment,
     classification: "Actual local-model exhibition only when executed against the independently identified runtime; mocked tests are synthetic",
     endpoint: ENDPOINT, requestedModel: MODEL, referee: refereeManifest, limits, temperature: 0, seed: 42,
     replayEventModelMeaning: "Replay event.model is the requested local model declaration, prefixed declared/; it is not runtime attestation. Original response model metadata remains in private call receipts only.",
@@ -187,20 +207,22 @@ export async function runComparison(options: Options) {
 }
 
 async function main() {
-  if (process.argv.slice(2).join(" ") !== "--run") {
-    console.log("No inference started. Opt in explicitly: npx --no-install tsx scripts/local-showcase.ts --run");
+  const option = process.argv.slice(2).join(" ");
+  if (option !== "--run" && option !== "--run-gameplay") {
+    console.log("No inference started. Opt in explicitly: npx --no-install tsx scripts/local-showcase.ts --run (strict JSON) or --run-gameplay (constrained gameplay)");
     return;
   }
+  const mode: ExperimentMode = option === "--run-gameplay" ? "gameplay" : "strict-json";
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const parent = resolve(root, "output", "playwright");
   await mkdir(parent, { recursive: true });
   const output = resolve(parent, `local-model-showcase-${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID()}`);
   await mkdir(output); // Unique directory; never overwrite earlier receipts.
   const save = (name: string, value: unknown) => writeFile(resolve(output, name), JSON.stringify(value, null, 2), { flag: "wx" });
-  await save("intent.json", { endpoint: ENDPOINT, requestedModel: MODEL, limits: LIMITS,
+  await save("intent.json", { endpoint: ENDPOINT, requestedModel: MODEL, limits: LIMITS, experiment: experimentFor(mode),
     classification: "Manual local inference; no cloud or keys", startedAt: new Date().toISOString() });
   console.log(`Recording to ${output}`);
-  const receipt = await runComparison({ fetchImpl: fetch,
+  const receipt = await runComparison({ fetchImpl: fetch, mode,
     onRequest: call => save(`call-${String(call.number).padStart(2, "0")}-request.json`, call),
     onCall: call => save(`call-${String(call.number).padStart(2, "0")}.json`, call),
     onGame: async game => {

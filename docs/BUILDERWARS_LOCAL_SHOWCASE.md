@@ -95,3 +95,70 @@ tests now include Windows/Unix path-leak regressions.
 
 Validation: eight network-free deterministic runner tests pass. No application
 source/configuration, provider settings, paid calls, downloads or stores changed.
+
+## Predeclared gameplay experiment v2 — September 5, 2026, 09:46 UTC
+
+This is a new experiment, not a rerun replacing the strict-format failures above.
+Exactly one two-game, seat-swapped execution is planned, regardless of outcomes.
+Same installed model/runtime and the same18-call,64output-token,15second-per-call,
+180second-total ceilings, temperature0,seed42. No paid/cloud inference, downloads
+or configuration changes.
+
+Both harnesses receive an identical JSON output schema constrained to the current
+referee's legal move strings. The model still selects the move; no code replaces
+an illegal response or forces a tactical win. This is disclosed constrained
+decoding assistance, not unaided model play. The tactical variant additionally
+receives the existing referee-computed immediate tactical observations. Use the
+production `parseDecision` function for acceptance and retain failed attempts.
+No lessons are collected or retrieved, weights remain fixed, and no candidate is
+promoted by this two-game exhibition.
+
+Primary protocol reference verified before implementation: llama.cpp server's
+[chat-completion documentation](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md#post-v1chatcompletions-openai-compatible-chat-completions-api)
+documents `response_format` with `type: json_object` and a JSON `schema`. Actual
+runtime response acceptance remains an empirical check, not inferred from docs.
+
+Report every attempt and both seat assignments. If completed games occur, use
+sanitized replay links for the requested same-model/harness and resource-tradeoff
+creative drafts. If they fail, keep the exact failure and do not manufacture
+completed-game narratives. The genuine existing free Connect Four demo can anchor
+a human-challenge invitation; it is not a fabricated human-played result.
+
+### Gameplay v2 observed result — 09:48:54 UTC
+
+One execution, two completed games,12 actual inference calls, zero failed/capped
+games. Game1: plain harness won as first seat in7plies (`2,1,4,5,0,3,6`). Game2:
+tactical harness won as first seat in5plies (`2,4,1,5,0`). Series1–1; the first seat
+won both games. This is no demonstrated overall tactical-assistance advantage.
+
+| Harness | Actual requests | Reported input tokens | Reported output tokens |
+| --- | ---: | ---: | ---: |
+| Plain, legal-move constrained | 6 | 995 | 60 |
+| Tactical, legal-move constrained | 6 | 1282 | 60 |
+
+Total2397 reported tokens. Tactical consumed287more input tokens in this pair;
+different game lengths/positions and a tiny sample prevent broad efficiency
+inferences. Measured request latency totals394.23ms plain/376.86ms tactical are
+warmup/order-confounded, not a speed ranking. Costs remain unknown. Both model
+weights and harness logic stayed fixed; no practice memory was used.
+
+Private evidence: `live-arena/output/playwright/local-model-showcase-2026-09-05T09-48-53-275Z-85d179d0-3434-47d0-8b07-73c48af23b12/`.
+Original receipt SHA256 `da417495b803ae5967d2d1e1ab877385ae75ac93756bad37379fe30e507e7e2f`;
+executed runner SHA256 `de2dbe612aaee543c479d0aaaa74d6bd33381229eb7218cdd7d2474891fd8a50`.
+Runtime PID51944, created09:48:49.954235UTC, same executable and GGUF as preflight.
+Exact PID/creation/executable checked at cleanup; process stopped, matching PID
+state removed, and subsequent process/listener check confirmed stopped.
+
+Both sanitized replays independently opened in fresh390px browser contexts on
+canonical production; observed main asset matched the local production build.
+Outcome, ply count, full stepping, no horizontal overflow, disabled execution and
+not-attested evidence labels passed; zero provider requests/page errors. Retained
+`canonical-replays/` contains mobile screenshots, PNG cards, replay WebMs and a
+hashed capture receipt. Replay video is450ms-per-move playback, not live latency.
+
+Visual review: full mobile result titles are readable. The downloaded long-name
+PNG headline truncates before the winner suffix; do not select that crop as the
+lead outcome graphic. Use the previously verified short-name Connect Four card
+for the lead and these full-title mobile replays for the model comparison. Keep
+long-name artwork wrapping as a ranked polish item, not a false failure of rules
+replay or an unreported reason to regenerate a preferred game outcome.

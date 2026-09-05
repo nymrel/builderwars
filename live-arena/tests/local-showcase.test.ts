@@ -59,8 +59,9 @@ test("local showcase: exactly two swapped games, at most 18 calls; complete sani
 });
 
 test("local showcase: runtime Windows and Unix model paths stay private, absent from replay records and URLs", async () => {
+  for (const mode of ["strict-json", "gameplay"] as const) {
   for (const path of ["C:\\Users\\private-user\\models\\local-qwen.gguf", "/home/private-user/models/local-qwen.gguf"]) {
-    const result = await runComparison({ limits: { maxCalls: 1 }, fetchImpl: async () => response("0", { model: path }) });
+    const result = await runComparison({ mode, limits: { maxCalls: 1 }, fetchImpl: async () => response("0", { model: path }) });
     assert.equal(result.calls[0].responseModel, path);
     assert.equal(JSON.parse(result.calls[0].responseText!).model, path);
     assert(result.replayEventModelMeaning.includes("not runtime attestation"));
@@ -74,6 +75,66 @@ test("local showcase: runtime Windows and Unix model paths stay private, absent 
       assert(publicReplay.record.events.every(event => event.model === `declared/${MODEL}`));
     }
   }
+  }
+});
+
+test("gameplay: both harnesses use identical legal-move constraints and exclude occupied squares", () => {
+  const state = applyMove(createGame(RULES.tictactoe), "4");
+  const plain = requestFor(state, "plain", "gameplay"), tactical = requestFor(state, "tactical", "gameplay");
+  assert.deepEqual(plain.response_format, tactical.response_format);
+  assert.deepEqual(plain.response_format, { type: "json_object", schema: { type: "object",
+    properties: { move: { type: "string", enum: ["0", "1", "2", "3", "5", "6", "7", "8"] } },
+    required: ["move"], additionalProperties: false } });
+  assert.equal(requestFor(state, "plain").response_format, undefined);
+  assert.equal(requestFor(state, "tactical", "strict-json").response_format, undefined);
+  assert.deepEqual({ ...plain, messages: [] }, { ...tactical, messages: [] });
+});
+
+test("gameplay: production parser accepts fenced JSON while original strict grader still rejects it", async () => {
+  const fetchImpl: typeof fetch = async () => response("0", { choices: [{ message: { content: '```json\n{"move":"0"}\n```' } }] });
+  const strict = await runComparison({ fetchImpl, limits: { maxCalls: 1 } });
+  const gameplay = await runComparison({ fetchImpl, mode: "gameplay", limits: { maxCalls: 1 } });
+  assert.equal(strict.games[0].exit, "failed");
+  assert.equal(strict.games[0].record.events.length, 0);
+  assert.equal(strict.experiment.mode, "strict-json");
+  assert.equal(gameplay.games[0].record.events.length, 1);
+  assert.equal(gameplay.games[0].record.events[0].move, "0");
+  assert.equal(gameplay.experiment.mode, "gameplay");
+  assert(gameplay.experiment.constraintAssistance.includes("Both harnesses"));
+  assert(gameplay.experiment.decisionParser.includes("src/models.ts parseDecision"));
+  assert(gameplay.games[0].record.agents.every(agent => agent.name.includes("constrained")));
+});
+
+test("gameplay: ignored runtime constraints never permit an illegal or repaired move", async () => {
+  const result = await runComparison({ mode: "gameplay", fetchImpl: async () => response("0") });
+  assert.equal(result.inferenceCalls, 4);
+  assert.equal(result.failedGames, 2);
+  assert(result.games.every(game => game.record.events.length === 1));
+  assert(result.games.every(game => game.failure?.includes("no replacement move")));
+});
+
+test("gameplay: same 18-call, token and timing ceilings with two seat-swapped games", async () => {
+  const draw = ["0", "1", "2", "4", "3", "5", "7", "6", "8"];
+  let calls = 0;
+  const result = await runComparison({ mode: "gameplay", fetchImpl: async (input, options) => {
+    assert.equal(input, ENDPOINT);
+    const body = JSON.parse(String(options?.body));
+    assert.equal(body.max_tokens, 64);
+    assert.equal(body.temperature, 0);
+    assert.equal(body.seed, 42);
+    assert.equal(body.cache_prompt, false);
+    assert.equal(body.messages.length, 1);
+    const prior = draw.slice(0, calls % 9);
+    assert(body.response_format.schema.properties.move.enum.every((move: string) => !prior.includes(move)));
+    return response(draw[calls++ % 9]);
+  } });
+  assert.equal(calls, 18);
+  assert.equal(result.completedGames, 2);
+  assert.deepEqual(result.limits, LIMITS);
+  assert.deepEqual(result.games.map(game => game.harnesses), [["plain", "tactical"], ["tactical", "plain"]]);
+  const capped = await runComparison({ mode: "gameplay", limits: { maxCalls: 1 }, fetchImpl: async () => response("0") });
+  assert.equal(capped.inferenceCalls, 1);
+  assert.equal(capped.cappedGames, 2);
 });
 
 test("local showcase: malformed and illegal outputs abort each game without repair or retry", async () => {

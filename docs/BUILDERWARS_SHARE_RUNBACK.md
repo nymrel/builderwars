@@ -7,9 +7,11 @@ The sharing/rematch paths below are released at https://builderwars.com/ in
 [release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md).
 Canonical Chromium, Firefox and WebKit proof/replay checks passed, as did the
 sharing journey. Historical candidate and timed-out-review notes below remain
-dated evidence, not the current release gate. No social post was made. The three
-outcome-based human/model narratives remain held for the exact missing match
-evidence listed in the queue; shipped controls are not a substitute for results.
+dated evidence, not the current release gate. No social post was made. The new
+[three-narrative package](BUILDERWARS_BETA_CREATIVE_20260905.md) uses the genuine
+free demo and a separately captured local-model pair. It supersedes the historical
+queue's missing-match status, not the need for exact publication authorization.
+The paired model result is1–1; it does not establish learning or harness superiority.
 
 ### Fresh canonical demo, September 5 at 09:19 UTC
 

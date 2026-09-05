@@ -1,5 +1,15 @@
 # BuilderWars lane presence
 
+Open last used by Codex, September5 03:00 PDT. PR33 exact640d955 passed all five
+checks on attempt2 and merged as fabe467; exact-main CI33958805607 also passed.
+New gameplay/capture/draft increment:136tests/build pass;2actual local games split
+1–1 and both canonical390px replays passed. No learning/efficiency advantage
+claimed. Runtime and browsers stopped, worker done. Fable review returned no
+confirmed result; preserve ambiguous-delivery state, never call it approved.
+Root retains this named integration location. Exact claim
+`codex-builderwars-beta-finish-20260905` governs until released; this note never
+extends a released claim. No production/app/provider/store changes.
+
 Open last used by Codex, September5 02:42 PDT. Bounded local comparison completed:
 two real local responses, zero accepted moves because the predeclared strict
 grader rejected fenced JSON. This is not a production parser defect or learning
