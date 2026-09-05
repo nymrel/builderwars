@@ -107,6 +107,21 @@ test("flush covers a mutation queued after drain exits but before its finally cl
   assert.equal((await NativeCheckpoint.open(disk)).snapshot()[MEMORY_KEY], "second");
 });
 
+test("explicit erasure retry switches a failed store to saving before acknowledgement", async () => {
+  const disk = new Disk(), device = await DeviceStorage.open(disk, new Legacy());
+  device.setItem(MEMORY_KEY, "saved lesson"); await device.flush();
+  disk.fail = true; device.setItem(MEMORY_KEY, "new lesson");
+  await assert.rejects(device.flush());
+  device.removeItem(MEMORY_KEY);
+  assert.equal(device.status, "unavailable");
+  let release!: () => void; disk.hold = new Promise<void>(r => { release = r; }); disk.fail = false;
+  const saving = device.flush();
+  assert.equal(device.status, "saving");
+  release(); await saving;
+  assert.equal(device.status, "saved");
+  assert.equal((await NativeCheckpoint.open(disk)).snapshot()[MEMORY_KEY], undefined);
+});
+
 test("full library byte/count caps plus near-limit practice memory and opt-out fit one native checkpoint", async () => {
   const disk = new Disk(), device = await DeviceStorage.open(disk, new Legacy()), library = new MatchLibrary(device);
   for (let i = 0; i < MAX_SAVED; i++) assert(library.save(game(undefined, `capacity-${i}`), "own", 80));
