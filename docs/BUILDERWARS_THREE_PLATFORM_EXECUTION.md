@@ -170,3 +170,22 @@ product icons/splash (generated template assets remain), signed tester builds,
 privacy/store declarations and accepted listings. No store publication or native
 quality claim follows from generation or compilation. Next: inspect exact hosted
 native build receipts, repair concrete failures, then implement native file flows.
+
+### Hosted compile receipt — September 4, 2026, 21:53 PDT
+
+All five jobs passed for PR29 head `44a4fec6376aead65c83cf2646ba48ff95cbfb34`:
+[run 33945568353](https://github.com/nymrel/builderwars/actions/runs/33945568353).
+This includes Windows/Linux unit/build, web plus synthetic native browser gates,
+Android debug APK compilation, and unsigned iOS simulator compilation.
+Pull-request Actions built merge checkout `2607ce4cbe735caf144a4e878033f699f5bcd23b`;
+artifact names bind to that checkout, while the run's head is the candidate above.
+
+- Android artifact ID `9963229855`; archive digest
+  `sha256:8c7529167571669e84a4f357a79df244abc4521e8b98c0ee27219a3f51218605`.
+- iOS simulator artifact ID `9963222528`; archive digest
+  `sha256:516f344d869c6829906166d3105e775dc1e3ff7d5a74c05c76b8b4792569e6af`.
+
+Artifacts expire after seven days. Neither is a signed store release. A bounded
+iPhone-simulator launch/screenshot job is the next inspection step; it selects
+one preinstalled shutdown device, never downloads a runtime, and closes only its
+selected device. Screenshot capture alone is not successful user-flow proof.
