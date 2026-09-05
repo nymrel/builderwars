@@ -4,7 +4,7 @@
 
 Academy and the free paired comparison/creator exercise are included in web source
 `d0873da18dfeeda1062cdce5e503c82aa804d904`, retained unchanged in current released
-source5f92f990 at https://builderwars.com/ (later delta: PNG outcome heading only).
+source138e5700 at https://builderwars.com/ (later deltas: PNG heading and contrast).
 The [release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md) supersedes
 the historical candidate/review/preflight status below. Exact-source CI includes
 `academy_browser.py`; the connection preflight is implemented and covered by

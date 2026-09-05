@@ -1,6 +1,81 @@
 # Contrast repair: mobile controls and game state
 
-September5,2026. Candidate, not yet a production receipt.
+September5,2026. Released as138e57005782fcf2462958fb809f8c1821db790e.
+
+## Production receipt
+
+Final gate status: all five exact-source jobs pass in33962910085 attempt2.
+Only the failed iOS job was rerun unchanged; Linux/Windows/browser/Android
+successes are retained. No application, workflow, timeout, OCR or cleanup change.
+The initial timeout below remains a real failed observation, not an erased result
+or a diagnosed application crash. No claim of cured CI intermittency is made.
+
+iOS passed job101299124829, artifact9968739446: sourceHead and builtCheckout both
+138e57005782fcf2462958fb809f8c1821db790e, launchPID6122, initialScreenTextVerified
+true. Actual settled screenshot inspected: full first screen/board visible.
+Screenshot SHA2568aa3a97d1c51d7dedff31691a49fbb43970865863e876b9d32b5f5ff9c4a3439;
+local directory output/playwright/ios-passed-138e5700-attempt2-20260905.
+Exact-device shutdown ran. This is simulator startup/OCR, not iOS gameplay,
+physical touch, signing, TestFlight or App Store submission.
+
+Android main artifact9968567857 independently records a complete7-ply free game,
+background/resume, process recovery and3rapid restart trials restoring2plies
+paused. Packaged assets match; source/builtCheckout both138e5700. APK SHA256
+a42c03995d341f53dde14d5a885ceac6e108075e787d869be309e3ec3a0a4aeb.
+It is Android15 emulator/WebView/debug evidence, not Google Play publication.
+
+PR36 candidate38ff928a20a54f5a63efa6e6048cc22b4c2e2093 passed all five CI jobs
+in33962628832. Its application/test tree is identical to Fable-reviewed7089da79;
+the follow-up only reconciled documentation. Merge138e5700 has the same tree.
+Merged-source CI33962910085 initially had an iOS simulator launch failure:
+unsigned build/install succeeded, simctl launch exceeded60seconds, diagnostic
+spawn exceeded30seconds, and shutdown ran. Exact job101297815271/log retained.
+The app/test tree is unchanged from the passing candidate; that does not erase
+this failure or establish its underlying cause. The one unchanged failed-job-only
+observation passed as described above; no check bypass or timeout change. Initial
+failure artifact9968556438 remains locally retained in
+output/playwright/ios-failed-138e5700-20260905; it contains no crash log because
+the diagnostic command also timed out. Runtime selection/partial-timeout output
+can receive later bounded hardening; neither is proven to cause this timeout.
+
+Exact committed git archive SHA256:
+57752305f6601623d781b950c85de6424028bd4a539c2ca54ceff7de34c89257.
+Production deployment dpl_FbRtsAn3aN5gpDQ1xuiQaKGjGKfL is READY on the existing
+project prj_c2HDxCRh3sEFEZkOxemiwoUmp1Gp/team_MkEJAArMiAM6dAEnF96D5GLE.
+Canonical https://builderwars.com resolves to
+https://builderwars-m669eqlr8-jalens-projects-0ade4450.vercel.app.
+All five entry/preload/style asset bytes matched the local release build.
+CSS index-s7snZS0D.css:17269bytes, SHA256
+940bf62f5c584e244e7c69071589f3803e2c6b8c3762584933f9f5461b71aa24.
+Main index-DAHsmVZF.js:194179bytes, SHA256
+0244a3b0b93b0b465f4d6521fca77f6081f9eaf9603ac2048c4e4e5cc7126f4d.
+The JS bytes remain unchanged; its filename changes with the CSS build graph.
+
+Canonical accessibility journey passed all168pairs at320/390px with zero
+contrast failures, unsupported paint cases, external requests or page errors.
+Actual390px screenshot visually inspected:
+live-arena/output/playwright/nontext-live-138e5700-20260905.png,
+SHA256 ffe49f0855557a1ad8f21db8b6d20d044d742dc2f1fbcb94a57a6913aa03e2ca.
+Black piece silhouette, legal dots, coordinates and inset focus are discernible.
+This is automated QA using human-seat fixtures, not an observed external tester
+or full WCAG audit.
+
+All three plural/www origins return308 to canonical. Previous production
+dpl_4cTgTHmFyQ2rePzQxn9QFe9Et5ZE remains READY/available: its immutable
+index-CHp1TxrL.js returned200 with194179bytes and the preceding main hash above.
+Rollback availability verified; no disruptive production rollback exercised.
+No domain, environment secret, account, model or stored customer state changed.
+
+All12 canonical Chromium journeys passed (including accessibility above), plus
+Firefox and WebKit portable-proof journeys. These cover free games, lifecycle,
+connections, profiles, match packages, import races, resource caps, Academy,
+memory mechanics and sharing. Synthetic provider routes are not actual inference.
+Real PeerJS recovery remains separately proven by the prior unchanged-runtime
+receipt; this CSS-only release does not recertify customer clients or native OS UI.
+Owned preview42404 stopped after PID/creation/command verification;5189/8088
+listeners absent. The canonical browser processes completed normally and closed.
+
+Historical implementation and preview evidence follows.
 
 The new computed audit found actual defects on canonical5f92f990, not merely
 missing documentation. At320/390px, default placeholders were3.71694:1 against

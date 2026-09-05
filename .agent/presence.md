@@ -1,13 +1,22 @@
 # BuilderWars lane presence
 
-Codex active beta closeout, September5, under exact claim
-codex-builderwars-beta-closeout-20260905. Root owns docs/presence and any necessary
-style.css contrast fixes. beta_completion_audit owns only accessibility_browser.py
-for bounded computed contrast assertions; no other writer/deploy lane assigned.
-Read-only Wrangler/Vercel capability preflight complete; no provider mutations.
-Exact c8b1a23 CI33961460460 passed all five jobs; PR35 merged as10791126.
-Contrast7089da79 passed all five jobs in33962292654 and the final full browser
-gate. Fable turn3 approved source; documentation findings reconciled below.
+Open last used by Codex, final beta acceptance September5, exact live claim
+codex-builderwars-beta-final-audit-20260905, docs/.agent only. Read-only native
+review completed. One unchanged failed-job-only observation passed33962910085
+attempt2/job101299124829, exact138e5700. Original failed receipt preserved under
+output/playwright/ios-failed-138e5700-20260905; successful screenshot inspected.
+No code/threshold/workflow/runtime-selection changes, independent writer or local
+server. Engineering beta accepted; claim governs until released at closeout.
+
+Open last used by Codex, September5, beta closeout. Exact scoped claim
+codex-builderwars-beta-closeout-20260905 governs until released; no worker remains
+active. PR36 reviewed38ff928 passed all-five CI33962628832 and merged138e5700.
+Exact source deployed; canonical168contrast pairs,12Chromium journeys,
+Firefox/WebKit proof, asset bytes, redirects and rollback availability pass.
+Merged-source CI33962910085 failed iOS simctl launch60seconds after build/install;
+shutdown ran. No bypass, duplicate rerun, store or learning-improvement claim.
+All owned preview/model/browser processes stopped. Final documentation and exact
+CI diagnosis remain next; no new model calls, protected changes or hosting writes.
 This mirror does not extend the live claim. Historical checkpoints follow.
 
 Open last used by Codex, September5, diagnostic closeout. Source review of PR35

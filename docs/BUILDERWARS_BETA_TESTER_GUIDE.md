@@ -1,5 +1,10 @@
 # BuilderWars beta test: play, replay, improve
 
+Latest verified release:138e57005782fcf2462958fb809f8c1821db790e, September5.
+Mobile board/form contrast fixes are live; full canonical journeys and source
+custody are recorded in BUILDERWARS_CONTRAST_20260905.md. Earlier dated release
+references below retain their historical evidence and are not new tester data.
+
 ## Before you start
 
 Use the exact test URL and version supplied with your invitation. The verified
