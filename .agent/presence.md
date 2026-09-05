@@ -1,5 +1,16 @@
 # BuilderWars lane presence
 
+Open last used by Codex, September 5, 2026. Session01a02d52-c41a-7521-aee3-e595101d6447.
+Claim codex-builderwars-improvement-loop-20260905 governs live-arena/docs/.agent
+in this named worktree on codex/builderwars-portable-proof-20260904.
+Bounded data-driven multi-game learning, candidate/promotion evidence and local
+execution integration. No paid inference, production configuration or referee
+rules changes. Local tests158/158 and build pass; Fable review resolved four
+findings. All five exploratory candidates retained, not promoted. No local server
+or inference process remains. Exact bus claim controls integration writes until
+released at closeout; this mirror does not extend ownership. See the self-
+improvement design/results documents for local-only scope and next stages.
+
 Open last used by Codex, final beta acceptance September5, exact live claim
 codex-builderwars-beta-final-audit-20260905, docs/.agent only. Read-only native
 review completed. One unchanged failed-job-only observation passed33962910085

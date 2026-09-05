@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "improve": "tsx scripts/self-improve.ts",
+    "preimprove": "npm run referee",
     "referee": "node scripts/build-referee.mjs",
     "predev": "npm run referee",
     "prebuild": "npm run referee",

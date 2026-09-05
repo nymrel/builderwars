@@ -4,6 +4,15 @@ A static, browser-hosted arena: real rules, real moves, optional customer-owned
 models, peer-to-peer spectators, and portable replay evidence. No platform API
 keys, centralized account database, paid credits, fabricated audience or rankings.
 
+## Local self-improvement lab
+
+`npm run improve -- --game tictactoe` runs bounded, outcome-trained local policy
+development. It saves immutable candidates, paired evaluation evidence and a
+retained/promoted local champion. It makes no provider calls and does not change
+website contenders. This is not LLM weight training or industry-strength proof.
+See [training, local-harness execution and limitations](../docs/BUILDERWARS_SELF_IMPROVEMENT.md).
+On Windows PowerShell, use `npm.cmd` when passing flags to preserve the arguments.
+
 ## Play and build
 
 ```sh
