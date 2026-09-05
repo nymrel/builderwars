@@ -113,12 +113,33 @@ actually generated those moves or that reported costs are independently verified
 
 ## Validation and release
 
+### Recent matches
+
+Played and watched games save on this browser by default (up to 20 entries, 2 MB,
+30-day eligibility; prune on the next save). Own games take priority over spectator
+snapshots and imported replays. Disable saving or Forget All in **Recent matches**;
+Forget All disables future auto-saves. Device clearing or browser eviction removes
+the library. Keys and harness URLs are not saved. Public strategies/comments are.
+
+Resume restores a built-in/human game **paused**, into a new record ID to avoid
+cross-tab continuation conflicts. It preserves the move limit. Provider games are
+replay-only after reload; reconnect those contenders in a new match. Replay URLs
+do not automatically enter the library; use **Save current replay** to retain one.
+
+Spectator reload attempts the same live host link and shows a saved, explicitly
+non-live position if unavailable. A 5-second heartbeat detects silence after
+15 seconds (browser timer throttling can extend this). If the host restarts their
+broadcast, they must share its new link. There is no server archive or background
+model execution. Browser storage is origin-scoped; export/import JSON when moving
+from the Vercel fallback host to `https://builderwars.com`.
+
 ```sh
 npm test
 npm run build
 python -m unittest discover -s tests -p test_bridge.py
 python tests/browser.py
 python tests/network.py
+python tests/recovery.py
 ```
 
 Browser tests need Python Playwright and Chromium. Set `BUILDERWARS_TEST_URL`
@@ -129,7 +150,8 @@ Vercel project root is this directory, with no secret environment variables.
 `vercel.json` defines security headers and static routes. Do not deploy this root
 into the existing Nymrel project. Roll back by promoting a previous verified
 BuilderWars deployment; for the first release, revert/unpublish this project
-without touching Nymrel. Custom domains are a separate DNS permission gate.
+without touching Nymrel. BuilderWars.com and BuildersWars.com were activated under
+PA-0904-0642; future DNS changes still require exact domain authority.
 
 References: [OpenRouter reasoning](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens),
 [model catalog](https://openrouter.ai/docs/guides/overview/models),

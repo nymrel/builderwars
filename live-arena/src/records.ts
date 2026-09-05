@@ -1,6 +1,6 @@
 import {
   createGame,
-  applyMove,
+  replayStepper,
   validateRules,
   moveLabel,
   type GameState,
@@ -58,6 +58,7 @@ export function replay(raw: unknown): { record: RecordData; state: GameState } {
   });
   const rules = validateRules(r.rules);
   let state = createGame(rules);
+  const advance = replayStepper(rules);
   const events = r.events.map((e, i) => {
     if (
       !e ||
@@ -78,7 +79,7 @@ export function replay(raw: unknown): { record: RecordData; state: GameState } {
     )
       throw Error("Invalid move evidence.");
     const label = moveLabel(e.move, state);
-    state = applyMove(state, e.move);
+    state = advance(e.move);
     return {
       ply: e.ply,
       seat: e.seat,

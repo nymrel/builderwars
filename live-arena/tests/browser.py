@@ -35,7 +35,7 @@ with sync_playwright() as p:
     assert 'wins' in page.locator('#match-status').inner_text()
     # Actual replay export and import into a separate page.
     with page.expect_download() as info:
-        page.locator('.match-settings summary').click()
+        page.locator('.match-settings summary').filter(has_text='Match settings').click()
         page.locator('#export').click()
     record=json.loads(Path(info.value.path()).read_text())
     assert len(record['events'])==5
@@ -89,7 +89,8 @@ with sync_playwright() as p:
     page.wait_for_function("() => document.querySelector('#metric-moves').textContent==='1'")
     assert 'Synthetic response' in page.locator('#feed').inner_text()
     assert 'synthetic-browser-test' not in page.locator('body').inner_text()
-    assert page.evaluate('JSON.stringify(localStorage)')=='{}'
+    assert 'synthetic-browser-test' not in page.evaluate('JSON.stringify(localStorage)')
+    assert 'endpoint' not in page.evaluate('JSON.stringify(localStorage)')
     page.locator('#reset').click()
     page.route('https://openrouter.ai/api/v1/chat/completions',lambda route:route.fulfill(json={"choices":[{"message":{"content":"{\"move\":\"invalid\"}"}}],"model":"test/model"}))
     page.locator('#step').click()

@@ -21,7 +21,7 @@ with sync_playwright() as p:
     page.locator('#model-id').select_option(args.model)
     page.locator('#agent-key').fill(key);page.locator('#agent-name').fill('Live free-route test')
     page.locator('#agent-form button[type=submit]').click()
-    page.locator('.match-settings summary').click();page.locator('#max-tokens').fill('512')
+    page.locator('.match-settings summary').filter(has_text='Match settings').click();page.locator('#max-tokens').fill('512')
     page.locator('#step').click()
     page.wait_for_function("() => document.querySelector('#metric-moves').textContent==='1' || /returned|Illegal|timed out|Failed|exceeds/.test(document.querySelector('#notice').textContent)",timeout=125000)
     assert len(calls)==1

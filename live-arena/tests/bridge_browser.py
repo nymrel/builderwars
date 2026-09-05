@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 spec=importlib.util.spec_from_file_location('bridge',Path(__file__).parents[1]/'bridge.py')
 bridge=importlib.util.module_from_spec(spec);spec.loader.exec_module(bridge)
-BASE=os.environ.get('BUILDERWARS_TEST_URL','https://builderwars.vercel.app')
+BASE=os.environ.get('BUILDERWARS_TEST_URL','https://builderwars.com')
 class SyntheticBackend:
     def complete(self,prompt):return '{"move":"0","comment":"Synthetic local bridge acceptance."}'
 server=bridge.BridgeServer(('127.0.0.1',8765),bridge.handler_for(SyntheticBackend(),'synthetic-test-token',BASE,'synthetic/local-test',1))

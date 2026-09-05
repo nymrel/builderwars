@@ -19,6 +19,7 @@ import {
   type Model,
 } from "./models";
 import { Broadcast } from "./broadcast";
+import { MatchLibrary, canResume, type SavedMatch } from "./library";
 import {
   replay,
   encodeReplay,
@@ -78,6 +79,15 @@ const broadcast = new Broadcast();
 let pending = false,
   replayPly: number | null = null,
   startingBroadcast = false;
+let library: MatchLibrary | null = null;
+let savedSource: SavedMatch["source"] = "own";
+let joinGeneration = 0;
+let libraryRenderTimer: ReturnType<typeof setTimeout> | null = null;
+try {
+  library = new MatchLibrary(localStorage);
+} catch {
+  /* Storage is optional. */
+}
 function freshRecord(): RecordData {
   return {
     schema: "builderwars.exhibition.v1",
@@ -114,9 +124,191 @@ document.querySelector("#app")!.innerHTML = `
 function notify(message: string) {
   $("notice").textContent = message;
 }
+// Visual thesis: retain the quiet green/lime workspace; history is a compact list.
+// Content: one entry point, recent matches, exact retention, resume/replay actions.
+// Interaction: native disclosure and existing button feedback; no new motion layer.
+$("notice").insertAdjacentHTML(
+  "afterend",
+  `
+  <p id="save-disclosure" class="muted">Played and watched matches save on this device. Manage saving in Recent matches.</p>
+  <details id="match-library" class="match-settings">
+    <summary>Recent matches <span id="library-count"></span></summary>
+    <p class="muted">On this browser only · up to 20 matches for 30 days. Public strategies and comments are included; keys and endpoints are never saved. Shared-device users can turn saving off.</p>
+    <label class="checkbox"><input id="save-matches" type="checkbox">Save recent matches on this device</label>
+    <p id="library-status" class="muted" role="status"></p>
+    <div id="library-list"></div>
+    <button id="save-current-replay">Save current replay</button>
+    <button id="forget-matches">Forget saved matches & turn saving off</button>
+  </details>`,
+);
+$("join").insertAdjacentHTML(
+  "afterend",
+  '<button id="rejoin-watch" hidden>Reconnect to host</button>',
+);
+
+function libraryFailure() {
+  $("save-disclosure").textContent =
+    "Device saving is unavailable. Download a match to keep it.";
+  $("library-status").textContent =
+    "Browser storage is unavailable or full. Your current game still works; download its JSON to keep it.";
+}
+function saveCurrent() {
+  if (!library) return;
+  if (savedSource === "watch" && !watchId) return;
+  try {
+    const limit = Number($<HTMLInputElement>("move-limit").value);
+    const saved = library.save(
+      record,
+      savedSource,
+      Number.isInteger(limit) && limit >= 2 && limit <= 400 ? limit : 80,
+      savedSource === "watch" ? watchId : "",
+    );
+    if (!saved && library.enabled() && record.events.length) {
+      $("library-status").textContent =
+        "Your saved games take priority. Download this replay or forget an older game to make room.";
+      return;
+    }
+    if (!libraryRenderTimer)
+      libraryRenderTimer = setTimeout(() => {
+        libraryRenderTimer = null;
+        renderLibrary();
+      }, 150);
+  } catch {
+    libraryFailure();
+  }
+}
+function renderLibrary() {
+  if (!library) {
+    libraryFailure();
+    return;
+  }
+  try {
+    const entries = library.list();
+    $<HTMLInputElement>("save-matches").checked = library.enabled();
+    $("save-disclosure").textContent = library.enabled()
+      ? "Played and watched matches save on this device. Manage saving in Recent matches."
+      : "Automatic saving is off on this device.";
+    $("library-count").textContent = entries.length
+      ? `· ${entries.length}`
+      : "";
+    $("library-status").textContent = library.enabled()
+      ? "Games save after each accepted move. No account or cloud backup."
+      : "Saving is off. Existing matches remain until you forget them.";
+    $("library-list").innerHTML = entries.length
+      ? entries
+          .map(
+            (entry, i) => `
+      <article class="saved-match"><div><strong>${esc(entry.record.rules.name)}</strong>
+      <small>${esc(entry.record.agents.map((a) => a.name).join(" vs "))}</small>
+      <small>${entry.record.events.length} plies · ${esc(new Date(entry.savedAt).toLocaleString())} · ${entry.source === "watch" ? "Spectator snapshot" : entry.source === "replay" ? "Imported replay" : "Your game"}</small></div>
+      <div class="saved-actions"><button data-saved-replay="${i}">Replay</button>${canResume(entry) ? `<button data-saved-resume="${i}">Resume</button>` : ""}<button data-saved-delete="${i}" aria-label="Forget ${esc(entry.record.rules.name)}">Forget</button></div></article>`,
+          )
+          .join("")
+      : '<p class="muted">Your next played or watched match will appear here when saving is on.</p>';
+    for (const action of ["replay", "resume", "delete"] as const) {
+      document
+        .querySelectorAll<HTMLButtonElement>(`[data-saved-${action}]`)
+        .forEach((button) => {
+          button.disabled = running || pending;
+          button.onclick = () => {
+            if (running || pending) return;
+            const entry =
+              entries[Number(button.getAttribute(`data-saved-${action}`))];
+            try {
+              if (action === "delete") {
+                library!.remove(entry.key);
+                renderLibrary();
+              } else if (action === "resume") resumeSaved(entry);
+              else {
+                openReplay(replay(entry.record), false);
+                tab("arena");
+              }
+            } catch (e) {
+              notify((e as Error).message);
+            }
+          };
+        });
+    }
+  } catch {
+    libraryFailure();
+  }
+}
+function resumeSaved(entry: SavedMatch) {
+  if (!canResume(entry))
+    throw Error(
+      "This match is replay-only. Connected providers must be configured again in a new match.",
+    );
+  stop();
+  joinGeneration++;
+  broadcast.close();
+  broadcastLink = "";
+  watchId = "";
+  seriesRemaining = 0;
+  replayPly = null;
+  spectating = false;
+  savedSource = "own";
+  const parsed = replay(entry.record);
+  record = parsed.record;
+  state = parsed.state;
+  rules = state.rules;
+  // Recover into a new record so two tabs never overwrite the same continuation.
+  record.id = crypto.randomUUID();
+  agents = record.agents.map((a) => ({ ...a, endpoint: "", key: "" }));
+  record.status = "Recovered · paused";
+  $<HTMLInputElement>("move-limit").value = String(entry.moveLimit);
+  $("leave-watch").hidden = true;
+  $("rejoin-watch").hidden = true;
+  $("stop-broadcast").hidden = true;
+  $("watch-link").textContent =
+    "Start broadcasting to create a spectator link.";
+  history.replaceState(null, "", location.pathname + location.search);
+  selected = -1;
+  render();
+  renderLibrary();
+  tab("arena");
+  notify(
+    "Recovered and paused. Start or Step to continue; no model requests were started.",
+  );
+}
+$("save-matches").onchange = () => {
+  try {
+    library?.setEnabled($<HTMLInputElement>("save-matches").checked);
+    renderLibrary();
+  } catch {
+    libraryFailure();
+  }
+};
+$("forget-matches").onclick = () => {
+  if (
+    !window.confirm(
+      "Forget saved matches on this browser and turn automatic saving off? Download anything you want to keep first.",
+    )
+  )
+    return;
+  try {
+    library?.forget();
+    renderLibrary();
+  } catch {
+    libraryFailure();
+  }
+};
+$("save-current-replay").onclick = () => {
+  if (!library?.enabled()) {
+    notify("Turn on saving in Recent matches first.");
+    return;
+  }
+  saveCurrent();
+};
+window.addEventListener("storage", () => {
+  if (!libraryRenderTimer)
+    libraryRenderTimer = setTimeout(() => {
+      libraryRenderTimer = null;
+      renderLibrary();
+    }, 150);
+});
 document.querySelector(".telemetry div:last-child > span")!.textContent =
   "ACCEPTED MOVE COST";
-document.querySelector(".match-settings > p")!.textContent =
+$("move-limit").closest("details")!.querySelector("p")!.textContent =
   "Usage totals cover accepted moves only. Failed or cancelled requests may still incur charges. Set limits at your provider and check its billing. Effort is requested, not independently attested. Exhibitions are not certified rankings.";
 $("notice").insertAdjacentHTML(
   "beforebegin",
@@ -157,10 +349,15 @@ $<HTMLInputElement>("replay-position").oninput = (e) =>
   seekReplay(Number((e.target as HTMLInputElement).value));
 $("replay-prev").onclick = () => seekReplay((replayPly ?? 0) - 1);
 $("replay-next").onclick = () => seekReplay((replayPly ?? 0) + 1);
-function openReplay(parsed: ReturnType<typeof replay>) {
+function openReplay(parsed: ReturnType<typeof replay>, save = true) {
   stop();
+  joinGeneration++;
   broadcast.close();
   broadcastLink = "";
+  watchId = "";
+  savedSource = "replay";
+  $("rejoin-watch").hidden = true;
+  history.replaceState(null, "", location.pathname + location.search);
   seriesRemaining = 0;
   rules = parsed.state.rules;
   state = parsed.state;
@@ -172,6 +369,7 @@ function openReplay(parsed: ReturnType<typeof replay>) {
     "Every move verified. Use the replay slider to inspect the match. Leave spectator mode in Watch to play.",
   );
   $("leave-watch").hidden = false;
+  if (save) saveCurrent();
 }
 function tab(name: string) {
   activeTab = name;
@@ -203,6 +401,13 @@ const glyphs: Record<string, string> = {
   bp: "♟",
 };
 function render() {
+  document
+    .querySelectorAll<HTMLButtonElement>(
+      "[data-saved-replay], [data-saved-resume], [data-saved-delete]",
+    )
+    .forEach((button) => {
+      button.disabled = running || pending;
+    });
   const legal = legalMoves(state),
     rows = state.rules.rows,
     cols = state.rules.cols,
@@ -328,6 +533,7 @@ function stop(message = "Paused") {
   record.status = message;
   render();
   broadcast.publish(record);
+  if (!spectating) saveCurrent();
 }
 function reset(preserveSeries = false) {
   if (!preserveSeries) seriesRemaining = 0;
@@ -335,10 +541,12 @@ function reset(preserveSeries = false) {
   replayPly = null;
   state = createGame(rules);
   record = freshRecord();
+  savedSource = "own";
   selected = -1;
   render();
   notify("Ready. Start a match or click Step for one move.");
   broadcast.publish(record);
+  renderLibrary();
 }
 function numberInput(id: string, min: number, max: number) {
   const n = Number($<HTMLInputElement>(id).value);
@@ -370,6 +578,7 @@ function commit(
   record.status = state.over ? state.reason : "Playing";
   render();
   broadcast.publish(record);
+  saveCurrent();
   if (state.over)
     notify(
       `${state.reason}. ${state.winner === null ? "Draw." : record.agents[state.winner].name + " wins."}`,
@@ -435,6 +644,7 @@ async function play() {
       running = false;
       record.status = "Move limit reached";
       broadcast.publish(record);
+      saveCurrent();
       notify(
         "Exhibition move limit reached. Export this record or start a rematch.",
       );
@@ -462,6 +672,7 @@ async function play() {
   if (id === runId) {
     running = false;
     render();
+    renderLibrary();
     if (seriesRemaining > 0) finishSeriesGame();
   }
 }
@@ -858,28 +1069,80 @@ $("watch-broadcast").onclick = () => {
   void goLive();
 };
 async function join(id: string) {
+  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) throw Error("Invalid broadcast id.");
   stop();
+  const generation = ++joinGeneration;
   seriesRemaining = 0;
   replayPly = null;
   broadcastLink = "";
   spectating = true;
   watchId = id;
+  savedSource = "watch";
+  history.replaceState(
+    null,
+    "",
+    `${location.pathname}${location.search}#watch=${id}`,
+  );
+  $("rejoin-watch").hidden = false;
+  // A prior unrelated game must never look like a new host's board.
+  state = createGame(RULES.chess);
+  rules = state.rules;
+  record = freshRecord();
+  record.status = "Waiting for host";
+  let cached = false;
+  try {
+    const entry = library
+      ?.list()
+      .find((item) => item.source === "watch" && item.watchId === id);
+    if (entry) {
+      const parsed = replay(entry.record);
+      state = parsed.state;
+      rules = state.rules;
+      record = parsed.record;
+      replayPly = record.events.length;
+      cached = true;
+    }
+  } catch {
+    libraryFailure();
+  }
   $("leave-watch").hidden = false;
   tab("arena");
   render();
-  notify("Connecting to live match…");
+  notify(
+    cached
+      ? "Saved spectator position · reconnecting to host. This is not live yet."
+      : "Connecting to live match…",
+  );
   await broadcast.watch(
     id,
     (parsed) => {
+      if (generation !== joinGeneration) return;
       record = parsed.record;
       state = parsed.state;
       rules = state.rules;
+      replayPly = null;
       render();
       notify("Watching live · moves are checked as they arrive");
+      saveCurrent();
     },
-    notify,
+    (message) => {
+      if (generation === joinGeneration) notify(message);
+    },
+    () => {
+      if (generation !== joinGeneration) return;
+      if (record.events.length) replayPly = record.events.length;
+      render();
+      notify(
+        record.events.length
+          ? "Host offline or unreachable · showing the last received position, not a live board. Reconnect in Watch; if the host restarted, ask for their new link."
+          : "Host offline or unreachable. If they restarted their broadcast, ask for the new link.",
+      );
+    },
   );
 }
+$("rejoin-watch").onclick = () => {
+  if (watchId) void join(watchId).catch((e) => notify(e.message));
+};
 $("join").onclick = () => {
   try {
     const url = new URL($<HTMLInputElement>("join-link").value);
@@ -892,11 +1155,13 @@ $("join").onclick = () => {
   }
 };
 $("leave-watch").onclick = () => {
+  joinGeneration++;
   broadcast.close();
   spectating = false;
   watchId = "";
   broadcastLink = "";
   $("leave-watch").hidden = true;
+  $("rejoin-watch").hidden = true;
   history.replaceState(null, "", location.pathname);
   reset();
   tab("arena");
@@ -922,10 +1187,20 @@ window.addEventListener("beforeunload", () => {
 if (new URLSearchParams(location.search).get("stream") === "1")
   document.body.classList.add("stream-view");
 render();
-const fragment = new URLSearchParams(location.hash.slice(1));
-if (fragment.has("watch"))
-  void join(fragment.get("watch")!).catch((e) => notify(e.message));
-if (fragment.has("replay"))
-  void decodeReplay(fragment.get("replay")!)
-    .then(openReplay)
-    .catch((e) => notify(`Replay rejected: ${e.message}`));
+renderLibrary();
+function loadFragment() {
+  const hash = location.hash;
+  const fragment = new URLSearchParams(hash.slice(1));
+  if (fragment.has("watch"))
+    void join(fragment.get("watch")!).catch((e) => notify(e.message));
+  else if (fragment.has("replay"))
+    void decodeReplay(fragment.get("replay")!)
+      .then((parsed) => {
+        if (location.hash === hash) openReplay(parsed, false);
+      })
+      .catch((e) => {
+        if (location.hash === hash) notify(`Replay rejected: ${e.message}`);
+      });
+}
+loadFragment();
+window.addEventListener("hashchange", loadFragment);
