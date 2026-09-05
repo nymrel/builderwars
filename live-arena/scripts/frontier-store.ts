@@ -4,9 +4,11 @@ import { resolve, parse } from "node:path";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { sha256, refereeManifest, type Rules } from "../src/runtime";
 import { FEATURE_COUNT, FEATURE_VERSION, WorkBudget } from "../src/self-improvement";
+import { STRATEGIC_FEATURE_COUNT, STRATEGIC_FEATURE_VERSION, STRATEGIC_MODEL } from "../src/strategic-value";
 import { createVersion, parseVersion, exact, freeze, integer, isDigest, identityKey, type Version } from "../src/frontier-version";
 import { samplePartitions, exposedGroups, parseBundle, type CaseBundle } from "../src/frontier-cases";
 import { practice, scoreCases, validatePracticeOptions, assertPracticeCandidate, type PracticeOptions } from "../src/frontier-practice";
+import { parseStrategicBundle, strategicExposedGroups, type StrategicBundle } from "../src/strategic-practice";
 
 type Counts = { training: number; development: number; admission: number; attempts: number };
 type Manifest = { schema: "builderwars.frontier-campaign.v1"; id: string; source: string; incumbent: string; identity: string;
@@ -50,6 +52,7 @@ async function verifyDigest(raw: any) {
 /** Full local execution/learning source binding. A source change requires a new campaign. */
 export async function frontierSource() {
   const paths = ["../src/frontier-version.ts", "../src/frontier-cases.ts", "../src/frontier-practice.ts", "../src/strength.ts",
+    "../src/strategic-value.ts", "../src/strategic-practice.ts",
     "../src/self-improvement.ts", "../src/outcome.ts", "../src/runtime.ts", "./self-improve.ts", "./frontier-store.ts", "./frontier.ts", "../package-lock.json"];
   const sources: Record<string, string> = {};
   for (const path of paths) sources[path] = createHash("sha256").update(await readFile(new URL(path, import.meta.url))).digest("hex");
@@ -57,13 +60,14 @@ export async function frontierSource() {
   if (createHash("sha256").update(refereeBytes).digest("hex") !== refereeManifest.digest) throw Error("Referee artifact does not match its digest.");
   return sha256(JSON.stringify({ referee: refereeManifest.digest, sources, node: process.version }));
 }
-export async function localBaseline(rules: Rules) {
+export async function localBaseline(rules: Rules, kind: "linear-value" | "strategic-value" = "linear-value") {
   const source = await frontierSource();
+  const strategic = kind === "strategic-value", model = strategic ? STRATEGIC_MODEL : "builderwars/linear-value-v1";
   return createVersion({ rules, referee: refereeManifest.digest,
-    runtime: { provider: "local", requestedModel: "builderwars/linear-value-v1", resolvedModel: "builderwars/linear-value-v1", evidence: "bundled-code", reasoning: "none" },
-    harness: { kind: "linear-value", source, protocol: "builderwars.linear-value.v1" }, prompt: "", memory: { mode: "none", content: "" },
-    tools: [{ id: "one-ply-value", source, parameters: await sha256(JSON.stringify({ depth: 1 })) }],
-    sampling: { temperature: null, seed: 0 }, value: { features: FEATURE_VERSION, weights: Array(FEATURE_COUNT).fill(0) },
+    runtime: { provider: "local", requestedModel: model, resolvedModel: model, evidence: "bundled-code", reasoning: "none" },
+    harness: { kind, source, protocol: strategic ? "builderwars.strategic-value.v1" : "builderwars.linear-value.v1" }, prompt: "", memory: { mode: "none", content: "" },
+    tools: [{ id: strategic ? "two-ply-minimax-value" : "one-ply-value", source, parameters: await sha256(JSON.stringify(strategic ? { depth: 2, features: STRATEGIC_FEATURE_VERSION } : { depth: 1 })) }],
+    sampling: { temperature: null, seed: 0 }, value: { features: strategic ? STRATEGIC_FEATURE_VERSION : FEATURE_VERSION, weights: Array(strategic ? STRATEGIC_FEATURE_COUNT : FEATURE_COUNT).fill(0) },
     limits: { nodes: 2000000, milliseconds: 300000, maxTokens: 512, maxCalls: 400 } });
 }
 
@@ -109,7 +113,7 @@ export class FrontierStore {
   private async exposure() {
     const result = { public: new Set<string>(), reserved: new Set<string>() };
     const names = await readdir(this.path("groups"));
-    if (names.length > 20000) throw Error("Store group inventory exceeds this runner's bound.");
+    if (names.length > 65536) throw Error("Store group inventory exceeds this runner's bound.");
     for (const name of names) {
       if (!/^[a-f0-9]{64}\.json$/.test(name)) throw Error("Invalid group inventory.");
       const entry = await load(this.path("groups", name), 1000);
@@ -117,6 +121,34 @@ export class FrontierStore {
       result[entry.kind === "public" ? "public" : "reserved"].add(entry.group);
     }
     return result;
+  }
+  /** Monotonic import of group exclusions, never final payloads. A conflicting public
+   * exposure cannot be erased or relabeled private by combining local stores.
+   */
+  async importGroupReservations(otherRoot: string) {
+    await this.prepare(); const other = new FrontierStore(otherRoot);
+    await inspectDirectory(other.root);
+    const marker = await load(other.path("store.json"), 1000);
+    if (marker.schema !== "builderwars.frontier-store.v1" || marker.trust !== "local-trusted-runner") throw Error("Invalid reservation source store.");
+    const incoming = await other.exposure(), present = await this.exposure();
+    if ([...incoming.public].some(g => present.reserved.has(g)) || [...incoming.reserved].some(g => present.public.has(g))) throw Error("Public/private group conflict across stores; no novelty claim.");
+    for (const group of incoming.public) await this.register(group, "public", "imported-public-reservations");
+    for (const group of incoming.reserved) if (!present.reserved.has(group)) await this.register(group, "admission", "imported-private-reservations");
+    return { public: incoming.public.size, private: incoming.reserved.size, payloadsRead: false };
+  }
+  async publicPracticeExclusions() { await this.prepare(); return (await this.exposure()).reserved; }
+  async recordPublicGroups(groups: ReadonlySet<string>, owner: string) {
+    await this.prepare();
+    const prior = await this.exposure(), protectedGroups = prior.reserved;
+    if ([...groups].some(group => protectedGroups.has(group))) throw Error("Public replay overlaps a reserved private target; comparison stopped, no resampling.");
+    if (new Set([...prior.public, ...prior.reserved, ...groups]).size > 65536) throw Error("Public replay would exceed the bounded group inventory.");
+    for (const group of groups) await this.register(group, "public", owner);
+  }
+  async recordStrategicPublic(rawSource: Version, rawBundle: StrategicBundle) {
+    await this.prepare(); const source = await parseVersion(rawSource), budget = new WorkBudget(2000000, 300000);
+    const bundle = await parseStrategicBundle(rawBundle, source, budget);
+    for (const group of await strategicExposedGroups(bundle, budget)) await this.register(group, "public", bundle.digest);
+    return { bundle: bundle.digest, partition: bundle.partition };
   }
   async initialize(id: string, rules: Rules, counts: Counts = { training: 32, development: 16, admission: 16, attempts: 2 }) {
     await this.prepare();

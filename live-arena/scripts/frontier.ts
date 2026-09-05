@@ -16,9 +16,9 @@ export async function versionMove(raw: unknown, version: Version) {
   for (const move of request.moves) state = step(move);
   if (state.over || request.turn !== state.turn || JSON.stringify(request.position) !== JSON.stringify(state.fen || state.cells)
     || JSON.stringify(request.legalMoves) !== JSON.stringify(legalMoves(state))) throw Error("Move request contradicts authoritative replay.");
-  if (version.config.harness.kind !== "linear-value") throw Error("This CLI only executes its bundled numeric harness.");
+  if (version.config.harness.kind === "model") throw Error("This CLI only executes its bundled numeric harnesses.");
   const session = await openVersionSession(version);
-  try { return { ...await session.move(state), comment: "Frozen local tactical-value version; one-ply assistance, not LLM weight training." }; }
+  try { return { ...await session.move(state), comment: `Frozen local ${version.config.harness.kind} version; declared search assistance, not LLM weight training.` }; }
   finally { session.cancel(); }
 }
 export async function frontier(args: string[], input?: string) {

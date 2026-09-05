@@ -15,3 +15,7 @@ src/referee-manifest.ts
 output/playwright/
 output/self-improvement/
 output/frontier/
+output/frontier-development/
+output/fullgame-development/
+output/chess-engines/
+output/chess-exhibition/
