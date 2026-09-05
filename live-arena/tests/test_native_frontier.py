@@ -1,5 +1,7 @@
 """No provider inference: fixtures and short-lived Python child processes only."""
 import importlib.util
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -74,6 +76,32 @@ class NativeTests(unittest.TestCase):
             native.run_child([sys.executable, "-c", "import time; time.sleep(60)"], b"", 80, "astra")
         with self.assertRaisesRegex(native.Failure, "unsuccessfully"):
             native.run_child([sys.executable, "-c", "raise SystemExit(2)"], b"", 3000, "astra")
+
+    def test_native_exit_codes_never_emit_sensitive_diagnostics(self):
+        cases = (("Workspace Trust Required", "workspace-trust-required"),
+                 ("Error: Authentication required. Please run login", "authentication-required"),
+                 ("Unexpected upstream failure", "native-client-failed"),
+                 ("Workspace Trust Required; Authentication required", "native-client-failed"))
+        for phrase, expected in cases:
+            with self.subTest(expected=expected, phrase=phrase):
+                secret = "EXAMPLE_TOKEN=sk-sensitive-test-only; account=private@example.invalid"
+                code = "import sys; sys.stdout.write(" + repr(secret) + "); sys.stderr.write(" + repr(phrase + "\n" + secret) + "); raise SystemExit(1)"
+                stdin = io.TextIOWrapper(io.BytesIO(json.dumps({"prompt": "public", "milliseconds": 3000}).encode()))
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with patch.object(native.sys, "argv", ["native-frontier.py", "grok"]), patch.object(native.sys, "stdin", stdin), patch.object(native, "route", return_value=([sys.executable, "-c", code], b"")), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    self.assertEqual(native.main(), 1)
+                self.assertEqual(stdout.getvalue(), "")
+                self.assertEqual(json.loads(stderr.getvalue()), {"error": native.NATIVE_EXIT_ERRORS[expected], "code": expected})
+                self.assertNotIn(secret, stderr.getvalue())
+
+    def test_stderr_cap_and_nonexit_failures_have_no_classification(self):
+        with self.assertRaisesRegex(native.Failure, "1 MiB") as error:
+            native.run_child([sys.executable, "-c", "import sys; sys.stderr.write('Workspace Trust Required'+'x'*1100000); raise SystemExit(1)"], b"", 3000, "astra")
+        self.assertNotIsInstance(error.exception, native.NativeExitFailure)
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with patch.object(native.sys, "argv", ["native-frontier.py", "invalid"]), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            self.assertEqual(native.main(), 1)
+        self.assertEqual(json.loads(stderr.getvalue()), {"error": "Choose one native family"})
 
     @unittest.skipUnless(os.name == "nt", "Windows Job Object assertion")
     def test_job_kills_descendant_after_root_exit(self):

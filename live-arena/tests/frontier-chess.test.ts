@@ -3,11 +3,18 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateChessDecision, runChessContest, CHESS_PLAYERS, type ChessDecision, type ChessPort } from "../scripts/frontier-chess";
+import { nativeFailureMessage, validateChessDecision, runChessContest, CHESS_PLAYERS, type ChessDecision, type ChessPort } from "../scripts/frontier-chess";
 import { analyzeChess } from "../scripts/chess-engine";
 import { createGame, replayStepper, RULES, legalMoves, replay } from "../src/runtime";
 const decision: ChessDecision = { move: "e2e4", comment: "Take central space.", requestedModel: "gpt-6-astra", resolvedModel: null,
   identityEvidence: "unreported", inputTokens: null, outputTokens: null, listCostUsd: null, elapsedMilliseconds: 300, toolsUsed: false };
+test("native failures expose only fixed allowlisted diagnostics, never child text", () => {
+  assert.match(nativeFailureMessage(JSON.stringify({ code: "workspace-trust-required", error: "secret-token" })), /requires workspace trust/);
+  assert.match(nativeFailureMessage(JSON.stringify({ code: "authentication-required", error: "private-account" })), /requires authentication/);
+  for (const raw of ["private-account", '{"code":"unknown","error":"secret"}', "x".repeat(4097), "null"]) {
+    assert.equal(nativeFailureMessage(raw), "Native client failed or reached a resource limit; no fallback move.");
+  }
+});
 test("frontier chess retains unavailable identity and rejects illegal/fabricated/tool-assisted decisions", () => {
   assert.equal(validateChessDecision(decision, "astra", ["e2e4"]).resolvedModel, null);
   assert.throws(() => validateChessDecision({ ...decision, move: "e2e5" }, "astra", ["e2e4"]), /Illegal/);

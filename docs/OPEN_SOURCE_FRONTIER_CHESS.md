@@ -106,3 +106,32 @@ for wrapper closure. Full contest fixture tests cover caps, identity drift,
 errors, replay validity and no substitute moves. Local validation: 192 TypeScript
 tests, eight Python native-client tests, TypeScript/Vite build. Later CI and live
 exhibition receipts must be recorded separately; these tests are not live games.
+
+## First actual exhibition receipt — September 5, 2026
+
+Source commit `9c359b0`; source fingerprint
+`5254a206dcb2483cc3b0ba400187bdb9a4fe06fc0e26e221d690b8d0f1afd9c2`.
+Run `live-arena/output/chess-exhibition/frontier-four-01` consumed 24 attempted
+calls in 152.9 seconds, accepting 23 legal decisions. Astra/Codex played 12
+plies and Fable/Claude Code 11. The game stopped at its shared call budget,
+not checkmate, draw or a scored victory. Grok/Cursor's first invocation failed;
+the paired game stopped before a move, so Gemini/Antigravity was not called.
+This is a partial two-route exhibition, **not completed four-family competition**.
+
+All Fable decisions reported `claude-fable-5-1`. Codex was explicitly requested
+as `gpt-6-astra` but did not report a resolved model identity; that field remains
+null, never inferred from the request. Reported Fable list cost totals $1.039801,
+including client helper activity, not incremental subscription billing. Codex
+cost is unavailable, not zero. Token fields preserve the native clients' reported
+fields and are not a normalized cross-provider total (notably cache accounting).
+
+Both saved proof files were separately verified against the unchanged referee;
+their final states contain respectively 23 and zero moves, neither terminal.
+The public decision/replay files remain local and are not a public release:
+
+- Result SHA-256: `276a7883f4d5f51e241a2b7015399cf6095145859ea8b61b0c130241eb4e0061`.
+- Game 1 proof SHA-256: `ddbb73d6a2d980b7fb14d31be40ca3dae9ea0a5d1495d62846ad44b45d703b6d`.
+
+The CLI wrapper deliberately withheld provider stderr, leaving the first failure
+generic. A bounded read-only route diagnostic follows; this failed receipt is
+immutable and will not be overwritten or reclassified as a game result.

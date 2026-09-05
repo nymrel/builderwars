@@ -28,6 +28,35 @@ class Failure(Exception):
     """Messages are fixed safe diagnostics, never provider output."""
 
 
+NATIVE_EXIT_ERRORS = {
+    "workspace-trust-required": "Native client requires workspace trust",
+    "authentication-required": "Native client requires authentication",
+    "native-client-failed": "Native client exited unsuccessfully",
+}
+
+
+class NativeExitFailure(Failure):
+    def __init__(self, code):
+        super().__init__(NATIVE_EXIT_ERRORS[code])
+        self.code = code
+
+
+def classify_native_exit(stderr):
+    """Classify only a completed nonzero exit; never return raw diagnostics.
+
+    These phrases describe failures, not authority to change trust or sign in.
+    Conflicting classifications remain unknown.
+    """
+    diagnostic = stderr.decode("utf-8", errors="replace").lower()
+    trust = "workspace trust required" in diagnostic
+    authentication = "authentication required" in diagnostic
+    if trust and not authentication:
+        return NativeExitFailure("workspace-trust-required")
+    if authentication and not trust:
+        return NativeExitFailure("authentication-required")
+    return NativeExitFailure("native-client-failed")
+
+
 class OwnedTemporaryDirectory(tempfile.TemporaryDirectory):
     def cleanup(self):
         until = time.monotonic() + 2
@@ -205,7 +234,7 @@ def run_child(argv, payload, milliseconds, family):
             for stream, label in ((process.stdout, "out"), (process.stderr, "err")):
                 thread = threading.Thread(target=reader, args=(stream, label), daemon=True); thread.start(); threads.append(thread)
             thread = threading.Thread(target=writer, daemon=True); thread.start(); threads.append(thread)
-            output = bytearray(); total = 0; done = 0
+            output = bytearray(); diagnostics = bytearray(); total = 0; done = 0
             while done != 2:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0: raise Failure("Native client timeout")
@@ -215,13 +244,15 @@ def run_child(argv, payload, milliseconds, family):
                 total += len(data)
                 if total > MAX_OUTPUT: raise Failure("Native output exceeds 1 MiB")
                 if label == "out": output.extend(data)
+                else: diagnostics.extend(data)
             remaining = deadline - time.monotonic()
             if remaining <= 0: raise Failure("Native client timeout")
-            if process.wait(timeout=remaining): raise Failure("Native client exited unsuccessfully")
+            if process.wait(timeout=remaining): raise classify_native_exit(diagnostics)
             return bytes(output), round((time.monotonic() - started) * 1000)
         except subprocess.TimeoutExpired:
             raise Failure("Native client timeout") from None
         finally:
+            if "diagnostics" in locals(): diagnostics.clear()
             if "stopped" in locals(): stopped.set()
             if job: job.close()
             if process:
@@ -321,7 +352,9 @@ def main():
         print(json.dumps(result, allow_nan=False))
         return 0
     except Failure as error:
-        print(json.dumps({"error": str(error)}), file=sys.stderr)
+        body = {"error": str(error)}
+        if isinstance(error, NativeExitFailure): body["code"] = error.code
+        print(json.dumps(body), file=sys.stderr)
     except Exception:
         print(json.dumps({"error": "Native client invocation failed"}), file=sys.stderr)
     return 1

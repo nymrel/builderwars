@@ -50,10 +50,20 @@ export async function chessContestSource() {
   }
   return sha256(JSON.stringify({ sources, referee: refereeManifest.digest, node: process.version }));
 }
+export function nativeFailureMessage(stderr: string): string {
+  const fallback = "Native client failed or reached a resource limit; no fallback move.";
+  if (stderr.length > 4096) return fallback;
+  try {
+    const raw = JSON.parse(stderr);
+    if (raw?.code === "workspace-trust-required") return "Native client requires workspace trust; no approval bypass or fallback move.";
+    if (raw?.code === "authentication-required") return "Native client requires authentication; no credential changes or fallback move.";
+  } catch { /* Never expose unstructured child output. */ }
+  return fallback;
+}
 export const nativeChessPort: ChessPort = (player, prompt, milliseconds) => new Promise((resolveCall, reject) => {
   const child = spawn("python", [fileURLToPath(new URL("./native-frontier.py", import.meta.url)), player],
     { shell: false, windowsHide: true, detached: process.platform !== "win32", stdio: ["pipe", "pipe", "pipe"] });
-  let bytes = 0, data = "", failed = false, aborting = false;
+  let bytes = 0, data = "", stderr = "", stderrBytes = 0, failed = false, aborting = false;
   function abortTree() {
     failed = true;
     if (aborting || !child.pid || child.exitCode !== null || child.signalCode !== null) return;
@@ -67,11 +77,16 @@ export const nativeChessPort: ChessPort = (player, prompt, milliseconds) => new 
   // Python owns the native-client process tree and enforces the inner deadline.
   const timer = setTimeout(abortTree, milliseconds + 15000);
   child.stdout.on("data", (chunk: Buffer) => { bytes += chunk.length; if (bytes > 16000) abortTree(); else data += chunk.toString("utf8"); });
-  child.stderr.on("data", () => {}); // Never persist provider stderr/accounts/tokens.
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderrBytes += chunk.length;
+    // The wrapper emits only fixed diagnostics. Still bound and allowlist it;
+    // no raw error text, accounts or tokens may enter a receipt.
+    if (stderrBytes <= 4096) stderr += chunk.toString("utf8"); else stderr = "";
+  });
   child.on("error", () => { clearTimeout(timer); reject(Error("Native-client wrapper unavailable.")); });
   child.on("close", code => {
     clearTimeout(timer);
-    if (code !== 0 || failed) return reject(Error("Native client failed or reached a resource limit; no fallback move."));
+    if (code !== 0 || failed) return reject(Error(nativeFailureMessage(stderrBytes <= 4096 ? stderr : "")));
     try { resolveCall(JSON.parse(data)); } catch { reject(Error("Native client returned malformed decision metadata.")); }
   });
   child.stdin.on("error", () => {});
