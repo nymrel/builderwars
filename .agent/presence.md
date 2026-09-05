@@ -1,10 +1,50 @@
 # BuilderWars lane presence
 
-IN_USE: Astra / Codex, September 5, 2026; exact claim
-codex-builderwars-four-frontier-20260905, live-arena/docs/.agent in this worktree.
-Four-frontier campaign and stronger-opponent tactical measurement. Fable, Grok
-and Gemini consultations are read-only; no parallel source writers. See
-docs/FRONTIER_CAMPAIGN.md. No production/provider configuration changes.
+Open last used by Astra / Codex, September 5, 2026, 22:31 UTC.
+Guided human/agent connection UX shipped in PR42, merged source
+50607becdda1697f9982609d3f9d438d21267bde, after all five candidate CI checks.
+Production dpl_AfAtZkwZAf2FcYtdSvum4tdgcesc is READY at builderwars.com;
+canonical HTML/guide/11 assets match the exact source archive build.
+Three guarded production journeys passed; no real provider/model calls.
+No provider-account, credentials, backend eligibility or referee changes.
+Release exact claim codex-builderwars-connect-ux-20260905; bus is authoritative.
+Retain this named lane for the still-active frontier goal. Recheck ownership
+before its next slice. See docs/CONNECT_UX_RELEASE_20260905.md.
+
+Open last used by Astra / Codex, September 5, 2026, 21:50 UTC.
+PR41 merged as 962dd98e8144843e74b28b7705944b5403f1dbc0 after all five
+required checks passed on reviewed 56132ac. Local 193 TypeScript/10 Python
+tests and build passed. Stockfish19 advisor works; actual Astra/Fable game
+ended capped after 23 legal plies, no winner. One bounded route diagnostic
+confirmed Cursor workspace trust required; Gemini separately chose legal e4.
+Fable reported resolved model; Codex/Gemini did not. No four-family result,
+learned-strength promotion, public web change or deployment claim.
+No task-owned engine/native-client/server/browser/check-watcher process remains.
+Release codex-builderwars-fullgame-gates-20260905; bus state is authoritative.
+Resume the active goal with visible complex-game/engine-aware integration and
+legitimate narrow-workspace Cursor routing, not more failed numeric tuning.
+Preserve retired evaluation suites and unchanged referee/provider boundaries.
+Evidence: docs/OPEN_SOURCE_FRONTIER_CHESS.md and local
+live-arena/output/chess-exhibition/{frontier-four-01,native-route-diagnostic-01}.
+
+Open last used by Astra / Codex, September 5, 2026, 20:19 UTC.
+Phase2 PR40 merged as d47141fdeb8ff6bd85c4e4b6f4960bc6640f7aea;
+179 local tests/build and all five exact-source PR checks passed.
+Both numeric practice campaigns are retired, original incumbents retained,
+unused final suites reserved. No task-owned server/browser/review process remains.
+Releasing exact claim codex-builderwars-frontier-harness-20260905;
+recheck the authoritative bus and reclaim before further writes.
+Named lane retained for the active goal's full-game/two-family evaluation phase.
+No referee, provider configuration, web UI or public contender change.
+Evidence and mixed review dispositions: docs/FRONTIER_HARNESS_RESULTS_20260905.md.
+
+Open last used by Astra / Codex, September 5, 2026, 19:14 UTC. First frontier slice
+integrated in PR39 at 3bfd704c27bc5bd8de50910c12eb077170501ac1; all five PR checks
+passed. Local165 tests/build/schema and four exact report reproductions passed.
+No task-owned server or review process remains. Releasing exact claim
+codex-builderwars-four-frontier-20260905; bus liveness is authoritative.
+Named worktree retained for the next immutable harness/attempt-ledger slice.
+The full goal remains active. See docs/FRONTIER_COUNCIL_RESULTS.md.
 
 Open last used by Codex, September 5, 2026. Session01a02d52-c41a-7521-aee3-e595101d6447.
 Claim codex-builderwars-improvement-loop-20260905 governs live-arena/docs/.agent
