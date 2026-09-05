@@ -71,6 +71,7 @@ with sync_playwright() as p:
     assert "1 / 2 attempts recorded" in page.locator("#series-results").inner_text()
     # A rejected synthetic model response records a failed attempt, not a win.
     page.unroute("https://openrouter.ai/**")
+    page.route("https://openrouter.ai/api/v1/key", lambda route: route.fulfill(json={"data": {"is_free_tier": True}}))
     page.route("https://openrouter.ai/api/v1/models", lambda route: route.fulfill(json={"data": [{"id": "test/model", "name": "Synthetic model"}]}))
     page.route("https://openrouter.ai/api/v1/chat/completions", lambda route: route.fulfill(json={"choices": [{"message": {"content": '{"move":"illegal"}'}}]}))
     page.locator("#connections").click()

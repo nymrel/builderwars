@@ -90,16 +90,26 @@ def handler_for(backend, token, origin, model_label, max_calls=200):
             return self.headers.get("Origin") == origin and self.headers.get("Host") == expected_host
 
         def do_OPTIONS(self):
-            if self.path != "/move" or not self.permitted_origin():
+            if self.path not in ("/move", "/health") or not self.permitted_origin():
                 self.send_json(403, {"error": "Origin not allowed"})
                 return
             self.send_response(204)
             self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Access-Control-Allow-Methods", "POST")
+            self.send_header("Access-Control-Allow-Methods", "GET" if self.path == "/health" else "POST")
             self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
             self.send_header("Access-Control-Allow-Private-Network", "true")
             self.send_header("Vary", "Origin")
             self.end_headers()
+
+        def do_GET(self):
+            if self.path != "/health" or not self.permitted_origin():
+                self.send_json(403, {"error": "Origin not allowed"})
+                return
+            if not secrets.compare_digest(self.headers.get("Authorization", "").encode(), f"Bearer {token}".encode()):
+                self.send_json(401, {"error": "Invalid connection token"})
+                return
+            # Read-only advisory snapshot. No backend invocation or call-cap charge.
+            self.send_json(200, {"schema": "builderwars.bridge.health.v1", "remainingCalls": max(0, max_calls - calls[0]), "busy": lock.locked()})
 
         def do_POST(self):
             if self.path != "/move" or not self.permitted_origin():

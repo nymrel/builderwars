@@ -15,6 +15,9 @@ import {
   decide,
   publicAgent,
   supportedEfforts,
+  checkConnection,
+  validateConnection,
+  forgetConnectionCheck,
   type Agent,
   type Model,
 } from "./models";
@@ -918,6 +921,7 @@ function openAgent(seat: number) {
     return;
   }
   selectedSeat = seat;
+  cancelConnectionProbe();
   const a = agents[seat];
   $("agent-title").textContent = `${seat === 0 ? "White" : "Black"} contender`;
   $<HTMLInputElement>("agent-name").value = a.name;
@@ -1004,12 +1008,13 @@ $<HTMLInputElement>("free-models").onchange = filterModels;
 $<HTMLSelectElement>("model-id").onchange = updateEfforts;
 $("close-dialog").onclick = () => $<HTMLDialogElement>("agent-dialog").close();
 $("forget-key").onclick = () => {
+  cancelConnectionProbe();
+  forgetConnectionCheck(agents[selectedSeat]);
   agents[selectedSeat].key = "";
   $<HTMLInputElement>("agent-key").value = "";
   $("dialog-status").textContent = "Key removed from this contender.";
 };
-$<HTMLFormElement>("agent-form").onsubmit = (e) => {
-  e.preventDefault();
+function agentFromForm(): Agent {
   const kind = $<HTMLSelectElement>("agent-kind").value as Agent["kind"];
   const a: Agent = {
     name: $<HTMLInputElement>("agent-name").value.trim() || "Contender",
@@ -1032,11 +1037,41 @@ $<HTMLFormElement>("agent-form").onsubmit = (e) => {
     endpoint: $<HTMLInputElement>("harness-url").value,
     strategy: $<HTMLTextAreaElement>("strategy").value,
   };
-  if (kind === "openrouter" && (!a.model || !a.key)) {
-    $("dialog-status").textContent =
-      "Choose a model and add your OpenRouter key.";
-    return;
+  return a;
+}
+let connectionProbe: AbortController | null = null;
+let connectionGeneration = 0;
+$("dialog-status").insertAdjacentHTML("beforebegin", '<button id="check-connection" type="button">Check connection · no model call</button><p class="muted">Known routes are also checked before their first move (successful checks cached up to 60 seconds). HTTPS custom harnesses receive configuration validation only. Checks never start a game.</p>');
+function cancelConnectionProbe() {
+  connectionProbe?.abort(); connectionProbe = null; connectionGeneration++;
+  $("check-connection").removeAttribute("disabled");
+  $("dialog-status").textContent = "";
+}
+$("agent-form").addEventListener("input", cancelConnectionProbe);
+$("agent-form").addEventListener("change", cancelConnectionProbe);
+$("agent-dialog").addEventListener("close", cancelConnectionProbe);
+$("check-connection").onclick = async () => {
+  cancelConnectionProbe();
+  const generation = connectionGeneration;
+  const a = agentFromForm(), snapshot = JSON.stringify(a);
+  const controller = connectionProbe = new AbortController();
+  $("check-connection").setAttribute("disabled", "");
+  $("dialog-status").textContent = "Checking connection without model inference…";
+  try {
+    const result = await checkConnection(a, models, controller.signal);
+    if (generation === connectionGeneration && snapshot === JSON.stringify(agentFromForm()) && $<HTMLDialogElement>("agent-dialog").open) $("dialog-status").textContent = result.message;
+  } catch (error) {
+    if (generation === connectionGeneration) $("dialog-status").textContent = (error as Error).name === "TimeoutError" ? "Connection check timed out after 15 seconds. No model invoked." : (error as Error).message;
+  } finally {
+    if (generation === connectionGeneration) { connectionProbe = null; $("check-connection").removeAttribute("disabled"); }
   }
+};
+$<HTMLFormElement>("agent-form").onsubmit = (e) => {
+  e.preventDefault();
+  const a = agentFromForm();
+  try { validateConnection(a, models); }
+  catch (error) { $("dialog-status").textContent = (error as Error).message; return; }
+  cancelConnectionProbe();
   agents[selectedSeat] = a;
   $<HTMLDialogElement>("agent-dialog").close();
   reset();

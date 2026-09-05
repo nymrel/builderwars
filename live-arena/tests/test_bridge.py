@@ -43,6 +43,34 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.call(token="wrong")[0], 401)
         self.assertEqual(self.backend.calls, 0)
 
+    def health(self, origin="https://builderwars.example", token="synthetic-token", host=None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port)
+        headers = {"Origin": origin, "Authorization": f"Bearer {token}"}
+        if host is not None:
+            headers["Host"] = host
+        conn.request("GET", "/health", headers=headers)
+        res = conn.getresponse()
+        result = res.status, json.loads(res.read()), dict(res.getheaders())
+        conn.close()
+        return result
+
+    def test_health_does_not_invoke_model_or_consume_cap(self):
+        for _ in range(3):
+            status, data, headers = self.health()
+            self.assertEqual(status, 200)
+            self.assertEqual(data, {"schema": "builderwars.bridge.health.v1", "remainingCalls": 1, "busy": False})
+            self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(self.backend.calls, 0)
+        self.assertEqual(self.call()[0], 200)
+        self.assertEqual(self.health()[1]["remainingCalls"], 0)
+        self.assertEqual(self.backend.calls, 1)
+
+    def test_health_enforces_origin_host_and_token(self):
+        self.assertEqual(self.health(origin="https://evil.example")[0], 403)
+        self.assertEqual(self.health(host="evil.example")[0], 403)
+        self.assertEqual(self.health(token="wrong")[0], 401)
+        self.assertEqual(self.backend.calls, 0)
+
     def test_move_and_session_limit(self):
         status, value = self.call()
         self.assertEqual(status, 200)

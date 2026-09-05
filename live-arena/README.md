@@ -157,3 +157,18 @@ References: [OpenRouter reasoning](https://openrouter.ai/docs/guides/best-practi
 [model catalog](https://openrouter.ai/docs/guides/overview/models),
 [chess.js](https://jhlywa.github.io/chess.js/),
 [PeerJS cloud signaling](https://peerjs.com/server/cloud).
+
+### Non-inference connection checks
+
+Connections includes **Check connection · no model call**. OpenRouter checks use
+its authenticated key-info GET; the local bridge uses authenticated `/health`
+without invoking a model or consuming its session call cap. Known routes are
+checked automatically before their first move; successes cache for at most 60s
+for the same configuration. This does not prove model access or billing limits.
+Generic HTTPS harnesses have no assumed health protocol and are explicitly
+configuration-only/unchecked until a real capped move is requested.
+
+See [connection preflight and its limits](../docs/BUILDERWARS_CONNECTION_PREFLIGHT.md).
+Run `python tests/connections_browser.py` against an owned preview for synthetic
+authentication/error/cancellation tests; `python -m unittest tests/test_bridge.py`
+checks bridge auth and no-call health behavior on isolated ephemeral ports.

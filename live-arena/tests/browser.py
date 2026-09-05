@@ -76,6 +76,7 @@ with sync_playwright() as p:
     assert page.locator('#series-results').inner_text().count('Move limit')==2
     page.locator('#move-limit').fill('80')
     # Connection UI with synthetic provider catalog; no real key or inference.
+    page.route('https://openrouter.ai/api/v1/key',lambda route:route.fulfill(json={"data":{"is_free_tier":True}}))
     page.route('https://openrouter.ai/api/v1/models',lambda route:route.fulfill(json={"data":[{"id":"test/model","name":"Test Model","pricing":{"prompt":"0","completion":"0"},"reasoning":{"supported_efforts":["high","low"]}}]}))
     page.locator('#connections').click()
     page.locator('#agent-kind').select_option('openrouter')

@@ -121,6 +121,81 @@ export function validateEndpoint(raw: string): URL {
     );
   return url;
 }
+export function validateConnection(a: Agent, models: Model[]) {
+  if (a.kind === "openrouter") {
+    if (!a.key) throw Error("Add your OpenRouter key in Connections.");
+    const model = models.find(m => m.id === a.model);
+    if (!model) throw Error("Choose a model from the current catalog.");
+    if (!supportedEfforts(model).includes(a.effort))
+      throw Error("The selected reasoning effort is not advertised for this model.");
+  } else if (a.kind === "harness") {
+    const url = validateEndpoint(a.endpoint);
+    if (url.origin === "http://127.0.0.1:8765") {
+      if (url.pathname !== "/move") throw Error("Use the local bridge endpoint http://127.0.0.1:8765/move.");
+      if (!a.key) throw Error("Add the temporary local bridge token.");
+    }
+  }
+}
+type ConnectionCheck = { checked: boolean; message: string };
+const checkedConnections = new WeakMap<Agent, { identity: string; until: number; result: ConnectionCheck }>();
+const connectionGenerations = new WeakMap<Agent, number>();
+const connectionIdentity = (a: Agent) => JSON.stringify([a.kind, a.key, a.endpoint, a.model, a.effort]);
+export function forgetConnectionCheck(a: Agent) {
+  checkedConnections.delete(a);
+  connectionGenerations.set(a, (connectionGenerations.get(a) ?? 0) + 1);
+}
+/** A bounded non-inference probe. Never probe arbitrary HTTPS harness URLs. */
+export async function checkConnection(a: Agent, models: Model[], signal: AbortSignal, force = true): Promise<ConnectionCheck> {
+  validateConnection(a, models);
+  signal.throwIfAborted();
+  if (force) forgetConnectionCheck(a);
+  const identity = connectionIdentity(a), generation = connectionGenerations.get(a) ?? 0;
+  const cached = checkedConnections.get(a);
+  if (cached && cached.identity === identity && cached.until > Date.now()) return cached.result;
+  const local = a.kind === "harness" && validateEndpoint(a.endpoint).origin === "http://127.0.0.1:8765";
+  if (a.kind !== "openrouter" && !local) return {
+    checked: a.kind !== "harness",
+    message: a.kind === "harness" ? "HTTPS configuration is valid. Authentication, CORS, connectivity and limits are unchecked: this harness has no standard non-inference probe. Start a capped match only when your endpoint is ready." : "Local play needs no provider connection or model request.",
+  };
+  const timeout = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
+  let result: ConnectionCheck;
+  try {
+    const response = await fetch(local ? "http://127.0.0.1:8765/health" : "https://openrouter.ai/api/v1/key", {
+      method: "GET", headers: { Authorization: `Bearer ${a.key}` }, signal: timeout,
+      credentials: "omit", redirect: "error", cache: "no-store",
+    });
+    if (!response.ok) throw Error(`Connection check returned ${response.status}. ${response.status === 401 ? "Check the key or local token." : response.status === 429 ? "Rate or session limit reached; wait or inspect your provider limits." : local && response.status === 404 ? "Update your local bridge to support /health." : "Check connectivity and provider/bridge availability."}`);
+    const body = await boundedJson(response, 64000);
+    timeout.throwIfAborted();
+    if (local) {
+      if (body?.schema !== "builderwars.bridge.health.v1" || !Number.isInteger(body.remainingCalls) || body.remainingCalls < 0 || body.remainingCalls > 1000 || typeof body.busy !== "boolean") throw Error("Invalid local bridge health response.");
+      if (!body.remainingCalls) throw Error("Local bridge session request limit reached. No model request was sent.");
+      if (body.busy) throw Error("The local bridge is busy. Wait for its current request; no additional model request was sent.");
+      result = { checked: true, message: `Local token and origin accepted; ${body.remainingCalls} session calls reported remaining. No model invoked. Model/effort are configured in your local client, not by website labels; provider entitlement and execution remain untested.` };
+    } else {
+      const data = body?.data;
+      if (!data || typeof data !== "object" || Array.isArray(data) || typeof data.is_free_tier !== "boolean") throw Error("Invalid key-info response.");
+      if (data.is_management_key === true || data.is_provisioning_key === true) throw Error("Use an inference API key, not a management or provisioning key.");
+      const exhausted = typeof data.limit_remaining === "number" && Number.isFinite(data.limit_remaining) && data.limit_remaining <= 0;
+      result = { checked: true, message: `API key recognized. ${exhausted ? "The key reports no remaining configured allowance; inspect its limits. " : ""}No model invoked. Model access, current rate limits and execution are not proven; check provider billing and limits before play.` };
+    }
+  } catch (error) {
+    // Do not display raw network/provider payloads: they may contain account data.
+    if (signal.aborted) signal.throwIfAborted();
+    if (timeout.aborted) {
+      const error = new Error("Connection check timed out after 15 seconds. No model invoked.");
+      error.name = "ConnectionCheckTimeout";
+      throw error;
+    }
+    if (error instanceof TypeError || error instanceof SyntaxError) throw Error("Connection check failed. Check network/CORS, bridge version and browser local-network permission.");
+    throw error;
+  }
+  signal.throwIfAborted();
+  if (identity !== connectionIdentity(a) || generation !== (connectionGenerations.get(a) ?? 0))
+    throw Error("Connection changed during the check. Check the current configuration again.");
+  checkedConnections.set(a, { identity, until: Date.now() + 60000, result });
+  return result;
+}
 export async function decide(
   s: GameState,
   a: Agent,
@@ -143,6 +218,8 @@ export async function decide(
       cost: 0,
     };
   if (a.kind === "human") throw Error("Choose a move on the board.");
+  await checkConnection(a, models, signal, false);
+  signal.throwIfAborted();
   let res: Response,
     actual = "",
     tokens: number | null = null,
@@ -184,7 +261,7 @@ export async function decide(
       );
     const data = await boundedJson(res);
     content = data.choices?.[0]?.message?.content;
-    actual = typeof data.model === "string" ? data.model : a.model;
+    actual = typeof data.model === "string" && data.model.trim() ? data.model : "provider/unreported";
     tokens = Number.isFinite(data.usage?.total_tokens)
       ? data.usage.total_tokens
       : null;
@@ -220,7 +297,7 @@ export async function decide(
     const data = await boundedJson(res);
     content = data;
     actual =
-      typeof data.model === "string" ? data.model : "custom/self-reported";
+      typeof data.model === "string" && data.model.trim() ? data.model : "harness/unreported";
     tokens = Number.isFinite(data.tokens) ? data.tokens : null;
   }
   return {
@@ -231,7 +308,7 @@ export async function decide(
     cost: cost !== null && cost >= 0 ? cost : null,
   };
 }
-async function boundedJson(response: Response) {
+async function boundedJson(response: Response, limit = 1000000) {
   const reader = response.body?.getReader();
   if (!reader) throw Error("Empty model response.");
   let size = 0;
@@ -240,9 +317,9 @@ async function boundedJson(response: Response) {
     const part = await reader.read();
     if (part.done) break;
     size += part.value.length;
-    if (size > 1000000) {
+    if (size > limit) {
       await reader.cancel();
-      throw Error("Model response exceeds 1 MB.");
+      throw Error("Response exceeds the allowed size.");
     }
     chunks.push(part.value);
   }
