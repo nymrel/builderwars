@@ -3,8 +3,9 @@
 ## Current release status — September 5, 2026
 
 The sharing/rematch paths below are released at https://builderwars.com/ in
-`d0873da18dfeeda1062cdce5e503c82aa804d904`; see the
-[release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md).
+`5f92f99071533ca8355ef5cf69a4f671354ae910`; see the
+[latest card/release receipt](BUILDERWARS_RESULT_CARD_20260905.md). The full journey
+receipt and free-demo capture below remain evidence from preceding `d0873da`.
 Canonical Chromium, Firefox and WebKit proof/replay checks passed, as did the
 sharing journey. Historical candidate and timed-out-review notes below remain
 dated evidence, not the current release gate. No social post was made. The new

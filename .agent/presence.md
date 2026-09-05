@@ -1,5 +1,13 @@
 # BuilderWars lane presence
 
+Codex active beta closeout, September5, under exact claim
+codex-builderwars-beta-closeout-20260905. Root owns docs/presence and any necessary
+style.css contrast fixes. beta_completion_audit owns only accessibility_browser.py
+for bounded computed contrast assertions; no other writer/deploy lane assigned.
+Read-only Wrangler/Vercel capability preflight complete; no provider mutations.
+Exact c8b1a23 CI33961460460 remains in progress, no duplicate rerun dispatched.
+This mirror does not extend the live claim. Historical checkpoints follow.
+
 Open last used by Codex, September5, diagnostic closeout. Source review of PR35
 8d66404 approved by Fable; four optional wording clarifications applied. Actual
 memory result remains3/12 baseline versus2/12 reminders, no uplift. CI33960895197

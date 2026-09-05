@@ -1,6 +1,17 @@
 # Portable board-game proof
 
-Candidate implementation, September 4, 2026. Local validation is not a production release receipt.
+## Current status — September 5, 2026
+
+Connect Four portable proof is released at https://builderwars.com. Full canonical
+Chromium/Firefox/WebKit browser export, downloaded standalone verification,
+clean import and tamper checks are recorded in
+[the full release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md).
+Current source5f92f990 and canonical custody are recorded in
+[the latest release receipt](BUILDERWARS_RESULT_CARD_20260905.md); its only later
+application change is the result-image heading. The referee digest is unchanged.
+The implementation description below remains applicable. The old PR29 and failed
+review notes at the end are historical, not current integration or release holds.
+Portable rules proof still does not establish model identity or execution.
 
 ## What a player gets
 
@@ -66,7 +77,7 @@ python tests/recovery.py
 
 The new browser test exercises a real browser-produced completed proof through the downloaded standalone verifier, independent browser-context import/replay, altered-result rejection, paid-seat-to-free-play switching with zero inference calls, production CSP plus SRI failure, and 320px layout. All fixtures are synthetic QA, not external users or frontier-provider validation. Unit tests additionally test rechained tampering, version/engine mismatch, truncation, canonical limits, source/bundle parity and copied-verifier portability. Cross-platform CI and independent review must be recorded separately from local passes.
 
-## Next milestones
+## Historical milestones — September 4 candidate
 
 Implementation checkpoint: [draft PR #29](https://github.com/nymrel/builderwars/pull/29), code commit `f758bfe2dafa446c3eecc062c54670a810c01d5c`. Local validation: 36 Node tests, build, four bridge tests, proof browser journey and existing browser/lifecycle/recovery suites pass. [Hosted Windows/Linux CI](https://github.com/nymrel/builderwars/actions/runs/33937893936) passed on that code commit. These are synthetic QA receipts, not external-user or provider execution evidence.
 

@@ -63,7 +63,49 @@ Claude's studio note `20260904-2006000700-review-result--builderwars-pr29--e3a56
 
 Hosted run33942291399 at053a140 passed both Node jobs but the new Linux browser job found 320px Arena overflow. Diagnostic-only headc61467c (run33942428935) retained the failing assertion and captured the outlying navigation button geometry. The narrowest navigation now uses five equal tracks with icons above labels, rather than relying on OS-specific font widths fitting a single row. Browser tests additionally require all five tabs to remain within the viewport and at least44px tall. No global overflow hiding or reduced assertion was used. Exact follow-up CI must pass before this defect is considered release-verified.
 
-## Launch audit: still incomplete
+## Current beta acceptance checkpoint — September 5, 2026
+
+This section supersedes the historical open-work table below, without rewriting
+its dated findings. Current production5f92f990 has all-five candidate/main CI,
+independent source review, canonical artifact/redirect checks and retained rollback
+availability in BUILDERWARS_RESULT_CARD_20260905.md. The preceding native-checkpoint
+release receipt records the full canonical twelve-journey, cross-browser and real
+PeerJS recovery passes; the only subsequent application delta fixes PNG outcome
+visibility and has its own canonical sharing/replay coverage.
+
+- Record metadata and fixed-resource/paired-condition work are implemented in
+  BUILDERWARS_MATCH_PACKAGE.md and resources/profile/package tests. They no longer
+  await PR27 reconciliation. Declarations remain distinct from attestation.
+- Three genuine-match creative narratives now exist in the dated beta package;
+  the local model duel is1–1, not a performance win. Result artwork is repaired.
+- Academy, safe connections, configuration comparisons and creator exercises have
+  executable browser coverage. Memory reminders are useful to inspect but showed
+  no uplift in the separate3/12 versus2/12 actual diagnostic; no training claim.
+- Adoption has an exact unavailable-input readout in the native-checkpoint release
+  receipt. External observations, revenue and WVRB remain unmeasured.
+- A new dated two-route infrastructure preflight is recorded in the persistence
+  plan. Authenticated transactional private preview remains held, not promised.
+- Remaining engineering closure at this checkpoint: computed contrast evidence
+  and acceptance of the final test/docs candidate. PR35 prior8d66404 CI failed
+  iOS simulator launch; c8b1a23 exact-head CI is a separate in-progress gate.
+
+### Ranked next backlog
+
+1. Close the final candidate's actual CI/contrast findings and evidence audit;
+   never waive a required check or change its threshold merely to finish.
+2. When an exact recruitment action is authorized, collect the five-tester
+   observations described in the guide. Diagnose the first-play/replay/rematch
+   friction before expanding the product surface.
+3. Test one versioned harness-improvement candidate against a fresh held-out set.
+   Separate reminders, deterministic tools and model training; promote only on
+   credible quality/resource evidence, retaining regressions and prior versions.
+4. Resume one private hosted match only when its scoped runtime/auth/storage/cost
+   input and safety tests clear. No anonymous uploads or always-on model claims.
+5. Use day14/day30 observed participation to prioritize; native store publication,
+   leagues and creator marketplace remain later gated phases, not this beta's
+   missing engineering requirements. Keep the MIT engine/protocol intact.
+
+## Historical launch audit: incomplete at that candidate
 
 This table keeps the original five-day scope visible; it does not redefine completion around the current candidate.
 
