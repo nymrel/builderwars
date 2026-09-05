@@ -1,5 +1,32 @@
 # BuilderWars lane presence
 
+Open last used by Codex, September5, result-card follow-through. Exact live claim
+`codex-builderwars-card-outcome-20260905` owns sharing.ts, tests, docs and this
+mirror: winner/seat now survives long-name truncation.137Node tests/build and the
+full isolated browser gate passed; PNG inspected, bounded independent code review
+approved. Owned preview/browser processes stopped. No inference/provider/store
+changes. PR34 cross-family review and CI remain separate gates. This note never
+extends an expired or released claim.
+
+Open last used by Codex, September5 03:00 PDT. PR33 exact640d955 passed all five
+checks on attempt2 and merged as fabe467; exact-main CI33958805607 also passed.
+New gameplay/capture/draft increment:136tests/build pass;2actual local games split
+1–1 and both canonical390px replays passed. No learning/efficiency advantage
+claimed. Runtime and browsers stopped, worker done. Fable review returned no
+confirmed result; preserve ambiguous-delivery state, never call it approved.
+Root retains this named integration location. Exact claim
+`codex-builderwars-beta-finish-20260905` governs until released; this note never
+extends a released claim. No production/app/provider/store changes.
+
+Open last used by Codex, September5 02:42 PDT. Bounded local comparison completed:
+two real local responses, zero accepted moves because the predeclared strict
+grader rejected fenced JSON. This is not a production parser defect or learning
+uplift. Eight mocked runner tests pass; original private receipts retained. The
+owned local runtime was stopped and its matching PID state removed. Worker done.
+No application source, provider settings, cloud calls or store work. Exact claim
+`codex-builderwars-local-comparison-20260905` is authoritative until released;
+this note never extends a released claim. Preserve historical evidence below.
+
 Open last used by Codex, September5 02:23 PDT, release verification completed.
 PR32 merged as d0873da and deployed to the existing BuilderWars project. Exact
 main CI and canonical web journeys passed. The demo worker completed its disjoint

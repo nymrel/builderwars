@@ -46,6 +46,41 @@ with sync_playwright() as p:
     replay_record = json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))))
     assert "PRIVATE-PROMPT-SENTINEL" not in json.dumps(replay_record)
     assert all(not a["strategy"] for a in replay_record["agents"])
+    # Instrument the real canvas without replacing drawing or PNG generation.
+    # Long entrant declarations must not push the referee outcome out of frame.
+    long_record = json.loads(json.dumps(replay_record))
+    for agent in long_record["agents"]:
+        agent["name"] = ("Long contender model and harness declaration " * 2)[:64]
+    long_link = base64.urlsafe_b64encode(gzip.compress(json.dumps(long_record).encode())).decode().rstrip("=")
+    artwork_context = browser.new_context(viewport={"width": 390, "height": 844})
+    try:
+        artwork_context.add_init_script("""(() => {
+          window.cardHeadlines = [];
+          const draw = CanvasRenderingContext2D.prototype.fillText;
+          CanvasRenderingContext2D.prototype.fillText = function(text, x, y, ...rest) {
+            if (this.canvas.width === 1200 && x === 540 && y === 209)
+              window.cardHeadlines.push({text, width: this.measureText(text).width});
+            return draw.call(this, text, x, y, ...rest);
+          };
+        })()""")
+        artwork = artwork_context.new_page()
+        artwork.on("pageerror", lambda e: errors.append(str(e)))
+        artwork.goto(BASE + "/#replay=" + long_link)
+        artwork.locator("#match-result:not([hidden]) #result-title").wait_for()
+        assert artwork.locator("#result-title").inner_text() == long_record["agents"][0]["name"] + " wins"
+        assert artwork.locator("#start").is_disabled()
+        assert artwork.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        with artwork.expect_download() as long_download:
+            artwork.locator("#result-image").click()
+        long_path = OUT / "long-name-result-regression.png"
+        long_download.value.save_as(long_path)
+        headline = artwork.evaluate("window.cardHeadlines[0]")
+        assert headline["text"].startswith("Winner · Seat 1: "), headline
+        assert headline["text"].endswith("…") and headline["width"] <= 590, headline
+        assert long_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+        artwork.screenshot(path=str(OUT / "long-name-result-mobile.png"), full_page=True)
+    finally:
+        artwork_context.close()
     # Fresh recipient; no localStorage or original connections inherited.
     recipient_context = browser.new_context(viewport={"width": 320, "height": 780})
     recipient = recipient_context.new_page()
