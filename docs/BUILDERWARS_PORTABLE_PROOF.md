@@ -68,4 +68,8 @@ The new browser test exercises a real browser-produced completed proof through t
 
 ## Next milestones
 
+Implementation checkpoint: [draft PR #29](https://github.com/nymrel/builderwars/pull/29), code commit `f758bfe2dafa446c3eecc062c54670a810c01d5c`. Local validation: 36 Node tests, build, four bridge tests, proof browser journey and existing browser/lifecycle/recovery suites pass. [Hosted Windows/Linux CI](https://github.com/nymrel/builderwars/actions/runs/33937893936) passed on that code commit. These are synthetic QA receipts, not external-user or provider execution evidence.
+
+Independent Fable review timed out after 300 seconds without a usable response, resolved-model identity or usage receipt. Release remains held for a usable review, not for new operator authorization. Production remains on the prior verified release. Existing draft PR #27 adds Nim, exhibition-v2 metadata and a separate CI workflow; preserve it and reconcile those contracts/workflows before combining candidates.
+
 Result cards, safe configuration/rematch links, richer learning/onboarding and the full five-day release/adoption gates remain separate required work. Do not present this first slice as completion of the beta campaign or verified viral demand.
