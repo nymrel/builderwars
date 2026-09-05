@@ -1,9 +1,13 @@
 # BuilderWars lane presence
 
-IN_USE: Astra / Codex, September 5, 2026, 22:36 UTC.
-Claim codex-builderwars-exhibition-replay-20260905; scope live-arena/docs/.agent.
-Portable, truthful native exhibition replay integration. Preserve referee and
-provider eligibility; no inference or account changes in this slice.
+Open last used by Astra / Codex, September 5, 2026, 23:10 UTC.
+PR43 merged/released 600e535e987f67914d935786ed9df3f2b32b4675; all five CI passed.
+Production dpl_BsjuWAVRXWNRaSuF8jK8kbJmjDjR at builderwars.com matches the exact
+source-archive build. Three guarded journeys and both actual local replay imports
+passed on production. No model inference or automatic replay publication.
+Release claim codex-builderwars-exhibition-replay-20260905; bus is authoritative.
+Retain named lane for the active full frontier goal; reclaim before new writes.
+See docs/EXHIBITION_RELEASE_20260905.md for proof and remaining campaign gates.
 
 Open last used by Astra / Codex, September 5, 2026, 22:31 UTC.
 Guided human/agent connection UX shipped in PR42, merged source
