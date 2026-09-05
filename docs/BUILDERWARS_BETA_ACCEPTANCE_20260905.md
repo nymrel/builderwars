@@ -5,13 +5,20 @@ Contract version1 SHA256:
 8F50D4D72A32AFEEA2D514AE8DD23592BF4BF3184FB1178B3AB62358693559BF.
 Full contract reread on resumption; original required/conditional boundaries retained.
 
-**Current decision: not yet complete.** The contrast audit found actual visual
-defects in the released board and forms. A scoped CSS fix and computed regressions
-are in progress; they need exact candidate CI/review/release/canonical proof.
-The following matrix distinguishes previously released functionality from that
-remaining acceptance gate. Test receipts are not external-user observations.
+**Web deliverables released; final CI/receipt closure remains open.** Contrast
+defects were repaired and released138e57005782fcf2462958fb809f8c1821db790e after
+source review and all-five exact candidate CI. All12 canonical Chromium journeys,
+Firefox/WebKit proof and168 computed contrast pairs pass. See the source-bound
+CONTRAST receipt for assets, redirects, rollback and cleanup. Exact merged-source
+CI33962910085 failed its iOS simulator launch after a successful build/install.
+That exact failure and this documentation follow-through remain open; no goal
+completion is asserted. Test receipts are not external users or store readiness.
 
-## Ordered requirements and evidence
+## Ordered requirements and evidence at pre-contrast checkpoint
+
+This historical matrix's remaining contrast/release rows are resolved by the
+production receipt above. Its existing conditional/deferred classifications and
+adoption-input limitations still apply; no additional features were substituted.
 
 | Milestone / requirement group | Current inspected evidence | Classification |
 | --- | --- | --- |
@@ -51,9 +58,9 @@ remaining acceptance gate. Test receipts are not external-user observations.
 
 ## Remaining exact move
 
-Finish the contrast regressions and inspect actual rendered state, obtain one
-bounded independent cross-family review of the material CSS delta, pass exact
-candidate CI, release from committed source and recheck canonical changed states
-and rollback availability. Reconcile the final receipt with this matrix before
-marking the original engineering goal complete. New performance-improvement
-features remain a subsequent measured experiment, not a substitute for release.
+Independent read-only audit at38ff928 found no additional required feature/test
+gap or unjustified conditional downgrade. Its stale creative-package CI finding
+is corrected while preserving history. Source review, candidate CI, release and
+canonical checks are complete. Finish exact merged-source CI and integrate these
+receipts before marking the original engineering goal complete. Performance
+improvement remains a subsequent measured experiment, not a training claim.

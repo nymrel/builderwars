@@ -98,10 +98,12 @@ artwork is fixed and both genuine replays recaptured on canonical production;
 see BUILDERWARS_RESULT_CARD_20260905.md. The frozen-memory diagnostic is now
 complete: baseline3/12 versus memory2/12, no uplift; see the experiment receipt.
 PR35 contains the manual diagnostic and documentation, not new application code.
-Its source review approved8d66404; iOS launch CI remains unresolved. No social
-posts or external adoption observations are claimed. Next: diagnose the exact
-iOS failure, finish the contrast/capability evidence gaps and reconcile the beta
-acceptance record before new feature work. Historical pre-release status follows.
+Its source review approved8d66404; subsequent c8b1a23 CI33961460460 passed all
+five jobs and PR35 merged10791126. The earlier iOS timeout remains historical,
+not an unresolved current check. Contrast PR36 is released138e5700 with its
+source-bound receipt in BUILDERWARS_CONTRAST_20260905.md; the dated capability
+preflight is in PERSISTENCE_PLAN. No social posts or external adoption
+observations are claimed. Historical pre-release status follows.
 
 PR33 documentation/recorder update merged as fabe467 after all five exact640d955
 checks passed (iOS on one unchanged rerun; initial timeout retained). This new

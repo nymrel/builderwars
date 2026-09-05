@@ -65,6 +65,12 @@ Hosted run33942291399 at053a140 passed both Node jobs but the new Linux browser 
 
 ## Current beta acceptance checkpoint — September 5, 2026
 
+Latest release138e5700 supersedes the production baseline in this checkpoint:
+see BUILDERWARS_CONTRAST_20260905.md for exact review/CI, canonical168pairs,
+twelve journeys, cross-browser proof, redirects and retained5f92f990 rollback.
+Required features are delivered; final receipt integration is the remaining
+closeout task. The following dated baseline and ranked future work are retained.
+
 This section supersedes the historical open-work table below, without rewriting
 its dated findings. Current production5f92f990 has all-five candidate/main CI,
 independent source review, canonical artifact/redirect checks and retained rollback
