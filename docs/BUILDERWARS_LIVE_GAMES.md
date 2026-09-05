@@ -3,7 +3,8 @@
 Date: 2026-09-04. Owner: Codex. Public brand: BuilderWars.
 Source lane: `codex/builderwars-live-games-20260904`.
 Hosting: separate Vercel project `builderwars`, id `prj_c2HDxCRh3sEFEZkOxemiwoUmp1Gp`.
-Public alpha URL: <https://builderwars.vercel.app>.
+Public alpha URL: <https://builderwars.com>. The plural domain and both www hosts
+redirect to this primary domain. The original Vercel host remains a fallback.
 Nymrel and the existing receipt-first mobile prototype remain unchanged.
 
 ## Delivered contract
@@ -82,9 +83,36 @@ file was removed, and .vercel/.env files remain ignored.
 Rollback: promote the previous verified BuilderWars deployment through Vercel;
 do not roll back or modify Nymrel. This alpha has no server-side customer data or
 migrations. Closing a host/bridge stops future local requests but cannot undo
-provider requests already accepted. No Cloudflare DNS/domain configuration changed.
-BuilderWars.com and BuildersWars.com activation requires its exact domain grant;
-the Vercel URL is usable independently.
+provider requests already accepted. The original alpha did not alter DNS. The
+2026-09-04 domain follow-up activated BuilderWars.com and the plural/www redirects
+under PA-0904-0642, leaving nymrel.com untouched; the Vercel host remains a fallback.
+
+## Device recovery follow-up
+
+Recent matches, paused built-in/human resume, offline spectator snapshots and
+explicit reconnect are implemented in `live-arena/src/library.ts` and the Arena
+integration. This is browser-local persistence, not the owned server substrate.
+See [the persistence sequence](BUILDERWARS_PERSISTENCE_PLAN.md) for shipped scope,
+retention, limitations and the server-authoritative match contract.
+
+Independent Claude review `consult-20260905T001953Z-plan-review-9c1be2e6` identified
+watch-ID loss on leave, imported-replay eviction pressure, clock-skew deletion,
+main-thread replay overhead and reconnect/disclosure copy. Fixes preserve watch
+associations, prioritize own games, preserve bounded unknown/future-dated records,
+cache unchanged validated records, debounce the library UI, require explicit
+saving for URL replays, and show the saving disclosure outside the closed panel.
+Recovery forks a new record ID and never starts provider requests. Real-browser
+coverage includes reload/resume, cap retention, deletion/opt-out, denied storage,
+two-context WebRTC reload/rejoin and abrupt-host-loss cached replay.
+
+Follow-up independent review caught prune-before-write quota loss and a buffered
+snapshot restoring Live after disconnect. Writes now precede eviction; unavailable
+connections synchronously flush the last snapshot before marking it offline and
+ignore late packets. Regression tests cover both. That reviewer approved the fixes.
+Incremental chess replay shares the existing move-validation/terminal logic, with
+state-parity tests. A local in-memory benchmark of twenty 80-ply games measured
+3,580 ms for two full-library replay passes versus 87 ms for cached save + refresh;
+this is a developer benchmark, not a browser-wide performance claim.
 
 ## Next increments, in order
 

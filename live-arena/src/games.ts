@@ -219,6 +219,22 @@ export function moveLabel(move: string, s: GameState): string {
     : coordinate(Number(move), s.rules.cols);
 }
 export function applyMove(state: GameState, move: string): GameState {
+  return advanceMove(state, move);
+}
+/** Reuse one chess history while validating a replay; never trust FEN from input. */
+export function replayStepper(rules: Rules) {
+  let state = createGame(rules);
+  const chess = state.rules.kind === "chess" ? new Chess() : undefined;
+  return (move: string): GameState => {
+    state = advanceMove(state, move, chess);
+    return structuredClone(state);
+  };
+}
+function advanceMove(
+  state: GameState,
+  move: string,
+  history?: Chess,
+): GameState {
   if (!legalMoves(state).includes(move))
     throw Error("The agent returned an illegal move. The match is paused.");
   const s: GameState = {
@@ -231,9 +247,10 @@ export function applyMove(state: GameState, move: string): GameState {
   s.turn = player === 0 ? 1 : 0;
   s.quiet++;
   if (s.rules.kind === "chess") {
-    const c = new Chess();
-    for (const m of state.moves)
-      c.move({ from: m.slice(0, 2), to: m.slice(2, 4), promotion: m[4] });
+    const c = history ?? new Chess();
+    if (!history)
+      for (const m of state.moves)
+        c.move({ from: m.slice(0, 2), to: m.slice(2, 4), promotion: m[4] });
     c.move({
       from: move.slice(0, 2),
       to: move.slice(2, 4),

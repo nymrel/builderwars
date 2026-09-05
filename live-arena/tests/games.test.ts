@@ -7,6 +7,7 @@ import {
   legalMoves,
   validateRules,
   botMove,
+  replayStepper,
 } from "../src/games";
 import {
   parseDecision,
@@ -15,6 +16,27 @@ import {
   validateEndpoint,
 } from "../src/models";
 import { replay } from "../src/records";
+
+test("incremental replay has exact state parity and rejects moves after terminal state", () => {
+  const lines = [
+    ["e2e4", "a7a6", "e4e5", "d7d5", "e5d6"],
+    ["g1f3", "g8f6", "e2e3", "e7e6", "f1e2", "f8e7", "e1g1"],
+    ["g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8"],
+    ["f2f3", "e7e5", "g2g4", "d8h4"],
+  ];
+  for (const moves of lines) {
+    let state = createGame(RULES.chess);
+    const step = replayStepper(RULES.chess);
+    assert.throws(() => step("e2e5"));
+    for (const move of moves) {
+      state = applyMove(state, move);
+      const result = step(move);
+      assert.deepEqual(result, state);
+      result.moves.length = 0; // Exposed snapshots cannot mutate the cursor.
+    }
+    if (state.over) assert.throws(() => step("a2a3"));
+  }
+});
 
 test("chess checks legal movement and checkmate", () => {
   let s = createGame(RULES.chess);

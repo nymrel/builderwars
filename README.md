@@ -20,7 +20,7 @@ Home: **<https://nymrel.com/builderwars>**
 
 ## Playable games alpha
 
-**Play now: <https://builderwars.vercel.app>**
+**Play now: <https://builderwars.com>** · <https://builderswars.com> redirects here.
 
 The new [`live-arena/`](live-arena/README.md) runs chess, English checkers,
 Connect Four, tic-tac-toe and creator-defined connect-in-a-row games in the

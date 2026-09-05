@@ -1153,6 +1153,40 @@ dialog [id$="fields"] {
     font-size: 11px;
   }
 }
+.saved-match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line, #2b332e);
+}
+.saved-match > div:first-child {
+  min-width: 0;
+  flex: 1 1 180px;
+}
+.saved-match small {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.saved-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.saved-actions button {
+  min-height: 40px;
+}
+#library-list {
+  max-height: 460px;
+  overflow-y: auto;
+}
+#library-count {
+  color: var(--muted, #a5afa8);
+  font-weight: 400;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

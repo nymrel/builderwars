@@ -18,6 +18,6 @@ with sync_playwright() as p:
     v.wait_for_function("() => document.querySelector('#metric-moves').textContent==='1'",timeout=15000)
     assert v.locator('#start').is_disabled()
     h.locator('nav [data-tab=watch]').click();h.locator('#stop-broadcast').click()
-    v.wait_for_function("() => document.querySelector('#notice').textContent.includes('Host disconnected')",timeout=15000)
+    v.wait_for_function("() => document.querySelector('#notice').textContent.includes('not a live board')",timeout=15000)
     browser.close()
     print(json.dumps({'status':'PASS','surface':BASE,'realPeerSignaling':True,'independentBrowserContexts':2,'movesReceived':1,'disconnectVerified':True}))
