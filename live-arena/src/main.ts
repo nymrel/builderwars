@@ -35,6 +35,7 @@ import { DeviceStorage } from "./device-storage";
 import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } from "./resources";
 import { publicLinkOrigin } from "./public-links";
 import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
+import { connectionDialogMarkup, agentSetupBrief } from "./connection-guide";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
 import { DECLARATION_FIELDS, readDeclaration, readDeclarations, unknownDeclarations, makeMatchPackage, readMatchFile, type MatchDeclarations } from "./match-package";
 import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage, entrantLabel,
@@ -210,7 +211,7 @@ document.querySelector("#app")!.innerHTML = `
 <section id="watch" class="view" hidden><p class="eyebrow">BUILDERWARS WATCH</p><h1>Bring an audience.</h1><p class="subtitle">The board, moves, model labels and timing stream directly from the host’s browser.</p><div class="workspace-form"><button id="watch-broadcast" class="primary">Broadcast my match ↗</button><p id="watch-link">Start broadcasting to create a spectator link.</p><label>Join a broadcast<input id="join-link" placeholder="Paste a BuilderWars watch link"></label><button id="join">Watch match</button><button id="leave-watch" hidden>Leave spectator mode</button><div class="divider"></div><h2>Ready for your stream</h2><p>Open the clean board view and add it as an OBS browser or window source. Your model keys and connection settings stay outside the broadcast.</p><button id="clean-view">Open stream view ↗</button><p class="muted">Live board sharing uses PeerJS and WebRTC. Viewers receive your IP address as part of the peer connection. Some networks block these connections; replay links work after a match ends. Video publishing to Twitch or YouTube is controlled in your streaming app.</p></div></section>
 <section id="academy" class="view" hidden>${academyMarkup}</section>
 <footer><span>BuilderWars · An open playground by Nymrel</span><span>Play • Create • Replay</span></footer></main></div>
-<dialog id="agent-dialog"><form id="agent-form"><div class="dialog-heading"><h2 id="agent-title">Connect a contender</h2><button id="close-dialog" type="button" aria-label="Close connections">×</button></div><label>Display name<input id="agent-name" maxlength="64" required></label><label>Connection<select id="agent-kind"><option value="bot">Built-in opponent · free</option><option value="human">Human · play on the board</option><option value="openrouter">OpenRouter · your models and key</option><option value="harness">Your harness / local subscription bridge</option></select></label><div id="bot-fields"><label>Opponent<select id="bot-model"><option value="tactician">Tactician · two-ply search</option><option value="random">Wildcard · random legal moves</option></select></label></div><div id="model-fields" hidden><div class="settings-row"><label>Find model<input id="model-search" placeholder="Search provider or model"></label><label class="checkbox"><input id="free-models" type="checkbox">Free routes</label></div><label>Model<select id="model-id"></select></label><p id="catalog-status" class="muted"></p><button id="refresh-models" type="button">Refresh catalog</button><label>Reasoning effort<select id="effort"><option>default</option></select></label><p id="model-price" class="muted"></p></div><div id="harness-fields" hidden><label>Move endpoint<input id="harness-url" type="url" placeholder="https://your-harness.example/move"></label><label>Model / harness label<input id="harness-model" maxlength="160" placeholder="Your configured model"></label><label>Requested effort<input id="harness-effort" maxlength="20" placeholder="default"></label><p class="muted">The endpoint must allow this site’s origin. Local bridge: http://127.0.0.1:8765/move. Its model is configured when you start it.</p></div><div id="key-fields" hidden><label id="key-label">Key / local connection token<input id="agent-key" type="password" autocomplete="off" spellcheck="false"></label><p class="muted">Kept in this tab’s memory. Never saved with profiles, replays or broadcasts.</p></div><label>Builder strategy<textarea id="strategy" maxlength="1000" rows="3" placeholder="A short strategy or system prompt for your agent"></textarea></label><p id="dialog-status" role="status"></p><div class="form-actions"><button type="submit" class="primary">Use contender ↗</button><button id="forget-key" type="button">Forget key</button><button id="export-agent" type="button">Export profile</button></div></form></dialog>`;
+${connectionDialogMarkup}`;
 
 function notify(message: string) {
   $("notice").textContent = message;
@@ -592,10 +593,6 @@ $("notice").insertAdjacentHTML(
 $("move-history").insertAdjacentHTML(
   "beforebegin",
   '<label>Human chess promotion<select id="promotion"><option value="q">Queen</option><option value="r">Rook</option><option value="b">Bishop</option><option value="n">Knight</option></select></label>',
-);
-$("harness-fields").insertAdjacentHTML(
-  "beforeend",
-  '<p class="muted">Local bridge: experimental. Tested with Chromium local-network permission; other browsers and individual subscription clients are not yet certified. Claude Code subscription execution is not offered.</p>',
 );
 $("strategy").insertAdjacentHTML(
   "afterend",
@@ -1169,6 +1166,11 @@ function openAgent(seat: number) {
   $("dialog-status").textContent = "";
   $<HTMLInputElement>("model-search").value = "";
   $<HTMLInputElement>("free-models").checked = false;
+  $<HTMLSelectElement>("model-id").value = "";
+  $("agent-setup-preview").hidden = true;
+  $("show-agent-setup").setAttribute("aria-expanded", "false");
+  $<HTMLDetailsElement>("connection-advanced").open = false;
+  $<HTMLDetailsElement>("model-options").open = false;
   connectionFields();
   profileComparison();
   $<HTMLDialogElement>("agent-dialog").showModal();
@@ -1177,9 +1179,20 @@ let importedSelection: { model: string; effort: string } | null = null;
 function connectionFields(loadCatalog = true) {
   const kind = $<HTMLSelectElement>("agent-kind").value;
   $("bot-fields").hidden = kind !== "bot";
+  $("human-fields").hidden = kind !== "human";
+  $("agent-help").hidden = !["openrouter", "harness"].includes(kind);
+  $("local-client-label").hidden = kind !== "harness";
   $("model-fields").hidden = kind !== "openrouter";
   $("harness-fields").hidden = kind !== "harness";
   $("key-fields").hidden = !["openrouter", "harness"].includes(kind);
+  $("forget-key").hidden = !["openrouter", "harness"].includes(kind);
+  $("credential-name").textContent = kind === "openrouter" ? "Your OpenRouter API key" : "Temporary local token / endpoint bearer token";
+  $("credential-help").textContent = kind === "openrouter"
+    ? "Sent directly to OpenRouter, not BuilderWars hosting. Kept only in this tab’s memory; never exported. Other providers’ API keys do not belong here."
+    : "Use the temporary token from your local terminal, not your provider’s login or API key. For your own HTTPS endpoint, use its bearer token. Kept only in this tab’s memory; never exported.";
+  $("connection-summary").textContent = `${selectedSeat === 0 ? "White / first" : "Black / second"} seat. ${kind === "bot" || kind === "human" ? "No account needed. Choose Use contender, then start from the board." : "Your connection stays private. Start a match separately when you are ready."}`;
+  $("connection-check-title").textContent = kind === "bot" || kind === "human" ? "Ready when you are" : "3. Check and use";
+  updateAgentSetup();
   if (kind === "openrouter") {
     if (!models.length && loadCatalog) void loadModels();
     else filterModels();
@@ -1188,10 +1201,47 @@ function connectionFields(loadCatalog = true) {
 $<HTMLSelectElement>("agent-kind").onchange = () => {
   importedSelection = null;
   $<HTMLInputElement>("agent-key").value = "";
+  $<HTMLSelectElement>("model-id").value = "";
+  const name = $<HTMLInputElement>("agent-name"), kind = $<HTMLSelectElement>("agent-kind").value;
+  if (["Tactician", "Wildcard", "Contender", "My model", "My agent", "Human"].includes(name.value))
+    name.value = kind === "openrouter" ? "My model" : kind === "harness" ? "My agent" : kind === "human" ? "Human" : $<HTMLSelectElement>("bot-model").value === "random" ? "Wildcard" : "Tactician";
+  if (kind === "harness" && ["tactician", "random", "human"].includes($<HTMLInputElement>("harness-model").value))
+    $<HTMLInputElement>("harness-model").value = "";
   connectionFields();
+};
+function updateAgentSetup() {
+  const kind = $<HTMLSelectElement>("agent-kind").value;
+  $<HTMLTextAreaElement>("agent-setup-text").value = ["openrouter", "harness"].includes(kind)
+    ? agentSetupBrief(kind, $<HTMLSelectElement>("local-client").value) : "";
+  $("agent-setup-status").textContent = "";
+}
+$<HTMLSelectElement>("local-client").onchange = (event) => { event.stopPropagation(); updateAgentSetup(); };
+$<HTMLSelectElement>("local-client").oninput = (event) => event.stopPropagation();
+$("show-agent-setup").onclick = () => {
+  const preview = $("agent-setup-preview"); preview.hidden = !preview.hidden;
+  $("show-agent-setup").setAttribute("aria-expanded", String(!preview.hidden));
+};
+$("copy-agent-setup").onclick = async () => {
+  updateAgentSetup();
+  try {
+    await navigator.clipboard.writeText($<HTMLTextAreaElement>("agent-setup-text").value);
+    $("agent-setup-status").textContent = "Instructions copied. Paste them into your agent. No keys or private settings included.";
+  } catch {
+    $("agent-setup-preview").hidden = false;
+    $("show-agent-setup").setAttribute("aria-expanded", "true");
+    $<HTMLTextAreaElement>("agent-setup-text").focus();
+    $<HTMLTextAreaElement>("agent-setup-text").select();
+    $("agent-setup-status").textContent = "Clipboard unavailable. Copy the selected instructions above.";
+  }
 };
 $<HTMLInputElement>("harness-url").oninput = () => {
   $<HTMLInputElement>("agent-key").value = "";
+};
+$("use-local-address").onclick = () => {
+  cancelConnectionProbe();
+  $<HTMLInputElement>("harness-url").value = "http://127.0.0.1:8765/move";
+  $<HTMLInputElement>("agent-key").value = "";
+  $("dialog-status").textContent = "Local address restored. Paste the temporary token from your bridge terminal.";
 };
 async function loadModels() {
   $("catalog-status").textContent = "Loading current model catalog…";
@@ -1208,13 +1258,13 @@ function filterModels() {
   const q = $<HTMLInputElement>("model-search").value.toLowerCase(),
     free = $<HTMLInputElement>("free-models").checked,
     prior =
-      importedSelection?.model || $<HTMLSelectElement>("model-id").value || agents[selectedSeat].model;
+      importedSelection?.model || $<HTMLSelectElement>("model-id").value || (agents[selectedSeat].kind === "openrouter" ? agents[selectedSeat].model : "");
   const available = models.filter(
     (m) =>
       (!q || (m.id + " " + m.name).toLowerCase().includes(q)) &&
       (!free || (m.pricing?.prompt === "0" && m.pricing?.completion === "0")),
   );
-  $("model-id").innerHTML = available
+  $("model-id").innerHTML = '<option value="" disabled selected>Choose a model…</option>' + available
     .map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`)
     .join("");
   if (available.some((m) => m.id === prior))
@@ -1288,7 +1338,6 @@ function agentFromForm(): Agent {
 }
 let connectionProbe: AbortController | null = null;
 let connectionGeneration = 0;
-$("dialog-status").insertAdjacentHTML("beforebegin", '<button id="check-connection" type="button">Check connection · no model call</button><p class="muted">Known routes are also checked before their first move (successful checks cached up to 60 seconds). HTTPS custom harnesses receive configuration validation only. Checks never start a game.</p>');
 function cancelConnectionProbe() {
   connectionProbe?.abort(); connectionProbe = null; connectionGeneration++;
   $("check-connection").removeAttribute("disabled");
@@ -1297,8 +1346,7 @@ function cancelConnectionProbe() {
 $("agent-form").addEventListener("input", cancelConnectionProbe);
 $("agent-form").addEventListener("change", cancelConnectionProbe);
 $("agent-dialog").addEventListener("close", cancelConnectionProbe);
-$("export-agent").insertAdjacentHTML("afterend", '<button id="import-agent" type="button">Import profile</button><input id="profile-file" type="file" accept=".json,application/json" hidden>');
-$("dialog-status").insertAdjacentHTML("beforebegin", '<p id="profile-comparison" class="muted" aria-live="polite"></p><p class="muted">Profile files include your name, model settings and strategy text. Keys and endpoints are excluded. Inspect strategy text for secrets before exporting or sharing. Import only edits this draft; it never starts play.</p>');
+$("profile-options").insertAdjacentHTML("beforeend", '<p id="profile-comparison" class="muted" aria-live="polite"></p><p class="muted">Profile files include your name, model settings and strategy text. Keys and endpoints are excluded. Inspect strategy text for secrets before exporting or sharing. Import only edits this draft; it never starts play.</p>');
 function profileComparison() {
   const result = compareProfiles(agents[selectedSeat], agentFromForm());
   const labels: Record<string, string> = { kind: "connection type", model: "model / opponent", effort: "effort", strategy: "strategy" };
@@ -1312,7 +1360,7 @@ const declarationLabels: Record<typeof DECLARATION_FIELDS[number], string> = {
   builderId: "Builder ID", agentId: "Agent ID", agentRevision: "Agent revision",
   harnessId: "Harness ID", harnessRevision: "Harness revision", providerId: "Execution provider ID", modelRevision: "Model revision",
 };
-$("dialog-status").insertAdjacentHTML("beforebegin", `<details id="declaration-fields"><summary>Public attribution (optional)</summary><p class="muted">Self-declared identifiers, not verified identities. Leave unknown values blank. Never enter keys, private addresses or other secrets. Match packages retain these fields; agent profiles and replay links do not.</p>${DECLARATION_FIELDS.map(field => `<label>${declarationLabels[field]}<input id="declaration-${field}" maxlength="96" autocomplete="off" spellcheck="false"></label>`).join("")}</details>`);
+$("profile-options").insertAdjacentHTML("beforeend", `<details id="declaration-fields"><summary>Public attribution (optional)</summary><p class="muted">Self-declared identifiers, not verified identities. Leave unknown values blank. Never enter keys, private addresses or other secrets. Match packages retain these fields; agent profiles and replay links do not.</p>${DECLARATION_FIELDS.map(field => `<label>${declarationLabels[field]}<input id="declaration-${field}" maxlength="96" autocomplete="off" spellcheck="false"></label>`).join("")}</details>`);
 function fillDeclarationForm(value: MatchDeclarations[number]) {
   for (const field of DECLARATION_FIELDS) $<HTMLInputElement>(`declaration-${field}`).value = value[field] ?? "";
 }

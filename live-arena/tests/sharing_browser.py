@@ -24,6 +24,8 @@ with sync_playwright() as p:
         page.locator(f'[data-seat="{seat}"]').click()
         page.locator("#agent-kind").select_option("human")
         page.locator("#agent-name").fill(f"Scripted human {seat + 1}")
+        if not page.locator("#connection-advanced").evaluate("el => el.open"):
+            page.locator("#connection-advanced > summary").click()
         page.locator("#strategy").fill("PRIVATE-PROMPT-SENTINEL")
         page.locator("#agent-form button[type=submit]").click()
     for cell in [0, 1, 0, 1, 0, 1, 0]:
@@ -131,7 +133,10 @@ with sync_playwright() as p:
     page.route("https://openrouter.ai/api/v1/models", lambda route: route.fulfill(json={"data": [{"id": "test/model", "name": "Test Model", "reasoning": {"supported_efforts": ["high"]}}]}))
     page.locator("#connections").click()
     page.locator("#agent-kind").select_option("openrouter")
-    page.locator("#model-id option").first.wait_for(state="attached")
+    page.locator('#model-id option[value="test/model"]').wait_for(state="attached")
+    page.locator("#model-id").select_option("test/model")
+    if not page.locator("#model-options").evaluate("el => el.open"):
+        page.locator("#model-options > summary").click()
     page.locator("#effort").select_option("high")
     page.locator("#agent-key").fill("PRIVATE-KEY-SENTINEL")
     page.locator("#agent-form button[type=submit]").click()

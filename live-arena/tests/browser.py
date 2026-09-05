@@ -80,7 +80,10 @@ with sync_playwright() as p:
     page.route('https://openrouter.ai/api/v1/models',lambda route:route.fulfill(json={"data":[{"id":"test/model","name":"Test Model","pricing":{"prompt":"0","completion":"0"},"reasoning":{"supported_efforts":["high","low"]}}]}))
     page.locator('#connections').click()
     page.locator('#agent-kind').select_option('openrouter')
-    page.wait_for_function("() => document.querySelector('#model-id').options.length===1")
+    page.locator('#model-id option[value="test/model"]').wait_for(state='attached')
+    page.locator('#model-id').select_option('test/model')
+    if not page.locator('#model-options').evaluate('el => el.open'):
+        page.locator('#model-options > summary').click()
     assert page.locator('#effort option').all_text_contents()==['Provider default','high','low']
     page.locator('#agent-key').fill('synthetic-browser-test')
     page.locator('#agent-name').fill('Test model')

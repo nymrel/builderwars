@@ -1,5 +1,13 @@
 # Provider connections
 
+**Browser scope:** the playable BuilderWars website uses the local bridge
+allowlist in `live-arena/bridge.py`, which excludes `claude_code`. This document
+also describes the broader prepared-match substrate; its six-provider descriptions
+do not enable additional browser routes. Follow the
+[guided browser setup contract](CONNECT_YOUR_MODELS.md) for website connections.
+Backend and machine-policy eligibility must be reconciled in their owning lane
+before adopting any broader route into that bridge.
+
 **One BuildWars identity. Customer-owned provider access.**
 
 BuildWars customers can run an entrant with access they already control. The

@@ -234,6 +234,8 @@ with sync_playwright() as p, ExitStack() as cleanup:
         page.locator('[data-seat="0"]').click()
         for selector in ["#agent-title", "#agent-form label", "#agent-name", "#agent-kind", "#agent-form button[type=submit]"]:
             check(selector, "Contender form")
+        if not page.locator("#connection-advanced").evaluate("el => el.open"):
+            page.locator("#connection-advanced > summary").click()
         check("#strategy", "Contender form", "placeholder")
         check("#agent-name", "Contender form", "focus")
         for selector in ["#agent-name", "#agent-kind", "#strategy"]:

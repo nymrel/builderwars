@@ -29,6 +29,8 @@ with sync_playwright() as p:
 
     for seat, name in [(0, "alpha"), (1, "beta")]:
         page.locator(f"[data-seat='{seat}']").click()
+        if not page.locator("#connection-advanced").evaluate("el => el.open"):
+            page.locator("#connection-advanced > summary").click()
         page.locator("#declaration-fields").evaluate("el => el.open = true")
         page.locator("#declaration-builderId").fill("our-builder")
         page.locator("#declaration-agentId").fill(name)
@@ -45,6 +47,10 @@ with sync_playwright() as p:
     expect(page.locator("#metric-moves")).to_have_text("1")
     # Closed dialog edits are drafts, not retrospective metadata changes.
     page.locator("#connections").click()
+    if not page.locator("#connection-advanced").evaluate("el => el.open"):
+        page.locator("#connection-advanced > summary").click()
+    if not page.locator("#declaration-fields").evaluate("el => el.open"):
+        page.locator("#declaration-fields > summary").click()
     page.locator("#declaration-agentRevision").fill("r2")
     page.locator("#close-dialog").click()
     pkg = export()

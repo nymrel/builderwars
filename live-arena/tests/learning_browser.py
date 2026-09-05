@@ -31,6 +31,8 @@ with sync_playwright() as p:
             page.locator("#harness-url").fill("https://synthetic.example/move")
             page.locator("#harness-model").fill("synthetic/fixture")
             page.locator("#harness-effort").fill("default")
+            if not page.locator("#connection-advanced").evaluate("el => el.open"):
+                page.locator("#connection-advanced > summary").click()
             page.locator("#strategy").fill("PRIVATE_STRATEGY_SENTINEL")
             page.locator("#agent-form button[type=submit]").click()
         settings = page.locator(".match-settings").filter(has=page.locator("#pace"))
