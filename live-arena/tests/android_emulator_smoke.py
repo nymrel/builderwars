@@ -211,6 +211,35 @@ def main():
                     expect(page.locator("#start")).to_have_text("▶ Start match")
                     screenshot("recovered.png")
                     receipt["stages"].append("process-restart-recovery-paused")
+                    # A diagnostic read before kill can accidentally hide a write race.
+                    # Exercise three fresh games with no pre-kill storage probe or sleep.
+                    receipt["rapidRestartTrials"] = []
+                    for trial in range(3):
+                        page.locator("#reset").click()
+                        if not page.locator("#match-library").evaluate("e => e.open"):
+                            page.locator("#match-library summary").click()
+                        # This disposable AVD contains only this test's generated games.
+                        page.once("dialog", lambda dialog: dialog.accept())
+                        page.locator("#forget-matches").click()
+                        page.locator("#save-matches").check()
+                        page.locator("#step").click()
+                        expect(page.locator("#metric-moves")).to_have_text("1")
+                        page.locator("#step").click()
+                        expect(page.locator("#metric-moves")).to_have_text("2")
+                        device("shell", "am", "force-stop", PACKAGE)
+                        browser.close()
+                        launch()
+                        browser, page = connect(p)
+                        trace = {"trial": trial + 1, "afterRestart": recovery_snapshot(page)}
+                        receipt["rapidRestartTrials"].append(trace)
+                        expect(page.locator("#metric-moves")).to_have_text("0")
+                        page.locator("#match-library summary").click()
+                        expect(page.locator("[data-saved-resume]")).to_have_count(1)
+                        page.locator("[data-saved-resume]").click()
+                        trace["afterResume"] = recovery_snapshot(page)
+                        expect(page.locator("#metric-moves")).to_have_text("2")
+                        expect(page.locator("#start")).to_have_text("▶ Start match")
+                    receipt["stages"].append("three-rapid-restarts-recovered-paused")
                     if errors or paid_requests:
                         raise RuntimeError(f"Unexpected errors/remote POST: {errors} {paid_requests}")
                     receipt["status"] = "passed"
