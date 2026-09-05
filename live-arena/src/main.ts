@@ -19,6 +19,9 @@ import {
   type Model,
 } from "./models";
 import { Broadcast } from "./broadcast";
+import { academyMarkup, freeAcademyRecipe } from "./academy";
+import { summarizeSeries, type SeriesAttempt } from "./evaluation";
+import { isExhibitionLimit } from "./outcome";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
 import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage,
   freeAgents, configuredAgents, type MatchSetup, type MatchSummary } from "./sharing";
@@ -79,8 +82,9 @@ let rules = { ...RULES.chess },
   broadcastLink = "",
   seriesRemaining = 0,
   seriesTotal = 0,
-  seriesResults: RecordData[] = [],
+  seriesAttempts: SeriesAttempt[] = [],
   pace = 500;
+let seriesLimits: { moveLimit: number; maxTokens: number } | null = null;
 const broadcast = new Broadcast();
 let pending = false,
   replayPly: number | null = null,
@@ -128,7 +132,7 @@ document.querySelector("#app")!.innerHTML = `
 <section id="forge" class="view" hidden><p class="eyebrow">BUILDERWARS FORGE</p><h1>Change the game.</h1><p class="subtitle">Create a connect-in-a-row game. Export its rules, then put your agents to work.</p><form id="creator" class="workspace-form"><label>Game name<input id="creator-name" value="Five in the Foundry" maxlength="48" required></label><div class="settings-row"><label>Rows<input id="creator-rows" type="number" min="3" max="10" value="8" required></label><label>Columns<input id="creator-cols" type="number" min="3" max="10" value="8" required></label><label>In a row to win<input id="creator-connect" type="number" min="3" max="10" value="5" required></label></div><label class="checkbox"><input id="creator-gravity" type="checkbox">Gravity: pieces fall to the bottom</label><div class="form-actions"><button class="primary" type="submit">Create & play ↗</button><button id="export-rules" type="button">Export game</button><label class="file-button">Import game<input id="import-rules" type="file" accept="application/json,.json"></label></div><p class="muted">Game definitions contain rules only. To build a new engine or evaluation adapter, start with the open creator SDK.</p><a href="https://github.com/nymrel/builderwars/tree/main/creator_sdk" target="_blank" rel="noopener">Explore the creator SDK ↗</a></form></section>
 <section id="evals" class="view" hidden><p class="eyebrow">BUILDERWARS EVALS</p><h1>Run it back. Compare.</h1><p class="subtitle">A paired series swaps seats between games to reduce first-player advantage.</p><div class="workspace-form"><p>Uses the current game, contenders, move limit, and token limit from Arena.</p><label>Series length<select id="series-length"><option value="2">2 games · one pair</option><option value="4">4 games · two pairs</option><option value="10">10 games · five pairs</option></select></label><button id="run-series" class="primary">Run evaluation series ↗</button><p class="muted">A series may make up to games × move limit model requests. Built-in opponents are free. Model calls use your own provider account.</p><div id="series-results"><p>No series yet. Set your contenders, then run your first pair.</p></div><button id="export-series">Export evaluation</button></div></section>
 <section id="watch" class="view" hidden><p class="eyebrow">BUILDERWARS WATCH</p><h1>Bring an audience.</h1><p class="subtitle">The board, moves, model labels and timing stream directly from the host’s browser.</p><div class="workspace-form"><button id="watch-broadcast" class="primary">Broadcast my match ↗</button><p id="watch-link">Start broadcasting to create a spectator link.</p><label>Join a broadcast<input id="join-link" placeholder="Paste a BuilderWars watch link"></label><button id="join">Watch match</button><button id="leave-watch" hidden>Leave spectator mode</button><div class="divider"></div><h2>Ready for your stream</h2><p>Open the clean board view and add it as an OBS browser or window source. Your model keys and connection settings stay outside the broadcast.</p><button id="clean-view">Open stream view ↗</button><p class="muted">Live board sharing uses PeerJS and WebRTC. Viewers receive your IP address as part of the peer connection. Some networks block these connections; replay links work after a match ends. Video publishing to Twitch or YouTube is controlled in your streaming app.</p></div></section>
-<section id="academy" class="view" hidden><p class="eyebrow">BUILDERWARS ACADEMY</p><h1>Build. Play. Improve.</h1><div class="lessons"><article><span>01</span><div><h2>Start with a free match</h2><p>Quick match runs two built-in agents. Tactician looks ahead two plies; Wildcard chooses a legal move at random. Choose Human in a seat to play yourself.</p><button data-tab="arena">Enter Arena ↗</button></div></article><article><span>02</span><div><h2>Connect a frontier model</h2><p>Use your OpenRouter key to browse its current model catalog and supported reasoning efforts. Your key lives only in this tab’s memory and is sent directly to OpenRouter. Free-tier routes still require your own key and may have limits.</p><button id="learn-connect">Connect models ↗</button></div></article><article><span>03</span><div><h2>Bring your own harness</h2><p>Expose a CORS-enabled HTTPS endpoint accepting <code>builderwars.move.v1</code>. Return a legal <code>move</code> and an optional short public <code>comment</code>. Subscription clients run on your own machine through the local bridge.</p><pre>{ "move": "e2e4", "comment": "Control the center." }</pre><a href="https://github.com/nymrel/builderwars/blob/main/live-arena/README.md" target="_blank" rel="noopener">Harness & local runner guide ↗</a></div></article><article><span>04</span><div><h2>Evaluate the whole system</h2><p>Compare the same rules, move limits and token budgets. Swap seats. Repeat matches. Inspect invalid moves and latency alongside wins. A chess result measures this game and harness; it does not measure every model capability.</p><button data-tab="evals">Run a paired series ↗</button></div></article></div></section>
+<section id="academy" class="view" hidden>${academyMarkup}</section>
 <footer><span>BuilderWars · An open playground by Nymrel</span><span>Play • Create • Replay</span></footer></main></div>
 <dialog id="agent-dialog"><form id="agent-form"><div class="dialog-heading"><h2 id="agent-title">Connect a contender</h2><button id="close-dialog" type="button" aria-label="Close connections">×</button></div><label>Display name<input id="agent-name" maxlength="64" required></label><label>Connection<select id="agent-kind"><option value="bot">Built-in opponent · free</option><option value="human">Human · play on the board</option><option value="openrouter">OpenRouter · your models and key</option><option value="harness">Your harness / local subscription bridge</option></select></label><div id="bot-fields"><label>Opponent<select id="bot-model"><option value="tactician">Tactician · two-ply search</option><option value="random">Wildcard · random legal moves</option></select></label></div><div id="model-fields" hidden><div class="settings-row"><label>Find model<input id="model-search" placeholder="Search provider or model"></label><label class="checkbox"><input id="free-models" type="checkbox">Free routes</label></div><label>Model<select id="model-id"></select></label><p id="catalog-status" class="muted"></p><button id="refresh-models" type="button">Refresh catalog</button><label>Reasoning effort<select id="effort"><option>default</option></select></label><p id="model-price" class="muted"></p></div><div id="harness-fields" hidden><label>Move endpoint<input id="harness-url" type="url" placeholder="https://your-harness.example/move"></label><label>Model / harness label<input id="harness-model" maxlength="160" placeholder="Your configured model"></label><label>Requested effort<input id="harness-effort" maxlength="20" placeholder="default"></label><p class="muted">The endpoint must allow this site’s origin. Local bridge: http://127.0.0.1:8765/move. Its model is configured when you start it.</p></div><div id="key-fields" hidden><label id="key-label">Key / local connection token<input id="agent-key" type="password" autocomplete="off" spellcheck="false"></label><p class="muted">Kept in this tab’s memory. Never saved with profiles, replays or broadcasts.</p></div><label>Builder strategy<textarea id="strategy" maxlength="1000" rows="3" placeholder="A short strategy or system prompt for your agent"></textarea></label><p id="dialog-status" role="status"></p><div class="form-actions"><button type="submit" class="primary">Use contender ↗</button><button id="forget-key" type="button">Forget key</button><button id="export-agent" type="button">Export profile</button></div></form></dialog>`;
 
@@ -449,7 +453,7 @@ $("harness-fields").insertAdjacentHTML(
 );
 $("strategy").insertAdjacentHTML(
   "afterend",
-  '<small class="muted">Public builder strategy: included in exports, replay links and live broadcasts. Never paste secrets here.</small>',
+  '<small class="muted">Builder strategy is included in local JSON exports and live broadcasts, but omitted from new public replay links. Never paste secrets here.</small>',
 );
 $("watch-link").insertAdjacentHTML(
   "afterend",
@@ -582,7 +586,7 @@ function render() {
     .forEach((b) => (b.onclick = () => humanClick(Number(b.dataset.cell))));
   $("game-title").textContent = state.rules.name;
   $("ply").textContent = `PLY ${String(state.moves.length).padStart(2, "0")}`;
-  $("match-status").textContent = state.over
+  $("match-status").textContent = isExhibitionLimit(state) ? "Move limit reached" : state.over
     ? state.winner === null
       ? "Draw"
       : `${record.agents[state.winner].name} wins`
@@ -653,7 +657,14 @@ function render() {
     b.classList.toggle("active", b.dataset.game === rules.kind);
   });
 }
-function stop(message = "Paused") {
+function interruptSeries(exit: "failed" | "stopped" = "stopped") {
+  if (!seriesRemaining) return;
+  seriesAttempts.push({ record: structuredClone(record), exit });
+  seriesRemaining = 0;
+  renderSeries();
+}
+function stop(message = "Paused", preserveSeries = false) {
+  if (!preserveSeries) interruptSeries();
   running = false;
   controller?.abort();
   controller = null;
@@ -665,8 +676,7 @@ function stop(message = "Paused") {
   if (!spectating) saveCurrent();
 }
 function reset(preserveSeries = false) {
-  if (!preserveSeries) seriesRemaining = 0;
-  stop("Ready");
+  stop("Ready", preserveSeries);
   replayPly = null;
   state = createGame(rules);
   record = freshRecord();
@@ -712,7 +722,7 @@ function commit(
   saveCurrent();
   if (state.over)
     notify(
-      `${state.reason}. ${state.winner === null ? "Draw." : record.agents[state.winner].name + " wins."}`,
+      isExhibitionLimit(state) ? `${state.reason}. No rule-complete result.` : `${state.reason}. ${state.winner === null ? "Draw." : record.agents[state.winner].name + " wins."}`,
     );
 }
 async function oneMove() {
@@ -752,7 +762,6 @@ async function oneMove() {
 async function play() {
   if (spectating || state.over) return;
   if (running) {
-    seriesRemaining = 0;
     stop();
     return;
   }
@@ -789,7 +798,7 @@ async function play() {
       await oneMove();
     } catch (e) {
       if (id !== runId) return;
-      seriesRemaining = 0;
+      interruptSeries("failed");
       stop("Connection or move error");
       notify(
         (e as Error).name === "TimeoutError"
@@ -882,7 +891,6 @@ $("step").onclick = async () => {
   }
 };
 $("reset").onclick = () => {
-  seriesRemaining = 0;
   reset();
 };
 $("flip").onclick = () => {
@@ -1155,7 +1163,7 @@ $<HTMLInputElement>("import-rules").onchange = async (e) => {
   }
 };
 function finishSeriesGame() {
-  seriesResults.push(structuredClone(record));
+  seriesAttempts.push({ record: structuredClone(record), exit: "finished" });
   seriesRemaining--;
   renderSeries();
   if (seriesRemaining > 0) {
@@ -1164,22 +1172,25 @@ function finishSeriesGame() {
     void play();
   } else {
     notify(
-      `Evaluation complete: ${seriesResults.length} games. Open Evals for results.`,
+      `Evaluation ended: ${seriesAttempts.length} attempts. Open Evals for completed results and limits.`,
     );
   }
 }
 function renderSeries() {
-  $("series-results").innerHTML =
-    `<h2>${seriesResults.length} / ${seriesTotal} games complete</h2><div class="results-table">${seriesResults
-      .map((r, i) => {
-        const s = replay(r).state;
-        return `<p><span>Game ${i + 1}</span><strong>${esc(s.over ? (s.winner === null ? "Draw" : r.agents[s.winner].name + " wins") : "Move limit")}</strong><small>${r.events.length} plies</small></p>`;
-      })
-      .join(
-        "",
-      )}</div><p class="muted">Seat order is stored in every match. Model names are reported by the connected provider or harness. These are local exhibitions.</p>`;
+  const summary = summarizeSeries(seriesAttempts, seriesTotal);
+  const entrants = seriesAttempts[0]?.record.agents;
+  const number = (value: number | null, digits = 0) => value === null ? "Unknown" : value.toFixed(digits);
+  $("series-results").innerHTML = `<h2>${summary.recorded} / ${seriesTotal} attempts recorded</h2>
+    <p>${summary.completed} rule-complete games · ${summary.completePairs} complete pairs · ${summary.draws} draws</p>
+    <p>${summary.capped} capped · ${summary.failed} failed · ${summary.stopped} stopped. ${seriesRemaining > 0 ? "Series in progress." : "Series not running."}</p>
+    ${entrants ? `<p>Wins: A — ${esc(entrants[0].name)}: ${summary.wins[0]}; B — ${esc(entrants[1].name)}: ${summary.wins[1]}. A starts odd games; B starts even games.</p>` : ""}
+    <div class="results-table">${summary.games.map(g => `<p><span>Game ${g.number}</span><strong>${esc(g.outcome)}</strong><small>${g.plies} plies</small></p>`).join("")}</div>
+    <p class="muted">Accepted moves only: ${summary.acceptedPlies} plies · mean latency ${number(summary.acceptedMeanLatency)} ms · reported tokens ${number(summary.acceptedReportedTokens)} · reported cost ${summary.acceptedReportedCost === null ? "Unknown" : "$" + number(summary.acceptedReportedCost, 4)}. Failed or rejected calls may incur unrecorded usage. This is not a billing total.</p>
+    <p class="muted">Seat order and declared contenders are stored per game; move-level model labels are provider/harness reports, not identity attestations. Small samples, different rules or unequal budgets do not establish a general ranking or prove learning.</p>
+    <p class="muted">Results stay in this tab. Export before reloading or starting another series.</p>`;
+  $("academy-status").textContent = `${summary.completed} rule-complete games in the current evaluation, ${summary.completePairs} complete pairs. Inspect Evals before drawing a conclusion. No automatic training or promotion occurred.`;
 }
-$("run-series").onclick = () => {
+function runSeries() {
   if (running || pending || spectating) {
     notify("Pause or leave the current match first.");
     tab("arena");
@@ -1190,20 +1201,64 @@ $("run-series").onclick = () => {
     tab("arena");
     return;
   }
-  seriesTotal = Number($<HTMLSelectElement>("series-length").value);
+  try {
+    seriesLimits = { moveLimit: numberInput("move-limit", 2, 400), maxTokens: numberInput("max-tokens", 256, 16384) };
+    seriesTotal = numberInput("series-length", 2, 10);
+    if (![2, 4, 10].includes(seriesTotal)) throw Error("Choose 2, 4 or 10 games.");
+  } catch (error) {
+    notify((error as Error).message); tab("arena"); return;
+  }
   seriesRemaining = seriesTotal;
-  seriesResults = [];
+  seriesAttempts = [];
   renderSeries();
   reset(true);
   tab("arena");
   void play();
-};
+}
+$("run-series").onclick = runSeries;
 $("export-series").onclick = () =>
   download("builderwars-evaluation.json", {
     schema: "builderwars.evaluation.v1",
-    games: seriesResults,
+    games: seriesAttempts.map(a => a.record),
+    attempts: seriesAttempts.map(a => ({ recordId: a.record.id, exit: a.exit })),
+    requestedGames: seriesTotal,
+    limits: seriesLimits,
+    summary: summarizeSeries(seriesAttempts, seriesTotal),
+    inProgress: seriesRemaining > 0,
     seatSwap: true,
   });
+function prepareAcademy(variant: boolean) {
+  if (running || pending || spectating) {
+    $("academy-status").textContent = "Pause the current match or leave spectator mode before starting an exercise.";
+    return false;
+  }
+  const recipe = freeAcademyRecipe(variant);
+  joinGeneration++;
+  broadcast.close(); broadcastLink = ""; watchId = "";
+  $("stop-broadcast").hidden = true;
+  $("watch-link").textContent = "Start broadcasting to create a spectator link.";
+  history.replaceState(null, "", location.pathname + location.search);
+  agents = recipe.agents;
+  rules = recipe.rules;
+  $<HTMLInputElement>("move-limit").value = String(recipe.moveLimit);
+  $<HTMLInputElement>("max-tokens").value = String(recipe.maxTokens);
+  reset();
+  return true;
+}
+$("academy-pair").onclick = () => {
+  if (!prepareAcademy(false)) return;
+  $<HTMLSelectElement>("series-length").value = "2";
+  runSeries();
+};
+$("academy-variant").onclick = () => {
+  if (!prepareAcademy(true)) return;
+  $<HTMLInputElement>("creator-name").value = rules.name;
+  $<HTMLInputElement>("creator-rows").value = String(rules.rows);
+  $<HTMLInputElement>("creator-cols").value = String(rules.cols);
+  $<HTMLInputElement>("creator-connect").value = String(rules.connect);
+  $<HTMLInputElement>("creator-gravity").checked = rules.gravity;
+  tab("forge");
+};
 async function goLive() {
   if (startingBroadcast) return;
   if (spectating) {

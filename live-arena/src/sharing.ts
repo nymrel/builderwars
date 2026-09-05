@@ -1,5 +1,6 @@
 import { replay, validateRules, canonical, type RecordData, type Rules } from "./runtime";
 import type { Agent } from "./models";
+import { isExhibitionLimit, isRuleComplete } from "./outcome";
 
 type PublicSeat = { kind: Agent["kind"]; model: string; effort: string };
 export type MatchSetup = {
@@ -86,8 +87,8 @@ export function summarizeMatch(raw: RecordData) {
     return Number.isFinite(total) ? total : null;
   };
   const entrants = record.agents.map(a => a.kind === "bot" ? `Built-in · ${a.model}` : a.kind === "human" ? "Human player" : `${a.kind === "harness" ? "Harness" : "OpenRouter"} · ${a.model} · ${a.effort} effort (declared)`);
-  return { record, state, names, complete: state.over,
-    title: state.over ? state.winner === null ? "Draw" : `${names[state.winner]} wins` : "Unfinished match",
+  return { record, state, names, complete: isRuleComplete(state),
+    title: isExhibitionLimit(state) ? "Move limit reached" : state.over ? state.winner === null ? "Draw" : `${names[state.winner]} wins` : "Unfinished match",
     reason: state.over ? state.reason : "No terminal result recorded",
     entrants, plies: record.events.length, elapsedMs: record.events.reduce((n, e) => n + e.elapsed, 0),
     tokens: sumKnown("tokens"), cost: sumKnown("cost"),
