@@ -1187,6 +1187,20 @@ dialog [id$="fields"] {
   color: var(--muted, #a5afa8);
   font-weight: 400;
 }
+.match-result {
+  padding: 20px 0;
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.match-result h2 { margin: 6px 0 12px; font-size: clamp(22px, 4vw, 30px); }
+.match-result p { line-height: 1.6; }
+.result-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.result-actions button { min-height: 44px; }
+#setup-dialog { max-width: min(560px, calc(100vw - 24px)); }
+#setup-description { overflow-wrap: anywhere; line-height: 1.6; }
+.stream-view .match-result { display: none; }
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -20,6 +20,8 @@ import {
 } from "./models";
 import { Broadcast } from "./broadcast";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
+import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage,
+  freeAgents, configuredAgents, type MatchSetup, type MatchSummary } from "./sharing";
 import {
   replay,
   encodeReplay,
@@ -87,6 +89,9 @@ let library: MatchLibrary | null = null;
 let savedSource: SavedMatch["source"] = "own";
 let proofOrigin: "browser_session" | "reverified_import" = "browser_session";
 let proofExporting = false;
+let pendingSetup: MatchSetup | null = null;
+let summaryCache: { record: RecordData; plies: number; value: MatchSummary } | null = null;
+let imageExporting = false;
 let joinGeneration = 0;
 let libraryRenderTimer: ReturnType<typeof setTimeout> | null = null;
 try {
@@ -130,6 +135,102 @@ document.querySelector("#app")!.innerHTML = `
 function notify(message: string) {
   $("notice").textContent = message;
 }
+// Visual thesis: a quiet scoreline and one board-led result image, no extra dashboard.
+// Content: outcome, exact evidence level, then replay/share/runback actions.
+// Interaction: reveal on pause/result, native setup dialog, existing button feedback.
+$("notice").insertAdjacentHTML("beforebegin", `
+  <section id="match-result" class="match-result" aria-labelledby="result-title" hidden>
+    <p class="eyebrow">MATCH SNAPSHOT · EXHIBITION</p><h2 id="result-title"></h2>
+    <p id="result-detail"></p><p id="result-evidence" class="muted"></p>
+    <div class="result-actions"><button id="runback-free" class="primary">Run it back · free</button><button id="play-yourself">Play it yourself</button><button id="result-image">Download result image</button><button id="copy-caption">Copy result + replay</button><button id="copy-setup">Share this setup</button></div>
+    <p class="muted">Images and links contain public names/model labels, not strategies, comments, keys or harness addresses. Attach the downloaded image to your post; a replay link alone has no match-specific social preview.</p>
+  </section>`);
+document.body.insertAdjacentHTML("beforeend", `
+  <dialog id="setup-dialog" aria-labelledby="setup-title"><div class="dialog-heading"><h2 id="setup-title">Try this matchup</h2><button id="dismiss-setup" aria-label="Dismiss shared setup">×</button></div>
+    <p id="setup-description"></p><p class="muted">This shared matchup has not started. Your current match stays unchanged until you choose an option. Free play uses built-in opponents. Preparing the original matchup clears connection keys and prompts; connect paid contenders yourself before starting.</p>
+    <div class="result-actions"><button id="setup-free" class="primary">Play free</button><button id="setup-human">Play as human</button><button id="setup-configure">Prepare original matchup</button></div>
+  </dialog>`);
+function matchSummary() {
+  if (!summaryCache || summaryCache.record !== record || summaryCache.plies !== record.events.length)
+    summaryCache = { record, plies: record.events.length, value: summarizeMatch(record) };
+  return summaryCache.value;
+}
+function renderResult() {
+  $("match-result").hidden = record.events.length === 0 || running || pending;
+  if (!record.events.length || running || pending) return;
+  const summary = matchSummary();
+  $("result-title").textContent = summary.title;
+  $("result-detail").textContent = `${summary.record.rules.name} · ${summary.plies} plies · ${summary.reason}. Last move: ${summary.lastMove}. Reported decision time ${(summary.elapsedMs / 1000).toFixed(2)}s; accepted-move cost ${summary.cost === null ? "unknown" : `$${summary.cost.toFixed(4)}`}.`;
+  $("result-evidence").textContent = `${summary.evidence}. One match is not a general model ranking.`;
+  $("result-image").toggleAttribute("disabled", imageExporting);
+}
+function applySetup(setup: MatchSetup, mode: "free" | "human" | "configure") {
+  stop();
+  joinGeneration++;
+  broadcast.close();
+  broadcastLink = ""; watchId = ""; spectating = false;
+  $("leave-watch").hidden = true; $("rejoin-watch").hidden = true; $("stop-broadcast").hidden = true;
+  $("watch-link").textContent = "Start broadcasting to create a spectator link.";
+  history.replaceState(null, "", location.pathname + location.search);
+  rules = { ...setup.rules };
+  agents = mode === "configure" ? configuredAgents(setup) : freeAgents(mode === "human");
+  $<HTMLInputElement>("move-limit").value = String(setup.moveLimit);
+  $<HTMLInputElement>("max-tokens").value = String(setup.maxTokens);
+  reset(); tab("arena");
+  if (mode === "configure") notify("Matchup prepared with no keys, prompts or harness address. Connect contenders, then explicitly start.");
+  else { void play(); notify(mode === "human" ? "You play first. Pick a legal move on the board; Tactician is a free built-in opponent." : "New free exhibition. No paid model requests."); }
+}
+function runback(mode: "free" | "human") {
+  if (running || pending) return;
+  try {
+    applySetup(makeSetup({ ...record, agents: freeAgents() }, numberInput("move-limit", 2, 400), numberInput("max-tokens", 256, 16384)), mode);
+  } catch (error) { notify((error as Error).message); }
+}
+$("runback-free").onclick = () => runback("free");
+$("play-yourself").onclick = () => runback("human");
+$("dismiss-setup").onclick = () => $<HTMLDialogElement>("setup-dialog").close();
+for (const [id, mode] of [["setup-free", "free"], ["setup-human", "human"], ["setup-configure", "configure"]] as const) {
+  $(id).onclick = () => {
+    if (!pendingSetup) return;
+    const setup = pendingSetup;
+    pendingSetup = null;
+    $<HTMLDialogElement>("setup-dialog").close();
+    applySetup(setup, mode);
+  };
+}
+async function shareSetup() {
+  try {
+    const encoded = encodeSetup(makeSetup(record, numberInput("move-limit", 2, 400), numberInput("max-tokens", 256, 16384)));
+    await navigator.clipboard.writeText(`${location.origin}/#setup=${encoded}`);
+    notify("Setup link copied. Opening it shows a preview and never starts model calls. Keys, prompts and harness addresses are excluded.");
+  } catch (error) { notify((error as Error).message); }
+}
+$("export").insertAdjacentHTML("afterend", '<button id="share-setup-settings">Share current setup</button>');
+$("copy-setup").onclick = () => void shareSetup();
+$("share-setup-settings").onclick = () => void shareSetup();
+$("result-image").onclick = async () => {
+  if (imageExporting) return;
+  imageExporting = true; renderResult();
+  const snapshot = structuredClone(record);
+  try {
+    const blob = await resultImage(snapshot);
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = `builderwars-result-${snapshot.id}.png`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    notify("Result image downloaded. Copy the replay caption to share alongside it. Nothing was posted.");
+  } catch (error) { notify((error as Error).message); }
+  finally { imageExporting = false; renderResult(); }
+};
+$("copy-caption").onclick = async () => {
+  try {
+    const snapshot = safeReplay(record), summary = summarizeMatch(snapshot);
+    const encoded = await encodeReplay(snapshot);
+    if (encoded.length > 60000) throw Error("Replay is too large for a link. Download match JSON instead.");
+    const caption = `BuilderWars: ${summary.title} in ${summary.record.rules.name} (${summary.plies} plies).\nExhibition; rules replayed, model identity/execution not attested.\nReplay and try a free rematch: ${location.origin}/#replay=${encoded}`;
+    await navigator.clipboard.writeText(caption);
+    notify("Result caption and replay link copied. Review before posting; no post has been published.");
+  } catch (error) { notify((error as Error).message); }
+};
 // Visual thesis: the board stays dominant in the existing green/lime workspace.
 // Content: play free first; evidence is a secondary, plain-language disclosure.
 // Interaction: native disclosure and existing focus/hover feedback, no ornamental motion.
@@ -427,6 +528,7 @@ const glyphs: Record<string, string> = {
   bp: "♟",
 };
 function render() {
+  renderResult();
   document
     .querySelectorAll<HTMLButtonElement>(
       "[data-saved-replay], [data-saved-resume], [data-saved-delete]",
@@ -766,10 +868,7 @@ function humanClick(i: number) {
 $("start").onclick = () => void play();
 $("quickplay").onclick = () => {
   if (running || pending || spectating) return;
-  agents = [
-    { name: "Tactician", kind: "bot", model: "tactician", effort: "default", strategy: "", key: "", endpoint: "" },
-    { name: "Wildcard", kind: "bot", model: "random", effort: "default", strategy: "", key: "", endpoint: "" },
-  ];
+  agents = freeAgents();
   seriesRemaining = 0;
   reset();
   void play();
@@ -985,7 +1084,7 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
 };
 async function shareReplay() {
   try {
-    const encoded = await encodeReplay(record);
+    const encoded = await encodeReplay(safeReplay(record));
     if (encoded.length > 60000)
       throw Error(
         "This match is too large for a URL. Download and share its JSON file.",
@@ -993,7 +1092,7 @@ async function shareReplay() {
     const link = `${location.origin}/#replay=${encoded}`;
     await navigator.clipboard.writeText(link);
     notify(
-      "Replay link copied. Anyone with it can read moves, public comments and builder strategies.",
+      "Replay link copied. Public names, model labels and moves are included; strategies, comments, keys and endpoints are excluded.",
     );
   } catch (e) {
     notify((e as Error).message);
@@ -1272,7 +1371,16 @@ renderLibrary();
 function loadFragment() {
   const hash = location.hash;
   const fragment = new URLSearchParams(hash.slice(1));
-  if (fragment.has("watch"))
+  pendingSetup = null;
+  $<HTMLDialogElement>("setup-dialog").close();
+  if (fragment.has("setup")) {
+    try {
+      pendingSetup = decodeSetup(fragment.get("setup")!);
+      const seats = pendingSetup.entrants.map(a => a.kind === "harness" ? "Harness (connect locally)" : `${a.model} · ${a.effort} effort`).join(" vs ");
+      $("setup-description").textContent = `${pendingSetup.rules.name} · ${pendingSetup.moveLimit} move limit · ${pendingSetup.maxTokens} requested tokens/move. ${seats}`;
+      $<HTMLDialogElement>("setup-dialog").showModal();
+    } catch (error) { pendingSetup = null; notify(`Setup rejected: ${(error as Error).message}`); }
+  } else if (fragment.has("watch"))
     void join(fragment.get("watch")!).catch((e) => notify(e.message));
   else if (fragment.has("replay"))
     void decodeReplay(fragment.get("replay")!)
