@@ -30,6 +30,7 @@ import { keyboardCell } from "./board-keyboard";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
+import { PracticeMemory, supportsLearning, scoreTactics, type MemorySnapshot, type MemoryContext } from "./learning";
 import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } from "./resources";
 import { publicLinkOrigin } from "./public-links";
 import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
@@ -129,6 +130,15 @@ let rules = { ...RULES.chess },
   seriesAttempts: SeriesAttempt[] = [],
   pace = 500;
 let seriesLimits: { moveLimit: number; maxTokens: number } | null = null;
+let practiceMemory: PracticeMemory;
+try { practiceMemory = new PracticeMemory(localStorage); } catch { practiceMemory = new PracticeMemory(); }
+let learningPending: Promise<unknown> = Promise.resolve();
+let learningEpoch = 0;
+let seriesMemory: MemorySnapshot | undefined;
+let seriesMemoryEnabled = false;
+// Match IDs are designated when created here, never inferred from imported labels.
+const practiceMatches = new WeakSet<RecordData>();
+const learningReceipts: { recordId: string; ply: number; mode: MemoryContext["mode"]; digest: string; sources: string[] }[] = [];
 let currentLimits: MatchLimits | null = null;
 let contenderDeclarations = unknownDeclarations(), currentDeclarations = unknownDeclarations();
 const attemptDeclarations = new WeakMap<RecordData, MatchDeclarations>();
@@ -157,7 +167,7 @@ try {
   /* Storage is optional. */
 }
 function freshRecord(): RecordData {
-  return {
+  const next: RecordData = {
     schema: "builderwars.exhibition.v1",
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
@@ -166,6 +176,8 @@ function freshRecord(): RecordData {
     events: [],
     status: "Ready",
   };
+  if (!seriesRemaining) practiceMatches.add(next);
+  return next;
 }
 record = freshRecord();
 document.querySelector("#app")!.innerHTML = `
@@ -192,6 +204,17 @@ document.querySelector("#app")!.innerHTML = `
 function notify(message: string) {
   $("notice").textContent = message;
 }
+$("academy-status").insertAdjacentHTML("afterend", `<div class="workspace-form"><h2>Practice memory</h2><p>Completed practice matches send connected contenders lessons about immediate wins and preventable one-move losses. Supports Connect Four, tic-tac-toe and custom connect boards up to 42 cells. Chess, checkers and built-in opponents retain their current policies.</p><p id="learning-status" role="status"></p><button id="clear-learning">Clear practice memory</button><p class="muted">Lessons stay on this device and are sent with your next model or harness request. Model weights stay fixed; delivery does not prove the model followed a lesson. Imported replays and evaluation games never add lessons.</p></div>`);
+$("run-series").insertAdjacentHTML("beforebegin", '<label class="checkbox"><input id="eval-memory" type="checkbox">Use a frozen copy of practice memory for this evaluation</label><p class="muted">Unchecked runs the baseline with no practice memory. Both modes keep evaluation outcomes out of training.</p>');
+function renderLearning(message = "") {
+  $("learning-status").textContent = `${practiceMemory.episodeCount} contender-game reviews retained. ${practiceMemory.persistent ? "Saved on this device." : "Memory is available only in this tab; device storage is unavailable."} ${message}`;
+}
+$("clear-learning").onclick = () => {
+  learningEpoch++;
+  practiceMemory.clear();
+  renderLearning("Cleared. An evaluation already in progress retains its frozen snapshot.");
+};
+renderLearning();
 // Visual thesis: a quiet scoreline and one board-led result image, no extra dashboard.
 // Content: outcome, exact evidence level, then replay/share/runback actions.
 // Interaction: reveal on pause/result, native setup dialog, existing button feedback.
@@ -829,9 +852,18 @@ function commit(
   broadcast.publish(record);
   saveCurrent();
   if (state.over)
+  {
+    if (practiceMatches.has(record) && supportsLearning(state.rules)) {
+      practiceMatches.delete(record);
+      const finished = structuredClone(record), contenders = structuredClone(agents), epoch = learningEpoch;
+      learningPending = learningPending.then(() => epoch === learningEpoch ? practiceMemory.remember(finished, contenders) : 0)
+        .then(added => { if (epoch === learningEpoch) renderLearning(`${added} tactical mistakes recorded from the latest completed practice game.`); })
+        .catch(() => { if (epoch === learningEpoch) renderLearning("This game did not qualify for practice memory."); });
+    }
     notify(
       isExhibitionLimit(state) ? `${state.reason}. No rule-complete result.` : `${state.reason}. ${state.winner === null ? "Draw." : record.agents[state.winner].name + " wins."}`,
     );
+  }
 }
 async function oneMove() {
   if (
@@ -852,14 +884,26 @@ async function oneMove() {
   pending = true;
   render();
   try {
+    await learningPending;
+    if (id !== runId) return;
+    const memory = await practiceMemory.context(config, state.rules,
+      seriesRemaining ? "frozen-evaluation" : "practice",
+      seriesRemaining ? seriesMemory ?? { schema: "builderwars.practice-memory.v1", episodes: [] } : undefined);
+    if (id !== runId) return;
     const decision = await decide(
       state,
       config,
       tokens,
       controller.signal,
       models,
+      memory,
     );
     if (id !== runId) return;
+    if (memory) {
+      learningReceipts.push({ recordId: record.id, ply: state.moves.length + 1, mode: memory.mode, digest: memory.digest, sources: memory.sources });
+      if (learningReceipts.length > 4000) learningReceipts.shift();
+      renderLearning(`Last accepted request included ${memory.sources.length} prior practice game(s), context ${memory.digest.slice(0, 12)}. Behavior improvement remains unmeasured.`);
+    }
     commit(decision.move, decision);
   } finally {
     if (id === runId) {
@@ -1452,12 +1496,15 @@ function finishSeriesGame() {
 }
 function renderSeries() {
   const summary = summarizeSeries(seriesAttempts, seriesTotal);
+  const tactics = scoreTactics(seriesAttempts.map(a => a.record));
   const entrants = seriesAttempts[0]?.record.agents;
   const number = (value: number | null, digits = 0) => value === null ? "Unknown" : value.toFixed(digits);
   $("series-results").innerHTML = `<h2>${summary.recorded} / ${seriesTotal} attempts recorded</h2>
     <p id="series-conditions">${seriesRules ? `${esc(seriesRules.name)} · ${esc(seriesRules.kind)} · ${seriesRules.rows} × ${seriesRules.cols}${seriesRules.connect ? ` · connect ${seriesRules.connect} · ${seriesRules.gravity ? "gravity" : "no gravity"}` : ""}` : "Rules unavailable"}. ${limitsLabel(seriesLimits)}. Each game starts from the standard initial position; seats swap. Built-in randomness is unseeded; model sampling and external harness versions are not controlled or attested. This is a paired exhibition, not a matched-seed benchmark.</p>
+    <p>Practice memory: ${seriesMemoryEnabled ? "frozen at series start" : "off (baseline)"}. Evaluation outcomes never update memory.</p>
     <p class="muted">Rule engine: builderwars-board-js/1 · <span title="${refereeManifest.digest}">${refereeManifest.digest.slice(0, 12)}…</span>. Full digest is included in the evaluation export.</p>
     <p>${summary.completed} rule-complete games · ${summary.completePairs} complete pairs · ${summary.draws} draws</p>
+    <p>Tactical review: ${tactics.reviewedGames} complete connect games; ${tactics.excludedGames} unsupported, incomplete or invalid attempts excluded. ${tactics.contenders.map((c, i) => `${i ? "B" : "A"}: ${c.missedWins} missed wins, ${c.avoidableLosses} avoidable immediate losses across ${c.decisions} decisions`).join(". ")}.</p>
     <p>${summary.capped} capped · ${summary.failed} failed · ${summary.stopped} stopped. ${seriesRemaining > 0 ? "Series in progress." : "Series not running."}</p>
     ${entrants ? `<p>Wins: A — ${esc(entrants[0].name)}: ${summary.wins[0]}; B — ${esc(entrants[1].name)}: ${summary.wins[1]}. A starts odd games; B starts even games.</p>` : ""}
     <div class="results-table">${summary.games.map(g => `<p><span>Game ${g.number}</span><strong>${esc(g.outcome)}</strong><small>${g.plies} plies</small></p>`).join("")}</div>
@@ -1486,6 +1533,8 @@ function runSeries() {
     notify((error as Error).message); tab("arena"); return;
   }
   seriesLimits = nextLimits;
+  seriesMemoryEnabled = $<HTMLInputElement>("eval-memory").checked;
+  seriesMemory = seriesMemoryEnabled ? practiceMemory.snapshot() : undefined;
   seriesRules = structuredClone(rules);
   seriesTotal = nextTotal;
   seriesRemaining = seriesTotal;
@@ -1511,6 +1560,10 @@ $("export-series").onclick = async () => {
     summary: summarizeSeries(seriesAttempts, seriesTotal),
     inProgress: seriesRemaining > 0,
     seatSwap: true,
+    learning: { mode: seriesMemoryEnabled ? "frozen-practice-memory" : "baseline-no-memory", updatesFromEvaluation: false,
+      snapshot: seriesMemory ?? null,
+      tactics: scoreTactics(seriesAttempts.map(a => a.record)),
+      acceptedRequestContexts: learningReceipts.filter(r => seriesAttempts.some(a => a.record.id === r.recordId)) },
   }, "evaluation"); }
   catch (error) { notify((error as Error).message); }
 };

@@ -1,13 +1,7 @@
 # BuilderWars lane presence
 
-Active — Codex, 2026-09-05 06:05 UTC. Native file transfer validation/checkpoint.
-Claim `codex-builderwars-native-files-20260905` owns live-arena, this mirror and
-docs/BUILDERWARS_THREE_PLATFORM_EXECUTION.md. Referee/proof/runtime unchanged.
-Prior ba9371e CI33947790323 is SUCCESS; actual screenshot confirms header clearance.
-New native cache/share and import-race changes pass 88 Node tests and reviewed
-foreground-generation repair. Full browser gates completing; new native plugin
-compile awaits push. No production/store changes. Learning-loop owner is waiting
-for this exact claim release before integrating our candidate in another worktree.
+Open - last used by Codex, 2026-09-05 06:26 UTC. Learning candidate checkpoint.
+Replay-verified connect-game practice memory, actual request delivery, frozen evaluation and tactical diagnostics completed. Base6eaaba1; learning delta Fable5.1 approved, Node103/bridge9 and browser/native synthetic flows passed. Bus claims codex-builderwars-game-learning-20260905 and codex-builderwars-learning-bridge-20260905 are released at handoff; bus is authoritative until then. Production integration remains with the BuilderWars thread. No provider performance or store claim.
 
 ## Historical lane notes (current status above and authoritative bus supersede)
 Claims `codex-builderwars-match-package-20260905` and
