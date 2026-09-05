@@ -7,8 +7,9 @@ BuilderWars project/team; canonical https://builderwars.com. Exact candidate
 1ca032e passed all five required jobs in CI33960005977; merged-source CI33960411858
 also passed all five. Cross-family receipt
 `builderwars-beta-1ca032e/1` approved the committed diff; resolved model metadata
-lists claude-fable-5-1 and claude-haiku-4-5-20251001. This does not approve the new
-uncommitted learning experiment or recover the previous timed-out review.
+lists claude-fable-5-1 and claude-haiku-4-5-20251001. That release review excludes
+the later learning experiment committed in PR35 and does not recover the previous
+timed-out review. PR35 has a separate source-review receipt and CI gate.
 
 Upload used `git archive` of the merged SHA, with an identical tree to the
 reviewed candidate, extracted under output/playwright/release-5f92f990-20260905.

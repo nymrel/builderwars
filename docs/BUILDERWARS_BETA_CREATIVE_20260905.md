@@ -92,6 +92,17 @@ prices or call extra prompt text a higher provider reasoning-effort setting.
 
 ## Release/readiness and next action
 
+Current September5 checkpoint: PR34 merged/released5f92f990; exact candidate and
+main CI passed all five jobs and a new Fable review approved that source. Outcome
+artwork is fixed and both genuine replays recaptured on canonical production;
+see BUILDERWARS_RESULT_CARD_20260905.md. The frozen-memory diagnostic is now
+complete: baseline3/12 versus memory2/12, no uplift; see the experiment receipt.
+PR35 contains the manual diagnostic and documentation, not new application code.
+Its source review approved8d66404; iOS launch CI remains unresolved. No social
+posts or external adoption observations are claimed. Next: diagnose the exact
+iOS failure, finish the contrast/capability evidence gaps and reconcile the beta
+acceptance record before new feature work. Historical pre-release status follows.
+
 PR33 documentation/recorder update merged as fabe467 after all five exact640d955
 checks passed (iOS on one unchanged rerun; initial timeout retained). This new
 runner/capture/draft increment still needs its own integration checks. Public
@@ -109,7 +120,7 @@ neither was model output. After dispatch, X copy was shortened editorially to
 leave room for both replay links (219/224/209 ordinary characters before links;
 actual platform composer validation still required before posting).
 
-Next: integrate this tested artifact increment, then fix long-name outcome artwork
+Historical next action (superseded by the checkpoint above): integrate this tested artifact increment, then fix long-name outcome artwork
 and run the separately specified held-out learning comparison. External adoption
 observations remain unavailable as recorded in the release receipt. Creative
 draft readiness is not audience response, virality or measured learning.

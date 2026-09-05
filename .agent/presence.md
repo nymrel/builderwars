@@ -1,5 +1,15 @@
 # BuilderWars lane presence
 
+Open last used by Codex, September5, diagnostic closeout. Source review of PR35
+8d66404 approved by Fable; four optional wording clarifications applied. Actual
+memory result remains3/12 baseline versus2/12 reminders, no uplift. CI33960895197
+has four passing jobs and an unresolved60second iOS simulator launch timeout.
+No merge/check bypass or diagnostic deployment. Production remains verified
+5f92f990. All owned inference processes stopped; no more model calls planned.
+Remaining beta audit gaps: status reconciliation/ranked backlog, contrast receipt,
+and one dated owned-infrastructure capability preflight. Goal remains active.
+Exact bus claim controls writes until released; this mirror does not extend it.
+
 Codex frozen-memory experiment checkpoint, September5. Exact live claim
 `codex-builderwars-learning-experiment-20260905`: root owns docs/runtime/evidence;
 beta_completion_audit owns only scripts/learning-comparison.ts and its unit test.

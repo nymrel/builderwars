@@ -16,6 +16,15 @@ Do not replace these games with hand-authored successes. The plain contender
 missed a win at ply5/game1 and a block at ply4/game2. Use its unchanged profile
 and the production PracticeMemory analyzer/context, frozen before evaluation.
 The opponent's tactical assistance in practice is part of this source's history.
+The frozen snapshot contains both profiles, including the tactical opponent's
+game1/ply4 mistake. Filtering by the unchanged plain profile supplies only its
+two lessons; snapshot and filtered-context digests describe different objects.
+
+This experiment tests the production-generated reminder text appended to a
+local chat request's user message. Production OpenRouter also appends this text
+to its user message, but the custom-harness protocol sends a `practiceMemory`
+field which the harness must consume. This is not end-to-end proof of an
+arbitrary customer's harness delivery path or of a frontier provider's response.
 
 ## Fixed diagnostic design
 
@@ -85,6 +94,8 @@ receipt-file hash; serialization is explicit.
 
 Executed clean source b7c1da11583b0dfa70818ea2d2d4241d4520abfc, runner SHA256
 3721a019dc9df9712949037815271edf37b3e40f592ea9f0c73b1b685eda3082.
+The runner is byte-identical at reviewed head8d66404c52752cb6060393539b5119bf10781be6:
+the Git diff is empty and a fresh SHA256 matches the execution hash above.
 Seven synthetic runner tests,144total Node tests, type checks and build passed.
 Independent bounded pre-run review approved the source/fixture/containment
 contract; test success alone is not the actual model result.
@@ -104,6 +115,14 @@ After completion root verified PID, creation time and executable before stopping
 only58036; process and8088listener were independently absent. Logs retained in
 output/playwright/learning-runtime-20260905-1029. No cloud calls or dollars paid.
 Hardware/electricity cost remains unknown.
+
+Cross-family source review `builderwars-beta-1ca032e/2` approved8d66404, resolved
+model claude-fable-5-1; receipt is retained in StudioData/artifacts/fable-roundtrip.
+The wording clarifications above address its four optional documentation notes.
+CI33960895197 passed Windows/Linux verification, browser and Android, but iOS
+simulator launch exceeded60seconds. This is a separate unresolved integration
+gate, not a failed model experiment or evidence of its underlying cause. No
+blocking check was bypassed and this manual diagnostic is not deployed.
 
 Next product action: keep learning claims limited to retained reminders. Design
 an opt-in versioned harness improvement against a fresh held-out set, with any
