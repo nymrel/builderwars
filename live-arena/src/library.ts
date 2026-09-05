@@ -1,5 +1,6 @@
 import { replay, type RecordData } from "./runtime";
 import { readDeclarations, type MatchDeclarations } from "./match-package";
+import { validateExhibition, type Exhibition } from "./exhibition";
 
 export const LIBRARY_PREFIX = "builderwars.match.v1:";
 export const LIBRARY_OPT_OUT = "builderwars.match.opt-out";
@@ -16,6 +17,7 @@ export type SavedMatch = {
   moveLimitKnown?: boolean;
   declarations?: MatchDeclarations;
   resourceSnapshotPresent?: boolean;
+  exhibition?: Exhibition;
   key: string;
 };
 type StorageLike = Pick<
@@ -24,6 +26,10 @@ type StorageLike = Pick<
 >;
 const validWatchId = (id: string) => /^[a-zA-Z0-9_-]{1,100}$/.test(id);
 const completed = new WeakMap<RecordData, boolean>();
+function sameExhibitionRecord(a: RecordData, b: RecordData) {
+  // UI pause/lifecycle status is mutable; all actual replay content is bound.
+  return JSON.stringify({ ...a, status: "" }) === JSON.stringify({ ...b, status: "" });
+}
 
 /** Only validated public evidence is retained. Never pass runtime Agent settings. */
 export class MatchLibrary {
@@ -77,11 +83,14 @@ export class MatchLibrary {
           continue;
         const { record, state } = replay(raw.record);
         const declarations = raw.declarations === undefined ? undefined : readDeclarations(raw.declarations);
+        const exhibition = raw.exhibition === undefined ? undefined : validateExhibition(raw.exhibition);
+        if (exhibition && (raw.source !== "replay" || !sameExhibitionRecord(record, exhibition.record))) continue;
         if (key !== this.entryKey(raw.source, record.id)) continue;
         const entry = {
           key,
           record,
           ...(declarations === undefined ? {} : { declarations }),
+          ...(exhibition === undefined ? {} : { exhibition }),
           resourceSnapshotPresent: raw.resourceSnapshotPresent === true,
           savedAt: raw.savedAt,
           source: raw.source,
@@ -116,10 +125,13 @@ export class MatchLibrary {
     moveLimitKnown = false,
     declarations?: MatchDeclarations,
     resourceSnapshotPresent = moveLimitKnown || maxTokens !== undefined,
+    exhibition?: Exhibition,
   ) {
-    if (!this.enabled() || !record.events.length) return false;
+    if (!this.enabled() || (!record.events.length && !exhibition)) return false;
     const parsed = replay(record);
     const clean = parsed.record;
+    const evidence = exhibition === undefined ? undefined : validateExhibition(exhibition);
+    if (evidence && (source !== "replay" || !sameExhibitionRecord(clean, evidence.record))) throw Error("Saved exhibition does not match its replay.");
     if (!Number.isInteger(moveLimit) || moveLimit < 2 || moveLimit > 400)
       throw Error("Invalid saved match limit.");
     if (watchId && !validWatchId(watchId))
@@ -130,6 +142,7 @@ export class MatchLibrary {
     const envelope = {
       record: clean,
       ...(declarations === undefined ? {} : { declarations: readDeclarations(declarations) }),
+      ...(evidence === undefined ? {} : { exhibition: evidence }),
       resourceSnapshotPresent,
       savedAt: this.now(),
       source,
@@ -212,7 +225,7 @@ export class MatchLibrary {
 export function canResume(saved: SavedMatch) {
   const over = completed.get(saved.record) ?? replay(saved.record).state.over;
   return (
-    saved.source === "own" &&
+    saved.source === "own" && !saved.exhibition &&
     !over &&
     saved.record.events.length < saved.moveLimit &&
     saved.record.agents.every(
