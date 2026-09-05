@@ -1,7 +1,8 @@
 # BuilderWars lane presence
 
-Active Codex, 2026-09-05 UTC. Native lifecycle and packaged-mobile foundation.
-Claim `codex-builderwars-native-lifecycle-20260905`; recheck the bus before writes.
+Open — last used by Codex, 2026-09-05 05:18 UTC. Native foundation checkpoint.
+Claims `codex-builderwars-native-lifecycle-20260905` and `codex-builderwars-native-ci-20260905`
+are being released; recheck authoritative bus and reclaim before writes.
 Branch `codex/builderwars-portable-proof-20260904` in this named worktree.
 Scope: live-arena, docs/BUILDERWARS_THREE_PLATFORM_EXECUTION.md and this mirror.
 CI has the separate `codex-builderwars-native-ci-20260905` claim.
@@ -23,7 +24,10 @@ Three-platform expansion contract: docs/BUILDERWARS_THREE_PLATFORM_EXECUTION.md.
 Independent bounded review found three defects; fixed and re-reviewed without remaining findings.
 Native lifecycle, packaged CSP and generated Android/iOS projects locally pass.
 Two native review findings repaired and rechecked; no remaining findings in that bounded review.
-Native build jobs configured; no native binary, device, signing or store receipt yet.
+Native Android debug and unsigned iOS compilation pass. iPhone simulator process
+launch succeeded once, but its captured screen was blank. Latest launch/log
+capture timed out; native rendering gate remains unresolved. See three-platform
+execution guide for exact run IDs; no physical-device, release signing or store proof.
 Cross-family review arrived for e3a56b6 through the mailbox; see review resolution guide.
 Two direct Fable attempts timed out; do not loop that route or count timeout as approval.
 Later material changes still require review; real customer-client smoke is conditional.

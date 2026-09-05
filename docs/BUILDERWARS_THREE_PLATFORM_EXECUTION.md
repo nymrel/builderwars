@@ -204,3 +204,36 @@ timed out after 60 seconds following successful boot. No app launch is certified
 The next bounded attempt logs stages/device identity, allows 180 seconds for
 installation, and retains the compiled archive plus failure receipt even when
 the launch gate fails. There is no retry loop or skipped launch check.
+
+### Native runtime checkpoint — September 4, 2026, 22:18 PDT
+
+At `897813245ddfe1f301503b9a8cf99aead7545495`, all CI jobs passed in
+[run33946059512](https://github.com/nymrel/builderwars/actions/runs/33946059512).
+iPhone17Pro/iOS26.2 installed in120seconds and returned an app process ID.
+However, inspection of `launch.png` found a completely white app area. This is
+process-launch proof only, not successful rendering or user flows.
+
+Candidate `90b3b749ff5d00720499db3de214fd0b74534fe6` strengthens that check with a
+later screenshot, Apple Vision initial-screen text assertion and bounded native
+logs before cleanup. [Run33946528993](https://github.com/nymrel/builderwars/actions/runs/33946528993)
+passed Windows/Linux tests/build, browser gates and Android debug compilation.
+iOS compilation passed, but `simctl launch` timed out at60seconds and log capture
+at30seconds; the later frame/OCR never ran. The iOS job and complete run are FAILED.
+No rendering or OCR success is claimed and the gate is not disabled.
+
+Retained artifacts use merge checkout `2301e7f4e525e26b350705067de184d05eb7808b`:
+Android ID9963516348, archive SHA256
+`b6a5d5bd69b2e4ac6d372c72549a6fe74db4eefd27ae16c4ad3202a3d1036999`;
+iOS ID9963566842, archive SHA256
+`e1815eb2eb734aed546e5fdcdd9eef188a3c6a622bc2a2a6d91c17a96acb0d8c`.
+They expire after seven days. Local receipts/earlier screenshot are under
+`live-arena/output/playwright/native-ci-33946059512` and `native-ci-33946528993`.
+
+Do not expand the timeout/retry loop without new evidence. Source inspection
+finds matching packaged HTML/assets and expected default local scheme, not a
+confirmed cause. Next native diagnostic: capture actual runner/binary architecture,
+simulator platform/minimum, and installation/navigation logs on a usable host
+before shutdown. Preserve CSP, SRI, referee digest and signing until evidence
+identifies a failing stage. No operator-only blocker is inferred from this CI
+runtime failure. Continue independent native file-flow/metadata work while
+runtime diagnosis is held; do not call native release ready.
