@@ -1,5 +1,12 @@
 # Why repeated games do not currently guarantee improvement
 
+September5 empirical follow-through: a predeclared twelve-position test using
+two lessons from the retained actual local Qwen1.5B games found no benefit:
+baseline3/12 correct, frozen memory2/12,24calls with no failures/caps. See
+[the complete experiment](BUILDERWARS_MEMORY_EXPERIMENT_20260905.md) for held-out
+symmetry exclusions, paired transitions, limits and immutable receipts. This is
+a small diagnostic, not proof of a general negative effect or frontier results.
+
 Source inspected: deployed application tree `d0873da18dfeeda1062cdce5e503c82aa804d904`;
 pending documentation/test head `640d955e21df6da9969ebd42622a46b952ac4193` has no
 application changes. September 5, 2026. No claim of a reproduced customer session.
@@ -23,8 +30,9 @@ application changes. September 5, 2026. No claim of a reproduced customer sessio
   a snapshot; outcomes never update it. This prevents learning from the test set.
 - A request receipt proves context was attached, not that the model obeyed it.
   A customer-local harness receives `practiceMemory` and must actually consume it.
-  No before/after real-model uplift has been established by existing persistence,
-  referee, mock-response or browser tests.
+  No real-model uplift has been established. Persistence, referee, mock-response
+  and browser tests prove their own mechanics; the separate actual diagnostic
+  above showed no benefit on its small tactical set.
 
 This makes the user's observation consistent with the current implementation.
 Playing more games alone cannot turn the current chess contender into a stronger
