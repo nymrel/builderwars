@@ -262,3 +262,58 @@ This is initial rendering evidence only. Gameplay, files/sharing, native keyboar
 safe areas after rotation, physical devices, signing and store acceptance remain
 separate outstanding gates. Web and Android debug jobs passed in this run;
 the overall run is still FAILED, not an accepted native release.
+
+### Safe-area proof and native file handoffs — September 4, 23:05 PDT
+
+[Run 33947790323](https://github.com/nymrel/builderwars/actions/runs/33947790323)
+is SUCCESS for head `ba9371e3db75a525642c02c059b4942d08d4330b` across all five jobs.
+The iPhone 17 Pro/iOS 26.2 settled screenshot was inspected independently: the
+BuilderWars header and Connect models control now clear the Dynamic Island.
+The original OCR check passed. This supersedes the pending safe-area result
+above, not the still-unverified physical-device/gameplay gates. The safe-area
+band remains white and needs visual polish with status-icon contrast checks.
+Merge checkout: `a86e075dee21825172bd844e8dc46b7af78ea280`.
+iOS artifact ID `9963922066`, archive SHA256
+`7b99b07c6130b6d0964c5e933ad26f88c66c94003dec8da8926594fcd850f366`.
+
+The next candidate adds native file handoffs using pinned Capacitor Filesystem
+8.1.3 and Share 8.0.1. Web downloads remain browser downloads. Native profile,
+replay, match package, proof, matching verifier, result PNG, rules and evaluation
+exports use app-private cache files and the platform share sheet. Native replay,
+caption and setup links use text sharing. No arbitrary URI reads or external
+storage permission is introduced. The iOS file-timestamp privacy reason C617.1
+is declared only for app-cache aging, following the
+[Filesystem guidance](https://capacitorjs.com/docs/apis/filesystem); this is not
+a completed store privacy questionnaire or legal attestation.
+
+Transfer constraints:
+
+- Per-format byte ceilings: profile 8,192; replay/rules 350,000; proof/verifier
+  1,500,000; image/evaluation 8 MiB; shared text 100,000 UTF-8 bytes.
+- Only `builderwars-exports/` cache files with generated owned names are removed.
+  Unshared or explicitly cancelled files are cleaned immediately. Successful or
+  ambiguous handoffs remain for receiving apps; cleanup expires owned files after
+  24 hours on the next export. Capacity is 32 files/64 MiB, including failed cleanup.
+- A closed [Share sheet](https://capacitorjs.com/docs/apis/share) is not proof of
+  saving or publication. Messages explicitly preserve that uncertainty.
+- One handoff at a time. Backgrounding invalidates preparations even after resume;
+  paused gameplay never auto-restarts. Async PNG/proof/verifier/link preparation
+  also observes this lifecycle generation.
+- JSON and proof imports reject stale async completion after a new match, newer
+  import or changed Forge draft; malformed UTF-8 is rejected and inputs reset.
+- Public proof/package/link serializers retain their existing privacy boundaries.
+  Legacy replay and profile files deliberately include disclosed strategy text;
+  users must inspect free-form text for secrets. Credentials are never serialized.
+
+Validation includes 88 Node tests, web build, native build/sync, synthetic official
+JS-plugin dispatch for all formats, standalone verification of native-produced
+proof, clean web package round-trip, cancellation/write-failure/ambiguous handoff,
+overlap and pause/resume races, and slow import regressions. Independent source
+review found the foreground-generation race; repaired and accepted on re-review.
+The full local gates also pass: 6 bridge tests, 11 Chromium journeys, Firefox and
+WebKit proof, 4 packaged synthetic journeys and 3 simulator-harness tests.
+Production dependency audit reports zero vulnerabilities. Actual compile with
+the new native plugins is pending the candidate CI run.
+Synthetic dispatch is not an actual OS file picker, share sheet, recipient-app,
+physical-device, signed tester build or store acceptance receipt. These remain
+required before native launch. No production, domain, signing or store change.

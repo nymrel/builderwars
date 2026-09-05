@@ -1,6 +1,7 @@
 import "./style.css";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
+import { FileTransfer, webDownload, transferMessage, boundedResponse, EXPORT_LIMITS, type ExportKind } from "./file-transfer";
 import { bindNativeLifecycle, validateNativeEndpoint } from "./native-lifecycle";
 import {
   RULES,
@@ -40,7 +41,6 @@ import {
   replay,
   encodeReplay,
   decodeReplay,
-  download,
   type RecordData,
   createProof,
   verifyProof,
@@ -51,12 +51,37 @@ import {
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const isNativeApp = Capacitor.isNativePlatform();
+const fileTransfer = new FileTransfer({
+  native: isNativeApp ? async () => (await import("./file-transfer-native")).nativeFilePort : undefined,
+  webDownload, active: () => nativeReady && nativeActive, epoch: () => nativeEpoch,
+});
 let nativeReady = !isNativeApp, nativeActive = true;
+let nativeEpoch = 0;
 let disposeNative: (() => Promise<void>) | undefined;
 function ensureDeviceReady(agent?: Agent) {
   if (isNativeApp && (!nativeReady || !nativeActive))
     throw Error("Mobile lifecycle protection is not ready. Return to the app or restart it before playing.");
   if (agent) validateNativeEndpoint(agent.kind, agent.endpoint, isNativeApp);
+}
+async function exportPublicFile(name: string, blob: Blob, kind: ExportKind) {
+  if (isNativeApp) {
+    ensureDeviceReady();
+    if (running || pending || seriesRemaining) stop("Paused for file export");
+  }
+  const outcome = await fileTransfer.export(name, blob, kind);
+  notify(transferMessage(outcome));
+  return outcome;
+}
+function exportJson(name: string, value: unknown, kind: ExportKind) {
+  // Serialize now, before a native share sheet can pause or mutate the match.
+  return exportPublicFile(name, new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }), kind);
+}
+async function copyOrNativeShare(text: string, copiedMessage: string) {
+  if (isNativeApp) {
+    ensureDeviceReady();
+    if (running || pending || seriesRemaining) stop("Paused for sharing");
+    notify(transferMessage(await fileTransfer.shareText(text)));
+  } else { await navigator.clipboard.writeText(text); notify(copiedMessage); }
 }
 const esc = (s: unknown) =>
   String(s).replace(
@@ -234,8 +259,7 @@ for (const [id, mode] of [["setup-free", "free"], ["setup-human", "human"], ["se
 async function shareSetup() {
   try {
     const encoded = encodeSetup(makeSetup(record, currentLimits?.moveLimit ?? numberInput("move-limit", 2, 400), currentLimits?.maxTokens ?? numberInput("max-tokens", 256, 16384)));
-    await navigator.clipboard.writeText(`${publicLinkOrigin(location.origin)}/#setup=${encoded}`);
-    notify("Setup link copied. Opening it shows a preview and never starts model calls. Keys, prompts and harness addresses are excluded.");
+    await copyOrNativeShare(`${publicLinkOrigin(location.origin)}/#setup=${encoded}`, "Setup link copied. Opening it shows a preview and never starts model calls. Keys, prompts and harness addresses are excluded.");
   } catch (error) { notify((error as Error).message); }
 }
 $("export").insertAdjacentHTML("afterend", '<button id="share-setup-settings">Share current setup</button>');
@@ -245,23 +269,23 @@ $("result-image").onclick = async () => {
   if (imageExporting) return;
   imageExporting = true; renderResult();
   const snapshot = structuredClone(record);
+  const check = fileTransfer.preparationGuard();
   try {
     const blob = await resultImage(snapshot);
-    const url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = `builderwars-result-${snapshot.id}.png`; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    notify("Result image downloaded. Copy the replay caption to share alongside it. Nothing was posted.");
+    check();
+    await exportPublicFile(`builderwars-result-${snapshot.id}.png`, blob, "image");
   } catch (error) { notify((error as Error).message); }
   finally { imageExporting = false; renderResult(); }
 };
 $("copy-caption").onclick = async () => {
+  const check = fileTransfer.preparationGuard();
   try {
     const snapshot = safeReplay(record), summary = summarizeMatch(snapshot);
     const encoded = await encodeReplay(snapshot);
+    check();
     if (encoded.length > 60000) throw Error("Replay is too large for a link. Download match JSON instead.");
     const caption = `BuilderWars: ${summary.title} in ${summary.record.rules.name} (${summary.plies} plies).\nExhibition; rules replayed, model identity/execution not attested.\nReplay and try a free rematch: ${publicLinkOrigin(location.origin)}/#replay=${encoded}`;
-    await navigator.clipboard.writeText(caption);
-    notify("Result caption and replay link copied. Review before posting; no post has been published.");
+    await copyOrNativeShare(caption, "Result caption and replay link copied. Review before posting; no post has been published.");
   } catch (error) { notify((error as Error).message); }
 };
 // Visual thesis: the board stays dominant in the existing green/lime workspace.
@@ -1175,8 +1199,8 @@ function declarationFromForm() {
 }
 $("export").insertAdjacentHTML("afterend", '<button id="export-package">Download match package</button><p class="muted">Match package: public attribution, requested limits, replay and verifier digest. Strategies and comments are omitted. Model execution and identity are not attested.</p>');
 $("export-package").insertAdjacentHTML("afterend", '<section aria-label="Match attribution"><h3>Match attribution · self-declared</h3><p id="match-attribution" class="muted" style="overflow-wrap:anywhere;white-space:pre-line"></p></section>');
-$("export-package").onclick = () => {
-  try { download(`builderwars-${record.id}.package.json`, makeMatchPackage(record, currentDeclarations, currentLimits)); }
+$("export-package").onclick = async () => {
+  try { await exportJson(`builderwars-${record.id}.package.json`, makeMatchPackage(record, currentDeclarations, currentLimits), "replay"); }
   catch (error) { notify((error as Error).message); }
 };
 $("import-agent").onclick = () => $<HTMLInputElement>("profile-file").click();
@@ -1242,27 +1266,27 @@ $<HTMLFormElement>("agent-form").onsubmit = (e) => {
   $<HTMLDialogElement>("agent-dialog").close();
   reset();
 };
-$("export-agent").onclick = () => {
-  try { download("builderwars-agent.json", makeProfile(agentFromForm())); }
+$("export-agent").onclick = async () => {
+  try { const outcome = await exportJson("builderwars-agent.json", makeProfile(agentFromForm()), "profile"); $("dialog-status").textContent = transferMessage(outcome); }
   catch (error) { $("dialog-status").textContent = (error as Error).message; }
 };
-$("export").onclick = () => download(`builderwars-${record.id}.json`, record);
+$("export").onclick = async () => {
+  try { await exportJson(`builderwars-${record.id}.json`, replay(record).record, "replay"); }
+  catch (error) { notify((error as Error).message); }
+};
 $("export-proof").onclick = async () => {
   if (rules.kind !== "connect4" || proofExporting) return;
   const snapshot = structuredClone(record);
   const origin = proofOrigin;
+  const check = fileTransfer.preparationGuard();
   proofExporting = true;
   render();
   try {
     const limit = currentLimits?.moveLimit ?? Math.max(snapshot.events.length, numberInput("move-limit", 2, 400));
     const text = await createProof(snapshot, refereeManifest.digest, limit, origin);
     const verified = await verifyProof(text, refereeManifest.digest);
-    const url = URL.createObjectURL(new Blob([text], { type: "application/x-ndjson" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `builderwars-${snapshot.id}.jsonl`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    check();
+    await exportPublicFile(`builderwars-${snapshot.id}.jsonl`, new Blob([text], { type: "application/x-ndjson" }), "proof");
     if (record.id === snapshot.id) $("proof-status").textContent = `${verified.state.over ? "Completed result" : "Incomplete snapshot"} reproduced at ${snapshot.events.length} plies. Keep the matching verifier. Model identity and execution are not attested.`;
   } catch (error) {
     $("proof-status").textContent = (error as Error).message;
@@ -1271,6 +1295,35 @@ $("export-proof").onclick = async () => {
     render();
   }
 };
+if (isNativeApp) {
+  for (const [id, label] of Object.entries({ "export": "Save / share replay", "export-package": "Save / share match package", "export-agent": "Save / share profile", "export-proof": "Save / share proof", "download-verifier": "Save / share matching verifier", "export-rules": "Save / share rules", "export-series": "Save / share evaluation", "result-image": "Save / share result image", "copy-caption": "Share caption and replay", "copy-setup": "Share setup" })) $(id).textContent = label;
+  let verifierExporting = false;
+  $("download-verifier").onclick = async event => {
+    event.preventDefault();
+    if (verifierExporting) return;
+    verifierExporting = true;
+    const check = fileTransfer.preparationGuard();
+    try {
+      ensureDeviceReady();
+      const response = await fetch(`/${refereeManifest.verifier}`, { redirect: "error", signal: AbortSignal.timeout(15000) });
+      const blob = await boundedResponse(response, EXPORT_LIMITS.verifier);
+      check();
+      await exportPublicFile(`builderwars-verifier-${refereeManifest.digest}.mjs`, blob, "verifier");
+    } catch (error) { $("proof-status").textContent = (error as Error).message; }
+    finally { verifierExporting = false; }
+  };
+}
+let fileImportGeneration = 0, creatorDraftRevision = 0;
+$("creator").addEventListener("input", () => creatorDraftRevision++);
+$("creator").addEventListener("change", () => creatorDraftRevision++);
+function importGuard() {
+  const ticket = ++fileImportGeneration, generation = runId, id = record.id, plies = record.events.length, watching = spectating;
+  if (running || pending) throw Error("Pause the current match before importing.");
+  return () => {
+    if (ticket !== fileImportGeneration || generation !== runId || id !== record.id || plies !== record.events.length || watching !== spectating || running || pending)
+      throw Error("The match changed during import. Import again when paused.");
+  };
+}
 $<HTMLInputElement>("import-proof").onchange = async (event) => {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
@@ -1279,10 +1332,12 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
   const matchId = record.id;
   const moveCount = record.events.length;
   try {
+    const check = importGuard();
     if (running || pending) throw Error("Pause the current match before importing proof.");
     if (file.size > PROOF_LIMIT) throw Error("Proof exceeds size limit.");
     const text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
     const verified = await verifyProof(text, refereeManifest.digest);
+    check();
     if (generation !== runId || matchId !== record.id || moveCount !== record.events.length || running || pending) throw Error("The match changed during verification. Import again when paused.");
     if (verified.record.rules.kind !== "connect4") throw Error("This release supports Connect Four proof imports. Use the matching offline verifier for other formats.");
     openReplay(verified, false);
@@ -1297,15 +1352,16 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
   }
 };
 async function shareReplay() {
+  const check = fileTransfer.preparationGuard();
   try {
     const encoded = await encodeReplay(safeReplay(record));
+    check();
     if (encoded.length > 60000)
       throw Error(
         "This match is too large for a URL. Download and share its JSON file.",
       );
     const link = `${publicLinkOrigin(location.origin)}/#replay=${encoded}`;
-    await navigator.clipboard.writeText(link);
-    notify(
+    await copyOrNativeShare(link,
       "Replay link copied. Public names, model labels and moves are included; strategies, comments, keys and endpoints are excluded.",
     );
   } catch (e) {
@@ -1317,15 +1373,19 @@ async function readFile(input: HTMLInputElement) {
   const f = input.files?.[0];
   if (!f) throw Error("Choose a JSON file.");
   if (f.size > 350000) throw Error("File exceeds 350 KB.");
-  return JSON.parse(await f.text());
+  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(await f.arrayBuffer()));
 }
 $<HTMLInputElement>("import").onchange = async (e) => {
+  const input = e.target as HTMLInputElement;
+  if (!input.files?.[0]) return;
   try {
-    const imported = readMatchFile(await readFile(e.target as HTMLInputElement));
+    const check = importGuard();
+    const imported = readMatchFile(await readFile(input));
+    check();
     openReplay(imported.parsed, true, imported.limits, imported.declarations);
   } catch (e) {
     notify((e as Error).message);
-  }
+  } finally { input.value = ""; }
 };
 function creatorRules() {
   return validateRules({
@@ -1350,24 +1410,30 @@ $<HTMLFormElement>("creator").onsubmit = (e) => {
     tab("arena");
   }
 };
-$("export-rules").onclick = () => {
+$("export-rules").onclick = async () => {
   try {
-    download("builderwars-game.json", creatorRules());
+    await exportJson("builderwars-game.json", creatorRules(), "rules");
   } catch (e) {
     notify((e as Error).message);
     tab("arena");
   }
 };
 $<HTMLInputElement>("import-rules").onchange = async (e) => {
+  const input = e.target as HTMLInputElement;
+  if (!input.files?.[0]) return;
   try {
+    const check = importGuard(), draft = creatorDraftRevision;
     if (spectating) throw Error("Leave spectator mode first.");
-    rules = validateRules(await readFile(e.target as HTMLInputElement));
+    const imported = validateRules(await readFile(input));
+    check();
+    if (draft !== creatorDraftRevision) throw Error("The rules draft changed during import. Import again to replace it.");
+    rules = imported;
     reset();
     tab("arena");
   } catch (e) {
     notify((e as Error).message);
     tab("arena");
-  }
+  } finally { input.value = ""; }
 };
 function finishSeriesGame() {
   captureAttempt("finished");
@@ -1430,8 +1496,8 @@ function runSeries() {
   void play();
 }
 $("run-series").onclick = runSeries;
-$("export-series").onclick = () =>
-  download("builderwars-evaluation.json", {
+$("export-series").onclick = async () => {
+  try { await exportJson("builderwars-evaluation.json", {
     schema: "builderwars.evaluation.v1",
     games: seriesAttempts.map(a => a.record),
     matchPackages: seriesAttempts.map(a => makeMatchPackage(a.record, attemptDeclarations.get(a.record) ?? unknownDeclarations(), seriesLimits ? validateMatchLimits(seriesLimits.moveLimit, seriesLimits.maxTokens) : null)),
@@ -1445,7 +1511,9 @@ $("export-series").onclick = () =>
     summary: summarizeSeries(seriesAttempts, seriesTotal),
     inProgress: seriesRemaining > 0,
     seatSwap: true,
-  });
+  }, "evaluation"); }
+  catch (error) { notify((error as Error).message); }
+};
 function prepareAcademy(variant: boolean) {
   if (running || pending || spectating) {
     $("academy-status").textContent = "Pause the current match or leave spectator mode before starting an exercise.";
@@ -1680,6 +1748,7 @@ function loadFragment() {
 }
 function suspendNative() {
   if (!nativeActive) return;
+  nativeEpoch++;
   nativeActive = false;
   stop("Paused when app left foreground");
   cancelConnectionProbe();
