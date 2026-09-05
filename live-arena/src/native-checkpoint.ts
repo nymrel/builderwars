@@ -18,7 +18,11 @@ const pattern = /^checkpoint-([1-9][0-9]{0,15})-([a-f0-9-]{36})\.json$/;
 const partPattern = /^checkpoint-([1-9][0-9]{0,15})-[a-f0-9-]{36}\.json\.part$/;
 const ownedKey = (key: string) => key === "builderwars.match.opt-out" ||
   key === "builderwars.practice-memory.v1" ||
-  (key.startsWith("builderwars.match.v1:") && key.length <= 512);
+  // Replay IDs allow 80 UTF-16 code units; percent-encoded BMP IDs need up to
+  // 720 characters plus the library prefix/source. Match the consumer contract.
+  (key.startsWith("builderwars.match.v1:") && key.length <= 768);
+export const validCheckpointEntry = (key: string, value: unknown): value is string =>
+  ownedKey(key) && typeof value === "string" && value.length <= (key === "builderwars.practice-memory.v1" ? 256000 : 355000);
 const bytes = (text: string) => new TextEncoder().encode(text).byteLength;
 async function digest(text: string) {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))].map(x => x.toString(16).padStart(2, "0")).join("");
@@ -36,7 +40,7 @@ async function readEnvelope(text: string, revision: number) {
 function validate(values: unknown): CheckpointValues {
   if (!values || typeof values !== "object" || Array.isArray(values)) throw Error("Invalid native checkpoint values.");
   const entries = Object.entries(values);
-  if (entries.length > 22 || entries.some(([key, value]) => !ownedKey(key) || typeof value !== "string" || value.length > (key === "builderwars.practice-memory.v1" ? 256000 : 355000)))
+  if (entries.length > 22 || entries.some(([key, value]) => !validCheckpointEntry(key, value)))
     throw Error("Native checkpoint exceeds the permitted storage scope.");
   return Object.fromEntries(entries.sort(([a], [b]) => a.localeCompare(b)));
 }
@@ -97,7 +101,7 @@ export class NativeCheckpoint {
     } catch { failures++; }
     return failures;
   }
-  async save(values: CheckpointValues): Promise<{ revision: number; cleanupFailures: number }> {
+  async save(values: CheckpointValues, erasePrior = false): Promise<{ revision: number; cleanupFailures: number }> {
     // Capture at submission, not after a caller may have changed its live record.
     if (this.queued >= 16) throw Error("Native checkpoint queue is full. Await pending saves before retrying.");
     const copy = validate(values);
@@ -107,7 +111,7 @@ export class NativeCheckpoint {
       const revision = ++this.revision;
       // Persist the erasure boundary so failed cleanup is retried after restart.
       // A removed key must not remain in the ordinary previous-generation backup.
-      const removesData = Object.keys(this.values).some(key => !(key in copy));
+      const removesData = erasePrior || Object.keys(this.values).some(key => !(key in copy));
       const purgeBefore = removesData ? revision : this.purgeBefore;
       const payload = JSON.stringify(copy);
       const text = JSON.stringify({ schema: SCHEMA, revision, purgeBefore, payload, digest: await digest(signed(revision, purgeBefore, payload)) });

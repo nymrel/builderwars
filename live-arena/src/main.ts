@@ -30,7 +30,8 @@ import { keyboardCell } from "./board-keyboard";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
-import { PracticeMemory, supportsLearning, scoreTactics, type MemorySnapshot, type MemoryContext } from "./learning";
+import { PracticeMemory, MEMORY_KEY, supportsLearning, scoreTactics, type MemorySnapshot, type MemoryContext } from "./learning";
+import { DeviceStorage } from "./device-storage";
 import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } from "./resources";
 import { publicLinkOrigin } from "./public-links";
 import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
@@ -52,6 +53,14 @@ import {
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const isNativeApp = Capacitor.isNativePlatform();
+let deviceStorage: DeviceStorage | undefined;
+let deviceStorageFailed = false;
+if (isNativeApp) {
+  try {
+    const { nativeCheckpointPort } = await import("./native-checkpoint-port");
+    deviceStorage = await DeviceStorage.open(nativeCheckpointPort, localStorage);
+  } catch { deviceStorageFailed = true; }
+}
 const fileTransfer = new FileTransfer({
   native: isNativeApp ? async () => (await import("./file-transfer-native")).nativeFilePort : undefined,
   webDownload, active: () => nativeReady && nativeActive, epoch: () => nativeEpoch,
@@ -131,7 +140,7 @@ let rules = { ...RULES.chess },
   pace = 500;
 let seriesLimits: { moveLimit: number; maxTokens: number } | null = null;
 let practiceMemory: PracticeMemory;
-try { practiceMemory = new PracticeMemory(localStorage); } catch { practiceMemory = new PracticeMemory(); }
+try { practiceMemory = new PracticeMemory(isNativeApp ? deviceStorage : localStorage); } catch { practiceMemory = new PracticeMemory(); }
 let learningPending: Promise<unknown> = Promise.resolve();
 let learningEpoch = 0;
 let seriesMemory: MemorySnapshot | undefined;
@@ -161,8 +170,10 @@ let summaryCache: { record: RecordData; plies: number; value: MatchSummary } | n
 let imageExporting = false;
 let joinGeneration = 0;
 let libraryRenderTimer: ReturnType<typeof setTimeout> | null = null;
+let nativeSavingMove = false;
 try {
-  library = new MatchLibrary(localStorage);
+  const storage = isNativeApp ? deviceStorage : localStorage;
+  if (storage) library = new MatchLibrary(storage);
 } catch {
   /* Storage is optional. */
 }
@@ -207,12 +218,24 @@ function notify(message: string) {
 $("academy-status").insertAdjacentHTML("afterend", `<div class="workspace-form"><h2>Practice memory</h2><p>Completed practice matches send connected contenders lessons about immediate wins and preventable one-move losses. Supports Connect Four, tic-tac-toe and custom connect boards up to 42 cells. Chess, checkers and built-in opponents retain their current policies.</p><p id="learning-status" role="status"></p><button id="clear-learning">Clear practice memory</button><p class="muted">Lessons stay on this device and are sent with your next model or harness request. Model weights stay fixed; delivery does not prove the model followed a lesson. Imported replays and evaluation games never add lessons.</p></div>`);
 $("run-series").insertAdjacentHTML("beforebegin", '<label class="checkbox"><input id="eval-memory" type="checkbox">Use a frozen copy of practice memory for this evaluation</label><p class="muted">Unchecked runs the baseline with no practice memory. Both modes keep evaluation outcomes out of training.</p>');
 function renderLearning(message = "") {
-  $("learning-status").textContent = `${practiceMemory.episodeCount} contender-game reviews retained. ${practiceMemory.persistent ? "Saved on this device." : "Memory is available only in this tab; device storage is unavailable."} ${message}`;
+  const storage = deviceStorage?.status;
+  const durability = storage === "saving" ? "Saving device memory…" : storage === "cleanup-pending" ? "Current memory saved; older device copies could not be erased. Retry Clear to finish removal." :
+    practiceMemory.persistent && (!isNativeApp || storage === "saved") ? "Saved on this device." : "Memory is available in this tab; device saving is unavailable or unconfirmed.";
+  $("learning-status").textContent = `${practiceMemory.episodeCount} contender-game reviews retained. ${durability} ${message}`;
 }
-$("clear-learning").onclick = () => {
+$("clear-learning").onclick = async () => {
   learningEpoch++;
   practiceMemory.clear();
-  renderLearning("Cleared. An evaluation already in progress retains its frozen snapshot.");
+  if ((isNativeApp && !deviceStorage) || !practiceMemory.persistent) {
+    renderLearning("Cleared in this tab only. Device removal is unconfirmed; existing device data may remain.");
+    return;
+  }
+  deviceStorage?.removeItem(MEMORY_KEY);
+  renderLearning();
+  try {
+    await deviceStorage?.flush();
+    renderLearning(deviceStorage?.status === "cleanup-pending" ? "Removal is incomplete. Retry Clear." : "Cleared. An evaluation already in progress retains its frozen snapshot.");
+  } catch { renderLearning("Cleared in this tab only. Device removal failed; retry Clear."); }
 };
 renderLearning();
 // Visual thesis: a quiet scoreline and one board-led result image, no extra dashboard.
@@ -353,15 +376,15 @@ function libraryFailure() {
   $("save-disclosure").textContent =
     "Device saving is unavailable. Download a match to keep it.";
   $("library-status").textContent =
-    "Browser storage is unavailable or full. Your current game still works; download its JSON to keep it.";
+    "Device storage is unavailable or full. Your current game still works; download its JSON to keep it. Existing device data has not been replaced by a fallback.";
 }
-function saveCurrent() {
-  if (!library) return;
-  if (savedSource === "watch" && !watchId) return;
+async function saveCurrent(candidate = record) {
+  if (!library || (nativeSavingMove && candidate === record)) return false;
+  if (savedSource === "watch" && !watchId) return false;
   try {
     const limit = currentLimits?.moveLimit ?? Number($<HTMLInputElement>("move-limit").value);
     const saved = library.save(
-      record,
+      candidate,
       savedSource,
       Number.isInteger(limit) && limit >= 2 && limit <= 400 ? limit : 80,
       savedSource === "watch" ? watchId : "",
@@ -370,18 +393,21 @@ function saveCurrent() {
       currentDeclarations,
       currentLimits !== null,
     );
-    if (!saved && library.enabled() && record.events.length) {
+    if (!saved && library.enabled() && candidate.events.length) {
       $("library-status").textContent =
         "Your saved games take priority. Download this replay or forget an older game to make room.";
-      return;
+      return false;
     }
+    if (saved && deviceStorage) await deviceStorage.flush();
     if (!libraryRenderTimer)
       libraryRenderTimer = setTimeout(() => {
         libraryRenderTimer = null;
         renderLibrary();
       }, 150);
+    return saved;
   } catch {
     libraryFailure();
+    return false;
   }
 }
 function renderLibrary() {
@@ -401,6 +427,9 @@ function renderLibrary() {
     $("library-status").textContent = library.enabled()
       ? "Games save after each accepted move. No account or cloud backup."
       : "Saving is off. Existing matches remain until you forget them.";
+    if (deviceStorage?.status === "saving") $("library-status").textContent = "Saving native checkpoint… Do not close the app until saving finishes.";
+    else if (deviceStorage?.status === "cleanup-pending") $("library-status").textContent = "Current checkpoint saved; older device copies could not be erased. Retry Forget to finish removal.";
+    else if (deviceStorage?.status === "unavailable") libraryFailure();
     $("library-list").innerHTML = entries.length
       ? entries
           .map(
@@ -416,14 +445,15 @@ function renderLibrary() {
       document
         .querySelectorAll<HTMLButtonElement>(`[data-saved-${action}]`)
         .forEach((button) => {
-          button.disabled = running || pending;
-          button.onclick = () => {
-            if (running || pending) return;
+          button.disabled = running || pending || deviceStorage?.status === "saving";
+          button.onclick = async () => {
+            if (running || pending || deviceStorage?.status === "saving") return;
             const entry =
               entries[Number(button.getAttribute(`data-saved-${action}`))];
             try {
               if (action === "delete") {
                 library!.remove(entry.key);
+                await deviceStorage?.flush();
                 renderLibrary();
               } else if (action === "resume") resumeSaved(entry);
               else {
@@ -483,15 +513,17 @@ function resumeSaved(entry: SavedMatch) {
     "Recovered and paused. Start or Step to continue; no model requests were started.",
   );
 }
-$("save-matches").onchange = () => {
+$("save-matches").onchange = async () => {
   try {
     library?.setEnabled($<HTMLInputElement>("save-matches").checked);
+    await deviceStorage?.flush();
     renderLibrary();
   } catch {
     libraryFailure();
   }
 };
-$("forget-matches").onclick = () => {
+$("forget-matches").onclick = async () => {
+  if (nativeSavingMove) return;
   if (
     !window.confirm(
       "Forget saved matches on this browser and turn automatic saving off? Download anything you want to keep first.",
@@ -500,6 +532,8 @@ $("forget-matches").onclick = () => {
     return;
   try {
     library?.forget();
+    deviceStorage?.forgetLegacyMatches();
+    await deviceStorage?.flush();
     renderLibrary();
   } catch {
     libraryFailure();
@@ -647,7 +681,7 @@ function render() {
       "[data-saved-replay], [data-saved-resume], [data-saved-delete]",
     )
     .forEach((button) => {
-      button.disabled = running || pending;
+      button.disabled = running || pending || deviceStorage?.status === "saving";
     });
   const legal = legalMoves(state),
     rows = state.rules.rows,
@@ -792,7 +826,7 @@ function stop(message = "Paused", preserveSeries = false) {
   running = false;
   controller?.abort();
   controller = null;
-  pending = false;
+  pending = nativeSavingMove;
   runId++;
   record.status = message;
   render();
@@ -826,7 +860,7 @@ function getMatchLimits(): MatchLimits {
     ? validateMatchLimits(seriesLimits.moveLimit, seriesLimits.maxTokens)
     : validateMatchLimits(numberInput("move-limit", 2, 400), numberInput("max-tokens", 256, 16384));
 }
-function commit(
+async function commit(
   move: string,
   details: {
     comment: string;
@@ -838,30 +872,66 @@ function commit(
 ) {
   const label = moveLabel(move, state),
     seat = state.turn;
-  state = applyMove(state, move);
-  record.events.push({
+  const previous = record, generation = runId, wasPending = pending;
+  const nextState = applyMove(state, move);
+  const nextRecord: RecordData = { ...record, events: [...record.events, {
     ...details,
     move,
-    ply: state.moves.length,
+    ply: nextState.moves.length,
     seat,
     label,
-  });
+  }], status: nextState.over ? nextState.reason : "Playing" };
+  let saved = true;
+  const nativeReview = !!deviceStorage && nextState.over && practiceMatches.has(previous) && supportsLearning(nextState.rules);
+  let reviewed = 0;
+  if (deviceStorage && (library?.enabled() || nativeReview)) {
+    nativeSavingMove = true;
+    pending = true;
+    render();
+    try {
+      if (nativeReview) {
+        const contenders = structuredClone(agents), epoch = learningEpoch;
+        learningPending = learningPending.then(async () => {
+          if (epoch === learningEpoch) reviewed = await practiceMemory.remember(nextRecord, contenders);
+        });
+        await learningPending;
+      }
+      if (library?.enabled()) saved = await saveCurrent(nextRecord);
+      else await deviceStorage.flush();
+    } catch { saved = false; libraryFailure(); }
+    finally { nativeSavingMove = false; pending = runId === generation ? wasPending : false; }
+    // A rematch/import may supersede the old record while native I/O is pending.
+    if (record !== previous) { render(); return; }
+    if (runId !== generation) nextRecord.status = previous.status;
+  }
+  if (practiceMatches.has(previous)) { practiceMatches.delete(previous); practiceMatches.add(nextRecord); }
+  state = nextState;
+  record = nextRecord;
   selected = -1;
-  record.status = state.over ? state.reason : "Playing";
   render();
   broadcast.publish(record);
-  saveCurrent();
+  if (!deviceStorage) void saveCurrent();
+  if (!saved) notify("Move played, but device saving failed. Download the match to keep it.");
   if (state.over)
   {
     if (practiceMatches.has(record) && supportsLearning(state.rules)) {
       practiceMatches.delete(record);
+      if (nativeReview) renderLearning(saved ? `${reviewed} tactical mistakes recorded from the latest completed practice game.` : "Practice review retained in this tab; device save is unconfirmed.");
+      else {
       const finished = structuredClone(record), contenders = structuredClone(agents), epoch = learningEpoch;
       learningPending = learningPending.then(() => epoch === learningEpoch ? practiceMemory.remember(finished, contenders) : 0)
-        .then(added => { if (epoch === learningEpoch) renderLearning(`${added} tactical mistakes recorded from the latest completed practice game.`); })
+        .then(async added => {
+          if (epoch !== learningEpoch) return;
+          renderLearning();
+          try { await deviceStorage?.flush(); }
+          catch { if (epoch === learningEpoch) renderLearning("Practice review retained in this tab; device save failed."); return; }
+          if (epoch === learningEpoch) renderLearning(`${added} tactical mistakes recorded from the latest completed practice game.`);
+        })
         .catch(() => { if (epoch === learningEpoch) renderLearning("This game did not qualify for practice memory."); });
+      }
     }
     notify(
-      isExhibitionLimit(state) ? `${state.reason}. No rule-complete result.` : `${state.reason}. ${state.winner === null ? "Draw." : record.agents[state.winner].name + " wins."}`,
+      (isExhibitionLimit(state) ? `${state.reason}. No rule-complete result.` : `${state.reason}. ${state.winner === null ? "Draw." : record.agents[state.winner].name + " wins."}`) + (saved ? "" : " Device saving failed; download this match to keep it."),
     );
   }
 }
@@ -904,7 +974,7 @@ async function oneMove() {
       if (learningReceipts.length > 4000) learningReceipts.shift();
       renderLearning(`Last accepted request included ${memory.sources.length} prior practice game(s), context ${memory.digest.slice(0, 12)}. Behavior improvement remains unmeasured.`);
     }
-    commit(decision.move, decision);
+    await commit(decision.move, decision);
   } finally {
     if (id === runId) {
       pending = false;
@@ -970,7 +1040,7 @@ async function play() {
     if (seriesRemaining > 0) finishSeriesGame();
   }
 }
-function humanClick(i: number) {
+async function humanClick(i: number) {
   if (
     pending ||
     spectating ||
@@ -1014,7 +1084,7 @@ function humanClick(i: number) {
     notify("Choose one of the highlighted legal moves.");
     return;
   }
-  commit(move, {
+  await commit(move, {
     comment: "Human move.",
     elapsed: 0,
     model: "human",
@@ -1769,6 +1839,7 @@ if (new URLSearchParams(location.search).get("stream") === "1")
   document.body.classList.add("stream-view");
 render();
 renderLibrary();
+if (deviceStorageFailed) notify("Native saving could not open. Existing device data was left untouched. You can play and download games, but new games and lessons are not saved on this device.");
 function loadFragment() {
   const hash = location.hash;
   const fragment = new URLSearchParams(hash.slice(1));

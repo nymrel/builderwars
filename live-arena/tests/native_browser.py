@@ -1,21 +1,41 @@
 """Synthetic Capacitor event bridge against bundled assets; NOT device acceptance."""
 import os
 from playwright.sync_api import sync_playwright, expect
+from android_emulator_smoke import recovery_snapshot
 
 BASE = os.environ["BUILDERWARS_TEST_URL"]
 BRIDGE = """() => {
   const listeners = new Map();
+  const files = new Map(JSON.parse(sessionStorage.getItem('synthetic-checkpoint-files') || '[]'));
+  const persist = () => sessionStorage.setItem('synthetic-checkpoint-files', JSON.stringify([...files]));
   window.androidBridge = {}; // Select actual Capacitor Android JS dispatch path.
-  window.__native = { ready: false, emit: (name, value) => listeners.get(name)?.(value) };
+  window.__native = { ready: false, files, holdSave: false, saveWaiting: false, failWrite: false,
+    releaseSave: () => {}, emit: (name, value) => listeners.get(name)?.(value) };
   window.Capacitor = {
     PluginHeaders: [{ name: 'App', methods: [
       {name:'addListener',rtype:'callback'}, {name:'removeListener',rtype:'promise'},
-      {name:'getState',rtype:'promise'}] }],
+      {name:'getState',rtype:'promise'}] }, {name:'Filesystem', methods:
+      ['mkdir','readdir','readFile','writeFile','rename','deleteFile'].map(name => ({name,rtype:'promise'}))}],
     nativeCallback: (plugin, method, options, callback) => {
       if (plugin !== 'App' || method !== 'addListener') throw Error('Unexpected native call');
       listeners.set(options.eventName, callback); return options.eventName;
     },
     nativePromise: async (plugin, method, options) => {
+      if (plugin === 'Filesystem') {
+        if (options.directory !== 'DATA') throw Error('Unexpected storage directory');
+        if (method === 'mkdir') return {};
+        if (method === 'readdir') return {files:[...files].map(([name,data]) => ({name,type:'file',size:new TextEncoder().encode(data).byteLength}))};
+        const name = options.path?.split('/').at(-1);
+        if (method === 'readFile') { if (!files.has(name)) throw Error('Missing'); return {data:files.get(name)}; }
+        if (method === 'writeFile') { if (__native.failWrite) throw Error('Synthetic disk full'); files.set(name,options.data); persist(); return {}; }
+        if (method === 'deleteFile') { files.delete(name); persist(); return {}; }
+        if (method === 'rename') {
+          if (__native.holdSave) { __native.saveWaiting = true; await new Promise(resolve => { __native.releaseSave = resolve; }); __native.saveWaiting = false; }
+          const from = options.from.split('/').at(-1), to = options.to.split('/').at(-1);
+          files.set(to,files.get(from)); files.delete(from); persist(); return {};
+        }
+        throw Error('Unexpected filesystem method');
+      }
       if (plugin !== 'App') throw Error('Unexpected native plugin');
       if (method === 'getState') { window.__native.ready = true; return {isActive:true}; }
       if (method === 'removeListener') { listeners.delete(options.eventName); return; }
@@ -76,5 +96,57 @@ with sync_playwright() as p:
     expect(page.locator("#dialog-status")).to_contain_text("desktop localhost bridge is not available")
     assert not errors
     context.close()
+
+    # Held file promotion is deterministic: no timer/sleep or provider involved.
+    context = browser.new_context(viewport={"width": 390, "height": 844})
+    context.add_init_script(f"({BRIDGE})()")
+    page = context.new_page()
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(BASE)
+    page.wait_for_function("window.__native.ready")
+    page.locator("[data-game=tictactoe]").click()
+    page.evaluate("__native.holdSave = true")
+    page.locator("#step").click()
+    page.wait_for_function("__native.saveWaiting")
+    expect(page.locator("#metric-moves")).to_have_text("0")
+    expect(page.locator("#step")).to_be_disabled()
+    page.evaluate("__native.emit('pause'); __native.emit('appStateChange',{isActive:true})")
+    expect(page.locator("#step")).to_be_disabled()
+    page.evaluate("__native.holdSave = false; __native.releaseSave()")
+    expect(page.locator("#metric-moves")).to_have_text("1")
+    expect(page.locator("#match-status")).to_have_text("Paused when app left foreground")
+    page.locator("#step").click()
+    expect(page.locator("#metric-moves")).to_have_text("2")
+    trace = recovery_snapshot(page)
+    assert trace["storageBackend"] == "native-checkpoint" and trace["storedEntries"] == [{"plies": 2}]
+    page.reload()
+    page.wait_for_function("window.__native.ready")
+    expect(page.locator("#metric-moves")).to_have_text("0")
+    page.locator("#match-library").evaluate("el => el.open = true")
+    page.locator("[data-saved-resume]").click()
+    expect(page.locator("#metric-moves")).to_have_text("2")
+    page.evaluate("__native.holdSave = true")
+    page.locator("#step").click()
+    page.wait_for_function("__native.saveWaiting")
+    page.locator("#reset").click()
+    page.evaluate("__native.holdSave = false; __native.releaseSave()")
+    expect(page.locator("#step")).to_be_enabled()
+    expect(page.locator("#metric-moves")).to_have_text("0")
+    page.evaluate("__native.failWrite = true")
+    page.locator("#step").click()
+    expect(page.locator("#metric-moves")).to_have_text("1")
+    expect(page.locator("#notice")).to_contain_text("device saving failed")
+    page.evaluate("__native.failWrite = false")
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.locator("#forget-matches").click()
+    expect(page.locator("#save-matches")).not_to_be_checked()
+    expect(page.locator("[data-saved-resume]")).to_have_count(0)
+    assert recovery_snapshot(page)["storedEntries"] == []
+    page.reload()
+    page.wait_for_function("window.__native.ready")
+    expect(page.locator("#save-matches")).not_to_be_checked()
+    expect(page.locator("[data-saved-resume]")).to_have_count(0)
+    assert not errors
+    context.close()
     browser.close()
-print("PASS: packaged CSP and synthetic native pause/late-response/resume/loopback boundaries. No device or provider certified.")
+print("PASS: packaged CSP, synthetic native lifecycle, acknowledged saves, restart, stale-move isolation, disk failure and forget. No device or provider certified.")

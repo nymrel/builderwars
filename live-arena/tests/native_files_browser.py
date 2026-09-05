@@ -10,7 +10,7 @@ BASE = os.environ["BUILDERWARS_TEST_URL"]
 OUT = Path(__file__).parents[1] / "output" / "playwright" / "native-files"
 OUT.mkdir(parents=True, exist_ok=True)
 BRIDGE = """(() => {
-  const listeners = new Map(), cache = new Map();
+  const listeners = new Map(), cache = new Map(), checkpoints = new Map();
   window.androidBridge = {};
   window.__files = { ready:false, calls:[], shares:[], outcome:'closed', cache,
     emit:(event,value)=>listeners.get(event)?.(value) };
@@ -18,7 +18,7 @@ BRIDGE = """(() => {
     PluginHeaders: [
       {name:'App',methods:[{name:'addListener',rtype:'callback'},
         {name:'removeListener',rtype:'promise'},{name:'getState',rtype:'promise'}]},
-      {name:'Filesystem',methods:['mkdir','readdir','writeFile','deleteFile'].map(name=>({name,rtype:'promise'}))},
+      {name:'Filesystem',methods:['mkdir','readdir','readFile','writeFile','rename','deleteFile'].map(name=>({name,rtype:'promise'}))},
       {name:'Share',methods:[{name:'share',rtype:'promise'}]}],
     nativeCallback:(plugin,method,options,callback)=>{
       if(plugin!=='App'||method!=='addListener') throw Error('Unexpected callback');
@@ -31,6 +31,16 @@ BRIDGE = """(() => {
         if(method==='removeListener'){listeners.delete(options.eventName);return;}
       }
       if(plugin==='Filesystem') {
+        if(options.directory==='DATA') {
+          const name=options.path?.split('/').at(-1);
+          if(method==='mkdir') return {};
+          if(method==='readdir') return {files:[...checkpoints].map(([name,data])=>({name,type:'file',size:new TextEncoder().encode(data).byteLength}))};
+          if(method==='readFile') {if(!checkpoints.has(name)) throw Error('Missing'); return {data:checkpoints.get(name)};}
+          if(method==='writeFile') {checkpoints.set(name,options.data);return {};}
+          if(method==='deleteFile') {checkpoints.delete(name);return {};}
+          if(method==='rename') {const from=options.from.split('/').at(-1);checkpoints.set(options.to.split('/').at(-1),checkpoints.get(from));checkpoints.delete(from);return {};}
+          throw Error('Unexpected checkpoint operation');
+        }
         if(options.directory!=='CACHE') throw Error('Unexpected directory');
         if(method==='mkdir') return;
         if(method==='readdir') return {files:[...cache].map(([path,data])=>({
@@ -65,6 +75,7 @@ with sync_playwright() as p:
     page.on("download", lambda d: downloads.append(d))
     page.goto(BASE)
     page.wait_for_function("() => __files.ready")
+    expect(page.locator("#library-status")).to_contain_text("Games save after each accepted move")
 
     def share(selector):
         count = page.evaluate("__files.shares.length")
@@ -83,8 +94,9 @@ with sync_playwright() as p:
         page.locator("#agent-kind").select_option("human")
         page.locator("#strategy").fill("PRIVATE_STRATEGY")
         page.locator("#agent-form button[type=submit]").click()
-    for cell in (0, 1, 0, 1, 0, 1, 0):
+    for ply, cell in enumerate((0, 1, 0, 1, 0, 1, 0), 1):
         page.locator(f"[data-cell='{cell}']").click()
+        expect(page.locator("#metric-moves")).to_have_text(str(ply))
     expect(page.locator("#match-status")).to_contain_text("wins")
     page.locator("#match-proof summary").click()
     proof = contents(share("#export-proof"))

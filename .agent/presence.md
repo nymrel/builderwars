@@ -1,5 +1,11 @@
 # BuilderWars lane presence
 
+Codex native storage integration, September5. Live ownership is claim
+`codex-builderwars-native-storage-integration-20260905`: live-arena/src,
+live-arena/tests and this mirror. Integrate acknowledged checkpoints with moves,
+practice memory and explicit erasure; preserve web behavior and strict restart
+tests. No production/store claims. This note does not extend a released claim.
+
 Codex recovery trace, September5 00:33 PDT. Claim
 `codex-builderwars-recovery-trace-20260905` owns tests and this mirror only.
 Add sanitized stored/visible move-count evidence around actual Android restart;

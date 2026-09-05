@@ -23,18 +23,25 @@ IMAGE = "system-images;android-35;google_apis;x86_64"
 
 def recovery_snapshot(page):
     """Counts only: never export stored prompts, endpoints, keys or record bodies."""
-    return page.evaluate("""() => {
+    return page.evaluate("""async () => {
         const entries = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
+        const fs = window.Capacitor.Plugins.Filesystem;
+        const path = 'builderwars-checkpoints-v1';
+        const files = (await fs.readdir({path, directory:'DATA'})).files
+            .filter(f => /^checkpoint-[1-9][0-9]*-[a-f0-9-]{36}\\.json$/.test(f.name))
+            .sort((a,b) => Number(b.name.split('-')[1]) - Number(a.name.split('-')[1]));
+        if (!files.length) throw Error('No committed native checkpoint');
+        const envelope = JSON.parse((await fs.readFile({path:path+'/'+files[0].name, directory:'DATA', encoding:'utf8'})).data);
+        const values = JSON.parse(envelope.payload);
+        for (const key of Object.keys(values)) {
             if (!key?.startsWith('builderwars.match.v1:')) continue;
             try {
-                const entry = JSON.parse(localStorage.getItem(key));
+                const entry = JSON.parse(values[key]);
                 entries.push({plies: Array.isArray(entry?.record?.events)
                     ? entry.record.events.length : null});
             } catch { entries.push({plies: null}); }
         }
-        return {visiblePlies: document.querySelector('#metric-moves')?.textContent,
+        return {storageBackend:'native-checkpoint', visiblePlies: document.querySelector('#metric-moves')?.textContent,
             storedEntries: entries.sort((a, b) => (a.plies ?? -1) - (b.plies ?? -1)),
             resumableEntries: document.querySelectorAll('[data-saved-resume]').length};
     }""")
