@@ -196,3 +196,11 @@ require iOS 16.4, when [WebKit added that API](https://webkit.org/blog/13966/web
 This avoids advertising unsupported older installations; it does not certify all
 16.4 devices. The generated Capacitor dependency package may keep its lower
 library minimum. Android WebView compatibility still needs actual device coverage.
+
+First simulator launch attempt at `16ed2034bf967bbca527982dff2c13575547a325`
+([run 33945776906](https://github.com/nymrel/builderwars/actions/runs/33945776906)):
+both native compilations and all web/unit gates passed, but simulator install
+timed out after 60 seconds following successful boot. No app launch is certified.
+The next bounded attempt logs stages/device identity, allows 180 seconds for
+installation, and retains the compiled archive plus failure receipt even when
+the launch gate fails. There is no retry loop or skipped launch check.

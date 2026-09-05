@@ -96,12 +96,13 @@ jobs:
       - run: npm run native:sync
       - name: Build simulator app without signing or store credentials
         run: xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath .native-build CODE_SIGNING_ALLOWED=NO build
+      - run: tar -czf ios-simulator.tar.gz -C .native-build/Build/Products/Debug-iphonesimulator App.app
       - name: Launch on one preinstalled iPhone simulator and capture inspection evidence
         env:
           SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: python3 tests/ios_simulator_smoke.py
-      - run: tar -czf ios-simulator.tar.gz -C .native-build/Build/Products/Debug-iphonesimulator App.app
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
         with:
           name: builderwars-ios-simulator-${{ github.sha }}
           path: |

@@ -12,7 +12,12 @@ import time
 
 
 def run(*args, timeout=60):
-    return subprocess.run(args, check=True, text=True, capture_output=True, timeout=timeout).stdout.strip()
+    print(f"Running {' '.join(args[:3])} (limit {timeout}s)", flush=True)
+    try:
+        return subprocess.run(args, check=True, text=True, capture_output=True, timeout=timeout).stdout.strip()
+    except subprocess.CalledProcessError as error:
+        print((error.stderr or "")[-3000:], flush=True)
+        raise
 
 
 def select_device(inventory):
@@ -44,34 +49,41 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     runtime, device = select_device(json.loads(run("xcrun", "simctl", "list", "devices", "available", "--json")))
     udid = device["udid"]
+    receipt = {
+        "schema": "builderwars.ios-simulator-launch.v1",
+        "sourceHead": os.environ.get("SOURCE_HEAD", "unreported"),
+        "builtCheckout": run("git", "rev-parse", "HEAD"),
+        "runtime": runtime, "device": device["name"], "udid": udid,
+        "status": "started", "launch": None, "screenshot": None,
+        "classification": "unsigned simulator launch attempt; no user-flow proof",
+        "physicalDeviceTested": False, "userFlowsTested": False, "storeSubmitted": False,
+    }
+    print(json.dumps(receipt), flush=True)
     attempted_boot = False
     try:
         # Exact UUID only; never boot/shutdown all simulators or alter an active device.
         attempted_boot = True
         run("xcrun", "simctl", "boot", udid)
         run("xcrun", "simctl", "bootstatus", udid, "-b", timeout=180)
-        run("xcrun", "simctl", "install", udid, str(app))
+        run("xcrun", "simctl", "install", udid, str(app), timeout=180)
         launched = run("xcrun", "simctl", "launch", udid, "com.nymrel.builderwars")
         if not re.fullmatch(r"com\.nymrel\.builderwars: [0-9]+", launched):
             raise RuntimeError("Unexpected launch receipt; refusing to infer successful launch.")
         time.sleep(8)  # Bounded rendering delay; screenshots are inspected, not an assertion.
         run("xcrun", "simctl", "io", udid, "screenshot", str(out / "launch.png"))
-        receipt = {
-            "schema": "builderwars.ios-simulator-launch.v1",
-            "sourceHead": os.environ.get("SOURCE_HEAD", "unreported"),
-            "builtCheckout": run("git", "rev-parse", "HEAD"),
-            "runtime": runtime, "device": device["name"], "udid": udid,
-            "launch": launched, "screenshot": "launch.png",
-            "classification": "unsigned simulator launch; screenshot inspection required",
-            "physicalDeviceTested": False, "userFlowsTested": False,
-            "storeSubmitted": False,
-        }
-        (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+        receipt.update(status="launched", launch=launched, screenshot="launch.png",
+                       classification="unsigned simulator launch; screenshot inspection required")
         print(json.dumps(receipt))
+    except Exception as error:
+        receipt.update(status="failed", error=type(error).__name__)
+        raise
     finally:
-        if attempted_boot:
-            # The runner is ephemeral; cleanup targets only the exact device selected above.
-            cleanup(udid)
+        try:
+            if attempted_boot:
+                # The runner is ephemeral; cleanup targets only the exact device selected above.
+                cleanup(udid)
+        finally:
+            (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
