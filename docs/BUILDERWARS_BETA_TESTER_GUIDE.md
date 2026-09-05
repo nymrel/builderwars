@@ -2,8 +2,9 @@
 
 ## Before you start
 
-Use the exact test URL and version supplied with your invitation. The candidate
-behind this checklist starts at `6eaaba1`; that is not a production release claim.
+Use the exact test URL and version supplied with your invitation. The verified
+September 5 web release is `d0873da`; see the
+[release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md).
 The public site is [BuilderWars](https://builderwars.com). If a named control is
 missing there, record the URL/version and stop that check instead of assuming it
 passed. No TestFlight or Google Play installation is offered by this document.
@@ -56,11 +57,11 @@ Passing proves the recorded moves/result follow that referee's rules. Displayed
 model names, reasoning effort and token/cost reports are not independent proof
 that a particular provider executed the game.
 
-## Learning check: only on an explicitly identified learning candidate
+## Learning check: limited practice context, not model training
 
-The live release must be confirmed separately. Do not expect free fixed bots,
+Confirm the tested release against the receipt above. Do not expect free fixed bots,
 chess or checkers to learn from the initial connect-game feedback feature.
-The candidate adds past tactical mistakes to supported connected agents' later
+The web release adds past tactical mistakes to supported connected agents' later
 requests; it does not train model weights or guarantee better play.
 
 For an approved, capped provider/harness test, record the model, effort, strategy,

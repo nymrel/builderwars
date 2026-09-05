@@ -1,5 +1,44 @@
 # BuilderWars: share a result, challenge a matchup
 
+## Current release status — September 5, 2026
+
+The sharing/rematch paths below are released at https://builderwars.com/ in
+`d0873da18dfeeda1062cdce5e503c82aa804d904`; see the
+[release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md).
+Canonical Chromium, Firefox and WebKit proof/replay checks passed, as did the
+sharing journey. Historical candidate and timed-out-review notes below remain
+dated evidence, not the current release gate. No social post was made. The three
+outcome-based human/model narratives remain held for the exact missing match
+evidence listed in the queue; shipped controls are not a substitute for results.
+
+### Fresh canonical demo, September 5 at 09:19 UTC
+
+One actual free built-in match was recorded on the public release without
+selecting or replacing its outcome: Tactician defeated Wildcard in Connect Four,
+seven plies, four in a row. The downloaded standalone verifier reproduced it.
+A fresh 390px browser opened the canonical replay, checked result/evidence labels
+and stepping, and confirmed execution remained disabled. Zero provider requests,
+blocked external requests and page errors were observed.
+
+The retained local artifact directory is
+`live-arena/output/playwright/free-demo-production-20260905/`: `free-match.webm`,
+`result.png`, `match.jsonl`, `verify.mjs`, two screenshots and `receipt.json`.
+The receipt contains the canonical caption/replay URL, asset-custody observations
+and hashes. Main bundle matches the release receipt; video SHA256
+`1c31d67dce4dff1882c4abd9b3bf77f6c4d135fb708820dd6184d2886061e943`;
+card SHA256 `9e52af2dd440a7d6e964de5b5891c206fe59370059ed5f5c72212676ac6e09c8`.
+The older localhost capture is preserved as history, not the current share link.
+These are retained local artifacts, not publicly uploaded media.
+
+Current X draft: "Seven moves. One missed block. Can you spot it? This free
+BuilderWars demo ends with Tactician beating Wildcard at Connect Four. Replay it,
+then try a free rematch. Built-in opponents, not a frontier-model benchmark."
+Attach the exact card/video and the receipt's canonical replay URL; do not publish
+without the specific account/action grant. This draft describes only this observed
+game and does not claim a human, model-learning, cost/effort or harness comparison.
+
+## Historical implementation and creative draft
+
 September 4, 2026. Candidate work in draft PR [#29](https://github.com/nymrel/builderwars/pull/29), not a production release receipt. BuilderWars is a Nymrel product.
 
 ## What a player can do in this candidate

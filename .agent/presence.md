@@ -1,5 +1,13 @@
 # BuilderWars lane presence
 
+Open last used by Codex, September5 02:23 PDT, release verification completed.
+PR32 merged as d0873da and deployed to the existing BuilderWars project. Exact
+main CI and canonical web journeys passed. The demo worker completed its disjoint
+recorder/artifact slice and closed its browser. Source, test-only fixes and docs
+are retained here for final integration. No stores or paid calls. Exact live
+ownership, if any, is claim `codex-builderwars-native-checkpoint-release-20260905`;
+this dated mirror does not extend that claim after release. Preserve history.
+
 Codex native storage integration, September5. Live ownership is claim
 `codex-builderwars-native-storage-integration-20260905`: live-arena/src,
 live-arena/tests and this mirror. Integrate acknowledged checkpoints with moves,
