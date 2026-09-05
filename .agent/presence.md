@@ -1,5 +1,14 @@
 # BuilderWars lane presence
 
+Open last used by Codex, September5 02:42 PDT. Bounded local comparison completed:
+two real local responses, zero accepted moves because the predeclared strict
+grader rejected fenced JSON. This is not a production parser defect or learning
+uplift. Eight mocked runner tests pass; original private receipts retained. The
+owned local runtime was stopped and its matching PID state removed. Worker done.
+No application source, provider settings, cloud calls or store work. Exact claim
+`codex-builderwars-local-comparison-20260905` is authoritative until released;
+this note never extends a released claim. Preserve historical evidence below.
+
 Open last used by Codex, September5 02:23 PDT, release verification completed.
 PR32 merged as d0873da and deployed to the existing BuilderWars project. Exact
 main CI and canonical web journeys passed. The demo worker completed its disjoint
