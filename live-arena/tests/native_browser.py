@@ -136,9 +136,14 @@ with sync_playwright() as p:
     page.locator("#step").click()
     expect(page.locator("#metric-moves")).to_have_text("1")
     expect(page.locator("#notice")).to_contain_text("device saving failed")
-    page.evaluate("__native.failWrite = false")
+    page.evaluate("__native.failWrite = false; __native.holdSave = true")
     page.once("dialog", lambda dialog: dialog.accept())
     page.locator("#forget-matches").click()
+    page.wait_for_function("__native.saveWaiting")
+    expect(page.locator("#match-library")).to_have_attribute("aria-busy", "true")
+    assert recovery_snapshot(page)["storedEntries"]  # Empty UI is not a durable erasure receipt.
+    page.evaluate("__native.holdSave = false; __native.releaseSave()")
+    expect(page.locator("#match-library")).to_have_attribute("aria-busy", "false")
     expect(page.locator("#save-matches")).not_to_be_checked()
     expect(page.locator("[data-saved-resume]")).to_have_count(0)
     assert recovery_snapshot(page)["storedEntries"] == []

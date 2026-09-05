@@ -228,6 +228,7 @@ def main():
                         # This disposable AVD contains only this test's generated games.
                         page.once("dialog", lambda dialog: dialog.accept())
                         page.locator("#forget-matches").click()
+                        expect(page.locator("#match-library")).to_have_attribute("aria-busy", "false")
                         expect(page.locator("[data-saved-resume]")).to_have_count(0)
                         if recovery_snapshot(page)["storedEntries"]:
                             raise RuntimeError("Generated trial games were not cleared")

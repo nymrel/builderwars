@@ -373,6 +373,7 @@ $("join").insertAdjacentHTML(
 );
 
 function libraryFailure() {
+  $("match-library").setAttribute("aria-busy", "false");
   $("save-disclosure").textContent =
     "Device saving is unavailable. Download a match to keep it.";
   $("library-status").textContent =
@@ -411,6 +412,7 @@ async function saveCurrent(candidate = record) {
   }
 }
 function renderLibrary() {
+  $("match-library").setAttribute("aria-busy", String(deviceStorage?.status === "saving"));
   if (!library) {
     libraryFailure();
     return;
@@ -453,6 +455,7 @@ function renderLibrary() {
             try {
               if (action === "delete") {
                 library!.remove(entry.key);
+                renderLibrary();
                 await deviceStorage?.flush();
                 renderLibrary();
               } else if (action === "resume") resumeSaved(entry);
@@ -516,6 +519,7 @@ function resumeSaved(entry: SavedMatch) {
 $("save-matches").onchange = async () => {
   try {
     library?.setEnabled($<HTMLInputElement>("save-matches").checked);
+    renderLibrary();
     await deviceStorage?.flush();
     renderLibrary();
   } catch {
@@ -533,6 +537,7 @@ $("forget-matches").onclick = async () => {
   try {
     library?.forget();
     deviceStorage?.forgetLegacyMatches();
+    renderLibrary();
     await deviceStorage?.flush();
     renderLibrary();
   } catch {
