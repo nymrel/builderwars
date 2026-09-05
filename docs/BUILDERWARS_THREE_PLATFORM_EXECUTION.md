@@ -189,3 +189,10 @@ Artifacts expire after seven days. Neither is a signed store release. A bounded
 iPhone-simulator launch/screenshot job is the next inspection step; it selects
 one preinstalled shutdown device, never downloads a runtime, and closes only its
 selected device. Screenshot capture alone is not successful user-flow proof.
+
+Compatibility correction: the generated iOS 15.0 minimum was too low for the
+existing replay-link Compression Streams API. App/project configurations now
+require iOS 16.4, when [WebKit added that API](https://webkit.org/blog/13966/webkit-features-in-safari-16-4/).
+This avoids advertising unsupported older installations; it does not certify all
+16.4 devices. The generated Capacitor dependency package may keep its lower
+library minimum. Android WebView compatibility still needs actual device coverage.

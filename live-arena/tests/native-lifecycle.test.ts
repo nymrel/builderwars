@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { bindNativeLifecycle, validateNativeEndpoint, type NativeAppEvents } from "../src/native-lifecycle";
 import config from "../capacitor.config";
 import { nativeContentPolicy } from "../vite.config";
@@ -69,4 +70,11 @@ test("packaged build has no remote shell, mixed content, fetch patch or debug We
   assert.equal(config.plugins?.CapacitorCookies?.enabled, false);
   assert.match(nativeContentPolicy, /script-src 'self';/);
   assert.doesNotMatch(nativeContentPolicy, /127\.0\.0\.1|unsafe-eval|script-src[^;]*https/);
+});
+
+test("iOS installation floor supports the replay Compression Streams API", () => {
+  const project = readFileSync(new URL("../ios/App/App.xcodeproj/project.pbxproj", import.meta.url), "utf8");
+  const targets = [...project.matchAll(/IPHONEOS_DEPLOYMENT_TARGET = ([0-9.]+);/g)].map(match => match[1]);
+  assert.equal(targets.length, 4);
+  assert.ok(targets.every(version => version === "16.4"));
 });
