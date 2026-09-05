@@ -87,7 +87,8 @@ visibility and has its own canonical sharing/replay coverage.
   plan. Authenticated transactional private preview remains held, not promised.
 - Remaining engineering closure at this checkpoint: computed contrast evidence
   and acceptance of the final test/docs candidate. PR35 prior8d66404 CI failed
-  iOS simulator launch; c8b1a23 exact-head CI is a separate in-progress gate.
+  iOS simulator launch; c8b1a23 subsequently passed all five jobs in33961460460
+  and PR35 merged as10791126. The earlier failure remains historical evidence.
 
 ### Ranked next backlog
 

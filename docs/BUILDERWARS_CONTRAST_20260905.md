@@ -16,8 +16,8 @@ No new dependency, animation, layout, provider or game-logic change. Decorative
 dividers and text-identified button boundaries are not indiscriminately restyled.
 
 The existing accessibility browser journey now checks168 actual computed pairs
-at320/390px (original102 text/placeholder/outer-focus checks retained plus66 form
-boundary and game-state checks). It drives human-only fixtures for chess,
+at320/390px across text, placeholders, focus, form boundaries and game states.
+It drives human-only fixtures for chess,
 checkers, Connect Four, tic-tac-toe and one3x3non-gravity custom recipe; it does
 not inject replacement styles or model responses. Transparent layers are
 composited, unsupported paint/effects fail explicitly, and unrounded ratios are
@@ -39,7 +39,19 @@ checks remain. Failure paths close browser contexts; external HTTP/WS blocked.
 First final-CSS preview run passed all168pairs with no unsupported cases, external
 requests or page errors. Type/build and144Node tests pass; the placeholder-only
 earlier full gate passed12Chromium, Firefox/WebKit proof and9bridge tests. The
-expanded final-CSS full gate and exact candidate CI are separate acceptance gates.
+expanded final-CSS full gate subsequently passed all12Chromium journeys,
+Firefox/WebKit proof journeys and9bridge tests. Exact7089da79 candidate CI
+33962292654 passed all five jobs. Documentation-only follow-up checks remain
+source-specific; those results do not establish a production deployment.
+
+Fable source review builderwars-beta-1ca032e/3 approved7089da79, resolved model
+claude-fable-5-1, result hash
+00c23ada3d2b0581e5abf23a67574046dfa781d65a06914568a8860da6d3af39.
+Stale CI lines were corrected and the intermediate check-count split removed.
+The Connect Four disc ratio assumes its edge meets the hole fill; against the
+cell the edge is3.476:1, also passing. Explicit both-shade legal-target and
+empty-cell focus samples remain non-blocking coverage improvements; this audit
+does not claim exhaustive state coverage. Source review is not live verification.
 
 Canonical before and rebuilt-preview after screenshots were independently
 inspected, retained under live-arena/output/playwright/nontext-canonical-20260905.png

@@ -5,7 +5,9 @@ codex-builderwars-beta-closeout-20260905. Root owns docs/presence and any necess
 style.css contrast fixes. beta_completion_audit owns only accessibility_browser.py
 for bounded computed contrast assertions; no other writer/deploy lane assigned.
 Read-only Wrangler/Vercel capability preflight complete; no provider mutations.
-Exact c8b1a23 CI33961460460 remains in progress, no duplicate rerun dispatched.
+Exact c8b1a23 CI33961460460 passed all five jobs; PR35 merged as10791126.
+Contrast7089da79 passed all five jobs in33962292654 and the final full browser
+gate. Fable turn3 approved source; documentation findings reconciled below.
 This mirror does not extend the live claim. Historical checkpoints follow.
 
 Open last used by Codex, September5, diagnostic closeout. Source review of PR35
