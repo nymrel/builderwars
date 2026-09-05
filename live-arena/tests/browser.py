@@ -111,6 +111,10 @@ with sync_playwright() as p:
         page.set_viewport_size({"width":width,"height":900})
         for tab in ['arena','forge','evals','watch','academy']:
             page.locator(f'nav [data-tab={tab}]').click()
+            if not page.evaluate('document.documentElement.scrollWidth <= innerWidth'):
+                print('OVERFLOW_GEOMETRY', width, tab, page.evaluate('''() => Array.from(document.querySelectorAll('body *')).map(el => {
+                  const r=el.getBoundingClientRect(); return {tag:el.tagName,id:el.id,cls:el.className,left:r.left,right:r.right,width:r.width};
+                }).filter(r => r.width > 0 && (r.right > innerWidth + 0.5 || r.left < -0.5)).slice(0,30)'''), flush=True)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),f'overflow {width} {tab}'
     page.locator('nav [data-tab=arena]').click()
     page.set_viewport_size({"width":1440,"height":1000})
