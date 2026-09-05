@@ -1,0 +1,97 @@
+{
+  "admissionGates": [
+    "creator_identity_authorship_license_and_asset_provenance_review",
+    "exact_manifest_and_replay_digest_review",
+    "independent_visibility_scoring_and_seed_review",
+    "unranked_exhibition_decision",
+    "mirrored_seat_soak",
+    "rollback_and_version_migration_proof",
+    "source_controlled_promotion_decision",
+    "deployment_and_public_byte_verification"
+  ],
+  "authority": {
+    "authorEntrantRankingAuthorized": false,
+    "codeExecutionAuthorized": false,
+    "creatorCodeExecuted": false,
+    "executionAuthorized": false,
+    "harnessExecutionAttested": false,
+    "modelAttested": false,
+    "providerAttested": false,
+    "publicationAuthorized": false,
+    "rankingAuthorized": false,
+    "runtimeAttested": false
+  },
+  "boundary": "This lab renders one source-reviewed declarative game candidate and one deterministic replay. It imports and executes no creator code, calls no model or provider, and grants no identity, runtime, registry, publication, ranking, spending, legal, or production authority.",
+  "candidateStatus": "candidate_not_admitted",
+  "decision": "held_exhibition_candidate",
+  "labDigest": "88c4c6afdfd78f6561374f72372052236c26d4041bac2837da0134aa2eeab913",
+  "manifest": {
+    "creator": {
+      "displayName": "Nymrel Creator Lab",
+      "licenseId": "MIT"
+    },
+    "gameId": "creator.signal-siege",
+    "presentation": {
+      "spectatorOneLiner": "Five fronts keep changing value while two agents commit their signal budgets in the dark.",
+      "strategyPrompt": "Allocate exactly 24 integer signal units across the five fronts shown in order. Your opponent's current allocation remains sealed until both seats submit."
+    },
+    "protocolVersion": "agentwars.creator_game.v1",
+    "rules": {
+      "allocationVisibility": "sealed_until_both_submit",
+      "budgetPerRound": 24,
+      "family": "sealed_allocation_v1",
+      "frontOrder": "sha256_rotation_v1",
+      "fronts": [
+        {
+          "id": "beacon",
+          "label": "Beacon",
+          "weight": 1
+        },
+        {
+          "id": "relay",
+          "label": "Relay",
+          "weight": 2
+        },
+        {
+          "id": "archive",
+          "label": "Archive",
+          "weight": 3
+        },
+        {
+          "id": "forge",
+          "label": "Forge",
+          "weight": 5
+        },
+        {
+          "id": "citadel",
+          "label": "Citadel",
+          "weight": 8
+        }
+      ],
+      "rounds": 6,
+      "scoreRule": "winner_two_weight_tie_one_each",
+      "seatPolicy": "mirrored_series_required"
+    },
+    "schemaVersion": 1,
+    "summary": "Split a fixed signal budget across five shifting fronts; sealed allocations reveal together and every point is replayable.",
+    "title": "Signal Siege",
+    "version": "1.0.0"
+  },
+  "manifestSha256": "691e7e77ff333f3ac64ae4e801c5b682bbcd755fb46a9aa138137be1e1d17504",
+  "registryStatus": "candidate_registry_not_runtime_admission",
+  "replay": {
+    "effectiveVerdict": "PASS",
+    "finalStateSha256": "683f8cc40290d2b9fe30633b91459139bbd0f380ae95ee85dfce4ffe4ba0fa8c",
+    "moveCount": 12,
+    "reason": "sealed_allocation_score:108-120",
+    "scores": [
+      108,
+      120
+    ],
+    "seed": 20260826,
+    "winner": 1
+  },
+  "replaySha256": "939b0380416d97d09104b394fa29e161897fb3498f110f28de4dca02e124e9a1",
+  "schemaVersion": "builderwars.mobile-creator-game-lab.v1",
+  "sourceStatus": "tracked_reviewed_candidate_not_admitted"
+}

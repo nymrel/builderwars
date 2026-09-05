@@ -34,6 +34,8 @@ def run(args: argparse.Namespace) -> int:
         return 0
 
     require(args.profile is not None, "--profile is required unless --validate-plan is used")
+    require(args.analyze_only or args.customer_local_v1,
+            "model execution requires --customer-local-v1 on your controlled local host")
     profile_name = args.profile
     require(profile_name in plan["profiles"], f"unknown profile {profile_name!r}")
     output_root = os.path.abspath(args.out)
@@ -47,7 +49,7 @@ def run(args: argparse.Namespace) -> int:
     allowed_reasons = set(plan["publication_gate"]["allowed_result_reasons"])
 
     sys.path.insert(0, ROOT)
-    from arena.match import run_match  # pylint: disable=import-outside-toplevel
+    from arena.match import run_customer_local_match as run_match  # pylint: disable=import-outside-toplevel
     from arena.replay import verify  # pylint: disable=import-outside-toplevel
     from entrants.backends import execution_claim_for_backend  # pylint: disable=import-outside-toplevel
 
@@ -139,6 +141,8 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--analyze-only", action="store_true", help="verify existing receipts without running entrants")
     ap.add_argument("--continue-after-hold", action="store_true", help="finish the matrix after a gate violation")
     ap.add_argument("--validate-plan", action="store_true", help="validate the preregistration and print fixture counts")
+    ap.add_argument("--customer-local-v1", action="store_true",
+                    help="acknowledge local model execution; not an OS isolation or provider attestation")
     return ap
 
 

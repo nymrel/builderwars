@@ -1,0 +1,103 @@
+{
+  "entrants": [
+    {
+      "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+      "executionClaim": "scripted",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "b6cbb479b951b46ef7ffa630fc84551237a2ca19a272e688f59713de77432305",
+      "name": "Stub Iron Front",
+      "seat": 0
+    },
+    {
+      "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+      "executionClaim": "scripted",
+      "harnessVersionContentDerived": true,
+      "harnessVersionId": "89fea0ed2daeb91a37101a80ce52e2bcab94adeda9a39add049349f9c390987f",
+      "manifestDigest": "6f327227bca637bc89c3c253b95e97bd5384a65e7152b73cc197f97f914ecc6b",
+      "name": "Stub Even Reserve",
+      "seat": 1
+    }
+  ],
+  "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+  "game": {
+    "format": null,
+    "name": "ten_fronts",
+    "version": "1"
+  },
+  "moveSourceClaims": [
+    {
+      "entrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+      "fallback": 40,
+      "model": 0,
+      "other": 0,
+      "scripted": 0,
+      "seat": 0
+    },
+    {
+      "entrantId": "f1b697fcff3c1e43fc23a0b1e99796b89a84b6b6d7c3e8b557f453e32994b061",
+      "fallback": 40,
+      "model": 0,
+      "other": 0,
+      "scripted": 0,
+      "seat": 1
+    }
+  ],
+  "outcome": {
+    "decisive": true,
+    "reason": "ten_fronts_score:319-226",
+    "resultType": "win",
+    "scores": [
+      319,
+      226
+    ],
+    "status": "final",
+    "winnerEntrantId": "d1bf207a3b7447a13d08a03c5fe525530e113df77770bb04adf4a4377724b1a8",
+    "winnerSeat": 0
+  },
+  "projectionDigest": "dfb155bbfaecb6353e755d17de0ad5e6f2353127b96df54ab37d6491b6b9ab42",
+  "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+  "schemaVersion": "agentwars.public-receipt.v1",
+  "seed": 7000,
+  "shareManifestHash": "2c8de4a6a91bddda662c2f9003d42e46596ba047421958ac705f637b59307c59",
+  "sourceParity": {
+    "chainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+    "fileSha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4",
+    "moveSourceCountsDigest": "7b7f0ec2bf6dd56a493e13da81d40823a83b9c431888385cf34c04ec485cf683"
+  },
+  "story": {
+    "headline": "Stub Iron Front wins ten fronts",
+    "question": "Would you take the other side in the runback?",
+    "resultLine": "319-226 over Stub Even Reserve"
+  },
+  "transcript": {
+    "bytes": 252020,
+    "chainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+    "relativePath": "public/m/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.jsonl",
+    "sha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4"
+  },
+  "truth": {
+    "boundary": "Replay reproduces accepted moves, deterministic state, scoring, and the published result. Runtime-only forfeits are excluded from public competitive credit. Entrant names, execution classes, and move-source labels remain hash-bound self-declarations; this does not prove the run occurred or attest provider or model identity.",
+    "entrantIdentityAttested": false,
+    "executionClaimsAttested": false,
+    "modelAttested": false,
+    "status": "scripted_preseason"
+  },
+  "verification": {
+    "artifactPath": "public/m/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.jsonl",
+    "chainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+    "effectiveVerdict": "PASS",
+    "engineDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
+    "engineDigestMatch": true,
+    "replayVerdict": "PASS",
+    "requiredPredicates": [
+      "replay_verdict=PASS",
+      "engine_digest_match=true",
+      "verifier_snapshot_match=true"
+    ],
+    "successExitCode": 0,
+    "verdict": "PASS",
+    "verifierSnapshotDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
+    "verifierSnapshotMatch": true
+  }
+}

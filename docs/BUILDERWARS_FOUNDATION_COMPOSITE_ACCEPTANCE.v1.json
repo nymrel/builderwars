@@ -1,0 +1,688 @@
+{
+  "schemaVersion": "builderwars.foundation-composite-acceptance.v1",
+  "status": "accepted_local_foundation_pending_integration",
+  "externalFoundationReview": {
+    "runId": "d1e12912-419a-4d74-8c19-779eda586a26",
+    "receiptSha256": "61b7e6ffc1a2cbc61cf1c7aaf5a86d63cc683eece0cac24f0ee19f996ee1d143",
+    "receiptFileSha256": "d306480be3133536bd88da343a02bf1aee314c465e5a531821f6218f42505423",
+    "assistantOutputSha256": "357cb58386e9324936bef1ca9b5cec3891c18c0c1af830893674891b4d187c46",
+    "taskPacketSha256": "cc5f3127deab58c5f7460400709d9dbe6bbaaf2633ff955c51910058cba45b3a",
+    "reviewedCommit": "45a3e13e11fccd166303bba7ffb81d9eaabf3013",
+    "reviewedFoundationSha256": "5e10bba44683f6b534ab40be5a568163df8d448b7210bd7ba695873a8b8dbbc1",
+    "reviewedLedgerSha256": "afea260a6dc223705158d9868a2613b63498de6dd84346e9fc1deb8bdd85cc76",
+    "reviewedCheckerSha256": "9b6371cecf573a30c5b1638615c1eb963a449c763fd88924e3aed60feed43ec5",
+    "reviewedReviewRecordSha256": "376d3084d632867ab909ec2a40a0cc0deb35d7609b6631b76ff9b36fcd78ee6d",
+    "finalReviewRecordSha256": "5297af7065ab6c14bc5e236d72e91e053611d649b7041dd8eab5663992e62586"
+  },
+  "generatedAtUtc": "2026-08-28T16:15:00.000Z",
+  "purpose": "Compact custody index for the frozen BuilderWars foundation, accepted contained reviews, exact candidates, residuals, and held launch gates.",
+  "supersession": {
+    "runId": "de15145e-10d7-4640-899e-254a14139fcf",
+    "receiptSha256": "a52d4c1fcbd3eb60cd8ff5547a97e7301cb59976a06e223af1cd7af92871065f",
+    "reviewedManifestSha256": "f8d790e4fbcf29341ff053e4a1549bf8f8736781fb56776100ffea420ecedebc",
+    "state": "superseded_not_valid_for_current_bytes",
+    "reason": "The contained manifest/checker slice found that three current foundation documents had evolved after their isolated stage receipts without an explicit historical-to-current binding map. This revision adds that map and fail-closed validation."
+  },
+  "truthBoundary": {
+    "foundationMeaning": "Five isolated document stages passed at their explicitly historical bound bytes. Three decision documents evolved afterward and are not attributed to those stage receipts; their current bytes require review slot 10. Nine historical BuilderWars code slices and one exact current-candidate affected-source closure also passed with zero P0/P1. This remains planning and local candidate input only until the frozen composite receives its external receipt.",
+    "neverImplied": [
+      "merge",
+      "release",
+      "production configuration",
+      "provider subscription use",
+      "Cloudflare custody",
+      "DNS state",
+      "deployment",
+      "customer journey",
+      "public availability",
+      "public beta launch"
+    ],
+    "domainAttestation": {
+      "domain": "builderwars.com",
+      "statement": "The operator stated that builderwars.com was bought on Cloudflare.",
+      "class": "operator_attestation_not_independent_proof",
+      "doesNotProve": [
+        "account or zone custody",
+        "billing",
+        "delegation",
+        "DNS",
+        "certificate",
+        "deployment",
+        "availability",
+        "launch authorization"
+      ]
+    },
+    "defensiveDomain": {
+      "domain": "builderswars.com",
+      "ownershipVerified": false,
+      "includedInCutover": false
+    },
+    "submittedConcepts": "Accepted only through the hash-bound adopt/defer/reject decision; raw agent submissions grant no authority or production truth.",
+    "receiptBodiesEmbedded": false,
+    "receiptBinding": "Each stage binds controller receipt SHA-256 and locally stored receipt-file SHA-256. Stage mandatoryDocuments are historical reviewed bytes, not silent coverage for later edits. historicalStageBindingRule maps every reviewed/current mismatch to review slot 10. Code slices bind exact preflight/live receipt identities. Omitted bodies are not claimed as re-read in this compact review.",
+    "selfAcceptanceForbidden": true
+  },
+  "custody": {
+    "foundationSnapshot": {
+      "repository": "builderwars-foundation-decision-max-review-20260827-1953",
+      "head": "0f804210379f3d86e1349d635985033dd344aecd",
+      "relationship": "Exact document SHA-256 values join the full snapshot to isolated stage snapshots; final PR/release ancestry remains an explicit residual."
+    },
+    "candidates": {
+      "builderwars": {
+        "head": "7ed78e1993b60359eb257299705e089acc701d1c",
+        "state": "candidate_not_merged_not_released_not_deployed"
+      },
+      "nymrel": {
+        "head": "4f3b6270cee69f0465f0bfb458958e9bae0ba91c",
+        "state": "clean_local_candidate_pending_claude_gate_max_and_packet_regeneration"
+      }
+    },
+    "coordination": {
+      "claimId": "codex-builderwars-final-foundation-20260828-0900",
+      "lane": "builderwars-final-foundation",
+      "protectedActionsExcluded": true
+    }
+  },
+  "foundationDocuments": [
+    {
+      "path": "docs/BUILDERWARS_BRAND_DOMAIN_MIGRATION.md",
+      "sha256": "91aaf3f52acbe5fcb952f635d19cda07c8bbdd3cc6da61c8830338fb2cb7e8bd",
+      "bytes": 9143
+    },
+    {
+      "path": "docs/BUILDERWARS_COM_DOMAIN_CUTOVER_CONTRACT.md",
+      "sha256": "41d5e7792ccbe3615e87ae390739faaabd4434a176a7689f986b45cf9df6452d",
+      "bytes": 12676
+    },
+    {
+      "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_DECISIONS.md",
+      "sha256": "ff3f2f6711d91b10092352a7922047d2484ad774392640bbb3e7e511ce169443",
+      "bytes": 17793
+    },
+    {
+      "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_LEDGER.v1.json",
+      "sha256": "b5d13a75dbfdfc6257d47f27d78ed2b4d300545a721fe51d06a0b554aa863abe",
+      "bytes": 41213
+    },
+    {
+      "path": "docs/BUILDERWARS_DELIVERY_ROADMAP.md",
+      "sha256": "3829aed3ed5655fcce11001529924e7d8f82872b1f328c82a84b1e03c22882d1",
+      "bytes": 14356
+    },
+    {
+      "path": "docs/BUILDERWARS_ENTITY_MODEL.v1.json",
+      "sha256": "4947146d3f503b948726ca9729c165a164c1c5dd1729c4f62b5da725d96d332d",
+      "bytes": 49740
+    },
+    {
+      "path": "docs/BUILDERWARS_PLATFORM_CHARTER.md",
+      "sha256": "ab7f081c8d658b9255d5ef355b7dbc654c6ce4fa9bf5267e6dc72a99a9ba5625",
+      "bytes": 9480
+    },
+    {
+      "path": "docs/BUILDERWARS_REUSE_MATRIX.v1.json",
+      "sha256": "44fb48e82d88fd4625bd32a429ac0eed038b536fe8680c135929f384cb8d0071",
+      "bytes": 19135
+    },
+    {
+      "path": "docs/BUILDERWARS_SUBMITTED_CONCEPTS_DECISION.md",
+      "sha256": "f1cbd3ff3799d6b25d1d888674b42bc7a3780f9acd045a1271feaffb06359756",
+      "bytes": 17088
+    }
+  ],
+  "isolatedStageReviews": [
+    {
+      "runId": "bb0b77f7-df1b-441c-9179-b2ea2c4ddc0e",
+      "receiptSha256": "8f235fe999c4ff983264e403aa7305fc7a01abd2df41b2040ade33472afd6ebc",
+      "receiptFileSha256": "7550549170a5cb967bdf3714a4dbc76009a8802b8b69b2de8631d7dc88ff0b9f",
+      "receiptPath": "ox-alpha-agent-runs/bb0b77f7-df1b-441c-9179-b2ea2c4ddc0e.json",
+      "bundleSha256": "1f5f847436e1a475bb662ea99d74ef6dfce30db913a8697a9c32434fc8367328",
+      "sourceHead": "0e80284b686cb54e85a8e98329fe79adb2fed3c8",
+      "taskPacketSha256": "7919c7039d27cc756e82ee3d6f49b18584f65c473648c9b83fee56b554f36a03",
+      "verdict": "PASS",
+      "p0Count": 0,
+      "p1Count": 0,
+      "p2Count": 1,
+      "p3Count": 1,
+      "mandatoryFileSha256Match": true,
+      "vcsUnchanged": true,
+      "safeToAdopt": true,
+      "stage": "brand-platform-delivery",
+      "mandatoryDocuments": [
+        { "path": "docs/BUILDERWARS_BRAND_DOMAIN_MIGRATION.md", "sha256": "91aaf3f52acbe5fcb952f635d19cda07c8bbdd3cc6da61c8830338fb2cb7e8bd", "bytes": 9143 },
+        { "path": "docs/BUILDERWARS_PLATFORM_CHARTER.md", "sha256": "ab7f081c8d658b9255d5ef355b7dbc654c6ce4fa9bf5267e6dc72a99a9ba5625", "bytes": 9480 },
+        { "path": "docs/BUILDERWARS_DELIVERY_ROADMAP.md", "sha256": "3829aed3ed5655fcce11001529924e7d8f82872b1f328c82a84b1e03c22882d1", "bytes": 14356 }
+      ]
+    },
+    {
+      "runId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "receiptSha256": "47ee9cc64941fa42bcdfbf1e281f0445176b480bbbb561b2c6d77973132545f7",
+      "receiptFileSha256": "4cc5e594191e5faeeb34a6f41bf9f983e5bb26a5a1c9ec8302241ac8bb1048b8",
+      "receiptPath": "ox-alpha-agent-runs/1a657c45-16aa-4a40-9ad7-dddfa8739f62.json",
+      "bundleSha256": "33b73230041d024cee8f5edf40addb171bbbb1449774d3594ec35bc0714ce9c0",
+      "sourceHead": "20e213d405bcc0d45a644b3e8585c54c6fda8fa3",
+      "taskPacketSha256": "34649e64721698eabf3e8ae8a24d881bb4a9f7c0cc5b664971dfb368d70c7f06",
+      "verdict": "PASS",
+      "p0Count": 0,
+      "p1Count": 0,
+      "p2Count": 5,
+      "p3Count": 5,
+      "mandatoryFileSha256Match": true,
+      "vcsUnchanged": true,
+      "safeToAdopt": true,
+      "stage": "entity-model",
+      "mandatoryDocuments": [
+        { "path": "docs/BUILDERWARS_ENTITY_MODEL.v1.json", "sha256": "4947146d3f503b948726ca9729c165a164c1c5dd1729c4f62b5da725d96d332d", "bytes": 49740 }
+      ]
+    },
+    {
+      "runId": "df423f9b-2846-49e5-a89b-932f1ca4072b",
+      "receiptSha256": "f1bee69cebf7de47b4316921a0bf360e57544218c55d5537474e52ce9b07b5e0",
+      "receiptFileSha256": "eda55e48fe4dd525c9e7549557d2664b2e5f22672fa5ae34e109ffaa4b400427",
+      "receiptPath": "ox-alpha-agent-runs/df423f9b-2846-49e5-a89b-932f1ca4072b.json",
+      "bundleSha256": "6ec80d9cbbfe813b408d697691a4df9092cce69a5361149ccadcadee05f0be9a",
+      "sourceHead": "27d0e39c32ad23a4381480cd7844bf23e648885c",
+      "taskPacketSha256": "47d488c22c3fc253f5977d93b25e16d8427f6f1ec600980e78b4efaf02eaa9a8",
+      "verdict": "PASS",
+      "p0Count": 0,
+      "p1Count": 0,
+      "p2Count": 1,
+      "p3Count": 3,
+      "mandatoryFileSha256Match": true,
+      "vcsUnchanged": true,
+      "safeToAdopt": true,
+      "stage": "reuse-and-submitted-concepts",
+      "mandatoryDocuments": [
+        { "path": "docs/BUILDERWARS_REUSE_MATRIX.v1.json", "sha256": "44fb48e82d88fd4625bd32a429ac0eed038b536fe8680c135929f384cb8d0071", "bytes": 19135 },
+        { "path": "docs/BUILDERWARS_SUBMITTED_CONCEPTS_DECISION.md", "sha256": "e8c13b7e66dd31c4c192286d0d3c06e8cefef9478c45047f87878c9e7223c00d", "bytes": 17024 }
+      ]
+    },
+    {
+      "runId": "288d5496-93b4-47cf-944f-f75ef4c1f743",
+      "receiptSha256": "2d341f8664059b23e52a9d1f140ecd3661cca6235dd9613f12a372a4d1ed90ce",
+      "receiptFileSha256": "9c7069d401b023e8bc2d42929124762930fd8d565599a664f2d6b1f3e12db920",
+      "receiptPath": "ox-alpha-agent-runs/288d5496-93b4-47cf-944f-f75ef4c1f743.json",
+      "bundleSha256": "f93e2d94b6b4687e06a7454ac88cd1d454f59bda535970ec6dcd5bf89a399efe",
+      "sourceHead": "4a92da1c2ea0c916f038b70a90b1102c4ac0be4b",
+      "taskPacketSha256": "a076bde1c316ebfeadbfe9adbf3726fc35d64ef0a47b9f82927f6eb4a1216afb",
+      "verdict": "PASS",
+      "p0Count": 0,
+      "p1Count": 0,
+      "p2Count": 2,
+      "p3Count": 1,
+      "mandatoryFileSha256Match": true,
+      "vcsUnchanged": true,
+      "safeToAdopt": true,
+      "stage": "domain-and-component-decisions",
+      "mandatoryDocuments": [
+        { "path": "docs/BUILDERWARS_COM_DOMAIN_CUTOVER_CONTRACT.md", "sha256": "41d5e7792ccbe3615e87ae390739faaabd4434a176a7689f986b45cf9df6452d", "bytes": 12676 },
+        { "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_DECISIONS.md", "sha256": "9859675cf746e9614f1b82d06e69f03ef45b5daf94f6c68476dcd5c0bdd89002", "bytes": 17819 }
+      ]
+    },
+    {
+      "runId": "3e6a6bbd-badd-4546-a22e-017453bcd482",
+      "receiptSha256": "407b661ed2952c3cf3820efacbd25061960dc0a7acc8ba303286f0cbf882d485",
+      "receiptFileSha256": "de233e64706c0aed9d799f5c6bf7afbe4513386c785cf71ac04f599b3f1d783c",
+      "receiptPath": "ox-alpha-agent-runs/3e6a6bbd-badd-4546-a22e-017453bcd482.json",
+      "bundleSha256": "1f3fc7d8257464857e547fc20c42f3c3e067c9cca579fbab9a22fb9aecc7770d",
+      "sourceHead": "72262a2c577a4fa6a7df3f08e4fdf3a822c98652",
+      "taskPacketSha256": "29cf4a2451938ef1d3316512d0efb77f70bccccdc886974c7e1eb7aadad6700a",
+      "verdict": "PASS",
+      "p0Count": 0,
+      "p1Count": 0,
+      "p2Count": 2,
+      "p3Count": 2,
+      "mandatoryFileSha256Match": true,
+      "vcsUnchanged": true,
+      "safeToAdopt": true,
+      "stage": "component-acceptance-ledger",
+      "mandatoryDocuments": [
+        { "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_LEDGER.v1.json", "sha256": "8c84fe326e2b64a1fe5702b6e67e0eb6e20d92796de266304ddc5daa671c6011", "bytes": 39752 }
+      ]
+    }
+  ],
+  "historicalStageBindingRule": {
+    "meaning": "An isolated stage receipt attests only its mandatoryDocuments hashes and byte counts. A later foundation document may differ only when the exact historical/current mapping is listed here and the current bytes are included in external foundation review slot 10.",
+    "currentCoverage": "external_foundation_review_slot_10_required",
+    "changedAfterStageReview": [
+      {
+        "path": "docs/BUILDERWARS_SUBMITTED_CONCEPTS_DECISION.md",
+        "stageRunId": "df423f9b-2846-49e5-a89b-932f1ca4072b",
+        "reviewedSha256": "e8c13b7e66dd31c4c192286d0d3c06e8cefef9478c45047f87878c9e7223c00d",
+        "reviewedBytes": 17024,
+        "currentSha256": "f1cbd3ff3799d6b25d1d888674b42bc7a3780f9acd045a1271feaffb06359756",
+        "currentBytes": 17088
+      },
+      {
+        "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_DECISIONS.md",
+        "stageRunId": "288d5496-93b4-47cf-944f-f75ef4c1f743",
+        "reviewedSha256": "9859675cf746e9614f1b82d06e69f03ef45b5daf94f6c68476dcd5c0bdd89002",
+        "reviewedBytes": 17819,
+        "currentSha256": "ff3f2f6711d91b10092352a7922047d2484ad774392640bbb3e7e511ce169443",
+        "currentBytes": 17793
+      },
+      {
+        "path": "docs/BUILDERWARS_COMPONENT_ACCEPTANCE_LEDGER.v1.json",
+        "stageRunId": "3e6a6bbd-badd-4546-a22e-017453bcd482",
+        "reviewedSha256": "8c84fe326e2b64a1fe5702b6e67e0eb6e20d92796de266304ddc5daa671c6011",
+        "reviewedBytes": 39752,
+        "currentSha256": "b5d13a75dbfdfc6257d47f27d78ed2b4d300545a721fe51d06a0b554aa863abe",
+        "currentBytes": 41213
+      }
+    ]
+  },
+  "builderwarsCodeSliceReviews": [
+    {
+      "order": 1,
+      "reviewId": "builderwars-hosted-store-core-schema",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "ea0a2f4b4317f8e60b115494c3cf135f6feee604e3fac63aaca4cd8e5eede1d2",
+      "bundleSha256": "b3456a660ecf5e0e1d0cfb8e1b189f11a7a8a04540524cd78f52cd0f574cf089",
+      "materialSignature": "d80cedea59cfb8b6b442c0e448a1f6d74486da5c9cd030cba0b8cd7b17f0d10a",
+      "preflightRunId": "5a0d2287-8a66-4ce5-be56-66881de263e8",
+      "preflightReceiptSha256": "5be506b1e02ff7e1d4bd857555211831f5a69f18ce2a2ab9057128cd87e25436",
+      "liveRunId": "cc0d4951-7b1a-4bfa-a9f0-1fc90158698f",
+      "liveReceiptSha256": "3f5df27e6ab2036a867a3467ebcd7536b93b190422032eeadc416550b5073d4d",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_0_P3_6",
+      "acceptance": "accepted"
+    },
+    {
+      "order": 2,
+      "reviewId": "builderwars-hosted-store-pairing-lifecycle",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "c9ba1a0e8ff12cd13a62180cbe31a20b50972c7da87fdfe8b4daa4c6269e6f62",
+      "bundleSha256": "ed1b74ec4b6345ec37172c7dc8f9c64bf13fffad1e4763cb5b22ef0fd1b6e9a6",
+      "materialSignature": "6ebca29fb3ad40dedad6c3ee53b881c20abcf6d76e92d6d91ebca684bf268643",
+      "preflightRunId": "9635af94-45b8-445f-9d53-2268981d3964",
+      "preflightReceiptSha256": "6780cb69075cbb2efff0a546104b19a7369d2d24ed35ce05d22311719b244803",
+      "liveRunId": "b6e6c233-94a0-4c1e-9534-ac7d7a4a8104",
+      "liveReceiptSha256": "e5abb5c1f503ebcb8ce416f8eb807a416ce84494bd8382ca5b0970456b6f5dba",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_1_P3_3",
+      "acceptance": "accepted_after_schema_cascade_composite"
+    },
+    {
+      "order": 3,
+      "reviewId": "builderwars-hosted-store-jobs-nonces",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "464c3a9efadeec716c1beba3dbd1ca048fdd9e7d90ca3bd25f666b4a540458f0",
+      "bundleSha256": "3de589775b1b1d3ed8667745f9140d5038d718238d28b18af7326ba009d0b9aa",
+      "materialSignature": "ff9e77f594c906bfb6be35d9dad4ea0d302aebbef3409fdc0432fe543a7c26c0",
+      "preflightRunId": "331e518f-1560-4add-8da8-c4aa84d4de67",
+      "preflightReceiptSha256": "3dc51b753fb1e0c8526cfc9b82c22eb4e9159915536a5f1e94a48a08916ce37d",
+      "liveRunId": "f0486315-dce4-4925-a2ce-0eb242bb6bb5",
+      "liveReceiptSha256": "9e67ece750fad11d72e8a49aafc2fecfa1f1319ef335c68892568d1c7f587daf",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_2_P3_2",
+      "acceptance": "accepted_after_constants_and_cascade_composite"
+    },
+    {
+      "order": 4,
+      "reviewId": "builderwars-hosted-store-lease-lifecycle",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "3ece7e0d3857637703468e1d32c5b705631015d68d8c9d080e658d98c1e68483",
+      "bundleSha256": "a2bcc0e861248e184243e7f500c8bda24c69506bd26d1a495dbc0a0853c18b14",
+      "materialSignature": "754ea6b1dfb39621f5dd2b277d70f085956c07182fe181aa9a590f9c2da8271e",
+      "preflightRunId": "fa57c836-7268-45fd-afa5-1d243c1af877",
+      "preflightReceiptSha256": "237e17b8e9d1a438c492e4685d7367662efdeef91ea092a5a90e9c9c380c754b",
+      "liveRunId": "84de70d0-26d0-420c-b75f-c4bba22edffc",
+      "liveReceiptSha256": "1696ad0d8b6f60383479195a32e031eda38a8439f3ab949179c3e80c73eec6ec",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_1_P3_2",
+      "acceptance": "accepted_with_typed_error_P2_hardening"
+    },
+    {
+      "order": 5,
+      "reviewId": "builderwars-hosted-store-results",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "64fad454e600285ce88c91206efdcb1f893db2bf9f12f046136d56041739b266",
+      "bundleSha256": "03ca777d93b4ad862ea53d3819677a97a3efd8e05d7dce682490a7496614ff70",
+      "materialSignature": "fac7987b03f7a55d86b871c95e6cc8dae6cd77cf5e3630fddd55922e9f3f2e86",
+      "preflightRunId": "52331e4e-4fa1-4aca-8457-a4723b46fc79",
+      "preflightReceiptSha256": "4b587e0d4a1ca8bd9ec53b62d12f98ff8b2d2f47da31ad89122b3941afa2bb52",
+      "liveRunId": "8930c875-6b4f-4d69-ae58-2c43908677b6",
+      "liveReceiptSha256": "bdc57c8eaa1567bb8cec8af66fb2b8306346c611e92b04777af0192411e3b91f",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_0_P3_2",
+      "acceptance": "accepted"
+    },
+    {
+      "order": 6,
+      "reviewId": "builderwars-hosted-tests-pairing",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "f4423da7ef59323176e58b7000ae145341c96222969e19e807f79ccc2264c493",
+      "bundleSha256": "5e335d4928933a09aa57f00b86f37159f6ce4b8b8290247960bfa80504b2b1f3",
+      "materialSignature": "7f130bdf05e5f0eb8f513a79c9b1c4e65d5309e06683afd3afdb2f43c82741fe",
+      "preflightRunId": "683f6104-8a11-44eb-8883-52648318642d",
+      "preflightReceiptSha256": "42ae9b5943131706cf2426b64870d0dc542ff39a02ca1d1722cae70a322b3ddc",
+      "liveRunId": "51568526-9590-434e-bbc1-eea6b1daf70a",
+      "liveReceiptSha256": "746574b29294199bb092b7f0925762d781905cea35371ec1dcee6447214208d8",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_1_P3_4",
+      "acceptance": "accepted_after_owner_scoped_source_composite"
+    },
+    {
+      "order": 7,
+      "reviewId": "builderwars-hosted-tests-jobs",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "3e8b72ca900c25f891cda38d6b88a2defdedce0d96d1167213073ff2caacb87b",
+      "bundleSha256": "a2ff36b0b39003a8998deee62344696c61cb9ef0148acea2f12033c9a4cc60f9",
+      "materialSignature": "313a1c8087c4997fbe283593de17221e1f4555e751c7a51f35c5fbcf681c78fc",
+      "preflightRunId": "c4f139fc-e2fa-483a-8683-c2f9946a50bf",
+      "preflightReceiptSha256": "3d761d0b398c82063a47eb6139939ed696d6405d8370cbb171c6f55f228e9122",
+      "liveRunId": "fb9ebfd3-bfa7-4141-85de-6b351b91f47a",
+      "liveReceiptSha256": "176ee236c30f229d46009747ffb13f0373f28a3aacad0bfd40ff826950f1e4d3",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_2_P3_4",
+      "acceptance": "accepted_with_renewal_and_refusal_test_P2_hardening"
+    },
+    {
+      "order": 8,
+      "reviewId": "builderwars-hosted-tests-boundary",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "3ece3fa41328e607f405702f2c91b9162724d348973bd769336bc6cea47b1b51",
+      "bundleSha256": "4851a58cbc8734f78e016fae4d5afceff7adb9736619b6ba61c94b75e684f78c",
+      "materialSignature": "804454983831313854706714b72a22fd3dcda04d187476f955fdc6136d71c830",
+      "preflightRunId": "b8b97170-3528-4055-9bda-80e6bacfaf41",
+      "preflightReceiptSha256": "4e21562045fc119a8b001d32d1ee9aac4ae4f02747347004c5444222194307bc",
+      "liveRunId": "85e952fa-3948-4c02-85ac-880bbd4d5e00",
+      "liveReceiptSha256": "89033c243902e30570536a0d8f1d8c60431a2b4351d9cdabe1a9710e02ccad6a",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_2_P3_3",
+      "acceptance": "accepted_after_exact_schema_and_strict_int_source_composite"
+    },
+    {
+      "order": 9,
+      "reviewId": "builderwars-request-boundary",
+      "candidate": "builderwars@3a58bd3b7f5189cd9b06a25bcfa078d2f1b92da2",
+      "taskSha256": "37c12432be73599288acbbfa13d0d90cc0d17bee55971548a5fe685cc2ed240e",
+      "bundleSha256": "e9fa457b44b8eb12943a7596e5a4209e135fe3b15f3fbe4f80b3bff0098831bd",
+      "materialSignature": "9b46eb5ca5dd4545cf8b1d37c359cd2eafe311a736bb97d46f2fa9df65f1590b",
+      "preflightRunId": "c7cda090-3f0f-488e-83ac-514d5195e379",
+      "preflightReceiptSha256": "de655a188f0eb4e4e26fa2be5223fedfe970206a1f7d67d889d4c8a666f2af7e",
+      "liveRunId": "96846d11-bc62-46f8-9dfc-c0194069aa90",
+      "liveReceiptSha256": "60e3f7f2ec476ccf3520ee43383c1a629f644915dc9ba4b4eac814c107c8acb0",
+      "liveVerdict": "PASS_P0_0_P1_0_P2_2_P3_3",
+      "acceptance": "accepted_with_depth_type_and_exception_normalization_p2_hardening_backlog"
+    }
+  ],
+  "currentCandidateClosureReview": {
+    "candidate": "7ed78e1993b60359eb257299705e089acc701d1c",
+    "base": "6330c5b673589eac69ffcb3fb00c16c6973baa61",
+    "runId": "51119615-11ef-4962-b223-c368e1884485",
+    "receiptSha256": "891107e08a1dfc300a6b4460fc8bba88b4f080e9318b3dfafba3afd17bbbe491",
+    "assistantOutputSha256": "ac587924a22c1193d976a6086595d028995bdd0f6b3eace0536ade061d8c98d0",
+    "verdict": "APPROVE_P0_0_P1_0_P2_0_P3_5",
+    "hostedTests": "25/25",
+    "providerHubChecker": "10/10",
+    "sourceFiles": [
+      {
+        "path": "provider_hub_hosted/store.py",
+        "sha256": "a08cd077035dd098e49b874f9a5e204109627d71c1742a683ee813513102f31f"
+      },
+      {
+        "path": "provider_hub_hosted/handlers.py",
+        "sha256": "63b698af1e045bfd07a0ebf5d3b46401799d0952f575299140d7336ad0424df1"
+      },
+      {
+        "path": "provider_hub_hosted/verify.py",
+        "sha256": "73c12ee810d7af9dd05353a815dc8cbc6407d442e0d27e4977a90607ea1079ce"
+      },
+      {
+        "path": "provider_hub_hosted/tests/test_control_plane.py",
+        "sha256": "4814e9116275caec55ba513ff814c456fdd61f24acafbd1605f2da40892d1ddc"
+      }
+    ]
+  },
+  "deterministicEvidence": [
+    {
+      "id": "request-boundary-passport",
+      "observed": "45/45"
+    },
+    {
+      "id": "competition-matrix",
+      "observed": "4 entrants; 6 pairs; 24 replay-verified receipts; 4 evidence-dimension contrasts"
+    },
+    {
+      "id": "verifier-custody",
+      "observed": "45/45 verifier checks plus 22 custody attacks"
+    },
+    {
+      "id": "provider-hub",
+      "observed": "10/10 local deterministic checks; no live subscription inference"
+    },
+    {
+      "id": "hosted-control-plane-unit",
+      "observed": "25/25 local unit checks; hosted Redis remains gated"
+    }
+  ],
+  "productAuthority": {
+    "umbrella": "BuilderWars",
+    "evidenceDistinctFamilies": [
+      "AgentWars",
+      "BuildWars"
+    ],
+    "requiredBetaRepositories": [
+      "BuilderWars kernel",
+      "Nymrel control room"
+    ],
+    "competitionTruthOwner": "BuilderWars",
+    "authOwner": "Clerk/Nymrel",
+    "competitionRoleOwner": "BuilderWars",
+    "optionalRepositories": "conditional_or_reference_only",
+    "arbitraryHostedCodeExecution": false,
+    "providerRule": "Only provider-supported authorization with separate terms, custody, revocation, and acceptance; never place raw credentials, cookies, session tokens, OAuth secrets, API keys, or subscription tokens in prompts, receipts, clips, or public artifacts."
+  },
+  "residualCatalog": [
+    {
+      "id": "brand-404-noindex-contract",
+      "severity": "P2",
+      "sourceRunId": "bb0b77f7-df1b-441c-9179-b2ea2c4ddc0e",
+      "state": "open_before_domain_cutover",
+      "summary": "Require the canonical default 404 to be noindex and distinguish a missing route from the origin."
+    },
+    {
+      "id": "charter-entity-hash-binding",
+      "severity": "P3",
+      "sourceRunId": "bb0b77f7-df1b-441c-9179-b2ea2c4ddc0e",
+      "state": "resolved_by_this_composite",
+      "summary": "The entity model is now bound by exact SHA-256 and byte count in this composite."
+    },
+    {
+      "id": "entity-run-environment-digest-parent",
+      "severity": "P2",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "open_before_implementation",
+      "summary": "Name the RulesVersion environment digest path or add a deterministic Match mirror."
+    },
+    {
+      "id": "entity-supersession-lineage",
+      "severity": "P2",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "open_before_implementation",
+      "summary": "Bind successor references for superseded RulesVersion, Season, and Match states."
+    },
+    {
+      "id": "entity-tier-admission-map",
+      "severity": "P2",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "open_before_ranked_games",
+      "summary": "Map each Game tier to its minimum RulesVersion admission state."
+    },
+    {
+      "id": "entity-organization-tenant-authority",
+      "severity": "P2",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "open_before_multi_tenant_auth",
+      "summary": "Specify the versioned Organization authority receipt or ref carried by Tenant."
+    },
+    {
+      "id": "entity-modelclaim-attestation-vehicle",
+      "severity": "P2",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "open_before_provider_claims",
+      "summary": "State that Review-produced receipts with ModelClaim subjects are the attestation vehicle."
+    },
+    {
+      "id": "entity-sandboxed-game-retirement",
+      "severity": "P3",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "backlog",
+      "summary": "Define whether sandboxed Games may transition directly to retired."
+    },
+    {
+      "id": "entity-signer-authority-schema",
+      "severity": "P3",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "backlog",
+      "summary": "Reconcile signer authority lifecycle required fields with the signer authority record schema."
+    },
+    {
+      "id": "entity-account-deletion-tombstone-scope",
+      "severity": "P3",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "open_before_account_deletion",
+      "summary": "Define tenant scope for an account-deletion tombstone spanning multiple tenants."
+    },
+    {
+      "id": "entity-unsuspend-evidence",
+      "severity": "P3",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "open_before_suspension_lifecycle",
+      "summary": "Require evidence for Account and Tenant suspended-to-active transitions."
+    },
+    {
+      "id": "entity-id-naming-drift",
+      "severity": "P3",
+      "sourceRunId": "1a657c45-16aa-4a40-9ad7-dddfa8739f62",
+      "state": "backlog",
+      "summary": "Normalize identifier naming where useful; reference typing is already deterministic."
+    },
+    {
+      "id": "concept-defensive-hostname-ambiguity",
+      "severity": "P2",
+      "sourceRunId": "df423f9b-2846-49e5-a89b-932f1ca4072b",
+      "state": "resolved_by_this_composite",
+      "summary": "builderwars.com is the attested canonical domain candidate; builderswars.com remains unverified and excluded."
+    },
+    {
+      "id": "reuse-adapt-acceptance-schema",
+      "severity": "P3",
+      "sourceRunId": "df423f9b-2846-49e5-a89b-932f1ca4072b",
+      "state": "resolved_by_component_ledger",
+      "summary": "The component ledger records version, tests, owner, failure, rollback, and acceptance evidence."
+    },
+    {
+      "id": "presence-account-authority-owner",
+      "severity": "P3",
+      "sourceRunId": "df423f9b-2846-49e5-a89b-932f1ca4072b",
+      "state": "partly_open_via_entity_authority_finding",
+      "summary": "Auth remains Clerk/Nymrel-owned while competition roles are BuilderWars-owned; Organization authority carrying ref remains open."
+    },
+    {
+      "id": "concept-review-receipt-linkage",
+      "severity": "P3",
+      "sourceRunId": "df423f9b-2846-49e5-a89b-932f1ca4072b",
+      "state": "resolved_by_this_composite",
+      "summary": "Nine exact code-review run and receipt identities are bound below."
+    },
+    {
+      "id": "nymrel-public-umbrella-presentation",
+      "severity": "P2",
+      "sourceRunId": "288d5496-93b4-47cf-944f-f75ef4c1f743",
+      "state": "open_before_builderwars_public_surface",
+      "summary": "Make BuilderWars the umbrella in Nymrel shell, metadata, social cards, breadcrumbs, and structured data without changing compatibility bytes."
+    },
+    {
+      "id": "signed-request-origin-binding",
+      "severity": "P2",
+      "sourceRunId": "288d5496-93b4-47cf-944f-f75ef4c1f743",
+      "state": "open_before_domain_cutover",
+      "summary": "Bind allowed origin in a reviewed protocol version, regenerate runner and release digests, and run host-confusion tests."
+    },
+    {
+      "id": "defensive-domain-custody",
+      "severity": "P3",
+      "sourceRunId": "288d5496-93b4-47cf-944f-f75ef4c1f743",
+      "state": "resolved_as_excluded",
+      "summary": "builderswars.com remains outside cutover absent separate protected ownership proof."
+    },
+    {
+      "id": "foundation-snapshot-pr-lineage",
+      "severity": "P2",
+      "sourceRunId": "3e6a6bbd-badd-4546-a22e-017453bcd482",
+      "state": "open_for_final_evidence_pack",
+      "summary": "Record exact ancestry or same-byte mapping between frozen snapshots, PR 12, and the release candidate."
+    },
+    {
+      "id": "deterministic-observation-receipt-pointers",
+      "severity": "P2",
+      "sourceRunId": "3e6a6bbd-badd-4546-a22e-017453bcd482",
+      "state": "partly_resolved",
+      "summary": "Code-review receipts are bound, but each deterministic observation should gain a direct receipt pointer in the next ledger revision."
+    },
+    {
+      "id": "component-revocation-acceptance-gate",
+      "severity": "P3",
+      "sourceRunId": "3e6a6bbd-badd-4546-a22e-017453bcd482",
+      "state": "open_before_component_acceptance",
+      "summary": "Add explicit revocation and credential-revocation gates to both required beta components."
+    },
+    {
+      "id": "nymrel-candidate-controller-custody",
+      "severity": "P3",
+      "sourceRunId": "3e6a6bbd-badd-4546-a22e-017453bcd482",
+      "state": "open_before_nymrel_max",
+      "summary": "Mirror or bundle the exact Nymrel candidate bytes into controller custody before its fresh Max gate."
+    }
+  ],
+  "residualCounts": {
+    "p2": 11,
+    "p3": 12,
+    "total": 23
+  },
+  "codeSliceResidualRule": "Each code slice preserves its exact P2/P3 counts in liveVerdict and binds its live receipt SHA-256. The compact manifest does not restate those receipt bodies.",
+  "heldProtectedActions": [
+    "Merge, rebase, tag, release, or protected-branch mutation.",
+    "Nymrel candidate push or remote-custody claim before its exact gate.",
+    "Provider-subscription execution or raw credential, cookie, token, key, or session custody.",
+    "Hosted Redis, production stores, queues, billing, rate limits, reviewer keys, peppers, webhooks, feature flags, or production-auth mutation.",
+    "Cloudflare account, zone, nameserver, DNS, redirect, certificate, WAF, cache, Worker, Pages, or billing mutation.",
+    "Deployment, builderwars.com cutover, or public-availability claim.",
+    "Real customer journey without fresh consent and protected configuration approval.",
+    "Ranking, clip, invitation, evidence-pack, public-beta, or launch publication from candidate or fixture evidence.",
+    "Any assumption that builderswars.com is owned or routable.",
+    "Any inference that an earlier gate authorizes a later protected action."
+  ],
+  "nextGates": [
+    "External contained composite Max PASS with zero P0/P1 over the exact committed manifest, ledger, decisions, review record, and deterministic checker.",
+    "Nymrel Claude-creation-gate Max at 4f3b6270cee69f0465f0bfb458958e9bae0ba91c and candidate-packet regeneration.",
+    "Authorized true merges, ancestry proof, immutable runner/verifier bundle, release descriptor, revocation, and rollback identities.",
+    "Recorded authorization and source-bound Clerk, Redis, keys, policy, rates, flags, and origin configuration without secret disclosure.",
+    "Recorded authorization plus source-bound deployment and Cloudflare/DNS/redirect/certificate/header/cache/rollback proof.",
+    "Fresh consented production customer journey including signup, pairing, competition, replay, deletion/revocation, accessibility/mobile/offline failures, and support.",
+    "Signed evidence pack plus a separate recorded operator launch authorization."
+  ],
+  "consistencyAssertions": {
+    "foundationDocumentCount": 9,
+    "isolatedStageCount": 5,
+    "codeSliceReviewCount": 9,
+    "currentCandidateClosureReviewCount": 1,
+    "historicalStageBindingMismatchCount": 3,
+    "residualCount": 23,
+    "heldActionCount": 10,
+    "nextGateCount": 7,
+    "allStagesPassZeroP0P1": true,
+    "allCodeSlicesPassZeroP0P1": true,
+    "currentCandidateClosurePassZeroP0P1": true,
+    "receiptBodiesNotEmbedded": true,
+    "noProtectedActionAuthorized": true
+  },
+  "externalReviewContract": {
+    "route": "opencode-go/glm-5.3-flash/max",
+    "fallbackAllowed": false,
+    "inputClass": "private",
+    "authority": "read",
+    "autonomyProfile": "standard",
+    "evidenceMode": "inline_exact_bytes_with_sequential_slice_receipts_and_compact_composite",
+    "requiredVerdict": "PASS",
+    "maximumP0": 0,
+    "maximumP1": 0,
+    "manifestMustRemainUnchanged": true,
+    "receiptMustRemainExternal": true
+  }
+}

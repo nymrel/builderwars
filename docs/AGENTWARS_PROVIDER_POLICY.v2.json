@@ -1,0 +1,155 @@
+{
+  "schema_version": "agentwars.provider-policy.v2",
+  "evidence_date": "2026-08-27",
+  "status": "candidate_not_integrated_or_deployed",
+  "credential_custody": "customer_only",
+  "runtime": {
+    "required_intent": "customer_local_v1",
+    "custom_command_second_intent": "unsafe_custom_command",
+    "intent_is_os_isolation": false,
+    "hosted_arbitrary_execution": "disabled",
+    "child_environment": "closed_allowlist_for_executable_providers"
+  },
+  "provider_link_v2": {
+    "schema": "buildwars.provider_link.v2",
+    "execution_boundary": "customer_local_runner",
+    "credential_custody": "customer_only",
+    "attestation_defaults": {
+      "provider_account_attested": false,
+      "plan_entitlement_attested": false,
+      "billing_route_attested": false,
+      "model_attested": false
+    }
+  },
+  "connections": [
+    {
+      "id": "chatgpt_codex",
+      "connection_mode": "local_subscription_session",
+      "provider_class": "official_local_client_delegation",
+      "harness_class": "official_first_party_cli",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "openai_api_key_env_injection",
+        "codex_credential_store_copy",
+        "hosted_subscription_proxy"
+      ],
+      "evidence_date": "2026-08-27",
+      "official_sources": [
+        "https://learn.chatgpt.com/docs/auth",
+        "https://developers.openai.com/blog/codex-as-a-platform",
+        "https://help.openai.com/en/articles/8156019-is-api-usage-included-in-chatgpt-subscriptions-even-if-i-have-a-paid-chatgpt-account"
+      ]
+    },
+    {
+      "id": "claude_code",
+      "connection_mode": "unsupported",
+      "provider_class": "official_local_client_delegation",
+      "harness_class": "official_first_party_cli",
+      "local_execution": false,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "claude_code_binary_modification",
+        "claude_code_credential_store_copy",
+        "buildwars_claude_login_surface",
+        "hosted_claude_subscription_proxy",
+        "claude_credential_or_session_intermediation",
+        "claude_subscription_resale",
+        "claude_auth_method_restriction",
+        "anthropic_subscription_via_opencode",
+        "anthropic_subscription_via_hermes"
+      ],
+      "evidence_date": "2026-08-27",
+      "official_sources": [
+        "https://code.claude.com/docs/en/authentication",
+        "https://code.claude.com/docs/en/legal-and-compliance",
+        "https://code.claude.com/docs/en/cli-reference"
+      ]
+    },
+    {
+      "id": "opencode",
+      "connection_mode": "local_provider_session",
+      "provider_class": "route_dependent_harness",
+      "harness_class": "third_party_local_harness",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "anthropic_subscription_via_this_harness",
+        "undocumented_route_attestation"
+      ],
+      "evidence_date": "2026-08-27",
+      "official_sources": [
+        "https://opencode.ai/docs/providers/",
+        "https://code.claude.com/docs/en/legal-and-compliance"
+      ]
+    },
+    {
+      "id": "openrouter",
+      "connection_mode": "web_oauth_pkce",
+      "provider_class": "direct_api_customer_key",
+      "harness_class": "none",
+      "local_execution": true,
+      "hosted_route_status": "architecturally_supported_not_implemented",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "hosted_key_custody",
+        "platform_key_escrow"
+      ],
+      "evidence_date": "2026-08-27",
+      "official_sources": [
+        "https://openrouter.ai/docs/guides/overview/auth/oauth"
+      ]
+    },
+    {
+      "id": "hermes",
+      "connection_mode": "local_provider_session",
+      "provider_class": "route_dependent_harness",
+      "harness_class": "third_party_local_harness",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "upstream_consumer_subscription_without_provider_authorization",
+        "undocumented_route_attestation"
+      ],
+      "evidence_date": "2026-08-27",
+      "official_sources": [
+        "https://hermes-agent.nousresearch.com/docs/integrations/providers",
+        "https://hermes-agent.nousresearch.com/docs/integrations/nous-portal",
+        "https://code.claude.com/docs/en/legal-and-compliance"
+      ]
+    },
+    {
+      "id": "custom_agent",
+      "connection_mode": "local_runtime",
+      "provider_class": "customer_command",
+      "harness_class": "none",
+      "local_execution": true,
+      "hosted_route_status": "not_offered",
+      "credential_custody": "customer_only",
+      "prohibited_routes": [
+        "arena_1_jsonl_slot",
+        "implicit_construction"
+      ],
+      "evidence_date": "2026-08-27",
+      "official_sources": []
+    }
+  ],
+  "global_prohibitions": [
+    "collect_consumer_passwords_cookies_or_refresh_tokens",
+    "copy_provider_credential_stores",
+    "public_or_shared_arbitrary_execution_without_os_isolation",
+    "hosted_consumer_subscription_proxy_without_provider_supported_flow",
+    "infer_provider_model_or_billing_from_harness_label"
+  ],
+  "truth_boundaries": [
+    "local_intent_is_not_isolation",
+    "runner_self_report_is_not_model_attestation",
+    "pkce_account_link_is_not_execution_attestation",
+    "verified_replay_is_not_publication",
+    "provider_terms_and_charges_remain_customer_responsibility"
+  ]
+}

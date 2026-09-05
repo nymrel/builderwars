@@ -8,15 +8,18 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from arena.match import run_match  # noqa: E402
+from arena.match import run_customer_local_match as run_match  # noqa: E402
 from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 
-def manifest(script, backend, claimed_model=None):
+def manifest(script, backend, claimed_model=None, customer_local_v1=False):
     name = os.path.splitext(os.path.basename(script))[0].replace("_", "-")
+    cmd = [sys.executable, os.path.abspath(script), "--backend", backend]
+    if customer_local_v1:
+        cmd.append("--customer-local-v1")
     return {
         "name": name,
-        "cmd": [sys.executable, os.path.abspath(script), "--backend", backend],
+        "cmd": cmd,
         "env": [],
         # An entrant's own statement about what is behind it. Recorded as a
         # claim, never verified — the engine has no way to witness a model.
@@ -32,17 +35,32 @@ def main():
     ap.add_argument("--entrant", action="append", required=True,
                     help="path to an entrant script; pass exactly twice")
     ap.add_argument("--backend", default="stub:v1", help="backend spec handed to both entrants")
+    ap.add_argument(
+        "--customer-local-v1",
+        action="store_true",
+        help="required for a non-stub backend; records local intent only and "
+             "is not OS isolation",
+    )
     ap.add_argument("--out", default="matches")
     ap.add_argument("--timeout", type=float, default=15.0)
     args = ap.parse_args()
 
     if len(args.entrant) != 2:
         ap.error("pass --entrant exactly twice")
+    if not args.backend.startswith("stub:") and not args.customer_local_v1:
+        ap.error("a non-stub backend requires --customer-local-v1")
 
     result = run_match(
         game_name=args.game,
         seed=args.seed,
-        entrants=[manifest(p, args.backend) for p in args.entrant],
+        entrants=[
+            manifest(
+                p,
+                args.backend,
+                customer_local_v1=args.customer_local_v1,
+            )
+            for p in args.entrant
+        ],
         out_dir=args.out,
         move_timeout_s=args.timeout,
     )

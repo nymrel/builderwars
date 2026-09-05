@@ -1,0 +1,33 @@
+{
+  "authority": {
+    "humanDecisionAttested": false,
+    "identityAttested": false,
+    "launchable": false,
+    "moderationAuthority": false,
+    "productionApplied": false,
+    "productionMutation": false,
+    "publication": false,
+    "ranking": false
+  },
+  "boundary": {
+    "statement": "All reviewed receipts remain historical evidence. A void or supersession excludes only the corrected receipt from current exact-scope proof points; source records are append-only, identity-unattested, local, and grant no production, publication, ranking, or launch authority."
+  },
+  "entries": [],
+  "ledgerDigest": "fb32bdb42c4c46d9efad2e3f781433cc87bc88d222b96497b2cdfcddf6de5fbb",
+  "ledgerVersion": "1",
+  "schemaVersion": "agentwars.public-correction-ledger.v1",
+  "sourceBindings": {
+    "approvedReceiptIdsDigest": "eb6dbd0a32416f9030704f93ab3cd3a86d2aa355fb9993ca18c345b4d5a5ae88",
+    "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
+    "sourceManifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8"
+  },
+  "status": "TRACKED_APPEND_ONLY_NO_CORRECTIONS",
+  "summary": {
+    "activeReceiptCount": 8,
+    "approvedReceiptCount": 8,
+    "correctionCount": 0,
+    "scopedRatingExcludedReceiptCount": 0,
+    "supersededReceiptCount": 0,
+    "voidedReceiptCount": 0
+  }
+}

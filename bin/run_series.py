@@ -14,13 +14,15 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from arena.match import run_match  # noqa: E402
+from arena.match import run_customer_local_match as run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 
-def manifest(script, backend, backend_timeout=None):
+def manifest(script, backend, backend_timeout=None, customer_local_v1=False):
     cmd = [sys.executable, os.path.abspath(script), "--backend", backend]
+    if customer_local_v1:
+        cmd.append("--customer-local-v1")
     if backend_timeout:
         cmd += ["--backend-timeout", str(backend_timeout)]
     return {
@@ -51,12 +53,26 @@ def main():
     ap.add_argument("--backend-timeout", type=float, default=None,
                     help="seconds an entrant waits for its model. Cold local models "
                          "exceed 60s routinely, and a timeout looks like a loss.")
+    ap.add_argument(
+        "--customer-local-v1",
+        action="store_true",
+        help="required when any selected backend is non-stub; records local "
+             "intent only and is not OS isolation",
+    )
     args = ap.parse_args()
 
     backend_a = args.backend_a or args.backend
     backend_b = args.backend_b or args.backend
-    a = manifest(args.a, backend_a, args.backend_timeout)
-    b = manifest(args.b, backend_b, args.backend_timeout)
+    if any(
+        not backend.startswith("stub:") for backend in (backend_a, backend_b)
+    ) and not args.customer_local_v1:
+        ap.error("non-stub backends require --customer-local-v1")
+    a = manifest(
+        args.a, backend_a, args.backend_timeout, args.customer_local_v1
+    )
+    b = manifest(
+        args.b, backend_b, args.backend_timeout, args.customer_local_v1
+    )
     tally = {a["name"]: 0, b["name"]: 0, "void": 0}
     move_source = {}
     reasons = {}

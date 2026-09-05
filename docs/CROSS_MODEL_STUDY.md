@@ -43,9 +43,13 @@ python bin/check_factorial_study.py
 
 Run the non-publishable smoke profile first:
 
+Execution requires explicit `--customer-local-v1` intent and uses the current
+customer-controlled local runner. This does not attest model identity or provide
+OS isolation. Validation and analyze-only commands never need model access.
+
 ```bash
 python bin/run_factorial_study.py \
-  --profile smoke \
+  --profile smoke --customer-local-v1 \
   --out matches/studies/agentwars-cross-model-v1-smoke
 ```
 
@@ -53,18 +57,18 @@ Run the fixed publication profile only after the smoke receipts have no infrastr
 
 ```bash
 python bin/run_factorial_study.py \
-  --profile publication \
+  --profile publication --customer-local-v1 \
   --out matches/studies/agentwars-cross-model-v1
 ```
 
 The two comparisons may be executed separately into the same locked output directory:
 
 ```bash
-python bin/run_factorial_study.py --profile publication \
+python bin/run_factorial_study.py --profile publication --customer-local-v1 \
   --comparison cross-family \
   --out matches/studies/agentwars-cross-model-v1
 
-python bin/run_factorial_study.py --profile publication \
+python bin/run_factorial_study.py --profile publication --customer-local-v1 \
   --comparison same-family-qwen \
   --out matches/studies/agentwars-cross-model-v1
 ```
@@ -77,6 +81,14 @@ python bin/run_factorial_study.py --profile publication --analyze-only \
 ```
 
 The output directory is locked to the exact plan digest and profile. An interrupted run is resumable: existing transcripts are replayed and inspected before missing fixtures are executed.
+
+The current-main refresh uses `entrants/study_naive_harness.py` for source-marked
+study moves. The older `entrants/naive_harness.py` remains byte-identical to the
+reviewed reference registry: refreshing this study does not grant a new source
+trusted-reference status. This path change intentionally changes the plan digest;
+old output locks must not be reused or rewritten. Use a fresh output directory
+if you previously ran the original PR #5 plan. The model matrix, seeds, seat
+orders, profiles, and zero-fallback publication requirements are unchanged.
 
 ## Fail-closed outputs
 
@@ -102,6 +114,20 @@ Every move must carry one structured source marker:
 An illegal move can still be valid experimental evidence when it came from the model. `forfeit:illegal_move` is therefore allowlisted. Timeouts, protocol failures, referee errors, unfinished games, and other infrastructure outcomes are not.
 
 ## Claim boundary
+
+### Current-main refresh validation (2026-09-05)
+
+The plan validator and 26 contract checks pass, including a real local process
+match using explicitly scripted backends that must hold publication. The existing
+24-check selfcheck, fantasy, scale, share-bundle, product, 45-check entrant-admission
+suite, and standalone-verifier conformance (45 receipts, 22 custody checks) pass.
+No model matrix was executed and no study evidence was published.
+
+An additional `check_arena_replay_safety.py` run fails at the recursive/integer-limit
+entrant-envelope check in this environment. The identical failure reproduces on
+unmodified `main` at `3d0c6f5eb14aac28ee4d402d3f86c7b746623118`.
+This refresh does not resolve or conceal that pre-existing regression; independent
+review and hosted checks are still required before merging.
 
 A passing v1 result may be described as:
 

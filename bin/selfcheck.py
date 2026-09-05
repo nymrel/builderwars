@@ -25,7 +25,7 @@ sys.path.insert(0, ROOT)
 
 from arena.canonical import GENESIS, chain  # noqa: E402
 from arena.games import load as load_game  # noqa: E402
-from arena.match import run_match  # noqa: E402
+from arena.match import run_reference_match as run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.scoring import NotAProjection, referee_projection, score  # noqa: E402
 from arena.transcript import load  # noqa: E402
@@ -230,6 +230,8 @@ def main():
         r = verify(swapped)
         check("mismatched engine digest is surfaced", r["engine_digest_match"] is False,
               "a competitor could otherwise referee with edited rules and no one would see it")
+        check("mismatched engine digest makes the replay verdict FAIL", r["verdict"] == "FAIL",
+              "a foreign referee must never receive a PASS-with-warning verdict")
         check("and it is named in what the result does NOT prove",
               any("engine digests differ" in s for s in r["does_not_prove"]),
               "the caveat has to travel with the result, not sit in a doc")

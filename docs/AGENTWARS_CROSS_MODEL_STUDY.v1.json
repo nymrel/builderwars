@@ -14,7 +14,7 @@
       "id": "naive",
       "role": "naive",
       "label": "Naive harness",
-      "path": "entrants/naive_harness.py"
+      "path": "entrants/study_naive_harness.py"
     }
   ],
   "comparisons": [

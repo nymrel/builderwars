@@ -129,6 +129,8 @@ def check_manifests():
             "all-model league truth label")
     require(truth_status([valid, dict(valid, name="Other", execution_claim="model")]) == "mixed_unattested",
             "mixed league truth label")
+    require(truth_status([dict(valid, execution_claim="hybrid")]) == "model_influenced_unattested",
+            "hybrid league truth label")
 
 
 def check_league():

@@ -15,7 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from arena.canonical import digest  # noqa: E402
-from arena.match import run_match, validate_manifest  # noqa: E402
+from arena.match import run_customer_local_match as run_match, validate_manifest  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from arena.transcript import load  # noqa: E402
 
@@ -113,6 +113,8 @@ def truth_status(entrants):
         return "scripted_preseason"
     if claims == {"model"}:
         return "model_claimed_unattested"
+    if claims == {"hybrid"}:
+        return "model_influenced_unattested"
     return "mixed_unattested"
 
 

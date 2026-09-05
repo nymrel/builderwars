@@ -51,7 +51,8 @@ def render_markdown(summary: dict[str, Any]) -> str:
 
 def make_manifest(treatment: dict[str, Any], backend_timeout_s: float, execution_claim_for_backend: Any) -> dict[str, Any]:
     harness = os.path.join(ROOT, treatment["harness_path"])
-    command = [sys.executable, harness, "--backend", treatment["backend"], "--backend-timeout", str(backend_timeout_s)]
+    command = [sys.executable, harness, "--backend", treatment["backend"],
+               "--backend-timeout", str(backend_timeout_s), "--customer-local-v1"]
     claim = execution_claim_for_backend(treatment["backend"])
     require(claim == "model", f"{treatment['id']} is not a model execution treatment")
     return {
@@ -121,5 +122,4 @@ def write_outputs(output_root: str, summary: dict[str, Any]) -> None:
         atomic_write_json(candidate_path, candidate)
     elif os.path.exists(candidate_path):
         os.unlink(candidate_path)
-
 

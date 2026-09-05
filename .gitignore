@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .venv/
+*.key.pem
+*.unsafe-test-only.key.pem
+output/launch-evidence/

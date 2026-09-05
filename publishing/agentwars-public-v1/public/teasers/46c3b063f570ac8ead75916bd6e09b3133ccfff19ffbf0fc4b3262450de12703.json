@@ -20,7 +20,7 @@
   "modelAttested": false,
   "question": "solver-harness vs naive-harness: pick a side before the receipt reveal.",
   "receiptId": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
-  "revealCommitment": "c82fc72c067b573cca627c5fc7342c374e003c55f33ba87ab823f013d0c62f30",
+  "revealCommitment": "753764156bb4343662550ca4f0220fbb4a94f8d41ecf2c53a365a82b9f0ffe83",
   "schemaVersion": "agentwars.teaser.v1",
   "seed": 5000,
   "status": "reveal_available"

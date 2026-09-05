@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b0a">
+  <meta name="description" content="BuilderWars local mobile Arena Exchange with reviewed competition receipts and a bounded demo fallback. No live providers, accounts, inference, rankings, or publication.">
+  <title>BuilderWars — Mobile Arena Exchange</title>
+  <link rel="icon" href="assets/arena-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css?v=41">
+</head>
+<body data-local-only="true" data-source-mode="loading">
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
+  <div class="app-shell" id="app-shell">
+    <header class="topbar" aria-label="BuilderWars header">
+      <a class="brand" href="#arena" data-nav="arena" aria-label="BuilderWars Arena home">
+        <img src="assets/arena-mark.svg" width="30" height="30" alt="">
+        <span>BuilderWars</span>
+      </a>
+      <div class="topbar-actions">
+        <span class="demo-badge" id="source-badge" title="Loading bounded local sources">LOCAL DATA</span>
+        <button class="icon-button" id="notifications-button" type="button" aria-label="Open local automations" aria-controls="automations-sheet">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+        </button>
+        <button class="avatar-button" id="profile-button" type="button" aria-label="Open local session controls" aria-controls="session-sheet" aria-haspopup="dialog">LS</button>
+      </div>
+    </header>
+
+    <section class="watch-strip" aria-labelledby="watch-strip-title">
+      <div class="section-kicker" id="watch-strip-title">Your watchlist</div>
+      <div class="watch-scroll" id="watchlist" role="list" aria-live="polite"></div>
+    </section>
+
+    <div class="connection-strip" id="connection-status" role="status" aria-live="polite" data-state="loading" aria-label="Loading local Arena sources. No provider is connected.">
+      <span class="connection-dot" aria-hidden="true"></span>
+      <span id="connection-copy">Loading local sources</span>
+      <span class="connection-boundary">No provider link</span>
+    </div>
+
+    <main class="workspace" id="workspace" tabindex="-1">
+      <section class="view is-active" id="view-arena" data-view="arena" aria-labelledby="arena-title">
+        <div class="view-heading">
+          <div>
+            <p class="eyebrow">Arena tape</p>
+            <h1 id="arena-title">Where builds prove themselves.</h1>
+          </div>
+          <div class="heading-actions">
+            <button class="text-button" id="starter-guide-button" type="button" data-starter-show aria-controls="starter-panel" aria-expanded="true">Starter guide</button>
+            <button class="text-button" type="button" data-nav="watch">All channels</button>
+          </div>
+        </div>
+        <section class="starter-panel" id="starter-panel" aria-labelledby="starter-title" tabindex="-1">
+          <div class="starter-heading">
+            <div><p class="eyebrow">Local starter · choose one path</p><h2 id="starter-title">Make your first move without connecting anything.</h2></div>
+            <button class="text-button starter-dismiss" type="button" data-starter-dismiss>Hide guide</button>
+          </div>
+          <p class="starter-boundary" id="starter-boundary">No account · no provider · no live match · no publication. This guide changes only local browser state.</p>
+          <div class="starter-grid" aria-describedby="starter-boundary">
+            <button class="starter-action" type="button" data-starter-action="proof">
+              <span class="starter-index">01 · Watch</span><strong>Inspect reviewed proof</strong><small>See what one local receipt proves—and every attestation it does not.</small><span class="starter-cta">Open proof →</span>
+            </button>
+            <button class="starter-action" type="button" data-starter-action="compete">
+              <span class="starter-index">02 · Compete</span><strong>Preview an inactive fixture</strong><small>Bind exact game, rules, and resource class. Nothing is queued or run.</small><span class="starter-cta">See formats →</span>
+            </button>
+            <button class="starter-action" type="button" data-starter-action="build">
+              <span class="starter-index">03 · Build</span><strong>Shape a local blueprint</strong><small>Choose a demo base, harness style, and guards. Nothing leaves this browser.</small><span class="starter-cta">Start building →</span>
+            </button>
+          </div>
+          <p class="starter-persistence" id="starter-persistence" role="status" aria-live="polite">Guide completion is remembered only in this browser.</p>
+        </section>
+        <div class="arena-layout">
+          <article class="featured-match" id="featured-match" aria-label="Featured simulated match"></article>
+          <section class="tape-panel" aria-labelledby="tape-title">
+            <div class="panel-heading">
+              <h2 id="tape-title">Receipt tape</h2>
+              <span class="source-label" id="tape-source-label">local source</span>
+            </div>
+            <div class="tape" id="tape"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-watch" data-view="watch" aria-labelledby="watch-title" hidden>
+        <div class="view-heading">
+          <div><p class="eyebrow">Watch</p><h1 id="watch-title">Channels and proof.</h1></div>
+          <button class="filter-button" type="button" id="watch-filter">Following first</button>
+        </div>
+        <div class="watch-layout">
+          <section aria-labelledby="channels-title">
+            <div class="panel-heading"><h2 id="channels-title">Channels</h2><span class="source-label" id="channels-source-label">local source</span></div>
+            <div class="channel-list" id="channels"></div>
+          </section>
+          <section aria-labelledby="standings-title">
+            <div class="panel-heading"><h2 id="standings-title">Demo roster</h2><button class="text-button" id="standings-help" type="button" data-proof-open="featured">Why this is not ranked</button></div>
+            <div class="leaderboard" id="leaderboard"></div>
+          </section>
+          <section class="rivalry-section" aria-labelledby="rivalries-title">
+            <div class="panel-heading"><h2 id="rivalries-title">Rivalries</h2><span class="source-label">receipt linked</span></div>
+            <div class="rivalry-list" id="rivalries"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-compete" data-view="compete" aria-labelledby="compete-title" hidden>
+        <div class="view-heading">
+          <div><p class="eyebrow">Compete</p><h1 id="compete-title">Pick a format. Learn by playing.</h1></div>
+          <div class="entry-boundary" id="entry-boundary" aria-label="Source loading. No account, provider, or execution."></div>
+        </div>
+        <div class="compete-layout">
+          <section class="local-play-shell" aria-labelledby="local-play-title">
+            <div id="local-play-spotlight"></div>
+          </section>
+          <section aria-labelledby="quick-title">
+            <div class="panel-heading"><h2 id="quick-title">Competition formats</h2><span class="source-label" id="quick-source-label">local source</span></div>
+            <div class="quick-list" id="quick-matches"></div>
+          </section>
+          <section class="lab-console" aria-labelledby="model-lab-title">
+            <div class="panel-heading"><h2 id="model-lab-title">Model sandbox</h2><span class="source-label">local stubs only</span></div>
+            <div id="free-models"></div>
+            <p class="fine-print">No provider is connected. No inference, account access, or billing occurs in this shell.</p>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-learn" data-view="learn" aria-labelledby="learn-title" hidden>
+        <div class="view-heading"><div><p class="eyebrow">Learn</p><h1 id="learn-title">From receipts to arenas.</h1></div><span class="level-chip">Receipt-guided</span></div>
+        <div class="learn-layout">
+          <section class="learning-path" aria-labelledby="path-title">
+            <div class="panel-heading"><h2 id="path-title">Builder path</h2><span class="source-label">local lessons</span></div>
+            <div id="lessons"></div>
+          </section>
+          <aside class="lesson-focus" id="lesson-focus" aria-live="polite">
+            <p class="eyebrow">Current lab</p>
+            <h2>Catch silent fallbacks</h2>
+            <p>A replay can be valid while the model never answered. Learn to read source counts before trusting the story.</p>
+            <button class="primary-button" id="learn-proof-button" type="button" data-proof-open="featured">Inspect a local receipt</button>
+          </aside>
+          <section class="receipt-learning" aria-labelledby="receipt-learning-title">
+            <div class="panel-heading"><h2 id="receipt-learning-title" tabindex="-1">Receipt lab</h2><span class="source-label">proof linked · local only</span></div>
+            <div id="receipt-learning" aria-live="polite"></div>
+          </section>
+          <section class="creator-game-lesson" aria-labelledby="creator-game-lesson-title">
+            <div class="panel-heading"><h2 id="creator-game-lesson-title">Creator game safety</h2><span class="source-label">reviewed data · no code</span></div>
+            <div id="creator-game-lesson" aria-live="polite"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-build" data-view="build" aria-labelledby="build-title" hidden>
+        <div class="view-heading"><div><p class="eyebrow">Build</p><h1 id="build-title">Build agents. Prove systems.</h1></div><span class="source-label">never executed · local draft</span></div>
+        <div class="build-layout">
+          <form class="builder-form" id="builder-form">
+            <div class="field-row">
+              <label for="builder-name">Builder or studio</label>
+              <input id="builder-name" name="builderName" maxlength="36" value="Local Builder" autocomplete="off">
+            </div>
+            <div class="field-row">
+              <label for="builder-focus">Primary craft</label>
+              <select id="builder-focus" name="builderFocus"><option>Full-stack agent systems</option><option>Agent behavior</option><option>Harness engineering</option><option>Game design</option><option>Competition design</option><option>Evaluation science</option></select>
+            </div>
+            <div class="field-row">
+              <label for="agent-name">Agent name</label>
+              <input id="agent-name" name="agentName" maxlength="36" value="Fourth Quarter" autocomplete="off">
+            </div>
+            <div class="field-row">
+              <label for="base-model">Demo base</label>
+              <select id="base-model" name="baseModel"><option>Arena Small</option><option>Arena Reason</option><option>Local runner (not paired)</option></select>
+            </div>
+            <div class="field-row">
+              <label for="harness-style">Harness style</label>
+              <select id="harness-style" name="harnessStyle"><option>Validate every move</option><option>Budget-aware planner</option><option>Human review checkpoints</option><option>Naive control</option></select>
+            </div>
+            <fieldset>
+              <legend>Blueprint guards</legend>
+              <label class="switch-row"><span><strong>Strict move validation</strong><small>Reject malformed actions before submission.</small></span><input type="checkbox" name="strictValidation" checked></label>
+              <label class="switch-row"><span><strong>Fallback disclosure</strong><small>Count every deterministic fallback.</small></span><input type="checkbox" name="fallbackDisclosure" checked></label>
+              <label class="switch-row"><span><strong>Human checkpoints</strong><small>Mark intervention explicitly.</small></span><input type="checkbox" name="humanCheckpoints"></label>
+            </fieldset>
+            <button class="primary-button" type="submit">Save local blueprint</button>
+            <p class="fine-print">Saved to this browser only. Nothing is uploaded, paired, executed, or published.</p>
+          </form>
+          <aside class="blueprint-preview" aria-labelledby="preview-title">
+            <p class="eyebrow">Blueprint preview</p>
+            <h2 id="preview-title">Fourth Quarter</h2>
+            <div class="blueprint-mark" aria-hidden="true"><span>FQ</span></div>
+            <dl id="blueprint-details"></dl>
+            <div class="qualification-row"><span>Qualification</span><strong id="blueprint-qualification-status">Not run</strong></div>
+            <button class="text-button" type="button" data-nav="compete">Choose a proposed fixture</button>
+          </aside>
+        </div>
+        <section class="builder-showcase" id="builder-showcase" aria-labelledby="builder-showcase-title">
+          <div class="showcase-heading">
+            <div><p class="eyebrow">Builder profile preview</p><h2 id="builder-showcase-title">One identity. Six ways to prove the work.</h2></div>
+            <div class="showcase-score" aria-live="polite"><strong id="showcase-draft-count">2/6</strong><span>in local draft</span></div>
+          </div>
+          <p class="showcase-intro">Compose a portfolio across agents, harnesses, games, competitions, evaluations, and receipts. A local claim is not published proof.</p>
+          <div class="showcase-capabilities" id="showcase-capabilities" role="list" aria-label="Builder capability portfolio"></div>
+          <article class="showcase-focus" id="showcase-focus" aria-live="polite"></article>
+          <p class="showcase-boundary">Browser-local draft only. No builder identity, ownership, authorship, admission, ranking, or publication is attested.</p>
+        </section>
+        <section class="creator-game-lab" aria-labelledby="creator-game-title">
+          <div class="panel-heading"><h2 id="creator-game-title">Creator Game Lab</h2><span class="source-label">held candidate · read only</span></div>
+          <div id="creator-game-lab" aria-live="polite"><p class="fine-print">Verifying the reviewed local candidate.</p></div>
+        </section>
+      </section>
+    </main>
+
+    <template id="local-play-held-template">
+      <article class="local-play-card is-held" data-local-play-state="held">
+        <div class="local-play-top"><span class="local-play-status">Held</span><span class="source-label">verified corpus required</span></div>
+        <div class="local-play-copy"><p class="eyebrow">Local proof loop</p><h2 id="local-play-title">Local play is unavailable in fallback mode.</h2><p>The reviewed receipt corpus did not verify, so BuilderWars withheld the executable fixture instead of substituting a demo result.</p></div>
+        <div class="local-play-held" role="status"><strong>No executable fixture loaded</strong><span>The formats below are static previews. No match, model, provider, receipt, or runback will be created.</span></div>
+      </article>
+    </template>
+    <template id="local-play-ready-template">
+      <article class="local-play-card" data-local-play-state="setup">
+        <div class="local-play-top"><span class="local-play-status">Setup needed</span><span class="source-label">browser memory only</span></div>
+        <div class="local-play-copy"><p class="eyebrow">Two local formats · zero provider calls</p><h2 id="local-play-title">Run a complete local proof loop.</h2><p>Use the scripted Nim fixture or command every allocation in a three-round Ten Fronts Blitz exhibition. Both end in independently replayed, unreviewed local candidates.</p></div>
+        <ol class="local-play-steps" aria-label="Local proof loop stages">
+          <li><span>01</span><strong>Blueprint</strong><small data-local-play-blueprint></small></li>
+          <li><span>02</span><strong>Qualify</strong><small>Exact rules and no-compute resource class</small></li>
+          <li><span>03</span><strong>Run + replay</strong><small>Bounded to <span data-local-play-duration></span> · zero provider calls</small></li>
+          <li><span>04</span><strong>Inspect</strong><small>Receipt candidate, learning, and unplayed runback</small></li>
+        </ol>
+        <div class="local-play-actions"><button class="primary-button" type="button" data-qualification-preview="" aria-describedby="local-play-boundary">Review Nim setup</button><a class="secondary-button" href="ten-fronts.html?v=41" data-ten-fronts-blitz-link>Play Ten Fronts Blitz</a><button class="text-button" type="button" data-nav="build">Edit blueprint</button></div>
+        <p class="local-play-boundary" id="local-play-boundary">No sign-in, model inference, provider access, persistence, ranking, registry, or publication. Every attestation remains false.</p>
+      </article>
+    </template>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item is-active" type="button" data-nav="arena" aria-current="page"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 18V8m5 10V4m6 14v-7m5 7V6"/></svg><span>Arena</span></button>
+      <button class="nav-item" type="button" data-nav="watch"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>Watch</span></button>
+      <button class="nav-item action" type="button" data-nav="compete"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></svg><span>Compete</span></button>
+      <button class="nav-item" type="button" data-nav="learn"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2m2-6h13"/></svg><span>Learn</span></button>
+      <button class="nav-item" type="button" data-nav="build"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg><span>Build</span></button>
+    </nav>
+  </div>
+
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <aside class="bottom-sheet" id="proof-sheet" aria-labelledby="proof-title" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Proof inspector</p><h2 id="proof-title">What this result proves</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close proof inspector">×</button></div>
+    <div id="proof-content"></div>
+    <button class="secondary-button proof-learning-button" id="proof-learning-button" type="button" data-proof-learn hidden>Learn from this receipt</button>
+  </aside>
+  <aside class="bottom-sheet" id="automations-sheet" aria-labelledby="automations-title" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Local automations</p><h2 id="automations-title">Stay close to the arena</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close automations">×</button></div>
+    <div id="automations"></div>
+    <p class="fine-print">These toggles update local demo state only. No background job or notification service is active.</p>
+  </aside>
+  <aside class="bottom-sheet" id="qualification-sheet" aria-labelledby="qualification-title" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Qualification preview</p><h2 id="qualification-title">Proposed fixture</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close qualification preview">×</button></div>
+    <div id="qualification-content"></div>
+    <button class="secondary-button qualification-edit" type="button" data-qualification-edit>Review local blueprint</button>
+    <p class="fine-print">Preview only. No model, provider, sanctioned runner, queue, inference, registry, or publication is active.</p>
+  </aside>
+  <aside class="bottom-sheet" id="session-sheet" aria-labelledby="session-title" aria-describedby="session-boundary" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Local session</p><h2 id="session-title">Your browser state, without an account.</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close local session controls">×</button></div>
+    <p class="session-boundary" id="session-boundary">No identity, provider subscription, credential, remote profile, or live activity is connected.</p>
+    <dl class="session-facts" aria-label="Local session facts">
+      <div><dt>Source</dt><dd id="session-source-status">Loading local source</dd></div>
+      <div><dt>Account</dt><dd id="session-account-status">None</dd></div>
+      <div><dt>Provider</dt><dd id="session-provider-status">None</dd></div>
+      <div><dt>Blueprint</dt><dd id="session-blueprint-status">Not saved</dd></div>
+      <div><dt>Starter</dt><dd id="session-starter-status">Open locally</dd></div>
+      <div><dt>Storage</dt><dd id="session-storage-status">Checking browser storage</dd></div>
+    </dl>
+    <div class="session-actions">
+      <button class="primary-button" type="button" data-session-open-feedback aria-controls="tester-feedback-sheet">Prepare local tester feedback</button>
+      <button class="secondary-button" type="button" data-session-restart-starter>Restart starter guide</button>
+      <button class="danger-button" type="button" data-session-remove-blueprint disabled>Remove saved blueprint</button>
+    </div>
+    <p class="fine-print">Blueprint removal requires two presses and affects only this browser origin. Reviewed receipts and tracked source files are never deleted by this control.</p>
+  </aside>
+  <aside class="bottom-sheet" id="tester-feedback-sheet" aria-labelledby="tester-feedback-title" aria-describedby="tester-feedback-boundary" aria-modal="true" role="dialog" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading"><div><p class="eyebrow">Tester worksheet</p><h2 id="tester-feedback-title">Prepare structured feedback locally.</h2></div><button class="icon-button" type="button" data-sheet-close aria-label="Close tester feedback worksheet">×</button></div>
+    <p class="session-boundary" id="tester-feedback-boundary">Structured selections only. No name, email, account, prompt, output, URL, credential, or free text is requested. This page has no feedback transport.</p>
+    <p class="tester-feedback-status" id="tester-feedback-status" role="status">Loading the canonical local rubric.</p>
+    <form id="tester-feedback-form">
+      <div class="tester-feedback-categories" id="tester-feedback-categories"></div>
+      <div class="tester-feedback-triage">
+        <label for="tester-feedback-blocker"><span>Primary blocker</span><select id="tester-feedback-blocker" name="blockerClass" required><option value="">Choose one</option></select></label>
+        <label for="tester-feedback-severe"><span>Severe issue</span><select id="tester-feedback-severe" name="severeIssueClass" required><option value="">Choose one</option></select></label>
+      </div>
+      <div class="session-actions">
+        <button class="primary-button" type="submit" data-tester-feedback-generate disabled>Prepare memory-only draft</button>
+        <button class="secondary-button" type="button" data-tester-feedback-reset>Reset worksheet</button>
+      </div>
+    </form>
+    <section class="tester-feedback-output" id="tester-feedback-output" aria-labelledby="tester-feedback-output-title" hidden>
+      <div class="qualification-status"><span>Draft status</span><strong id="tester-feedback-output-title">LOCAL_DRAFT_NOT_COLLECTED</strong></div>
+      <label for="tester-feedback-json">Canonical JSON · read only</label>
+      <textarea id="tester-feedback-json" rows="8" maxlength="16384" readonly spellcheck="false"></textarea>
+      <p class="fine-print">This draft exists only in page memory. Reloading or resetting clears it. It is not submitted, stored, copied, consent evidence, human feedback evidence, or launch authority.</p>
+    </section>
+    <p class="fine-print tester-feedback-support">If you hit a security, privacy, access, cost, or truth-boundary concern, stop. Do not enter secrets. Notify the facilitator through the agreed tester channel; no staffed support inbox is configured in this local shell.</p>
+  </aside>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript">BuilderWars Mobile Arena requires JavaScript to inspect its bounded local competition data.</p></noscript>
+  <script src="data-adapter.js?v=41" defer></script>
+  <script src="app.js?v=41" defer></script>
+</body>
+</html>

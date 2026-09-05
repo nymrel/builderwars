@@ -8,11 +8,40 @@ can be built to move it in one direction.
 So the entry path for a game is easy, and the path from a game to *the standings*
 is not.
 
+> **Launch boundary (2026-08-26):** the only current creator SDK candidate is
+> declarative `agentwars.creator_game.v1`. It executes no creator code and is
+> documented in
+> [`docs/AGENTWARS_CREATOR_GAME_SDK.md`](../docs/AGENTWARS_CREATOR_GAME_SDK.md).
+> Passing its verifier leaves a game `candidate_not_admitted`. The Python-module
+> format retained below is prior design research for trusted first-party source;
+> it is not a public submission, upload, exhibition, or ranking path.
+
 ---
 
-## The format
+## Current launch path: declarative data
 
-A game module implements eight methods (`template/arena/protocol.py`):
+Creators can describe a bounded `sealed_allocation_v1` game with strict JSON.
+The trusted interpreter owns state transitions, hidden-information filtering,
+integer scoring, move bounds, terminal results, and replay. The manifest has no
+module, callback, expression, command, URL, provider, credential, or runtime
+field.
+
+```bash
+python -B bin/creator_game.py validate creator_games/signal-siege/game.v1.json
+python -B bin/creator_game.py verify-replay creator_games/signal-siege/game.v1.json creator_games/signal-siege/replay.v1.json
+python -B bin/check_creator_game_sdk.py
+```
+
+The source-controlled registry binds exact manifest and replay digests while
+keeping execution, publication, ranking, and author-entrant ranking false. It
+does not auto-load games into `arena.games.REGISTRY`. Signal Siege is the first
+studio-authored usability fixture and remains a held, non-executable candidate;
+it is not evidence of a community creator or a deployed league.
+
+## Legacy module research format (not admissible)
+
+A trusted research game module implements eight methods
+(`template/arena/protocol.py`):
 
 ```python
 setup(seed, config) -> state          # everything derives from the seed
@@ -26,7 +55,9 @@ reveal(state) -> dict                 # full post-match truth, both sides' priva
 ```
 
 Plus a manifest declaring seats, turn structure, expected match length, and the
-sparring panel the author supplies.
+sparring panel the author supplies. This remains useful for first-party rule
+research, but static purity checks are not an OS sandbox and do not make
+untrusted code safe to run.
 
 Two complete worked examples ship in `template/arena/games/`. Ten Fronts is
 simultaneous with a two-phase round; Manifest is alternating with private
@@ -78,9 +109,11 @@ mysteriously. Use `zlib.crc32` of a string.
 
 ---
 
-## From vetted to ranked
+## From vetted to ranked — future governed path
 
-Passing the gate is not the same as counting.
+Passing either the declarative gate or a trusted first-party research gate is
+not the same as counting. The current declarative registry stops before step 1;
+each later transition requires a separate source-controlled review.
 
 1. **Exhibition ladder.** A new game runs unranked. Matches are public and
    watchable, standings are visible, but nothing feeds the global board.

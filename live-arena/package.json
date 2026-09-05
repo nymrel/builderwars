@@ -1,0 +1,25 @@
+{
+  "name": "builderwars-live-arena",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "tsx --test tests/*.test.ts",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "chess.js": "1.4.0",
+    "peerjs": "1.5.5"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "tsx": "4.21.0",
+    "@types/node": "22.19.11"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  }
+}

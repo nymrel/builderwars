@@ -17,6 +17,7 @@ import unicodedata
 from typing import Any
 
 from arena.canonical import canonical_bytes, digest
+from arena.replay import replayable_forfeit_evidence
 from arena.transcript import load
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -59,6 +60,9 @@ def source_kind(note: Any) -> str:
     claim = re.split(r"[;:]", note, maxsplit=1)[0]
     return {
         "source=model": "model",
+        # A fixed precommitted plan is model-influenced, but not live inference.
+        # The public truth boundary keeps model/execution attestation false.
+        "source=model_plan": "model",
         "source=fallback": "fallback",
         "source=scripted": "scripted",
         "source=scripted_board": "scripted",
@@ -72,12 +76,74 @@ def _required(records: list[dict[str, Any]], kind: str) -> dict[str, Any]:
     return row
 
 
+def validate_public_stream(records: list[dict[str, Any]]) -> None:
+    """Apply current publication invariants even to historical engine snapshots."""
+
+    current_state = None
+    current_turn = None
+    awaiting_state = False
+    try:
+        for record in records:
+            kind = record.get("kind")
+            body = record.get("body")
+            if not isinstance(body, dict):
+                raise PublicationError("public transcript record body is malformed")
+            if kind == "state":
+                recorded_digest = body.get("state_digest")
+                turn = body.get("turn")
+                if (
+                    not isinstance(recorded_digest, str)
+                    or HEX64_RE.fullmatch(recorded_digest) is None
+                    or digest(body.get("state")) != recorded_digest
+                    or type(turn) is not int
+                    or turn < 0
+                    or (current_turn is None and turn != 0)
+                    or (current_turn is not None and (not awaiting_state or turn != current_turn + 1))
+                ):
+                    raise PublicationError("recorded state bytes, digest, turn, or stream position disagree")
+                current_state = body["state"]
+                current_turn = turn
+                awaiting_state = False
+            elif kind == "move":
+                player = body.get("player")
+                turn = body.get("turn")
+                if (
+                    not isinstance(current_state, dict)
+                    or awaiting_state
+                    or type(player) is not int
+                    or player not in (0, 1)
+                    or player != current_state.get("to_move")
+                    or type(turn) is not int
+                    or turn != current_turn
+                    or type(body.get("legal")) is not bool
+                ):
+                    raise PublicationError("move seat, turn, legal flag, or stream position is invalid")
+                awaiting_state = body["legal"] is True
+        if awaiting_state:
+            raise PublicationError("accepted move has no committed successor state")
+    except PublicationError:
+        raise
+    except Exception as error:
+        raise PublicationError(
+            f"public transcript stream validation failed safely: {error.__class__.__name__}"
+        ) from error
+
+    forfeit_evidence = replayable_forfeit_evidence(records)
+    if not forfeit_evidence["ok"]:
+        raise PublicationError(
+            "runtime-only or malformed forfeits cannot receive public competitive credit"
+        )
+
+
 def _exact_pass(report: dict[str, Any], returncode: int) -> bool:
+    recorded_digest = report.get("engine_digest_recorded")
     return (
         returncode == 0
         and report.get("verdict") == "PASS"
         and report.get("engine_digest_match") is True
         and report.get("verifier_snapshot_match") is True
+        and isinstance(recorded_digest, str)
+        and HEX64_RE.fullmatch(recorded_digest) is not None
     )
 
 
@@ -114,7 +180,10 @@ def verify_with_snapshot(path: str, *, verifier: str | None = None) -> dict[str,
 
 def require_exact_verification(report: dict[str, Any]) -> dict[str, Any]:
     if report.get("effective_verdict") != "PASS":
-        if report.get("verdict") == "PASS":
+        if (
+            report.get("verifier_snapshot_match") is not True
+            or report.get("engine_digest_match") is False
+        ):
             raise PublicationError(
                 "refusing receipt without an exact embedded verifier-engine match; "
                 "replay, engine digest, and snapshot predicates are all required"
@@ -126,6 +195,42 @@ def require_exact_verification(report: dict[str, Any]) -> dict[str, Any]:
 
 def _entrant_id(name: str) -> str:
     return digest({"identityScope": "agentwars-self-declared-name-v1", "name": name.casefold()})
+
+
+def _verified_passport_row(raw):
+    """Prefer a verified stable agentId for passport entrants; fail closed.
+
+    The projection independently re-verifies the embedded signature rather than
+    trusting that some upstream stage did it. A passport that does not verify
+    cannot cross the public boundary at all.
+    """
+    record = raw.get("agent_passport")
+    try:
+        from arena import passport as passport_contract
+
+        normalized = passport_contract.verify_passport(record)
+        scope = dict(normalized["proofScope"])
+    except ImportError as error:
+        raise PublicationError(
+            "passport entrant present but the in-engine passport verifier is unavailable"
+        ) from error
+    except Exception as error:
+        raise PublicationError(
+            "entrant passport fails offline verification "
+            f"({error.__class__.__name__})"
+        ) from error
+    script = raw.get("script")
+    if not isinstance(script, dict) or script.get("sha256") != normalized["harnessSha256"]:
+        raise PublicationError("entrant passport does not bind the recorded harness digest")
+    if raw.get("name") != normalized["displayName"]:
+        raise PublicationError("entrant passport displayName disagrees with the recorded name")
+    if raw.get("claimed_model") != normalized["claimedModel"]:
+        raise PublicationError("entrant passport claimedModel disagrees with the recorded claim")
+    return {
+        **record,
+        "normalized": normalized,
+        "scope": scope,
+    }
 
 
 def _harness_version_id(raw: Any) -> tuple[str | None, bool]:
@@ -142,9 +247,14 @@ def public_entrants(header: dict[str, Any]) -> list[dict[str, Any]]:
     raw_rows = header.get("entrants")
     if not isinstance(raw_rows, list) or len(raw_rows) != 2:
         raise PublicationError("public receipts require exactly two entrants")
+    if any(not isinstance(raw, dict) for raw in raw_rows):
+        raise PublicationError("public receipt entrants must be objects")
     rows = []
     for raw in sorted(raw_rows, key=lambda item: item.get("seat", -1)):
-        if not isinstance(raw, dict) or raw.get("seat") not in (0, 1):
+        if (
+            type(raw.get("seat")) is not int
+            or raw.get("seat") not in (0, 1)
+        ):
             raise PublicationError("entrant seats must be exactly 0 and 1")
         name = safe_text(raw.get("name", "unnamed"))
         execution_claim = raw.get("execution_claim", "unspecified")
@@ -154,17 +264,47 @@ def public_entrants(header: dict[str, Any]) -> list[dict[str, Any]]:
         if not isinstance(manifest_digest, str) or HEX64_RE.fullmatch(manifest_digest) is None:
             raise PublicationError("entrant manifestDigest must be exact lowercase sha256")
         harness_id, harness_proven = _harness_version_id(raw)
-        rows.append(
-            {
-                "seat": raw["seat"],
-                "entrantId": _entrant_id(name),
-                "name": name,
-                "executionClaim": execution_claim,
-                "harnessVersionId": harness_id,
-                "harnessVersionContentDerived": harness_proven,
-                "manifestDigest": manifest_digest,
-            }
-        )
+        if "agent_passport" in raw:
+            passport = _verified_passport_row(raw)
+            normalized = passport["normalized"]
+            rows.append(
+                {
+                    "seat": raw["seat"],
+                    # Key-derived stable identity replaces the name hash.
+                    "entrantId": normalized["agentId"],
+                    "name": name,
+                    "executionClaim": execution_claim,
+                    "harnessVersionId": harness_id,
+                    "harnessVersionContentDerived": harness_proven,
+                    "manifestDigest": manifest_digest,
+                    "agentVersionId": normalized["versionId"],
+                    "parentVersionId": normalized["parentVersionId"],
+                    "identityStatus": "verified_signed",
+                    "claimedModelSelfDeclared": normalized["claimedModel"],
+                    "proofScope": {
+                        "signatureProvesVersionDeclaration": True,
+                        "keyBoundAgentId": True,
+                        "recordedPreflightHarnessDigestBound": True,
+                        "entrantIdentityAttested": False,
+                        "modelAttested": False,
+                        "runtimeAttested": False,
+                        "personAttested": False,
+                        "executionClaimsAttested": False,
+                    },
+                }
+            )
+        else:
+            rows.append(
+                {
+                    "seat": raw["seat"],
+                    "entrantId": _entrant_id(name),
+                    "name": name,
+                    "executionClaim": execution_claim,
+                    "harnessVersionId": harness_id,
+                    "harnessVersionContentDerived": harness_proven,
+                    "manifestDigest": manifest_digest,
+                }
+            )
     if [row["seat"] for row in rows] != [0, 1]:
         raise PublicationError("transcript must contain one entrant in each seat")
     if len({row["entrantId"] for row in rows}) != 2:
@@ -215,6 +355,30 @@ def _final_state(records: list[dict[str, Any]]) -> dict[str, Any] | None:
     return states[-1] if states and isinstance(states[-1], dict) else None
 
 
+def ten_fronts_scores(state: dict[str, Any] | None) -> list[int]:
+    """Extract Ten Fronts scores from referee state only, failing closed.
+
+    The result record's prose is never a score source. A Ten Fronts final
+    state must carry exactly two non-negative canonical integers; anything
+    else refuses publication instead of dropping the score.
+    """
+    if not isinstance(state, dict):
+        raise PublicationError("ten fronts receipt has no final referee state")
+    scores = state.get("scores")
+    if (
+        not isinstance(scores, list)
+        or len(scores) != 2
+        or any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in scores
+        )
+    ):
+        raise PublicationError(
+            "ten fronts final state must carry exactly two non-negative integer scores"
+        )
+    return scores
+
+
 def fantasy_scores(state: dict[str, Any] | None) -> list[int] | None:
     if not isinstance(state, dict) or state.get("format") not in (
         "redraft", "dynasty", "qb_surge"
@@ -225,12 +389,19 @@ def fantasy_scores(state: dict[str, Any] | None) -> list[int] | None:
         raise PublicationError("fantasy final state has malformed players or rosters")
     by_id = {row.get("id"): row for row in players if isinstance(row, dict)}
     metric = "dynasty_points" if state["format"] == "dynasty" else "redraft_points"
+
+    def exact_points(player_id, field):
+        value = by_id[player_id][field]
+        if type(value) is not int:
+            raise PublicationError("fantasy score inputs must be exact integers")
+        return value
+
     try:
-        scores = [sum(by_id[player_id][metric] for player_id in roster) for roster in rosters]
+        scores = [sum(exact_points(player_id, metric) for player_id in roster) for roster in rosters]
         if state["format"] == "qb_surge":
             for seat, roster in enumerate(rosters):
                 scores[seat] += sum(
-                    by_id[player_id]["redraft_points"]
+                    exact_points(player_id, "redraft_points")
                     for player_id in roster
                     if by_id[player_id]["position"] == "QB"
                 )
@@ -282,6 +453,7 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         records = load(path)
     except Exception as error:
         raise PublicationError(f"could not load transcript: {error.__class__.__name__}") from error
+    validate_public_stream(records)
     header = _required(records, "header")["body"]
     result = _required(records, "result")["body"]
     entrants = public_entrants(header)
@@ -317,18 +489,43 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     }
     fixture_id = digest(fixture_core)
     winner = result.get("winner")
-    if winner not in (None, 0, 1):
+    if winner is not None and (type(winner) is not int or winner not in (0, 1)):
         raise PublicationError("result winner must be seat 0, seat 1, or null")
-    scores = fantasy_scores(_final_state(records))
-    reason = safe_text(result.get("reason", "verified_result"), 160)
     outcome_status = (
         "void"
         if any(row.get("kind") == "engine_error" for row in records)
         else "final"
     )
+    final = _final_state(records)
+    scores = None if outcome_status == "void" else (
+        ten_fronts_scores(final) if game_name == "ten_fronts" else fantasy_scores(final)
+    )
+    reason = safe_text(result.get("reason", "verified_result"), 160)
+    if outcome_status == "void":
+        winner = None
     result_type = "void" if outcome_status == "void" else (
         "draw" if winner is None else "win"
     )
+    signed_passport_count = sum(
+        row.get("identityStatus") == "verified_signed" for row in entrants
+    )
+    passport_coverage = (
+        "all"
+        if signed_passport_count == len(entrants)
+        else "partial" if signed_passport_count else "none"
+    )
+    truth_boundary = (
+        "Replay reproduces accepted moves, deterministic state, scoring, and the published result. "
+        "Runtime-only forfeits are excluded from public competitive credit. "
+        "Entrant names, execution classes, and move-source labels remain hash-bound "
+        "self-declarations; this does not prove the run occurred or attest provider or model identity."
+    )
+    if signed_passport_count:
+        truth_boundary += (
+            " Each entrant's signed passport was verified offline: it binds one "
+            "tamper-evident version declaration to one public key. That is not "
+            "an attestation of any model claim, runtime, or person."
+        )
     receipt = {
         "schemaVersion": PUBLIC_RECEIPT_SCHEMA,
         "receiptId": chain_head,
@@ -343,9 +540,11 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         "outcome": {
             "status": outcome_status,
             "resultType": result_type,
-            "decisive": result.get("decisive") is True,
+            "decisive": outcome_status != "void" and result.get("decisive") is True,
             "winnerSeat": winner,
-            "winnerEntrantId": entrants[winner]["entrantId"] if winner in (0, 1) else None,
+            "winnerEntrantId": (
+                entrants[winner]["entrantId"] if type(winner) is int and winner in (0, 1) else None
+            ),
             "reason": reason,
             "scores": scores,
         },
@@ -356,10 +555,15 @@ def project_receipt(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
             "modelAttested": False,
             "entrantIdentityAttested": False,
             "executionClaimsAttested": False,
-            "boundary": (
-                "Replay proves accepted moves, deterministic state, scoring, and result. "
-                "Entrant names, execution classes, and move-source labels remain hash-bound "
-                "self-declarations; they do not prove provider or model identity."
+            "boundary": truth_boundary,
+            **(
+                {
+                    "agentVersionSignaturesVerified": True,
+                    "keyBoundAgentIdsVerified": True,
+                    "agentPassportCoverage": passport_coverage,
+                }
+                if signed_passport_count
+                else {}
             ),
         },
         "verification": {
@@ -423,7 +627,8 @@ def public_clip(receipt: dict[str, Any], records: list[dict[str, Any]]) -> dict[
     else:
         selected, kind, label = legal_moves[-1], "final_accepted_move", "Final accepted move"
     body = selected.get("body", {})
-    seat = body.get("player") if body.get("player") in (0, 1) else None
+    player = body.get("player")
+    seat = player if type(player) is int and player in (0, 1) else None
     internal_seed = {
         "receiptId": receipt["receiptId"],
         "seq": selected.get("seq"),

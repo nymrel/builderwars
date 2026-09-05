@@ -23,6 +23,10 @@ from .projection import (
     public_clip,
     source_counts_digest,
 )
+from .runback import (
+    RunbackError,
+    compile_runback_surface_admission,
+)
 
 PUBLICATION_MANIFEST_SCHEMA = "agentwars.publication-manifest.v1"
 DATASET_SCHEMA = "agentwars.public-product.v1"
@@ -274,19 +278,29 @@ def _source_totals(receipt: dict[str, Any]) -> dict[str, int]:
     }
 
 
-def _fixture_core(receipt: dict[str, Any], seed: int, seats: list[dict[str, Any]]) -> dict[str, Any]:
+def _fixture_core(
+    receipt: dict[str, Any], seed: int, seats: list[dict[str, Any]]
+) -> dict[str, Any]:
     return {
         "schemaVersion": "agentwars.fixture-identity.v1",
-        "game": {"name": receipt["game"]["name"], "version": receipt["game"]["version"]},
+        "game": {
+            "name": receipt["game"]["name"],
+            "version": receipt["game"]["version"],
+        },
         "seed": seed,
         "seats": [
-            {"entrantId": row["entrantId"], "harnessVersionId": row["harnessVersionId"]}
+            {
+                "entrantId": row["entrantId"],
+                "harnessVersionId": row["harnessVersionId"],
+            }
             for row in seats
         ],
     }
 
 
 def _runback(receipt: dict[str, Any]) -> dict[str, Any]:
+    """Return the exact legacy v1 unplayed descriptor."""
+
     seed = receipt["seed"] + 1
     if seed > 2_147_483_647:
         raise PublicationError("cannot derive bounded runback seed")
@@ -306,13 +320,47 @@ def _runback(receipt: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _runback_surface(
+    receipt: dict[str, Any],
+    *,
+    transcript_path: str | None = None,
+    proof: Any = None,
+    previous_state: Any = None,
+) -> dict[str, Any]:
+    try:
+        return compile_runback_surface_admission(
+            receipt,
+            parent_transcript_path=transcript_path,
+            proof=proof,
+            previous_state=previous_state,
+        )
+    except RunbackError as error:
+        raise PublicationError("runback surface admission failed closed") from error
+
+
 def _rivalry_key(receipt: dict[str, Any]) -> tuple[str, tuple[str, str]]:
     competition = "agentwars-fantasy" if receipt["game"]["name"].startswith("fantasy_") else receipt["game"]["name"]
     entrant_ids = tuple(sorted(row["entrantId"] for row in receipt["entrants"]))
     return competition, entrant_ids
 
 
-def build_rivalries(receipts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_rivalries(
+    receipts: list[dict[str, Any]],
+    *,
+    transcript_paths: dict[str, str] | None = None,
+    surface_inputs: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    if surface_inputs is None:
+        surface_inputs = {}
+    if type(surface_inputs) is not dict:
+        raise PublicationError("runback surface inputs must be an exact receipt-id map")
+    receipt_by_id = {receipt["receiptId"]: receipt for receipt in receipts}
+    if len(receipt_by_id) != len(receipts):
+        raise PublicationError("runback surface corpus contains duplicate receipt ids")
+    unknown = set(surface_inputs) - set(receipt_by_id)
+    if unknown:
+        raise PublicationError("runback surface input names an unknown parent receipt")
+    paths = transcript_paths or {}
     grouped: dict[tuple[str, tuple[str, str]], list[dict[str, Any]]] = defaultdict(list)
     for receipt in receipts:
         grouped[_rivalry_key(receipt)].append(receipt)
@@ -323,16 +371,42 @@ def build_rivalries(receipts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         )
         history = []
         for index, receipt in enumerate(meetings, 1):
-            history.append(
-                {
-                    "meetingNumber": index,
-                    "receiptId": receipt["receiptId"],
-                    "fixtureId": receipt["fixtureId"],
-                    "game": receipt["game"]["name"],
-                    "winnerEntrantId": receipt["outcome"]["winnerEntrantId"],
-                    "runback": _runback(receipt),
-                }
-            )
+            config = surface_inputs.get(receipt["receiptId"])
+            runback_surface = None
+            if config is not None:
+                if type(config) is not dict or set(config) != {"proof", "previousState"}:
+                    raise PublicationError(
+                        "runback surface input must contain exact proof and previousState fields"
+                    )
+                transcript_path = paths.get(receipt["receiptId"])
+                if type(transcript_path) is not str:
+                    raise PublicationError(
+                        "pending runback surface lacks its approved parent transcript"
+                    )
+                runback_surface = _runback_surface(
+                    receipt,
+                    transcript_path=transcript_path,
+                    proof=config["proof"],
+                    previous_state=config["previousState"],
+                )
+                edge = runback_surface["acceptedEdge"]
+                child = receipt_by_id.get(edge["childReceiptId"])
+                proof_child = config["proof"].get("childReceipt") if type(config["proof"]) is dict else None
+                if child is None or type(proof_child) is not dict or proof_child != child:
+                    raise PublicationError(
+                        "pending runback proof child is not the exact approved product receipt"
+                    )
+            history_row = {
+                "meetingNumber": index,
+                "receiptId": receipt["receiptId"],
+                "fixtureId": receipt["fixtureId"],
+                "game": receipt["game"]["name"],
+                "winnerEntrantId": receipt["outcome"]["winnerEntrantId"],
+                "runback": _runback(receipt),
+            }
+            if runback_surface is not None:
+                history_row["runbackSurface"] = runback_surface
+            history.append(history_row)
         rivalries.append(
             {
                 "schemaVersion": "agentwars.rivalry-history.v1",
@@ -625,6 +699,7 @@ def assemble_dataset(
     title_eligible: set[str],
     future_fixtures: list[dict[str, Any]],
     build_integrity: dict[str, str],
+    runback_surface_inputs: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     build_integrity = _validate_build_integrity(build_integrity)
     receipt_ids = [row["receipt"]["receiptId"] for row in approved]
@@ -685,7 +760,13 @@ def assemble_dataset(
         "clips": clips,
         "interactionManifest": interaction_manifest,
         "interactionManifestFingerprint": interaction_manifest["fingerprint"],
-        "rivalries": build_rivalries(receipts),
+        "rivalries": build_rivalries(
+            receipts,
+            transcript_paths={
+                row["receipt"]["receiptId"]: row["path"] for row in approved
+            },
+            surface_inputs=runback_surface_inputs,
+        ),
         "titles": {
             "redraftCrown": _title_state(receipts, title_eligible, "fantasy_redraft", "Redraft Crown"),
             "dynastyThrone": _title_state(receipts, title_eligible, "fantasy_dynasty", "Dynasty Throne"),
@@ -698,7 +779,12 @@ def assemble_dataset(
     return core
 
 
-def build_product(repo_root: str, publication_manifest_path: str) -> tuple[dict[str, Any], dict[str, Any], dict[str, bytes]]:
+def build_product(
+    repo_root: str,
+    publication_manifest_path: str,
+    *,
+    runback_surface_inputs: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, bytes]]:
     repo_root = os.path.abspath(repo_root)
     publication = load_publication_manifest(repo_root, publication_manifest_path)
     build_integrity = _build_integrity(repo_root, publication_manifest_path)
@@ -760,6 +846,7 @@ def build_product(repo_root: str, publication_manifest_path: str) -> tuple[dict[
         title_eligible=title_eligible,
         future_fixtures=publication["futureFixtures"],
         build_integrity=build_integrity,
+        runback_surface_inputs=runback_surface_inputs,
     )
     sources = [row["source"] for row in approved]
     source_manifest_core = {
@@ -810,6 +897,23 @@ def _assert_child(parent: str, child: str) -> None:
         raise PublicationError("artifact operation escaped its parent")
 
 
+def _require_publishable_runback_surfaces(dataset: Any) -> None:
+    """Refuse every v1 proof surface until a registry-commit contract exists."""
+
+    if type(dataset) is not dict or type(dataset.get("rivalries")) is not list:
+        raise PublicationError("artifact dataset rivalry surface is invalid")
+    for rivalry in dataset["rivalries"]:
+        if type(rivalry) is not dict or type(rivalry.get("history")) is not list:
+            raise PublicationError("artifact rivalry history is invalid")
+        for meeting in rivalry["history"]:
+            if type(meeting) is not dict:
+                raise PublicationError("artifact rivalry meeting is invalid")
+            if "runbackSurface" in meeting:
+                raise PublicationError(
+                    "runback proof surfaces are pending registry commit and cannot be published"
+                )
+
+
 def verify_artifact(path: str) -> dict[str, Any]:
     root = os.path.abspath(path)
     install_path = os.path.join(root, "install-manifest.json")
@@ -840,11 +944,34 @@ def verify_artifact(path: str) -> dict[str, Any]:
         raise PublicationError(
             f"artifact contains stale or missing files: extra={sorted(actual - expected)} missing={sorted(expected - actual)}"
         )
+    try:
+        with open(os.path.join(root, "dataset.json"), "r", encoding="utf-8") as handle:
+            dataset = json.load(handle)
+        with open(
+            os.path.join(root, "public", "dataset.json"), "r", encoding="utf-8"
+        ) as handle:
+            public_dataset = json.load(handle)
+    except (OSError, json.JSONDecodeError) as error:
+        raise PublicationError("artifact dataset is not valid JSON") from error
+    if dataset != public_dataset:
+        raise PublicationError("artifact dataset copies disagree")
+    _require_publishable_runback_surfaces(dataset)
     return payload
 
 
-def write_public_artifact(repo_root: str, publication_manifest_path: str, destination: str) -> dict[str, Any]:
-    dataset, source_manifest, outputs = build_product(repo_root, publication_manifest_path)
+def write_public_artifact(
+    repo_root: str,
+    publication_manifest_path: str,
+    destination: str,
+    *,
+    runback_surface_inputs: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    dataset, source_manifest, outputs = build_product(
+        repo_root,
+        publication_manifest_path,
+        runback_surface_inputs=runback_surface_inputs,
+    )
+    _require_publishable_runback_surfaces(dataset)
     target = os.path.abspath(destination)
     parent = os.path.dirname(target)
     if target == parent or not os.path.basename(target):

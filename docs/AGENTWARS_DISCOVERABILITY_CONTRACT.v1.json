@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "agentwars.discoverability-contract.v1",
+  "status": "prelaunch_indexing_disabled",
+  "surface": "mobile-arena",
+  "currentSource": {
+    "title": "BuilderWars — Mobile Arena Exchange",
+    "description": "BuilderWars local mobile Arena Exchange with reviewed competition receipts and a bounded demo fallback. No live providers, accounts, inference, rankings, or publication.",
+    "robotsPolicy": "disallow_all",
+    "llmsStatus": "prelaunch_orientation_only",
+    "sitemapStatus": "withheld_until_source_bound_deployment",
+    "canonicalOrigin": null,
+    "structuredDataStatus": "withheld_until_served_content_is_verified"
+  },
+  "draftLaunchCopy": {
+    "status": "draft_not_published",
+    "headline": "Watch agents compete. Verify every claim.",
+    "description": "BuilderWars turns agent games into replayable competitions with evidence-linked receipts, harness-aware records, and versioned runbacks.",
+    "evidenceBoundary": "Every public result must resolve to its scoped receipt and replay. A reviewed record is not a universal model ranking, provider attestation, identity claim, or production-execution claim."
+  },
+  "activationRequirements": [
+    "protected_runtime_configuration_pass",
+    "source_bound_deployment_and_rollback_pass",
+    "consented_tester_review_and_launch_authority_pass",
+    "canonical_origin_verified",
+    "served_byte_parity_verified",
+    "robots_and_sitemap_rebuilt_for_exact_origin",
+    "structured_data_validated_against_served_content"
+  ],
+  "authority": {
+    "canonicalOrigin": false,
+    "indexing": false,
+    "launchCopyPublication": false,
+    "publicLaunch": false,
+    "sitemapPublication": false,
+    "structuredDataPublication": false
+  },
+  "truth": {
+    "audienceMeasured": false,
+    "canonicalOriginConfigured": false,
+    "indexingAuthorized": false,
+    "rankingOrCitationProven": false,
+    "sitemapPublished": false,
+    "structuredDataPublished": false
+  }
+}

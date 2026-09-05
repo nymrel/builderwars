@@ -6,6 +6,8 @@ import importlib.util
 import json
 import os
 import sys
+import tempfile
+from unittest.mock import patch
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNNER = os.path.join(ROOT, "bin", "run_factorial_study.py")
@@ -105,6 +107,41 @@ check(analysis["contrasts"]["harness_effect_small"]["win_rate"] == 1.0, "small-m
 check(analysis["contrasts"]["harness_effect_large"]["win_rate"] == 1.0, "large-model harness contrast points the right way")
 check(analysis["contrasts"]["model_effect_structured"]["win_rate"] == 1.0, "structured-harness model contrast points the right way")
 check(analysis["contrasts"]["model_effect_naive"]["win_rate"] == 1.0, "naive-harness model contrast points the right way")
+
+# Exercise the current process/admission API without contacting any model.
+# Stub identity is explicit: these receipts MUST fail the model-only study gate.
+from arena.match import run_customer_local_match
+from entrants.backends import execution_claim_for_backend
+
+manifest = module.make_manifest(smoke[0]["seat0"], 5, execution_claim_for_backend)
+check("--customer-local-v1" in manifest["cmd"], "entrants receive explicit local intent")
+with tempfile.TemporaryDirectory() as tmp:
+    out = os.path.join(tmp, "study")
+    args = module.parser().parse_args(["--plan", PLAN, "--profile", "smoke", "--out", out])
+    expect_error(lambda: module.run(args), "execution without local intent is refused")
+    check(not os.path.exists(out), "refusal precedes output creation")
+
+    def run_stub(**kwargs):
+        for entrant in kwargs["entrants"]:
+            entrant["cmd"][entrant["cmd"].index("--backend") + 1] = "stub:v1"
+            entrant["claimed_model"] = "stub:v1"
+            entrant["execution_claim"] = "scripted"
+        kwargs["move_timeout_s"] = 5
+        return run_customer_local_match(**kwargs)
+
+    args.customer_local_v1 = True
+    with patch("arena.match.run_customer_local_match", side_effect=run_stub) as runner:
+        code = module.run(args)
+    check(runner.call_count == 1 and code == 2, "real local match API works and stub evidence holds the study")
+    summary = module.load_json(os.path.join(out, "summary.json"))
+    check(summary["observed_fixtures"] == 1 and summary["publication_gate"]["status"] == "HOLD",
+          "incomplete synthetic smoke cannot pass")
+    check(not os.path.exists(os.path.join(out, "publication-candidate.json")),
+          "synthetic smoke produces no publication candidate")
+    args.customer_local_v1 = False
+    args.analyze_only = True
+    with patch("arena.match.run_customer_local_match", side_effect=AssertionError("must not execute")):
+        check(module.run(args) == 2, "analyze-only replays without model execution or local consent")
 
 print(f"\n{checks}/{checks} factorial-study contract checks passed")
 sys.exit(0)

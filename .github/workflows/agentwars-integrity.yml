@@ -10,13 +10,17 @@ permissions:
 
 jobs:
   contracts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      - name: Install locked runner dependencies
+        run: python -m pip install --requirement requirements.lock
       - name: Validate factorial study
         run: |
           python bin/run_factorial_study.py --validate-plan
@@ -31,7 +35,7 @@ jobs:
             bin/factorial_study_output.py \
             bin/run_factorial_study.py \
             bin/check_factorial_study.py \
-            entrants/naive_harness.py
+            entrants/study_naive_harness.py
       - name: Run existing adversarial checks
         run: |
           python bin/selfcheck.py

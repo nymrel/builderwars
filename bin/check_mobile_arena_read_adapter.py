@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+"""Exercise the mobile Arena read adapter and its fail-closed fallback policy."""
+
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MOBILE = ROOT / "mobile-arena"
+
+
+def require(predicate: bool, message: str) -> None:
+    if not predicate:
+        raise AssertionError(message)
+
+
+def main() -> int:
+    node = shutil.which("node")
+    require(node is not None, "Node.js is required to exercise the Arena read adapter")
+
+    script = r"""
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const adapter = require(path.join(process.cwd(), "data-adapter.js"));
+const demo = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "demo-state.json"), "utf8"));
+const model = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "arena-read-model.v1.json"), "utf8"));
+const checks = [];
+function check(predicate, message) {
+  if (!predicate) throw new Error(message);
+  checks.push(message);
+}
+function copy(value) { return JSON.parse(JSON.stringify(value)); }
+function canonicalJSON(value) {
+  if (value === null || typeof value === "boolean" || typeof value === "string" || typeof value === "number") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJSON(item)).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJSON(value[key])}`).join(",")}}`;
+}
+function digestModel(value) {
+  const payload = Object.fromEntries(Object.entries(value).filter(([key]) => key !== "readModelDigest"));
+  return crypto.createHash("sha256").update(canonicalJSON(payload), "utf8").digest("hex");
+}
+async function rejects(mutator, expected) {
+  const changed = copy(model);
+  mutator(changed);
+  let message = "";
+  try { await adapter.adaptArenaReadModel(changed, demo); } catch (error) { message = error.message; }
+  check(message.includes(expected), `rejects ${expected}`);
+}
+function rejectsDemo(mutator, expected) {
+  const changed = copy(demo);
+  mutator(changed);
+  let message = "";
+  try { adapter.validateDemoFixture(changed); } catch (error) { message = error.message; }
+  check(message.includes(expected), `rejects demo ${expected}`);
+}
+function response(body, ok = true) {
+  return { ok, async json() { return copy(body); } };
+}
+
+(async () => {
+  adapter.validateDemoFixture(demo);
+  adapter.validateArenaReadModel(model);
+  checks.push("validates bounded inputs");
+  await adapter.verifyArenaReadModelIntegrity(model);
+  check(adapter.READ_MODEL_DIGEST_PIN === model.readModelDigest, "pins the reviewed read-model digest in executable source");
+
+  const view = await adapter.adaptArenaReadModel(model, demo);
+  check(view.schemaVersion === adapter.VIEW_SCHEMA, "projects versioned view schema");
+  check(view.sourceMode === "verified_corpus", "selects verified corpus");
+  check(view.demoOnly === false, "does not relabel corpus as demo");
+  check(view.proofReceipts.length === 8, "projects eight reviewed receipts");
+  check(model.corrections.entries.length === 0 && model.corrections.summary.correctionCount === 0, "tracked corpus fabricates no corrections");
+  check(view.proofReceipts.every((proof) => proof.correction.state === "active" && proof.correction.eligibleForScopedRating === true), "projects active no-correction truth for every tracked proof");
+  check(view.tape.length === view.proofReceipts.length, "tape is receipt-backed");
+  check(view.channels.every((channel) => channel.evidenceLabel.includes("no audience data") && !("viewers" in channel)), "does not invent viewers");
+  check(view.leaderboard.every((row) => row.record.includes("not ranked")), "does not invent ranking");
+  check(model.scopedRatingBoards.length === 5, "loads five exact proof-rating scopes");
+  check(model.scopedRatingBoards.reduce((total, board) => total + board.receiptCount, 0) === 8, "scoped proof boards cover eight reviewed receipts exactly once");
+  check(view.leaderboard.length === model.scopedRatingBoards.reduce((total, board) => total + board.entrants.length, 0), "projects one alphabetic row per scoped entrant record");
+  check(view.leaderboard.every((row) => row.record.includes("proof point") && row.position === "—"), "labels proof points without positions");
+  check(view.leaderboard.every((row) => model.scopedRatingBoards.some((board) => board.scopeId === row.scopeId)), "binds every displayed row to an exact scope");
+  check(new Set(model.scopedRatingBoards.map((board) => board.scope.gameName)).size === 5, "never combines unlike games into one board");
+  const proposedFixtures = view.quickMatches.filter((fixture) => !fixture.exhibitionAllowed);
+  const localExhibitions = view.quickMatches.filter((fixture) => fixture.exhibitionAllowed);
+  check(proposedFixtures.length === 3 && proposedFixtures.every((fixture) => fixture.enabled === false), "keeps proposed fixtures inactive");
+  check(proposedFixtures.every((fixture) => fixture.previewAllowed === true && fixture.actionLabel === "Preview"), "projects proposed fixtures as previews");
+  check(proposedFixtures.every((fixture) => fixture.resourceClass === adapter.PREVIEW_RESOURCE_CLASS), "binds no-compute preview resource class");
+  check(localExhibitions.length === 1 && localExhibitions[0].resourceClass === adapter.LOCAL_EXHIBITION_RESOURCE_CLASS, "projects one separate deterministic local exhibition");
+  check(view.rivalries.length === 3, "projects three verified rivalries");
+  check(view.rivalries.every((rivalry) => view.proofReceipts.some((proof) => proof.receiptId === rivalry.latestReceiptId)), "rivalry receipt links resolve");
+  check(view.rivalries.every((rivalry) => rivalry.runbackStatus === "unplayed_challenge"), "rivalry runbacks remain inactive");
+  check(view.account.accessLabel === "Read-only proof" && view.account.accessDetail === "Competition entry disabled" && !("creditsRemaining" in view.account), "does not invent live credits");
+  check(view.watchlist.every((item) => item.metric.endsWith("R") && !("rating" in item) && !("delta" in item) && !("trend" in item)), "projects receipt counts without market signals");
+  check(view.quickMatches.every((fixture) => typeof fixture.access === "string" && !("cost" in fixture)), "projects access boundaries without simulated cost")
+  check(view.featured.proof.replayVerdict === "PASS", "preserves replay verdict");
+  check(view.featured.proof.receiptId.length === 64, "binds featured proof receipt");
+  check(view.truthBoundary.live === false && view.truthBoundary.hosted === false, "preserves non-live boundary");
+  check(view.featured.proof.modelAttested === false && view.featured.proof.providerAttested === false, "preserves unattested boundary");
+  check(view.proofReceipts.every((proof) => proof.runback?.parentReceiptId === proof.receiptId), "projects exact proof-to-runback lineage");
+  check(view.proofReceipts.every((proof) => proof.runback?.status === "unplayed_challenge"), "keeps every proof runback unplayed");
+  check(view.proofReceipts.every((proof) => proof.game?.version === "1"), "projects proof game bindings");
+  check(model.summary.signedAgentPassportEntrantCount === 0 && model.summary.legacySelfDeclaredEntrantCount === 16 && model.summary.signedAgentPassportReceiptCount === 0, "tracks current legacy passport coverage exactly");
+  check(view.proofReceipts.flatMap((proof) => proof.entrants).every((entrant) => entrant.identityEvidence.status === "self_declared_legacy" && entrant.identityEvidence.agentPassportSupplied === false), "projects explicit legacy identity evidence into every proof");
+  check(view.proofReceipts.flatMap((proof) => proof.entrants).every((entrant) => [entrant.identityEvidence.entrantIdentityAttested, entrant.identityEvidence.modelAttested, entrant.identityEvidence.runtimeAttested, entrant.identityEvidence.personAttested, entrant.identityEvidence.executionClaimsAttested].every((value) => value === false)), "keeps every higher identity attestation false");
+
+  const fallback = adapter.demoFallback(demo);
+  check(fallback.sourceMode === "demo_fixture_fallback" && fallback.featured.statusLabel === "Simulated fixture", "labels the bounded static fallback")
+  check(fallback.account.accessLabel === "Static preview only" && fallback.account.accessDetail === "No account, provider, or local execution", "fallback denies executable local play when the verified corpus is unavailable")
+  check(fallback.leaderboard.every((row) => row.position === "—" && row.metric === "DEMO" && row.verified === 0), "fallback roster remains unranked and unverified")
+  check(fallback.channels.every((channel) => channel.evidenceLabel.includes("no audience data")), "fallback channels carry no audience data")
+  check(fallback.lessons.every((lesson) => lesson.progress === 0), "fallback carries no earned learning progress")
+  check(fallback.automations.every((item) => item.enabled === false), "fallback reminders are off by default")
+  rejectsDemo((changed) => { changed.account.creditsRemaining = 120; }, "unearned finance, audience, ranking, or capacity metric");
+  rejectsDemo((changed) => { changed.channels[0].viewers = 312; }, "unearned finance, audience, ranking, or capacity metric");
+  rejectsDemo((changed) => { changed.leaderboard[0].metric = "1548"; }, "demo roster must stay unranked and unverified");
+  rejectsDemo((changed) => { changed.automations[0].enabled = true; }, "automation boundary drift");
+  rejectsDemo((changed) => { changed.lessons[0].progress = 100; }, "unearned learning progress");
+
+  await rejects((changed) => { changed.truthBoundary.live = true; }, "live must stay false");
+  await rejects((changed) => { changed.receipts[0].proof.replayVerdict = "FAIL"; }, "replay failed");
+  await rejects((changed) => { changed.receipts[0].proof.publicationApproved = false; }, "unpublished receipt");
+  await rejects((changed) => { changed.receipts[0].correction.state = "voided"; }, "correction drift");
+  await rejects((changed) => { changed.receipts[0].correction.state = "voided"; changed.receipts[0].correction.eligibleForScopedRating = false; }, "rating coverage");
+  await rejects((changed) => { delete changed.receipts[0].proof.engineDigest; }, "engine digest missing");
+  await rejects((changed) => { changed.summary.receiptCount += 1; }, "receipt count mismatch");
+  await rejects((changed) => { changed.summary.scopedRatingBoardCount += 1; }, "scoped rating board summary drift");
+  await rejects((changed) => { changed.scopedRatingBoards[0].authority.ranking = true; }, "scoped rating authority drift");
+  await rejects((changed) => { changed.scopedRatingBoards[0].scope.engineDigest = "0".repeat(64); }, "scoped rating engine binding drift");
+  await rejects((changed) => { changed.scopedRatingBoards[0].entrants[0].ratingPoints += 100; }, "scoped rating record drift");
+  await rejects((changed) => { changed.scopedRatingBoards[1].receiptIds[0] = changed.scopedRatingBoards[0].receiptIds[0]; }, "duplicate scoped rating receipt");
+  await rejects((changed) => { changed.scopedRatingBoards.reverse(); }, "scoped rating board order drift");
+  await rejects((changed) => { changed.scopedRatingBoards = []; changed.summary.scopedRatingBoardCount = 0; }, "scoped rating boards missing");
+  await rejects((changed) => { changed.futureFixtures[0].activationStatus = "activated"; }, "activated future fixture");
+  await rejects((changed) => { changed.receipts[0].entrants[0].harnessVersionContentDerived = false; }, "harness version drift");
+  await rejects((changed) => { changed.rivalries[0].meetings[0].receiptId = "0".repeat(64); }, "unknown rivalry receipt");
+  await rejects((changed) => { changed.rivalries[0].meetings[0].winnerEntrantId = changed.rivalries[0].entrantIds[1]; }, "rivalry outcome drift");
+  await rejects((changed) => { changed.rivalries[0].meetings[0].meetingNumber = 2; }, "rivalry meeting order drift");
+  await rejects((changed) => { changed.rivalries[0].meetings[0].runback.status = "played"; }, "rivalry runback activated");
+  await rejects((changed) => { changed.rivalries[1].meetings[0].receiptId = changed.rivalries[0].meetings[0].receiptId; }, "duplicate rivalry receipt");
+  await rejects((changed) => { changed.rivalries[0].meetings.pop(); changed.rivalries[0].meetingCount -= 1; }, "receipt missing rivalry runback lineage");
+  await rejects((changed) => { changed.source.approvedReceiptCount += 1; }, "source receipt count mismatch");
+  await rejects((changed) => { changed.summary.modelInfluencedUnattestedReceiptCount += 1; }, "model-influenced summary drift");
+  await rejects((changed) => { changed.summary.rivalryCount += 1; }, "rivalry summary drift");
+  await rejects((changed) => { changed.summary.unplayedFixtureCount += 1; }, "future fixture summary drift");
+  await rejects((changed) => { changed.channels[0].publishedReceiptCount += 1; }, "channel receipt count drift");
+  await rejects((changed) => { changed.channels.push(copy(changed.channels[0])); }, "duplicate channel");
+  await rejects((changed) => { changed.channels[0].status = "live"; }, "channel status drift");
+  await rejects((changed) => { changed.channels[0].rulesWeekIds = []; }, "channel rules binding drift");
+  await rejects((changed) => { changed.rivalries.push(copy(changed.rivalries[0])); }, "duplicate rivalry");
+  await rejects((changed) => { changed.futureFixtures.push(copy(changed.futureFixtures[0])); }, "duplicate future fixture");
+  await rejects((changed) => { changed.futureFixtures[0].closeAt = "not-a-time"; }, "future fixture close time drift");
+  await rejects((changed) => { changed.futureFixtures[0].matchup.pop(); }, "future fixture matchup drift");
+  await rejects((changed) => { changed.futureFixtures[0].matchup[1].seat = 0; }, "future fixture seat drift");
+  await rejects((changed) => { changed.futureFixtures[0].matchup[0].entrantId = "0".repeat(64); }, "future fixture entrant is not receipt-backed");
+  await rejects((changed) => { changed.futureFixtures[0].rulesWeekId = "missing-rules-week"; }, "unknown future fixture rules week");
+  await rejects((changed) => { changed.futureFixtures[0].rulesDigest = "0".repeat(64); }, "future fixture rules binding drift");
+  await rejects((changed) => { changed.receipts[0].entrants[1].seat = 0; }, "entrant seat drift");
+  await rejects((changed) => { changed.receipts[0].entrants[0].identityEvidence.status = "verified_signed"; }, "identity proof drift");
+  await rejects((changed) => { changed.receipts[0].entrants[0].identityEvidence.modelAttested = true; }, "identity attestation inflation");
+  await rejects((changed) => { changed.receipts[0].entrants[0].identityEvidence.agentVersionId = "0".repeat(64); }, "legacy identity drift");
+  await rejects((changed) => { changed.summary.signedAgentPassportEntrantCount += 1; }, "agent passport summary drift");
+
+  await rejects((changed) => { changed.receipts[0].headline += " altered"; }, "digest mismatch");
+  const rehashedMutation = copy(model);
+  rehashedMutation.receipts[0].headline += " altered and rehashed";
+  rehashedMutation.readModelDigest = digestModel(rehashedMutation);
+  let pinMessage = "";
+  try { await adapter.adaptArenaReadModel(rehashedMutation, demo); } catch (error) { pinMessage = error.message; }
+  check(pinMessage.includes("digest pin mismatch"), "rejects a locally rehashed but unreviewed corpus");
+
+  const validFetch = async (url) => response(url.includes("arena-read-model") ? model : demo);
+  const loaded = await adapter.loadArenaData(validFetch);
+  check(loaded.sourceMode === "verified_corpus", "loads verified corpus first");
+
+  const missingModelFetch = async (url) => url.includes("arena-read-model") ? response({}, false) : response(demo);
+  const missingFallback = await adapter.loadArenaData(missingModelFetch);
+  check(missingFallback.sourceMode === "demo_fixture_fallback", "falls back when corpus is missing");
+  check(missingFallback.sourceMeta.fallbackReason !== null, "discloses fallback reason");
+
+  const invalidModel = copy(model);
+  invalidModel.truthBoundary.authenticated = true;
+  const invalidModelFetch = async (url) => response(url.includes("arena-read-model") ? invalidModel : demo);
+  const invalidFallback = await adapter.loadArenaData(invalidModelFetch);
+  check(invalidFallback.sourceMode === "demo_fixture_fallback", "falls back when corpus is invalid");
+
+  const digestMutation = copy(model);
+  digestMutation.receipts[0].headline += " altered";
+  const digestMutationFetch = async (url) => response(url.includes("arena-read-model") ? digestMutation : demo);
+  const digestFallback = await adapter.loadArenaData(digestMutationFetch);
+  check(digestFallback.sourceMode === "demo_fixture_fallback", "falls back when corpus digest does not match its content");
+  check(digestFallback.sourceMeta.fallbackReason === "verified_read_model_digest_mismatch", "discloses bounded digest-mismatch fallback reason");
+
+  const rehashedMutationFetch = async (url) => response(url.includes("arena-read-model") ? rehashedMutation : demo);
+  const pinFallback = await adapter.loadArenaData(rehashedMutationFetch);
+  check(pinFallback.sourceMode === "demo_fixture_fallback", "falls back when an unreviewed digest is internally self-consistent");
+  check(pinFallback.sourceMeta.fallbackReason === "verified_read_model_digest_mismatch", "does not relabel a rehashed unreviewed corpus as verified");
+
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+  Object.defineProperty(globalThis, "crypto", { value: undefined, configurable: true });
+  try {
+    const unavailableIntegrityFallback = await adapter.loadArenaData(validFetch);
+    check(unavailableIntegrityFallback.sourceMode === "demo_fixture_fallback", "falls back when browser SHA-256 is unavailable");
+    check(unavailableIntegrityFallback.sourceMeta.fallbackReason === "verified_read_model_integrity_unavailable", "discloses bounded integrity-unavailable fallback reason");
+  } finally {
+    if (cryptoDescriptor) Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+    else delete globalThis.crypto;
+  }
+
+  let demoFailure = "";
+  try { await adapter.loadArenaData(async () => response({}, false)); } catch (error) { demoFailure = error.message; }
+  check(demoFailure.includes("demo fixture request failed"), "fails closed when bounded fallback is unavailable");
+
+  process.stdout.write(JSON.stringify({ status: "PASS", checks: checks.length }));
+})().catch((error) => {
+  process.stderr.write(error.stack || error.message);
+  process.exit(1);
+});
+"""
+
+    result = subprocess.run(
+        [node, "-e", script],
+        cwd=MOBILE,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(result.returncode == 0, f"Arena read-adapter check failed: {result.stderr.strip()}")
+    payload = json.loads(result.stdout)
+    require(payload.get("status") == "PASS", "Arena read adapter did not report PASS")
+    require(payload.get("checks", 0) >= 80, "Arena read adapter coverage unexpectedly shrank")
+    print(f"BuilderWars mobile Arena read adapter: PASS ({payload['checks']} checks)")
+    print("verified corpus / disclosed demo fallback / fail-closed local source boundary")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

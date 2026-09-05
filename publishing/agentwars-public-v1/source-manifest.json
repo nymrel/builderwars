@@ -1,5 +1,5 @@
 {
-  "approvedReceiptCount": 7,
+  "approvedReceiptCount": 8,
   "approvedReceiptIds": [
     "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
     "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
@@ -7,18 +7,19 @@
     "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
     "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
     "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
+    "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
     "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897"
   ],
   "buildIntegrity": {
     "datasetBuilderSha256": "6ec741b67db0b26b3010c741e1ea271ca691a78d729e318591a037fa95316a91",
     "productExporterSha256": "0463f18c72070680b6c391d20d0f7f2310ac761e71509326ee2111633a1df1d1",
-    "projectionSha256": "7d305344ee11da8c685017bac64f26bfd786a06939c5740bb797266a70cbbc50",
-    "publicationManifestFileSha256": "31c76ce10a98d591ea6d8c1d673ec6c8d2889b897a1799cbbf2d5f570f581775",
-    "siteExporterSha256": "7cf6f90a1edfe2ab29da7d133b760a974ca1975f652ee125ef16e3a0c4e7b434",
-    "sourceCommit": "90da27716c366c871191438a646977bd113aa3b3",
-    "verifierSha256": "e734ee951b6ca3e6e5b434d342d0d6aae04efe0f198dc243d23cfee84672aa05"
+    "projectionSha256": "791da7390e2f914833405269deb725a61603fc574f00e6ba111e55dd1862b40d",
+    "publicationManifestFileSha256": "d9ce44dbb0c9e8d37865165b91b816ce5c9f456a69116d302a0a6a810970637b",
+    "siteExporterSha256": "688fc650d99a21d67c19157c891f839fd0fb1bb68370ec49a0c1cce5947b64d9",
+    "sourceCommit": "0e2b9615582715cec1c62a7f54d33fb91a5cd862",
+    "verifierSha256": "127cfb9c9a95b6db3087ecb10c3f0bc866d300416242e70529a415a0ff3be7fc"
   },
-  "datasetDigest": "8cdeb96ef89c41cc292431daef6b307d504c8e7c80f5f71c645ad7d1e0394c7b",
+  "datasetDigest": "88e28aaba4e58afa19e8a180e80f2882f47c8b736400e089cf725e2f210cc813",
   "entries": [
     {
       "engineDigest": "268af65826d74f2d806baddb31dd66f0d7e809f483268f07c6136879670ccd81",
@@ -29,7 +30,7 @@
       "publicTranscriptSha256": "4e6cac4a6fdbda4cab76223de1a5f7950099e83e9e969cd372c83716845836cc",
       "receiptId": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
       "sequence": 0,
-      "shareManifestHash": "3028f3a713159eaaa9c8c3cadc4c267505a9060b2bed64854d64d8db04a9edf1",
+      "shareManifestHash": "fce3a71034cb36656cacbe0bfad10fbc4a7ac783a83600ba7960cd52965619f1",
       "sourceChainHead": "46c3b063f570ac8ead75916bd6e09b3133ccfff19ffbf0fc4b3262450de12703",
       "sourceCounts": {
         "fallback": 0,
@@ -57,7 +58,7 @@
       "publicTranscriptSha256": "1bc518c5ea178049647b39338f32797eca85822d559758ac75b41ecad6a46372",
       "receiptId": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
       "sequence": 1,
-      "shareManifestHash": "10532be31ee16a319081d877104f4186bc28b1f36179e1d3c3a26f928daeef9d",
+      "shareManifestHash": "b77c3634041db395bed217bd65ac65bae9264040e122887e3135a7d3baf270c2",
       "sourceChainHead": "a62149bfb323df3df07235072dfb473841c8f79219418ff3d61258cbf26072ca",
       "sourceCounts": {
         "fallback": 0,
@@ -85,7 +86,7 @@
       "publicTranscriptSha256": "c545b9a15476db180fd42fce8392251a0a35325e359c75edd1dabae7eb781ba3",
       "receiptId": "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
       "sequence": 2,
-      "shareManifestHash": "4782624bde42a7b87a2e0e3fdd3928a327d2ea220dbd45fe60c3a848575db437",
+      "shareManifestHash": "e3b3404d33b787214be9cce76515f480f7374734f9fb32d225a48f1c57bc14d6",
       "sourceChainHead": "9f114cbb97c58d4d22d95c6fdf3b8c9d2096d8e9dad4b228d1f58270f0b60d34",
       "sourceCounts": {
         "fallback": 0,
@@ -113,7 +114,7 @@
       "publicTranscriptSha256": "785dc244f37df8e7f0bbf2e9d91853756bc5bce85d0cb388a0f58c77d48a34b7",
       "receiptId": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
       "sequence": 3,
-      "shareManifestHash": "90e24065934068a1838b47d06cbf3223b2e6a1cec975326f1aec0f68cf887554",
+      "shareManifestHash": "8b7bb72ecb8676b706e767f23b84ca213ae2cbc47f576152ef5e224a263b04a4",
       "sourceChainHead": "1428e8c401d5e3ead10e1938fabc9fad90db4f9aa03c82f018e8162e3757698a",
       "sourceCounts": {
         "fallback": 0,
@@ -141,7 +142,7 @@
       "publicTranscriptSha256": "696557537476b4696d7786ec3e950f0d4295a906d80af37022e2a26248ee8a6d",
       "receiptId": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
       "sequence": 4,
-      "shareManifestHash": "ccbc9a99ac7fc6262dc783fe1eeebfdd6c480a6610caf21e721d51cf23e12785",
+      "shareManifestHash": "a1d730b056378274c905e9cc29aaaf0faec4666fa6671bb464c4d1e3f15b869a",
       "sourceChainHead": "2bf8cb58f340948ff830020621be5671291a6b7026b1b692de36f578af745ebb",
       "sourceCounts": {
         "fallback": 0,
@@ -169,7 +170,7 @@
       "publicTranscriptSha256": "04c9d0386645d347e80d270613b83db2b597669207f305f341103b16eb30debb",
       "receiptId": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
       "sequence": 5,
-      "shareManifestHash": "aa4b7f6b6894210ddca4d81838b6f6e21e06f14986ac0ced8d5d8122bda126a4",
+      "shareManifestHash": "a7a48a16c2a025e4a2260322b521df18b943b03753c1bd7c34138cae0579be28",
       "sourceChainHead": "0035f3da6713e92fb6fb95d3276bb00a5cb1ce002482f92bc2b61325e6ac85a4",
       "sourceCounts": {
         "fallback": 0,
@@ -197,7 +198,7 @@
       "publicTranscriptSha256": "c987d082af09a9b9309e78f4a8e3212ba2173b65888f8d5984ba3d6a7fec332f",
       "receiptId": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
       "sequence": 6,
-      "shareManifestHash": "2ce0dc43429e1add86169b8417f2d6dc5f3e114e3a9a62927fef7d6a44e28fde",
+      "shareManifestHash": "50c0703921fad2a3b7e08c0907474d1ce9f10972a7cbee4eaf30f0d6a685a35c",
       "sourceChainHead": "f363646fdd6742ee1c4e03bfce514df51ca4d3a488fcdcf1e9315da7c20bb897",
       "sourceCounts": {
         "fallback": 0,
@@ -215,11 +216,39 @@
         "verifierSnapshotMatch": true
       },
       "verifierSnapshotDigest": "3afca5e09507ec748c3d91dfbc1157e3f872fc495541063c3575a4c81c03b328"
+    },
+    {
+      "engineDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6",
+      "fixtureId": "eae3d3d50f0cca2f2ea21dc7f2603ff668af9ed6464412c22ab92878299857e6",
+      "label": "Reviewed scripted offline Ten Fronts reference; accepted moves were all deterministic fallbacks, not model-played",
+      "publicTranscriptBytes": 252020,
+      "publicTranscriptPath": "public/m/e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4.jsonl",
+      "publicTranscriptSha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4",
+      "receiptId": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+      "sequence": 7,
+      "shareManifestHash": "2c8de4a6a91bddda662c2f9003d42e46596ba047421958ac705f637b59307c59",
+      "sourceChainHead": "e0f90384b6cebaa22d230a389026581fc1ad11fcd4596a6c2f255b60b4ff13e4",
+      "sourceCounts": {
+        "fallback": 80,
+        "model": 0,
+        "other": 0,
+        "scripted": 0
+      },
+      "sourceCountsDigest": "7b7f0ec2bf6dd56a493e13da81d40823a83b9c431888385cf34c04ec485cf683",
+      "sourceFileSha256": "761329826c2e43970bcc501cb3816ea101935ea337715aa80aa12db1301d4de4",
+      "sourcePath": "matches/agentwars-ten-fronts/ten_fronts/7000-0/e16ac35d43eb3b47.jsonl",
+      "verification": {
+        "effectiveVerdict": "PASS",
+        "engineDigestMatch": true,
+        "replayVerdict": "PASS",
+        "verifierSnapshotMatch": true
+      },
+      "verifierSnapshotDigest": "baa77c4dcd746081738dabcdbfc7882432d182dd88a3f596828cd969f9c960f6"
     }
   ],
-  "interactionManifestFingerprint": "01654d3f75e547bef1088c93cdcb5a2d3bb38bcb30050699029202545ba6db5d",
-  "manifestDigest": "bf9cac6ce86990b69884bd676c59b066cc987b859a718e7849fef6eff8d3d96a",
-  "publicationManifestDigest": "822bac507243f39e5024b688ea1d38d9ec3a60e01ce08772a0c1db6ae8a03dcd",
+  "interactionManifestFingerprint": "313b04366fd7fc7d18b939a2e6ace42e9a8bd0727d7dc1fc86593780fba9bfcd",
+  "manifestDigest": "e4bca48c30de66aa8de4eae559672be0ba134123b4467f57bc809a187288ece8",
+  "publicationManifestDigest": "c84b83f7e3284a54d4fcda8faf979d6267628e7370257326e71178c86156a234",
   "schemaVersion": "agentwars.public-source-manifest.v1",
-  "sourceDigest": "19fb2832647962b7d166e5cf515384a26f4647cfa67b743c04f78befb0dbe64a"
+  "sourceDigest": "37a96ae98027b9f99097fb6058ca9de9b64f30956ba6b6efa8eb8dbfcbf5dc12"
 }

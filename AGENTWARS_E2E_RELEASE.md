@@ -64,6 +64,7 @@ Broadcast-night fantasy arena: matte-black scoreboard planes, warm bone typograp
 - `python bin/check_agentwars_product.py`
 - `python bin/check_share_bundle.py`
 - `python bin/check_agentwars_scale.py`
+- `python bin/check_agentwars_runner.py`
 - `python bin/selfcheck.py`
 - `python bin/check_fantasy_games.py`
 - `python bin/build_verifier.py --check`
