@@ -1,7 +1,13 @@
 # BuilderWars lane presence
 
-Open - last used by Codex, 2026-09-05 06:26 UTC. Learning candidate checkpoint.
-Replay-verified connect-game practice memory, actual request delivery, frozen evaluation and tactical diagnostics completed. Base6eaaba1; learning delta Fable5.1 approved, Node103/bridge9 and browser/native synthetic flows passed. Bus claims codex-builderwars-game-learning-20260905 and codex-builderwars-learning-bridge-20260905 are released at handoff; bus is authoritative until then. Production integration remains with the BuilderWars thread. No provider performance or store claim.
+Codex integration/release checkpoint, 2026-09-05 06:34 UTC.
+Exact ownership is in bus claim `codex-builderwars-learning-release-20260905`;
+this dated mirror does not extend a released or expired claim. Integration b553b96
+combines accepted a80c64d learning with the tester guide. Fable turn3 approved the
+consolidated application/native-source delta, conditional on exact-head CI and
+document-only integration confirmation. 103 Node tests/build and real WebRTC
+recovery pass locally. Final CI/canonical deployment remain separate. No model
+performance, physical-device, signing or store claim. Preserve other worktrees.
 
 ## Historical lane notes (current status above and authoritative bus supersede)
 Claims `codex-builderwars-match-package-20260905` and

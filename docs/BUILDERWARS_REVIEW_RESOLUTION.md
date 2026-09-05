@@ -1,5 +1,44 @@
 # PR29 review resolution and remaining launch work
 
+## Consolidated review — September 5, 2026 UTC
+
+Fable round-trip `builderwars-learning-20260905`, turn 3, returned **approved**
+for integrated application source `b553b96b8394759659324d9c03f69254fda1a4d1`.
+Receipt: `C:/Users/johns/StudioData/artifacts/fable-roundtrip/builderwars-learning-20260905-turn-3.json`;
+resolved runtime `claude-fable-5-1`, result hash
+`4d815c2fd44bc1168d21801d5195d1b1e69940b3f872134acd16a670ff32db1a`.
+It explicitly covers the previously uncovered `e3a56b6..6eaaba1` profile,
+resource, package, keyboard and native-file/lifecycle delta plus learning
+integration. This is source reasoning, not independent execution of tests.
+Turn 2 separately approved the learning delta. The requested
+`a80c64d..b553b96` check shows only `docs/BUILDERWARS_BETA_TESTER_GUIDE.md`.
+Exact release-head CI and canonical deployment are still required; the earlier
+dated status sections below are historical, not current launch evidence.
+
+Non-blocking findings and disposition:
+
+- OpenRouter authentication preflight depends on a valid key-endpoint response,
+  including boolean `is_free_tier`; unexpected bodies or rate limits stop moves.
+  Keep this explicit dependency and retry/free-opponent fallback. Do not silently
+  bypass a failed preflight and start a billable request.
+- Proof-import ordering was flagged as a possible partial update if resource
+  validation throws. Inspected `verifyProof` calls `settings` before returning,
+  enforcing an integer `maxPlies` in 2..400; `matchLimits(maxPlies, null)` accepts
+  precisely that domain. No current reproducer survives verification. Earlier
+  validation would be defensive refactoring, not a demonstrated release defect.
+- Legacy bridge health 501 guidance and inactive-cell hover/focus polish remain
+  small follow-ups; no automatic weaker inference or permission fallback added.
+- Native share/cancel/cache and lifecycle interactions remain synthetic except
+  the named iOS simulator startup receipt. Android emulator play, physical
+  devices, signing and stores are unverified, not approved by this review.
+
+The separate real-WebRTC recovery script still expected editing the cap after
+play began to change that match. Reproduced its failure, then updated the test
+to choose six before play, edit to nine after two moves and require recovery of
+six. The entire real-browser recovery/rejoin/offline-cache journey now passes;
+application code and frozen resource rules were not weakened. Other current
+resource tests already cover pause, proof round trip and unknown imported caps.
+
 Candidate lineage: `a85f6818285a42ad94ce0351117fea98ed63653f` plus this review-fix increment. This is not a production release receipt.
 
 ## Review received

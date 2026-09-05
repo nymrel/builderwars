@@ -14,13 +14,14 @@ with sync_playwright() as p:
     assert '30 days' in page.locator('#match-library').text_content()
     assert 'keys and endpoints are never saved' in page.locator('#match-library').text_content()
     page.locator('[data-game="tictactoe"]').click()
+    page.locator('.match-settings').filter(has=page.locator('#move-limit')).locator('summary').click()
+    page.locator('#move-limit').fill('6')
     page.locator('#step').click()
     page.wait_for_function("() => document.querySelector('#metric-moves').textContent === '1'")
     page.locator('#step').click()
     page.wait_for_function("() => document.querySelector('#metric-moves').textContent === '2'")
-    page.locator('.match-settings').filter(has=page.locator('#move-limit')).locator('summary').click()
-    page.locator('#move-limit').fill('6')
-    # Force a paused checkpoint with the selected cap.
+    page.locator('#move-limit').fill('9')
+    # Later edits are for the next match. Recovery must retain the captured six.
     page.locator('#start').click()
     page.locator('#start').click()
     page.reload()
