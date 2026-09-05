@@ -133,3 +133,40 @@ effort preservation, edited-draft export, changed-setting counts, and declined/
 accepted reset of an unfinished match. Two existing tests needed explicit reset
 consent after the new safeguard. Referee digest is unchanged. This checkpoint
 does not certify real provider calls, native WebViews, device quality or stores.
+
+### Native foundation checkpoint — September 4, 2026, 21:48 PDT
+
+Android and iOS projects are now generated under `live-arena`, using bundled
+`dist-native` assets. This supersedes the earlier no-project/no-install snapshot.
+Core/platform packages are pinned to Capacitor 8.5.1 and App to 8.1.1; CLI 8.4.3
+avoids the moderate `xcode`/`uuid` dependency advisory observed with CLI 8.5.1.
+Both full and production-only npm audit returned zero vulnerabilities at this
+checkpoint. That is a dependency audit result, not a security certification.
+
+Implemented and locally checked: native-only bundled CSP, no remote app shell,
+disabled native HTTP/cookie patching, no cleartext/mixed content or WebView debug,
+Android backup disabled, and cache-only future export FileProvider scope.
+Pause invalidates/aborts runs, closes broadcasts, and ignores late responses.
+Foreground return never restarts model calls. Native harness configuration rejects
+desktop loopback endpoints and requires HTTPS. Registration-time pause races and
+loopback aliases have explicit regression tests. Windows-generated Swift package
+paths are normalized for macOS builds by the repeatable native-sync helper.
+
+Local web/native builds, Node tests, native project sync, packaged-asset synthetic
+lifecycle checks and portable proof round trip pass. The synthetic bridge suite
+uses intercepted requests and is not a real provider or device test. The full web
+browser gate also passed before the final two native-only review repairs.
+
+CI now includes Android debug APK and unsigned iOS simulator compilation on
+standard hosted runners, with bounded artifacts and no store credentials. At
+this checkpoint those new jobs are configured, not yet verified remotely. The
+Android job uses the installed SDK and disables SDK downloading; it contains no
+license-acceptance command. The iOS job disables signing. The local application
+identifier `com.nymrel.builderwars` is not a store-registration receipt.
+
+Still unfinished: native cache/share-sheet export, actual native file import,
+safe-area/back/keyboard and physical-device checks, offline recovery on devices,
+product icons/splash (generated template assets remain), signed tester builds,
+privacy/store declarations and accepted listings. No store publication or native
+quality claim follows from generation or compilation. Next: inspect exact hosted
+native build receipts, repair concrete failures, then implement native file flows.

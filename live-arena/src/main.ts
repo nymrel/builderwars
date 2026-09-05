@@ -1,4 +1,7 @@
 import "./style.css";
+import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
+import { bindNativeLifecycle, validateNativeEndpoint } from "./native-lifecycle";
 import {
   RULES,
   createGame,
@@ -46,6 +49,14 @@ import {
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
+const isNativeApp = Capacitor.isNativePlatform();
+let nativeReady = !isNativeApp, nativeActive = true;
+let disposeNative: (() => Promise<void>) | undefined;
+function ensureDeviceReady(agent?: Agent) {
+  if (isNativeApp && (!nativeReady || !nativeActive))
+    throw Error("Mobile lifecycle protection is not ready. Return to the app or restart it before playing.");
+  if (agent) validateNativeEndpoint(agent.kind, agent.endpoint, isNativeApp);
+}
 const esc = (s: unknown) =>
   String(s).replace(
     /[&<>"']/g,
@@ -788,6 +799,7 @@ async function oneMove() {
     agents[state.turn].kind === "human"
   )
     return;
+  ensureDeviceReady(agents[state.turn]);
   const limits = getMatchLimits();
   if (state.moves.length >= limits.moveLimit)
     throw Error("Exhibition move limit reached. Start a rematch.");
@@ -824,6 +836,7 @@ async function play() {
   if (pending) return;
   let moveLimit: number;
   try {
+    ensureDeviceReady(agents[state.turn]);
     moveLimit = getMatchLimits().moveLimit;
   } catch (e) {
     notify((e as Error).message);
@@ -880,6 +893,7 @@ function humanClick(i: number) {
   )
     return;
   try {
+    ensureDeviceReady();
     if (state.moves.length >= getMatchLimits().moveLimit) {
       notify("Move limit reached. Start a rematch.");
       return;
@@ -1167,6 +1181,7 @@ $("check-connection").onclick = async () => {
   $("check-connection").setAttribute("disabled", "");
   $("dialog-status").textContent = "Checking connection without model inference…";
   try {
+    ensureDeviceReady(a);
     const result = await checkConnection(a, models, controller.signal);
     if (generation === connectionGeneration && snapshot === JSON.stringify(agentFromForm()) && $<HTMLDialogElement>("agent-dialog").open) $("dialog-status").textContent = result.message;
   } catch (error) {
@@ -1178,7 +1193,7 @@ $("check-connection").onclick = async () => {
 $<HTMLFormElement>("agent-form").onsubmit = (e) => {
   e.preventDefault();
   const a = agentFromForm();
-  try { validateConnection(a, models); }
+  try { ensureDeviceReady(a); validateConnection(a, models); }
   catch (error) { $("dialog-status").textContent = (error as Error).message; return; }
   if (running || pending || spectating) { $("dialog-status").textContent = "Pause the match before replacing a contender."; return; }
   if (record.events.length && !state.over && !confirm("Use this contender and reset the unfinished match? Export the current match first if you want to keep it.")) return;
@@ -1428,6 +1443,7 @@ async function goLive() {
   }
   startingBroadcast = true;
   try {
+    ensureDeviceReady();
     if (!broadcastLink) {
       const id = await broadcast.host(
         (n) => {
@@ -1463,6 +1479,7 @@ $("watch-broadcast").onclick = () => {
   void goLive();
 };
 async function join(id: string) {
+  ensureDeviceReady();
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) throw Error("Invalid broadcast id.");
   stop();
   const generation = ++joinGeneration;
@@ -1580,6 +1597,7 @@ window.addEventListener("beforeunload", () => {
   controller?.abort();
   broadcast.close();
   agents.forEach((a) => (a.key = ""));
+  void disposeNative?.();
 });
 if (new URLSearchParams(location.search).get("stream") === "1")
   document.body.classList.add("stream-view");
@@ -1614,6 +1632,31 @@ function loadFragment() {
       .catch((e) => {
         if (location.hash === hash) notify(`Replay rejected: ${e.message}`);
       });
+}
+function suspendNative() {
+  if (!nativeActive) return;
+  nativeActive = false;
+  stop("Paused when app left foreground");
+  cancelConnectionProbe();
+  agents.forEach(forgetConnectionCheck);
+  joinGeneration++;
+  saveCurrent();
+  broadcast.close();
+  broadcastLink = "";
+  $("stop-broadcast").hidden = true;
+  $("watch-link").textContent = "Broadcast stopped while app was inactive. Start a new broadcast explicitly.";
+}
+if (isNativeApp) {
+  try {
+    disposeNative = await bindNativeLifecycle(App, suspendNative, () => {
+      nativeActive = true;
+      notify("App resumed paused. Press Start to continue, or reconnect in Watch. No model call restarted automatically.");
+    });
+    nativeReady = true;
+  } catch {
+    suspendNative();
+    notify("Mobile lifecycle protection failed to initialize. Restart the app. No model requests can start.");
+  }
 }
 loadFragment();
 window.addEventListener("hashchange", loadFragment);

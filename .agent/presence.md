@@ -1,10 +1,10 @@
 # BuilderWars lane presence
 
-Open last used by Codex, 2026-09-05 04:29 UTC. Resource/context and keyboard checkpoint.
-Claim `codex-builderwars-match-resources-20260905` being released at checkpoint; recheck the bus before writes.
+Active Codex, 2026-09-05 UTC. Native lifecycle and packaged-mobile foundation.
+Claim `codex-builderwars-native-lifecycle-20260905`; recheck the bus before writes.
 Branch `codex/builderwars-portable-proof-20260904` in this named worktree.
-Scope: live-arena, .github/workflows/builderwars-live-arena.yml,
-docs/BUILDERWARS_REVIEW_RESOLUTION.md and this mirror.
+Scope: live-arena, docs/BUILDERWARS_THREE_PLATFORM_EXECUTION.md and this mirror.
+CI has the separate `codex-builderwars-native-ci-20260905` claim.
 Parent owns application/tests/docs and CI. The recovery_review CI assignment was
 explicitly interrupted while pending initialization, before any worker write.
 Recheck the authoritative bus before resuming. The legacy accepted
@@ -21,7 +21,9 @@ Next: record metadata reconciliation and native file/lifecycle adapters, then re
 Three-platform expansion contract: docs/BUILDERWARS_THREE_PLATFORM_EXECUTION.md.
 69 Node tests, build, six bridge tests, nine Chromium journeys and Firefox/WebKit proof pass.
 Independent bounded review found three defects; fixed and re-reviewed without remaining findings.
-No native build, device, signing or store-publication receipt. No new dependency installed.
+Native lifecycle, packaged CSP and generated Android/iOS projects locally pass.
+Two native review findings repaired and rechecked; no remaining findings in that bounded review.
+Native build jobs configured; no native binary, device, signing or store receipt yet.
 Cross-family review arrived for e3a56b6 through the mailbox; see review resolution guide.
 Two direct Fable attempts timed out; do not loop that route or count timeout as approval.
 Later material changes still require review; real customer-client smoke is conditional.

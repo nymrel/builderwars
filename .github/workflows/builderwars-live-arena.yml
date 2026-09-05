@@ -50,3 +50,55 @@ jobs:
       - run: .browser-venv/bin/python -m pip install -r tests/requirements-ci.txt
       - run: .browser-venv/bin/python -m playwright install --with-deps chromium firefox webkit
       - run: .browser-venv/bin/python tests/run_browser_ci.py
+      - run: npm run build:native
+      - run: .browser-venv/bin/python tests/run_browser_ci.py --native
+  android-debug:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: live-arena
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.17.0'
+          cache: npm
+          cache-dependency-path: live-arena/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run native:sync
+      - name: Build debug APK with installed SDK; no license acceptance or release key
+        run: |
+          test -d "$JAVA_HOME_21_X64"
+          test -f "$ANDROID_HOME/platforms/android-36/android.jar"
+          JAVA_HOME="$JAVA_HOME_21_X64" bash android/gradlew -p android --no-daemon -Pandroid.builder.sdkDownload=false assembleDebug
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: builderwars-android-debug-${{ github.sha }}
+          path: live-arena/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: live-arena
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.17.0'
+          cache: npm
+          cache-dependency-path: live-arena/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run native:sync
+      - name: Build simulator app without signing or store credentials
+        run: xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath .native-build CODE_SIGNING_ALLOWED=NO build
+      - run: tar -czf ios-simulator.tar.gz -C .native-build/Build/Products/Debug-iphonesimulator App.app
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: builderwars-ios-simulator-${{ github.sha }}
+          path: live-arena/ios-simulator.tar.gz
+          if-no-files-found: error
+          retention-days: 7

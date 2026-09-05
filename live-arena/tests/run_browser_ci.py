@@ -18,6 +18,7 @@ from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 JOURNEYS = ("browser.py", "lifecycle.py", "connections_browser.py", "profiles_browser.py", "resources_browser.py", "accessibility_browser.py", "academy_browser.py", "proof_browser.py", "sharing_browser.py")
+NATIVE_JOURNEYS = ("native_browser.py", "proof_browser.py")
 
 
 def restrict_browser_network():
@@ -89,19 +90,21 @@ def run(command, env):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--child", choices=JOURNEYS)
+    parser.add_argument("--child", choices=tuple(set(JOURNEYS + NATIVE_JOURNEYS)))
+    parser.add_argument("--native", action="store_true", help="Packaged assets with synthetic native bridge; not device acceptance")
     args = parser.parse_args()
     if args.child:
         restrict_browser_network()
         runpy.run_path(str(ROOT / "tests" / args.child), run_name="__main__")
         return
-    if not (ROOT / "dist" / "index.html").is_file():
+    out_dir = "dist-native" if args.native else "dist"
+    if not (ROOT / out_dir / "index.html").is_file():
         raise RuntimeError("Build the production candidate before browser validation.")
     with socket.socket() as port_probe:
         port_probe.bind(("127.0.0.1", 0))
         port = port_probe.getsockname()[1]
     env = {**os.environ, "BUILDERWARS_TEST_URL": f"http://127.0.0.1:{port}", "BUILDERWARS_BROWSER": "chromium"}
-    preview = launch(["node", "node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", str(port), "--strictPort"], env)
+    preview = launch(["node", "node_modules/vite/bin/vite.js", "preview", "--outDir", out_dir, "--host", "127.0.0.1", "--port", str(port), "--strictPort"], env)
     try:
         deadline = time.monotonic() + 20
         while True:
@@ -116,11 +119,12 @@ def main():
             if time.monotonic() >= deadline:
                 raise TimeoutError("Preview readiness timed out.")
             time.sleep(0.1)
-        run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_bridge.py"], env)
-        for script in JOURNEYS:
+        if not args.native:
+            run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_bridge.py"], env)
+        for script in NATIVE_JOURNEYS if args.native else JOURNEYS:
             print(f"GATE Chromium: {script}", flush=True)
             run([sys.executable, __file__, "--child", script], env)
-        for engine in ("firefox", "webkit"):
+        for engine in () if args.native else ("firefox", "webkit"):
             print(f"GATE {engine}: proof_browser.py", flush=True)
             run([sys.executable, __file__, "--child", "proof_browser.py"], {**env, "BUILDERWARS_BROWSER": engine})
         print("PASS: isolated browser gate. Real PeerJS recovery and customer-client execution excluded, not certified.", flush=True)
