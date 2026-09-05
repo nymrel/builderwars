@@ -71,8 +71,13 @@ def main():
             raise RuntimeError("Unexpected launch receipt; refusing to infer successful launch.")
         time.sleep(8)  # Bounded rendering delay; screenshots are inspected, not an assertion.
         run("xcrun", "simctl", "io", udid, "screenshot", str(out / "launch.png"))
+        time.sleep(30)  # A second bounded frame distinguishes cold WebView startup from first-frame blankness.
+        run("xcrun", "simctl", "io", udid, "screenshot", str(out / "settled.png"))
+        screen_text = run("swift", "tests/ios_screen_check.swift", str(out / "settled.png"), timeout=90)
+        (out / "screen-text.json").write_text(screen_text + "\n", encoding="utf-8")
         receipt.update(status="launched", launch=launched, screenshot="launch.png",
-                       classification="unsigned simulator launch; screenshot inspection required")
+                       settledScreenshot="settled.png", initialScreenTextVerified=True,
+                       classification="unsigned simulator launch and initial-screen OCR; manual inspection still required")
         print(json.dumps(receipt))
     except Exception as error:
         receipt.update(status="failed", error=type(error).__name__)
@@ -80,8 +85,17 @@ def main():
     finally:
         try:
             if attempted_boot:
-                # The runner is ephemeral; cleanup targets only the exact device selected above.
-                cleanup(udid)
+                # Initial app only: no user credentials/input or paid execution in this harness.
+                try:
+                    try:
+                        logs = run("xcrun", "simctl", "spawn", udid, "log", "show", "--last", "5m", "--style", "compact",
+                                   "--predicate", 'process == "App" OR process CONTAINS "WebKit"', timeout=30)
+                        (out / "native-startup.log").write_text(logs[-60000:], encoding="utf-8")
+                    except (subprocess.SubprocessError, OSError) as error:
+                        receipt["logCaptureError"] = type(error).__name__
+                finally:
+                    # Diagnostic failures must never skip owned-device cleanup.
+                    cleanup(udid)
         finally:
             (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
 
