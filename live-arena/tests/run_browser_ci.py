@@ -17,7 +17,7 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-JOURNEYS = ("browser.py", "lifecycle.py", "connections_browser.py", "academy_browser.py", "proof_browser.py", "sharing_browser.py")
+JOURNEYS = ("browser.py", "lifecycle.py", "connections_browser.py", "profiles_browser.py", "academy_browser.py", "proof_browser.py", "sharing_browser.py")
 
 
 def restrict_browser_network():

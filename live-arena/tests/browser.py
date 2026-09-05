@@ -84,6 +84,8 @@ with sync_playwright() as p:
     assert page.locator('#effort option').all_text_contents()==['Provider default','high','low']
     page.locator('#agent-key').fill('synthetic-browser-test')
     page.locator('#agent-name').fill('Test model')
+    # The capped evaluation is not rule-complete; explicitly consent to reset it.
+    page.once('dialog',lambda dialog:dialog.accept())
     page.locator('#agent-form button[type=submit]').click()
     page.route('https://openrouter.ai/api/v1/chat/completions',lambda route:route.fulfill(json={"choices":[{"message":{"content":"{\"move\":\"0\",\"comment\":\"Synthetic response\"}"}}],"model":"test/model","usage":{"total_tokens":5,"cost":0}}))
     page.locator('#step').click()

@@ -1,7 +1,7 @@
 # BuilderWars lane presence
 
-Open last used by Codex, 2026-09-05 UTC. Received cross-family review fixes in draft PR #29.
-Claim `codex-builderwars-review-fixes-20260905` is closing; recheck the bus before writes.
+Open last used by Codex, 2026-09-05 UTC. Portable configuration and platform scope expansion.
+Claim `codex-builderwars-profiles-platform-20260905` is closing; recheck the bus before writes.
 Branch `codex/builderwars-portable-proof-20260904` in this named worktree.
 Scope: live-arena, .github/workflows/builderwars-live-arena.yml,
 docs/BUILDERWARS_REVIEW_RESOLUTION.md and this mirror.
@@ -16,7 +16,11 @@ claim is authoritative for whether release validation is still active.
 Review-fix candidate: 58 Node tests, build, 6 bridge tests, isolated browser runner passed.
 Proof passes Chromium/Firefox/WebKit; sharing covers replacement consent and declaration labels.
 CI status belongs to the exact remote head, not the prior checkpoint. No release claim.
-Next: configuration comparison/import and record metadata reconciliation, then release review.
+Profiles/import/draft comparisons and native public-link preparation now locally pass.
+Next: record metadata reconciliation and native file/lifecycle adapters, then release review.
+Three-platform expansion contract: docs/BUILDERWARS_THREE_PLATFORM_EXECUTION.md.
+64 Node tests, build, 6 bridge tests, 7 Chromium journeys and Firefox/WebKit proof pass.
+No native build, device, signing or store-publication receipt. No new dependency installed.
 Cross-family review arrived for e3a56b6 through the mailbox; see review resolution guide.
 Two direct Fable attempts timed out; do not loop that route or count timeout as approval.
 Later material changes still require review; real customer-client smoke is conditional.

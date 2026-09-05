@@ -78,6 +78,7 @@ with sync_playwright() as p:
     page.locator("#agent-kind").select_option("openrouter")
     page.locator("#model-id option").first.wait_for(state="attached")
     page.locator("#agent-key").fill("synthetic-academy-sentinel")
+    page.once("dialog", lambda dialog: dialog.accept())  # Explicitly replace the stopped match.
     page.locator("#agent-form button[type=submit]").click()
     page.locator("nav [data-tab=evals]").click()
     page.locator("#run-series").click()

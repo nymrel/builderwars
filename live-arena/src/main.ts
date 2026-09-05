@@ -25,6 +25,8 @@ import { Broadcast } from "./broadcast";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
+import { publicLinkOrigin } from "./public-links";
+import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
 import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage, entrantLabel,
   freeAgents, configuredAgents, type MatchSetup, type MatchSummary } from "./sharing";
@@ -208,7 +210,7 @@ for (const [id, mode] of [["setup-free", "free"], ["setup-human", "human"], ["se
 async function shareSetup() {
   try {
     const encoded = encodeSetup(makeSetup(record, numberInput("move-limit", 2, 400), numberInput("max-tokens", 256, 16384)));
-    await navigator.clipboard.writeText(`${location.origin}/#setup=${encoded}`);
+    await navigator.clipboard.writeText(`${publicLinkOrigin(location.origin)}/#setup=${encoded}`);
     notify("Setup link copied. Opening it shows a preview and never starts model calls. Keys, prompts and harness addresses are excluded.");
   } catch (error) { notify((error as Error).message); }
 }
@@ -233,7 +235,7 @@ $("copy-caption").onclick = async () => {
     const snapshot = safeReplay(record), summary = summarizeMatch(snapshot);
     const encoded = await encodeReplay(snapshot);
     if (encoded.length > 60000) throw Error("Replay is too large for a link. Download match JSON instead.");
-    const caption = `BuilderWars: ${summary.title} in ${summary.record.rules.name} (${summary.plies} plies).\nExhibition; rules replayed, model identity/execution not attested.\nReplay and try a free rematch: ${location.origin}/#replay=${encoded}`;
+    const caption = `BuilderWars: ${summary.title} in ${summary.record.rules.name} (${summary.plies} plies).\nExhibition; rules replayed, model identity/execution not attested.\nReplay and try a free rematch: ${publicLinkOrigin(location.origin)}/#replay=${encoded}`;
     await navigator.clipboard.writeText(caption);
     notify("Result caption and replay link copied. Review before posting; no post has been published.");
   } catch (error) { notify((error as Error).message); }
@@ -921,6 +923,7 @@ function openAgent(seat: number) {
     return;
   }
   selectedSeat = seat;
+  importedSelection = null;
   cancelConnectionProbe();
   const a = agents[seat];
   $("agent-title").textContent = `${seat === 0 ? "White" : "Black"} contender`;
@@ -937,20 +940,23 @@ function openAgent(seat: number) {
   $<HTMLInputElement>("model-search").value = "";
   $<HTMLInputElement>("free-models").checked = false;
   connectionFields();
+  profileComparison();
   $<HTMLDialogElement>("agent-dialog").showModal();
 }
-function connectionFields() {
+let importedSelection: { model: string; effort: string } | null = null;
+function connectionFields(loadCatalog = true) {
   const kind = $<HTMLSelectElement>("agent-kind").value;
   $("bot-fields").hidden = kind !== "bot";
   $("model-fields").hidden = kind !== "openrouter";
   $("harness-fields").hidden = kind !== "harness";
   $("key-fields").hidden = !["openrouter", "harness"].includes(kind);
   if (kind === "openrouter") {
-    if (!models.length) void loadModels();
+    if (!models.length && loadCatalog) void loadModels();
     else filterModels();
   }
 }
 $<HTMLSelectElement>("agent-kind").onchange = () => {
+  importedSelection = null;
   $<HTMLInputElement>("agent-key").value = "";
   connectionFields();
 };
@@ -972,7 +978,7 @@ function filterModels() {
   const q = $<HTMLInputElement>("model-search").value.toLowerCase(),
     free = $<HTMLInputElement>("free-models").checked,
     prior =
-      $<HTMLSelectElement>("model-id").value || agents[selectedSeat].model;
+      importedSelection?.model || $<HTMLSelectElement>("model-id").value || agents[selectedSeat].model;
   const available = models.filter(
     (m) =>
       (!q || (m.id + " " + m.name).toLowerCase().includes(q)) &&
@@ -983,6 +989,11 @@ function filterModels() {
     .join("");
   if (available.some((m) => m.id === prior))
     $<HTMLSelectElement>("model-id").value = prior;
+  else if (importedSelection) {
+    const option = new Option(`${prior} · not in current catalog`, prior);
+    $<HTMLSelectElement>("model-id").add(option);
+    $<HTMLSelectElement>("model-id").value = prior;
+  }
   updateEfforts();
 }
 function updateEfforts() {
@@ -998,6 +1009,11 @@ function updateEfforts() {
     .join("");
   if (efforts.includes(agents[selectedSeat].effort))
     $<HTMLSelectElement>("effort").value = agents[selectedSeat].effort;
+  if (importedSelection) {
+    if (!efforts.includes(importedSelection.effort))
+      $<HTMLSelectElement>("effort").add(new Option(`${importedSelection.effort} · unconfirmed`, importedSelection.effort));
+    $<HTMLSelectElement>("effort").value = importedSelection.effort;
+  }
   $("model-price").textContent = model?.pricing
     ? `Catalog price per 1M tokens: $${(Number(model.pricing.prompt) * 1e6).toFixed(2)} input / $${(Number(model.pricing.completion) * 1e6).toFixed(2)} output. Additional provider charges may apply.`
     : "Choose a model.";
@@ -1005,7 +1021,8 @@ function updateEfforts() {
 $("refresh-models").onclick = () => void loadModels();
 $<HTMLInputElement>("model-search").oninput = filterModels;
 $<HTMLInputElement>("free-models").onchange = filterModels;
-$<HTMLSelectElement>("model-id").onchange = updateEfforts;
+$<HTMLSelectElement>("model-id").onchange = () => { importedSelection = null; updateEfforts(); };
+$<HTMLSelectElement>("effort").onchange = () => { importedSelection = null; };
 $("close-dialog").onclick = () => $<HTMLDialogElement>("agent-dialog").close();
 $("forget-key").onclick = () => {
   cancelConnectionProbe();
@@ -1050,6 +1067,48 @@ function cancelConnectionProbe() {
 $("agent-form").addEventListener("input", cancelConnectionProbe);
 $("agent-form").addEventListener("change", cancelConnectionProbe);
 $("agent-dialog").addEventListener("close", cancelConnectionProbe);
+$("export-agent").insertAdjacentHTML("afterend", '<button id="import-agent" type="button">Import profile</button><input id="profile-file" type="file" accept=".json,application/json" hidden>');
+$("dialog-status").insertAdjacentHTML("beforebegin", '<p id="profile-comparison" class="muted" aria-live="polite"></p><p class="muted">Profile files include your name, model settings and strategy text. Keys and endpoints are excluded. Inspect strategy text for secrets before exporting or sharing. Import only edits this draft; it never starts play.</p>');
+function profileComparison() {
+  const result = compareProfiles(agents[selectedSeat], agentFromForm());
+  const labels: Record<string, string> = { kind: "connection type", model: "model / opponent", effort: "effort", strategy: "strategy" };
+  $("profile-comparison").textContent = result.changed.length
+    ? `${result.changed.length} setting${result.changed.length === 1 ? "" : "s"} changed from the saved contender: ${result.changed.map(k => labels[k]).join(", ")}. ${result.changed.length === 1 ? "One-change draft." : "Change one setting at a time for a clearer experiment."} This comparison does not check endpoints, keys, external harness versions or game resources; it is not performance evidence.`
+    : `No behavior settings changed.${result.renamed ? " Display name changed." : ""} Keys and endpoints are not compared.`;
+}
+$("agent-form").addEventListener("input", profileComparison);
+$("agent-form").addEventListener("change", profileComparison);
+$("import-agent").onclick = () => $<HTMLInputElement>("profile-file").click();
+$<HTMLInputElement>("profile-file").onchange = async (event) => {
+  event.stopPropagation();
+  const input = $<HTMLInputElement>("profile-file"), file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  cancelConnectionProbe();
+  const generation = connectionGeneration, seat = selectedSeat, snapshot = JSON.stringify(agentFromForm());
+  try {
+    if (file.size > PROFILE_MAX_BYTES) throw Error("Profile exceeds 8 KB.");
+    const candidate = disconnectedProfile(readProfile(await file.text()));
+    if (generation !== connectionGeneration || seat !== selectedSeat || snapshot !== JSON.stringify(agentFromForm()) || !$<HTMLDialogElement>("agent-dialog").open) return;
+    if (!confirm("Replace this connection draft? Its key and endpoint will be cleared. The saved contender and match stay unchanged until you choose Use contender.")) return;
+    $<HTMLInputElement>("agent-name").value = candidate.name;
+    $<HTMLSelectElement>("agent-kind").value = candidate.kind;
+    $<HTMLSelectElement>("bot-model").value = candidate.model;
+    $<HTMLInputElement>("agent-key").value = "";
+    $<HTMLInputElement>("harness-url").value = "";
+    $<HTMLInputElement>("harness-model").value = candidate.model;
+    $<HTMLInputElement>("harness-effort").value = candidate.effort;
+    $<HTMLTextAreaElement>("strategy").value = candidate.strategy;
+    $<HTMLInputElement>("model-search").value = "";
+    $<HTMLInputElement>("free-models").checked = false;
+    importedSelection = candidate.kind === "openrouter" ? { model: candidate.model, effort: candidate.effort } : null;
+    connectionFields(false);
+    profileComparison();
+    $("dialog-status").textContent = "Profile imported into this draft. Keys and endpoints cleared. Remote models need current catalog validation and your own connection before use. No game or model request started.";
+  } catch (error) {
+    if (generation === connectionGeneration) $("dialog-status").textContent = (error as Error).message;
+  }
+};
 $("check-connection").onclick = async () => {
   cancelConnectionProbe();
   const generation = connectionGeneration;
@@ -1071,13 +1130,17 @@ $<HTMLFormElement>("agent-form").onsubmit = (e) => {
   const a = agentFromForm();
   try { validateConnection(a, models); }
   catch (error) { $("dialog-status").textContent = (error as Error).message; return; }
+  if (running || pending || spectating) { $("dialog-status").textContent = "Pause the match before replacing a contender."; return; }
+  if (record.events.length && !state.over && !confirm("Use this contender and reset the unfinished match? Export the current match first if you want to keep it.")) return;
   cancelConnectionProbe();
   agents[selectedSeat] = a;
   $<HTMLDialogElement>("agent-dialog").close();
   reset();
 };
-$("export-agent").onclick = () =>
-  download("builderwars-agent.json", publicAgent(agents[selectedSeat]));
+$("export-agent").onclick = () => {
+  try { download("builderwars-agent.json", makeProfile(agentFromForm())); }
+  catch (error) { $("dialog-status").textContent = (error as Error).message; }
+};
 $("export").onclick = () => download(`builderwars-${record.id}.json`, record);
 $("export-proof").onclick = async () => {
   if (rules.kind !== "connect4" || proofExporting) return;
@@ -1132,7 +1195,7 @@ async function shareReplay() {
       throw Error(
         "This match is too large for a URL. Download and share its JSON file.",
       );
-    const link = `${location.origin}/#replay=${encoded}`;
+    const link = `${publicLinkOrigin(location.origin)}/#replay=${encoded}`;
     await navigator.clipboard.writeText(link);
     notify(
       "Replay link copied. Public names, model labels and moves are included; strategies, comments, keys and endpoints are excluded.",
@@ -1314,7 +1377,7 @@ async function goLive() {
           broadcastLink = "";
         },
       );
-      broadcastLink = `${location.origin}/#watch=${id}`;
+      broadcastLink = `${publicLinkOrigin(location.origin)}/#watch=${id}`;
       broadcast.publish(record);
       $("watch-link").textContent = broadcastLink;
       $("stop-broadcast").hidden = false;
@@ -1438,7 +1501,7 @@ $("leave-watch").onclick = () => {
 };
 $("clean-view").onclick = () => {
   const url = watchId
-    ? `${location.origin}/?stream=1#watch=${watchId}`
+    ? `${publicLinkOrigin(location.origin)}/?stream=1#watch=${watchId}`
     : broadcastLink
       ? broadcastLink.replace("/#", "/?stream=1#")
       : "";
