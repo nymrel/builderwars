@@ -1,0 +1,6 @@
+{
+  "initialHeaps": [3, 5, 7],
+  "moves": ["{\"heap\":0,\"take\":3}", "{\"heap\":1,\"take\":5}", "{\"heap\":2,\"take\":7}"],
+  "winner": 0,
+  "reason": "took_last_object"
+}

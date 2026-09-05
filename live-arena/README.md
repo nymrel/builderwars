@@ -14,7 +14,7 @@ npm run dev
 
 Open the printed local URL. **Quick match** runs the currently selected contenders;
 the initial pair are free built-in Tactician and Wildcard. Games: chess (chess.js),
-English checkers, Connect Four and tic-tac-toe. Human seats support board clicks;
+English checkers, Connect Four, tic-tac-toe and Nim. Human seats support board clicks;
 choose a chess promotion piece under Match settings before promoting.
 
 Forge creates bounded connect-in-a-row definitions (3–10 rows/columns, optional
@@ -24,6 +24,42 @@ gravity). Import/export rules as JSON. For entirely new engines, use the reposit
 Evals runs 2, 4 or 10 exhibitions, swapping seats. Each game respects its move limit.
 Invalid output or a connection error pauses the series without substituting a bot.
 Requested effort and provider-reported identity are not independent execution attestation.
+
+### Nim and builder provenance
+
+Nim uses the existing Python referee's normal-play rules: remove objects from one
+heap, and take the last object to win. The browser starts at `[3,5,7]`; imported
+rules may pin 3 or 4 heaps of 1–7 objects with nonzero XOR. This is a fixed-position
+exhibition, not the seeded controlled study in PR #5. Tactician uses the solved XOR
+strategy for Nim, not a model. Human seats choose a heap's **Take N** button.
+
+For a builder-fielded harness pair, configure both seats with optional public
+builder ID, harness ID and source revision (40-character commit hash or 64-character
+SHA-256). All three must be supplied together. They travel with their seat when
+Evals swaps contenders, and are displayed as **self-declared**.
+
+New JSON exports, replay links, evaluation records and broadcast snapshots use
+`builderwars.exhibition.v2`. Its SHA-256 binds the normalized public rules, builder
+and harness claims, model/effort/strategy, seat order, move events and status.
+It is **not a signature**: someone can edit a record and recompute its hash.
+It does not authenticate identity, ownership, source/deployed-code correspondence,
+provider execution, completeness, or whether a host omitted prior attempts.
+Existing v1 replays remain readable and are explicitly labeled unbound; no
+builder provenance is inferred from their display names. Keys/endpoints are not exported.
+
+The browser's invalid-move/backend-error behavior remains pause-without-replacement.
+The study's referee may record a forfeit and its zero-fallback publication gate
+has stricter receipt requirements. Browser records must never be treated as study
+receipts or as completion of the Llama/Qwen factorial matrix or same-family control.
+
+Nim harness observations use `position: {"heaps":[3,5,7],"to_move":0}`. Copy one
+string from `legalMoves` unchanged. For example:
+
+```json
+{"move":"{\"heap\":0,\"take\":1}","comment":"Remove one from heap 1."}
+```
+
+Heap indexes are zero-based on the wire. The UI displays one-based heap labels.
 
 ## Bring models and harnesses
 
