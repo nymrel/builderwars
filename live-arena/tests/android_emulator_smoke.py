@@ -21,6 +21,25 @@ CDP_PORT = 9223
 IMAGE = "system-images;android-35;google_apis;x86_64"
 
 
+def recovery_snapshot(page):
+    """Counts only: never export stored prompts, endpoints, keys or record bodies."""
+    return page.evaluate("""() => {
+        const entries = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key?.startsWith('builderwars.match.v1:')) continue;
+            try {
+                const entry = JSON.parse(localStorage.getItem(key));
+                entries.push({plies: Array.isArray(entry?.record?.events)
+                    ? entry.record.events.length : null});
+            } catch { entries.push({plies: null}); }
+        }
+        return {visiblePlies: document.querySelector('#metric-moves')?.textContent,
+            storedEntries: entries.sort((a, b) => (a.plies ?? -1) - (b.plies ?? -1)),
+            resumableEntries: document.querySelectorAll('[data-saved-resume]').length};
+    }""")
+
+
 def prepare_debug():
     # Android's debug source-set asset overrides main only for debug builds.
     # Keep the committed/release config disabled; never enable a remote server.
@@ -87,7 +106,7 @@ def main():
                "sourceHead": os.environ.get("SOURCE_HEAD", "unreported"),
                "builtCheckout": run("git", "rev-parse", "HEAD"),
                "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
-               "image": IMAGE, "serial": SERIAL, "stages": [], "status": "started",
+               "image": IMAGE, "serial": SERIAL, "stages": [], "status": "started", "recoveryTrace": {},
                "physicalDeviceTested": False, "storeSubmitted": False,
                "debugOnlyInspectionOverlay": True,
                "packagedAssetsMatchBuild": True,
@@ -168,21 +187,26 @@ def main():
                     expect(page.locator("#metric-moves")).to_have_text("1")
                     page.locator("#step").click()
                     expect(page.locator("#metric-moves")).to_have_text("2")
+                    receipt["recoveryTrace"]["afterTwoMoves"] = recovery_snapshot(page)
                     device("shell", "input", "keyevent", "KEYCODE_HOME")
                     expect(page.locator("#match-status")).to_have_text("Paused when app left foreground")
                     launch()
                     expect(page.locator("#notice")).to_contain_text("resumed paused")
                     expect(page.locator("#metric-moves")).to_have_text("2")
+                    receipt["recoveryTrace"]["beforeForceStop"] = recovery_snapshot(page)
                     receipt["stages"].append("os-background-resume-paused")
                     device("shell", "am", "force-stop", PACKAGE)
                     browser.close()
                     launch()
                     browser, page = connect(p)
                     expect(page.locator("#metric-moves")).to_have_text("0")
+                    receipt["recoveryTrace"]["afterRestart"] = recovery_snapshot(page)
                     page.locator("#match-library summary").click()
                     # Completed quickplay has no resume action; require one paused entry.
                     expect(page.locator("[data-saved-resume]")).to_have_count(1)
+                    receipt["recoveryTrace"]["beforeResume"] = recovery_snapshot(page)
                     page.locator("[data-saved-resume]").click()
+                    receipt["recoveryTrace"]["afterResume"] = recovery_snapshot(page)
                     expect(page.locator("#metric-moves")).to_have_text("2")
                     expect(page.locator("#start")).to_have_text("▶ Start match")
                     screenshot("recovered.png")

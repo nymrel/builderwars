@@ -1,5 +1,11 @@
 # BuilderWars lane presence
 
+Codex recovery trace, September5 00:33 PDT. Claim
+`codex-builderwars-recovery-trace-20260905` owns tests and this mirror only.
+Add sanitized stored/visible move-count evidence around actual Android restart;
+preserve the strict two-move assertion. No application or production changes.
+The bus is authoritative; this note does not extend a released claim.
+
 Codex Android emulator evidence lane, September5 2026. Authoritative claim:
 `codex-builderwars-android-emulator-20260905`. Scope: native test harness, CI and
 dated evidence only. Web source65d357c is released and remains untouched. Add an
