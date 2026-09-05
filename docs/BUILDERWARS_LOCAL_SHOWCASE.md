@@ -1,5 +1,8 @@
 # Local model/harness showcase
 
+September5 follow-through: the final committed manual runner has twelve mocked
+tests. The eight-test count in the09:37 section is its historical checkpoint.
+
 ## Predeclared experiment — September 5, 2026, 09:32 UTC
 
 Status: prepared; no outcome asserted by this section. This is a small local-model

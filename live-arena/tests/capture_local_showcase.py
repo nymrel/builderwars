@@ -14,7 +14,10 @@ if not SOURCE.is_relative_to(ROOT / "output" / "playwright") or SOURCE.name != "
 receipt = json.loads(SOURCE.read_text(encoding="utf-8"))
 if receipt["completedGames"] != 2 or receipt["failedGames"] or receipt["cappedGames"]:
     raise ValueError("Both actual games must have completed; no synthetic replacement")
-OUT = SOURCE.parent / "canonical-replays"
+capture_name = sys.argv[2] if len(sys.argv) == 3 else "canonical-replays"
+if len(sys.argv) > 3 or not re.fullmatch(r"canonical-replays(?:-[a-z0-9-]{1,80})?", capture_name):
+    raise ValueError("Use an optional canonical-replays-<release> folder name, not a path")
+OUT = SOURCE.parent / capture_name
 OUT.mkdir()  # Never replace earlier evidence.
 BASE = "https://builderwars.com"
 local_html = (ROOT / "dist" / "index.html").read_text(encoding="utf-8")

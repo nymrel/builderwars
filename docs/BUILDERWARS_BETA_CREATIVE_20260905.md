@@ -2,7 +2,7 @@
 
 September5,2026. BuilderWars, a Nymrel product. Drafts only; no account or
 publication action authorized. The public game runtime is released source
-d0873da; the local-model manual runner is not a new hosted provider feature.
+5f92f990; the local-model manual runner is not a new hosted provider feature.
 
 ## Evidence set and presentation rules
 
@@ -29,10 +29,10 @@ replay contains declared labels, not private runtime paths. Only the sanitized
 replay/media are publication candidates; original private call receipts are not.
 
 The supplied replay WebMs use450ms-per-move presentation pacing. Label them
-**Replay**, not live inference. The retained production long-name cards truncate
-the winner suffix. A locally tested fix places the winner/seat before the name;
-it is not deployed. Use the full-title mobile replay or free lead card until a
-reviewed release and fresh canonical capture replace the affected artwork.
+**Replay**, not live inference. The old long-name cards truncate the winner
+suffix. Released5f92f990 places winner/seat before the name; fresh canonical cards
+are in `canonical-replays-card-5f92f990` beside the original gameplay receipt.
+Use those new captures or the full-title mobile replay; retain old media as history.
 No simulated viewers, human testimonials or provider logos
 implying endorsement. A self-contained fragment replay does not produce dynamic
 match-specific social previews.
