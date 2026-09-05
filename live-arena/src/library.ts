@@ -1,4 +1,5 @@
 import { replay, type RecordData } from "./runtime";
+import { readDeclarations, type MatchDeclarations } from "./match-package";
 
 export const LIBRARY_PREFIX = "builderwars.match.v1:";
 export const LIBRARY_OPT_OUT = "builderwars.match.opt-out";
@@ -13,6 +14,8 @@ export type SavedMatch = {
   moveLimit: number;
   maxTokens?: number;
   moveLimitKnown?: boolean;
+  declarations?: MatchDeclarations;
+  resourceSnapshotPresent?: boolean;
   key: string;
 };
 type StorageLike = Pick<
@@ -67,15 +70,19 @@ export class MatchLibrary {
           raw.moveLimit > 400 ||
           (raw.maxTokens !== undefined && (!Number.isInteger(raw.maxTokens) || raw.maxTokens < 256 || raw.maxTokens > 16384)) ||
           (raw.moveLimitKnown !== undefined && typeof raw.moveLimitKnown !== "boolean") ||
+          (raw.resourceSnapshotPresent !== undefined && typeof raw.resourceSnapshotPresent !== "boolean") ||
           typeof raw.watchId !== "string" ||
           (raw.watchId && !validWatchId(raw.watchId))
         )
           continue;
         const { record, state } = replay(raw.record);
+        const declarations = raw.declarations === undefined ? undefined : readDeclarations(raw.declarations);
         if (key !== this.entryKey(raw.source, record.id)) continue;
         const entry = {
           key,
           record,
+          ...(declarations === undefined ? {} : { declarations }),
+          resourceSnapshotPresent: raw.resourceSnapshotPresent === true,
           savedAt: raw.savedAt,
           source: raw.source,
           watchId: raw.watchId,
@@ -107,6 +114,8 @@ export class MatchLibrary {
     watchId = "",
     maxTokens?: number,
     moveLimitKnown = false,
+    declarations?: MatchDeclarations,
+    resourceSnapshotPresent = moveLimitKnown || maxTokens !== undefined,
   ) {
     if (!this.enabled() || !record.events.length) return false;
     const parsed = replay(record);
@@ -120,6 +129,8 @@ export class MatchLibrary {
     const key = this.entryKey(source, clean.id);
     const envelope = {
       record: clean,
+      ...(declarations === undefined ? {} : { declarations: readDeclarations(declarations) }),
+      resourceSnapshotPresent,
       savedAt: this.now(),
       source,
       moveLimit,

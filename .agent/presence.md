@@ -1,6 +1,15 @@
 # BuilderWars lane presence
 
-Open — last used by Codex, 2026-09-05 05:18 UTC. Native foundation checkpoint.
+Open — checkpoint prepared by Codex, 2026-09-05 05:40 UTC.
+Claims `codex-builderwars-match-package-20260905` and
+`codex-builderwars-native-evidence-20260905` are being checkpointed/released;
+recheck the authoritative bus before writes. Preserve referee v1.
+Public match packages and iOS safe-area/receipt repairs pass local validation:
+81 Node tests, 3 simulator-harness tests, 6 bridge tests, 10 Chromium journeys,
+Firefox/WebKit proof and 2 packaged synthetic journeys. Independent findings
+were repaired and rechecked. Native actual safe-area proof awaits rebuilt CI.
+Run 33946932902 rendered the arena, but the header overlapped the status area
+and its OCR failed. This is no longer a blank-page diagnosis for that run.
 Claims `codex-builderwars-native-lifecycle-20260905` and `codex-builderwars-native-ci-20260905`
 are being released; recheck authoritative bus and reclaim before writes.
 Branch `codex/builderwars-portable-proof-20260904` in this named worktree.

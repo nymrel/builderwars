@@ -9,6 +9,22 @@ import {
 } from "../src/library";
 import { RULES } from "../src/games";
 import { type RecordData } from "../src/records";
+import { unknownDeclarations, readDeclarations } from "../src/match-package";
+
+test("library keeps optional attribution without inventing it for legacy matches", () => {
+  const storage = new MemoryStorage();
+  const declarations = readDeclarations([{ ...unknownDeclarations()[0], agentId: "agent-a", agentRevision: "v2" }, unknownDeclarations()[1]]);
+  new MatchLibrary(storage).save(record("attributed"), "replay", 4, "", 512, true, declarations);
+  new MatchLibrary(storage).save(record("legacy-declaration"), "replay", 80);
+  const entries = new MatchLibrary(storage).list();
+  assert.deepEqual(entries.find(e => e.record.id === "attributed")?.declarations, declarations);
+  assert.equal(entries.find(e => e.record.id === "legacy-declaration")?.declarations, undefined);
+  const key = entries.find(e => e.record.id === "attributed")!.key;
+  const raw = JSON.parse(storage.getItem(key)!);
+  raw.declarations[0].secret = "do not retain";
+  storage.setItem(key, JSON.stringify(raw));
+  assert.equal(new MatchLibrary(storage).list().length, 1);
+});
 
 class MemoryStorage {
   data = new Map<string, string>();

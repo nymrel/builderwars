@@ -33,6 +33,7 @@ import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } fro
 import { publicLinkOrigin } from "./public-links";
 import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
+import { DECLARATION_FIELDS, readDeclaration, readDeclarations, unknownDeclarations, makeMatchPackage, readMatchFile, type MatchDeclarations } from "./match-package";
 import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage, entrantLabel,
   freeAgents, configuredAgents, type MatchSetup, type MatchSummary } from "./sharing";
 import {
@@ -104,6 +105,13 @@ let rules = { ...RULES.chess },
   pace = 500;
 let seriesLimits: { moveLimit: number; maxTokens: number } | null = null;
 let currentLimits: MatchLimits | null = null;
+let contenderDeclarations = unknownDeclarations(), currentDeclarations = unknownDeclarations();
+const attemptDeclarations = new WeakMap<RecordData, MatchDeclarations>();
+function captureAttempt(exit: SeriesAttempt["exit"]) {
+  const snapshot = structuredClone(record);
+  attemptDeclarations.set(snapshot, currentDeclarations);
+  seriesAttempts.push({ record: snapshot, exit });
+}
 let seriesRules: Rules | null = null;
 const broadcast = new Broadcast();
 let pending = false,
@@ -198,6 +206,7 @@ function applySetup(setup: MatchSetup, mode: "free" | "human" | "configure") {
   history.replaceState(null, "", location.pathname + location.search);
   rules = { ...setup.rules };
   agents = mode === "configure" ? configuredAgents(setup) : freeAgents(mode === "human");
+  contenderDeclarations = unknownDeclarations();
   $<HTMLInputElement>("move-limit").value = String(setup.moveLimit);
   $<HTMLInputElement>("max-tokens").value = String(setup.maxTokens);
   reset(); tab("arena");
@@ -311,6 +320,8 @@ function saveCurrent() {
       savedSource === "watch" ? watchId : "",
       currentLimits?.maxTokens ?? undefined,
       currentLimits?.moveLimitKnown === true,
+      currentDeclarations,
+      currentLimits !== null,
     );
     if (!saved && library.enabled() && record.events.length) {
       $("library-status").textContent =
@@ -369,7 +380,7 @@ function renderLibrary() {
                 renderLibrary();
               } else if (action === "resume") resumeSaved(entry);
               else {
-                openReplay(replay(entry.record), false, entry.moveLimitKnown ? validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null) : null);
+                openReplay(replay(entry.record), false, entry.resourceSnapshotPresent || entry.moveLimitKnown || entry.maxTokens !== undefined ? validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true) : null, entry.declarations);
                 tab("arena");
               }
             } catch (e) {
@@ -400,6 +411,8 @@ function resumeSaved(entry: SavedMatch) {
   proofOrigin = "reverified_import";
   record = parsed.record;
   currentLimits = validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true);
+  currentDeclarations = readDeclarations(entry.declarations ?? unknownDeclarations());
+  contenderDeclarations = currentDeclarations;
   $("proof-status").textContent = "Recovered record. Any new proof is a reverified snapshot, not original engine or model provenance.";
   state = parsed.state;
   rules = state.rules;
@@ -522,7 +535,7 @@ $<HTMLInputElement>("replay-position").oninput = (e) =>
   seekReplay(Number((e.target as HTMLInputElement).value));
 $("replay-prev").onclick = () => seekReplay((replayPly ?? 0) - 1);
 $("replay-next").onclick = () => seekReplay((replayPly ?? 0) + 1);
-function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: MatchLimits | null = null) {
+function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: MatchLimits | null = null, declarations = unknownDeclarations()) {
   stop();
   joinGeneration++;
   broadcast.close();
@@ -538,6 +551,7 @@ function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: Matc
   state = parsed.state;
   record = parsed.record;
   currentLimits = limits;
+  currentDeclarations = readDeclarations(declarations);
   replayPly = record.events.length;
   spectating = true;
   render();
@@ -673,6 +687,9 @@ function render() {
     ? `This match: ${limitsLabel(currentLimits)}. Limits stay fixed through pause/resume. Edited fields apply to a new rematch or evaluation. Requested tokens are not a guaranteed provider compute or dollar cap.`
     : spectating ? "Imported replay: original resource limits are unavailable. New setup links or reverified proofs use explicitly selected limits, not historical resource evidence."
       : "Limits lock at the first attempted move. After that, edits apply only to a new rematch or evaluation.";
+  $("match-attribution").textContent = currentDeclarations.map((d, seat) =>
+    `${seat === 0 ? "White / first" : "Black / second"}: ${DECLARATION_FIELDS.map(field => `${declarationLabels[field]}: ${d[field] ?? "unknown"}`).join(" · ")}`
+  ).join("\n");
   $("seats").innerHTML = record.agents
     .map(
       (a, i) =>
@@ -719,7 +736,7 @@ function render() {
 }
 function interruptSeries(exit: "failed" | "stopped" = "stopped") {
   if (!seriesRemaining) return;
-  seriesAttempts.push({ record: structuredClone(record), exit });
+  captureAttempt(exit);
   seriesRemaining = 0;
   renderSeries();
 }
@@ -741,6 +758,7 @@ function reset(preserveSeries = false) {
   state = createGame(rules);
   record = freshRecord();
   currentLimits = null;
+  currentDeclarations = readDeclarations(contenderDeclarations);
   savedSource = "own";
   proofOrigin = "browser_session";
   $("proof-status").textContent = "Connect Four proof is available. Other games retain their standard replay export.";
@@ -947,6 +965,7 @@ $("start").onclick = () => void play();
 $("quickplay").onclick = () => {
   if (running || pending || spectating) return;
   agents = freeAgents();
+  contenderDeclarations = unknownDeclarations();
   seriesRemaining = 0;
   reset();
   void play();
@@ -987,6 +1006,7 @@ function openAgent(seat: number) {
     return;
   }
   selectedSeat = seat;
+  fillDeclarationForm(contenderDeclarations[seat]);
   importedSelection = null;
   cancelConnectionProbe();
   const a = agents[seat];
@@ -1142,6 +1162,23 @@ function profileComparison() {
 }
 $("agent-form").addEventListener("input", profileComparison);
 $("agent-form").addEventListener("change", profileComparison);
+const declarationLabels: Record<typeof DECLARATION_FIELDS[number], string> = {
+  builderId: "Builder ID", agentId: "Agent ID", agentRevision: "Agent revision",
+  harnessId: "Harness ID", harnessRevision: "Harness revision", providerId: "Execution provider ID", modelRevision: "Model revision",
+};
+$("dialog-status").insertAdjacentHTML("beforebegin", `<details id="declaration-fields"><summary>Public attribution (optional)</summary><p class="muted">Self-declared identifiers, not verified identities. Leave unknown values blank. Never enter keys, private addresses or other secrets. Match packages retain these fields; agent profiles and replay links do not.</p>${DECLARATION_FIELDS.map(field => `<label>${declarationLabels[field]}<input id="declaration-${field}" maxlength="96" autocomplete="off" spellcheck="false"></label>`).join("")}</details>`);
+function fillDeclarationForm(value: MatchDeclarations[number]) {
+  for (const field of DECLARATION_FIELDS) $<HTMLInputElement>(`declaration-${field}`).value = value[field] ?? "";
+}
+function declarationFromForm() {
+  return readDeclaration(Object.fromEntries(DECLARATION_FIELDS.map(field => [field, $<HTMLInputElement>(`declaration-${field}`).value.trim() || null])));
+}
+$("export").insertAdjacentHTML("afterend", '<button id="export-package">Download match package</button><p class="muted">Match package: public attribution, requested limits, replay and verifier digest. Strategies and comments are omitted. Model execution and identity are not attested.</p>');
+$("export-package").insertAdjacentHTML("afterend", '<section aria-label="Match attribution"><h3>Match attribution · self-declared</h3><p id="match-attribution" class="muted" style="overflow-wrap:anywhere;white-space:pre-line"></p></section>');
+$("export-package").onclick = () => {
+  try { download(`builderwars-${record.id}.package.json`, makeMatchPackage(record, currentDeclarations, currentLimits)); }
+  catch (error) { notify((error as Error).message); }
+};
 $("import-agent").onclick = () => $<HTMLInputElement>("profile-file").click();
 $<HTMLInputElement>("profile-file").onchange = async (event) => {
   event.stopPropagation();
@@ -1163,6 +1200,7 @@ $<HTMLInputElement>("profile-file").onchange = async (event) => {
     $<HTMLInputElement>("harness-model").value = candidate.model;
     $<HTMLInputElement>("harness-effort").value = candidate.effort;
     $<HTMLTextAreaElement>("strategy").value = candidate.strategy;
+    fillDeclarationForm(unknownDeclarations()[0]);
     $<HTMLInputElement>("model-search").value = "";
     $<HTMLInputElement>("free-models").checked = false;
     importedSelection = candidate.kind === "openrouter" ? { model: candidate.model, effort: candidate.effort } : null;
@@ -1193,12 +1231,14 @@ $("check-connection").onclick = async () => {
 $<HTMLFormElement>("agent-form").onsubmit = (e) => {
   e.preventDefault();
   const a = agentFromForm();
-  try { ensureDeviceReady(a); validateConnection(a, models); }
+  let declaration: MatchDeclarations[number];
+  try { ensureDeviceReady(a); validateConnection(a, models); declaration = declarationFromForm(); }
   catch (error) { $("dialog-status").textContent = (error as Error).message; return; }
   if (running || pending || spectating) { $("dialog-status").textContent = "Pause the match before replacing a contender."; return; }
   if (record.events.length && !state.over && !confirm("Use this contender and reset the unfinished match? Export the current match first if you want to keep it.")) return;
   cancelConnectionProbe();
   agents[selectedSeat] = a;
+  contenderDeclarations = readDeclarations(contenderDeclarations.map((d, seat) => seat === selectedSeat ? declaration : d));
   $<HTMLDialogElement>("agent-dialog").close();
   reset();
 };
@@ -1281,7 +1321,8 @@ async function readFile(input: HTMLInputElement) {
 }
 $<HTMLInputElement>("import").onchange = async (e) => {
   try {
-    openReplay(replay(await readFile(e.target as HTMLInputElement)));
+    const imported = readMatchFile(await readFile(e.target as HTMLInputElement));
+    openReplay(imported.parsed, true, imported.limits, imported.declarations);
   } catch (e) {
     notify((e as Error).message);
   }
@@ -1329,11 +1370,12 @@ $<HTMLInputElement>("import-rules").onchange = async (e) => {
   }
 };
 function finishSeriesGame() {
-  seriesAttempts.push({ record: structuredClone(record), exit: "finished" });
+  captureAttempt("finished");
   seriesRemaining--;
   renderSeries();
   if (seriesRemaining > 0) {
     agents = [agents[1], agents[0]];
+    contenderDeclarations = readDeclarations([contenderDeclarations[1], contenderDeclarations[0]]);
     reset(true);
     void play();
   } else {
@@ -1392,6 +1434,7 @@ $("export-series").onclick = () =>
   download("builderwars-evaluation.json", {
     schema: "builderwars.evaluation.v1",
     games: seriesAttempts.map(a => a.record),
+    matchPackages: seriesAttempts.map(a => makeMatchPackage(a.record, attemptDeclarations.get(a.record) ?? unknownDeclarations(), seriesLimits ? validateMatchLimits(seriesLimits.moveLimit, seriesLimits.maxTokens) : null)),
     attempts: seriesAttempts.map(a => ({ recordId: a.record.id, exit: a.exit })),
     requestedGames: seriesTotal,
     limits: seriesLimits,
@@ -1415,6 +1458,7 @@ function prepareAcademy(variant: boolean) {
   $("watch-link").textContent = "Start broadcasting to create a spectator link.";
   history.replaceState(null, "", location.pathname + location.search);
   agents = recipe.agents;
+  contenderDeclarations = unknownDeclarations();
   rules = recipe.rules;
   $<HTMLInputElement>("move-limit").value = String(recipe.moveLimit);
   $<HTMLInputElement>("max-tokens").value = String(recipe.maxTokens);
@@ -1499,6 +1543,7 @@ async function join(id: string) {
   $("rejoin-watch").hidden = false;
   // A prior unrelated game must never look like a new host's board.
   currentLimits = null;
+  currentDeclarations = unknownDeclarations();
   state = createGame(RULES.chess);
   rules = state.rules;
   record = freshRecord();

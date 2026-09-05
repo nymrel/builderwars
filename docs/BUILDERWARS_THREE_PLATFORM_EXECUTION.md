@@ -237,3 +237,28 @@ before shutdown. Preserve CSP, SRI, referee digest and signing until evidence
 identifies a failing stage. No operator-only blocker is inferred from this CI
 runtime failure. Continue independent native file-flow/metadata work while
 runtime diagnosis is held; do not call native release ready.
+
+### Rendering established; safe-area repair — September 4, 22:38 PDT
+
+[Run 33946932902](https://github.com/nymrel/builderwars/actions/runs/33946932902)
+at source `f30006d81902e16a4b099402b996fb3be578a728` failed its OCR assertion,
+but both actual simulator screenshots show the fully styled arena and chessboard.
+This corrects the earlier blank-screen hypothesis for this run. The native log
+records document load at 05:23:35.421 UTC and first meaningful paint at .424.
+The header is visibly covered by the status bar/Dynamic Island. No evidence
+supports changing CSP, referee MIME/SRI, signing or transport.
+
+The candidate sets Capacitor iOS `contentInset: automatic`, which the installed
+bridge maps to UIKit scroll-view inset adjustment. It also records successful
+launch/screenshots before OCR, retains OCR stdout on failure, and tests that
+failure still preserves stage evidence and shuts down the owned simulator.
+Three Python harness tests pass. Independent source review accepted the bounded
+repair; actual clearance must still be inspected on the rebuilt simulator.
+The original OCR predicate and timeouts remain unchanged.
+
+Artifacts inspected locally are under `live-arena/output/playwright/native-ci-33946932902/`
+with merge checkout `c9e160d294d3d8213602d779ecaa1fe827c9ccf9`.
+This is initial rendering evidence only. Gameplay, files/sharing, native keyboard,
+safe areas after rotation, physical devices, signing and store acceptance remain
+separate outstanding gates. Web and Android debug jobs passed in this run;
+the overall run is still FAILED, not an accepted native release.

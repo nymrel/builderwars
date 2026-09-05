@@ -16,6 +16,7 @@ def run(*args, timeout=60):
     try:
         return subprocess.run(args, check=True, text=True, capture_output=True, timeout=timeout).stdout.strip()
     except subprocess.CalledProcessError as error:
+        print((error.stdout or "")[-6000:], flush=True)
         print((error.stderr or "")[-3000:], flush=True)
         raise
 
@@ -69,11 +70,19 @@ def main():
         launched = run("xcrun", "simctl", "launch", udid, "com.nymrel.builderwars")
         if not re.fullmatch(r"com\.nymrel\.builderwars: [0-9]+", launched):
             raise RuntimeError("Unexpected launch receipt; refusing to infer successful launch.")
+        receipt["launch"] = launched
         time.sleep(8)  # Bounded rendering delay; screenshots are inspected, not an assertion.
         run("xcrun", "simctl", "io", udid, "screenshot", str(out / "launch.png"))
+        receipt["screenshot"] = "launch.png"
         time.sleep(30)  # A second bounded frame distinguishes cold WebView startup from first-frame blankness.
         run("xcrun", "simctl", "io", udid, "screenshot", str(out / "settled.png"))
-        screen_text = run("swift", "tests/ios_screen_check.swift", str(out / "settled.png"), timeout=90)
+        receipt["settledScreenshot"] = "settled.png"
+        receipt["initialScreenTextVerified"] = False
+        try:
+            screen_text = run("swift", "tests/ios_screen_check.swift", str(out / "settled.png"), timeout=90)
+        except subprocess.CalledProcessError as error:
+            (out / "screen-text.json").write_text((error.stdout or "") + "\n", encoding="utf-8")
+            raise
         (out / "screen-text.json").write_text(screen_text + "\n", encoding="utf-8")
         receipt.update(status="launched", launch=launched, screenshot="launch.png",
                        settledScreenshot="settled.png", initialScreenTextVerified=True,

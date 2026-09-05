@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   webDir: "dist-native",
   server: { hostname: "localhost", androidScheme: "https", cleartext: false },
   android: { allowMixedContent: false, webContentsDebuggingEnabled: false },
-  ios: { webContentsDebuggingEnabled: false },
+  ios: { webContentsDebuggingEnabled: false, contentInset: "automatic" },
   plugins: { CapacitorHttp: { enabled: false }, CapacitorCookies: { enabled: false } },
 };
 export default config;
