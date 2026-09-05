@@ -16,6 +16,8 @@ with sync_playwright() as p:
     page.locator("#connections").click()
     page.locator("#agent-kind").select_option("bot")
     page.locator("#agent-name").fill("Edited draft")
+    if not page.locator("#connection-advanced").evaluate("el => el.open"):
+        page.locator("#connection-advanced > summary").click()
     page.locator("#strategy").fill("Draft strategy")
     page.locator("#agent-key").evaluate("el => el.value = 'PRIVATE_KEY_SENTINEL'")
     page.locator("#harness-url").evaluate("el => el.value = 'https://PRIVATE_ENDPOINT.example'")
@@ -43,6 +45,8 @@ with sync_playwright() as p:
     # Save the baseline; edit exactly one setting, then two. Comparison never prints strategy.
     page.locator("#agent-form button[type=submit]").click()
     page.locator("#connections").click()
+    if not page.locator("#connection-advanced").evaluate("el => el.open"):
+        page.locator("#connection-advanced > summary").click()
     expect(page.locator("#profile-comparison")).to_contain_text("No behavior settings changed")
     page.locator("#bot-model").select_option("random")
     expect(page.locator("#profile-comparison")).to_contain_text("1 setting changed")
@@ -68,6 +72,8 @@ with sync_playwright() as p:
     upload(remote)
     expect(page.locator("#dialog-status")).to_contain_text("imported into this draft")
     expect(page.locator("#model-id")).to_have_value("unknown/model")
+    if not page.locator("#model-options").evaluate("el => el.open"):
+        page.locator("#model-options > summary").click()
     expect(page.locator("#effort")).to_have_value("unsupported")
     assert not traffic
     page.locator("#agent-form button[type=submit]").click()

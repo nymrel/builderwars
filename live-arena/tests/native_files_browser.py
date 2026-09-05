@@ -92,6 +92,8 @@ with sync_playwright() as p:
     for seat in (0, 1):
         page.locator(f"[data-seat='{seat}']").click()
         page.locator("#agent-kind").select_option("human")
+        if not page.locator("#connection-advanced").evaluate("el => el.open"):
+            page.locator("#connection-advanced > summary").click()
         page.locator("#strategy").fill("PRIVATE_STRATEGY")
         page.locator("#agent-form button[type=submit]").click()
     for ply, cell in enumerate((0, 1, 0, 1, 0, 1, 0), 1):
@@ -118,6 +120,8 @@ with sync_playwright() as p:
     assert "#replay=" in share("#copy-caption")["text"]
     assert "PRIVATE_STRATEGY" not in page.evaluate("__files.shares.at(-1).text")
     page.locator("#connections").click()
+    if not page.locator("#connection-advanced").evaluate("el => el.open"):
+        page.locator("#connection-advanced > summary").click()
     profile = contents(share("#export-agent"))
     assert json.loads(profile)["agent"]["strategy"] == "PRIVATE_STRATEGY"
     page.locator("#close-dialog").click()

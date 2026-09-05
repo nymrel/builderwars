@@ -35,6 +35,8 @@ with sync_playwright() as p:
         page.locator(f'[data-seat="{seat}"]').click()
         page.locator("#agent-kind").select_option("human")
         page.locator("#agent-name").fill(f"Synthetic human {seat}")
+        if not page.locator("#connection-advanced").evaluate("el => el.open"):
+            page.locator("#connection-advanced > summary").click()
         page.locator("#strategy").fill("private-strategy-sentinel")
         page.locator("#agent-form button[type=submit]").click()
     for cell in [0, 1, 0, 1, 0, 1, 0]:
@@ -84,7 +86,8 @@ with sync_playwright() as p:
     page.route("https://openrouter.ai/api/v1/chat/completions", lambda route: (calls.append(route.request.url), route.abort()))
     page.locator("#connections").click()
     page.locator("#agent-kind").select_option("openrouter")
-    page.locator("#model-id option").first.wait_for(state="attached")
+    page.locator('#model-id option[value="synthetic/model"]').wait_for(state="attached")
+    page.locator("#model-id").select_option("synthetic/model")
     page.locator("#agent-key").fill("synthetic-private-key")
     page.locator("#agent-form button[type=submit]").click()
     page.locator("#quickplay").click()

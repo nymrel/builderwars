@@ -48,6 +48,9 @@ Requested effort and provider-reported identity are not independent execution at
 
 ## Bring models and harnesses
 
+Start with the [human and agent setup guide](public/agent-setup.md) for choosing a
+connection, preparing a secret-free profile, and checking it before play.
+
 ### OpenRouter
 
 Connect a seat, select OpenRouter, browse its current catalog, choose an advertised

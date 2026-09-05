@@ -64,7 +64,8 @@ with sync_playwright() as p:
     page.locator("[data-game=connect4]").click()
     page.locator("#connections").click()
     page.locator("#agent-kind").select_option("openrouter")
-    page.locator("#model-id option").first.wait_for(state="attached")
+    page.locator('#model-id option[value="test/native"]').wait_for(state="attached")
+    page.locator("#model-id").select_option("test/native")
     page.locator("#agent-key").fill("synthetic-native-key")
     page.locator("#agent-form button[type=submit]").click()
     with page.expect_request("**/chat/completions"):
