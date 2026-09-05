@@ -18,7 +18,7 @@
     "build": "tsc --noEmit && vite build",
     "build:native": "npm run referee && tsc --noEmit && vite build --mode native",
     "native:sync": "npm run build:native && cap sync && node scripts/prepare-native.mjs",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test tests/*.test.ts && python -m unittest discover -s tests -p test_native_frontier.py",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
