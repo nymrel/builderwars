@@ -13,6 +13,13 @@ website contenders. This is not LLM weight training or industry-strength proof.
 See [training, local-harness execution and limitations](../docs/BUILDERWARS_SELF_IMPROVEMENT.md).
 On Windows PowerShell, use `npm.cmd` when passing flags to preserve the arguments.
 
+`npm.cmd run strength -- --game tictactoe --pairs 16` measures the zero-weight
+baseline against seeded random and a fixed immediate-tactics opponent. Add
+`--policy PATH` to measure an existing artifact. Reports separate seats, completed
+outcomes, missed wins and avoidable next-reply losses. Public development fixtures
+are not hidden admission data. This never promotes or changes a website contender.
+See the [frontier campaign](../docs/FRONTIER_CAMPAIGN.md) for the remaining gates.
+
 ## Play and build
 
 ```sh
