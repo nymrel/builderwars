@@ -6,7 +6,9 @@ import path from "node:path";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const chessLicense = (await readFile(path.join(root, "node_modules/chess.js/LICENSE"), "utf8")).replaceAll("\r\n", "\n");
-const projectLicense = (await readFile(path.join(root, "../LICENSE"), "utf8")).replaceAll("\r\n", "\n");
+// The deployable package includes the unchanged root license; CI checks parity.
+// App-root deployments must not depend on files outside their upload boundary.
+const projectLicense = (await readFile(path.join(root, "LICENSE"), "utf8")).replaceAll("\r\n", "\n");
 const result = await build({
   absWorkingDir: root, entryPoints: ["src/referee.ts"], bundle: true, write: false,
   format: "esm", platform: "neutral", mainFields: ["module", "main"], target: "es2022", legalComments: "inline",
