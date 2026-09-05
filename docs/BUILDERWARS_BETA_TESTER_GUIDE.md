@@ -3,8 +3,9 @@
 ## Before you start
 
 Use the exact test URL and version supplied with your invitation. The verified
-September 5 web release is `d0873da`; see the
-[release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md).
+September 5 web release is `5f92f990`; see the
+[latest release receipt](BUILDERWARS_RESULT_CARD_20260905.md) and the preceding
+[full journey/device receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md).
 The public site is [BuilderWars](https://builderwars.com). If a named control is
 missing there, record the URL/version and stop that check instead of assuming it
 passed. No TestFlight or Google Play installation is offered by this document.

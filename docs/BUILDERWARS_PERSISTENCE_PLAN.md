@@ -34,6 +34,33 @@ not automatically migrate to BuilderWars.com; export/import JSON transfers them.
 
 ## Next 1: owned match service — release separately
 
+### Dated capability preflight — September 5, 2026, 10:46 UTC
+
+One bounded read-only check used existing installations and bindings; no login,
+purchase, secret write, database creation, DNS change or deployment occurred.
+
+- Cloudflare connector discovery found no callable Cloudflare account/runtime
+  connector on this surface. That is not evidence of account-wide unavailability.
+- Installed Wrangler4.118.0 `whoami`, with CI mode and metrics disabled, failed
+  to retrieve account IDs. Its error identifies possibly incorrect token
+  permissions or expired authentication; this check cannot distinguish them.
+  No login was attempted. No repository Wrangler/D1/DO binding config was found.
+- The independent existing Vercel route succeeds: `vercel project inspect
+  builderwars --scope jalens-projects-0ade4450` returns the known project
+  prj_c2HDxCRh3sEFEZkOxemiwoUmp1Gp. `vercel env ls preview` reports no environment
+  variables. The committed live-arena configuration builds a Vite static site;
+  it supplies no authenticated preview match service or transactional store.
+  Static deployment access is not proof that stateful private hosting is ready.
+
+Classification: hosted matches, permanent result pages and dynamic match cards
+remain HELD. The exact missing input is a verified BuilderWars-scoped private
+preview runtime plus transactional persistence and organizer authentication,
+with known cost limits; existing protocol/isolation/retention gates below still
+apply. This is not a claim that every studio route is unavailable or that another
+product's database may be reused. Continue the released local/P2P path. Do not
+repeat authentication attempts or create infrastructure just to clear this item.
+Commands were checked against the official [Wrangler authentication docs](https://developers.cloudflare.com/workers/wrangler/commands/general/).
+
 Build a provider-neutral server-authoritative match protocol before adding a
 public archive or tournament ranking. Recommended substrate: Cloudflare Durable
 Objects with SQLite for one serialized writer per match, or a transactional
