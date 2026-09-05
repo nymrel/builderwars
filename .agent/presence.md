@@ -1,14 +1,17 @@
 # BuilderWars lane presence
 
-Open last used by Codex, 2026-09-04. Implementation checkpoint is draft PR #29.
-Claim `codex-builderwars-portable-proof-20260904` is released at handoff.
+Open last used by Codex, 2026-09-04. Share/runback code is checkpointed in draft PR #29.
+Claim `codex-builderwars-share-rematch-20260904` is being released; recheck bus custody.
 Branch `codex/builderwars-portable-proof-20260904` in this named worktree.
-Scope: live-arena, its portable-proof document, dedicated live-arena CI, this mirror.
+Scope: live-arena, docs/BUILDERWARS_SHARE_RUNBACK.md and this mirror.
 Recheck the authoritative bus before resuming. The legacy accepted
 Claude adapter lane in another worktree is disjoint and remains untouched.
 BuilderWars domain activation approved by PA-0904-0642 and verified complete.
 No changes to mobile-arena, nymrel.com, provider credentials or billing plans.
 Retain this named worktree as the linked production source/recovery lane; the bus
 claim is authoritative for whether release validation is still active.
-Next: obtain a usable independent review; reconcile PR #27 before combining it.
-Production is unchanged at ffa9ccc. Do not count the timed-out Fable call as approval.
+Code checkpoint e3a56b6: 41 Node tests, build, 4 bridge tests, browser/lifecycle/recovery/
+proof/sharing journeys and Windows/Linux CI passed. Actual built-in demo and proof captured.
+Next: Academy/provider-harness/paired-experiment improvements; independent review before release.
+Two bounded Fable review attempts timed out. Do not loop that route or count timeout as approval.
+Keep PR #27 separate until record/CI compatibility is reconciled. Production is unchanged at ffa9ccc.

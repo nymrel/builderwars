@@ -72,6 +72,10 @@ Before any post: independently accept and deploy the exact candidate; open its r
 
 ## Current checks and next milestone
 
-41 Node tests and the production build pass locally. Existing four-game, lifecycle, recovery, proof/CSP/SRI browser suites and four bridge tests pass, as does the new sharing journey. Tests use synthetic/free entrants, not paid providers. Cross-family review and CI for the final new commit remain separate gates; do not reuse an older head's green badge.
+Code commit: `e3a56b6a2a67979780eaadf67e513f9286cd8f1a`. Windows/Linux CI passed for that exact commit: https://github.com/nymrel/builderwars/actions/runs/33939308834 .
+
+41 Node tests and the production build pass locally. Existing four-game, lifecycle, recovery, proof/CSP/SRI browser suites and four bridge tests pass, as does the new sharing journey. Tests use synthetic/free entrants, not paid providers. Do not reuse an older head's green badge for a changed candidate.
+
+Independent Fable safe-mode review of the proof/share source snapshot (`builderwars-proof-share-20260905`, turn1, request hash `221b52d4c19d4185ee3714f893f1b6fb06c6b659894bccd9c491b4c3250e0385`) timed out after300s with `blocked.ambiguous_delivery`, no verdict and no resolved-model/usage receipt. Together with the earlier proof-only timeout this reaches the bounded repair limit for that route. Do not blindly resend, weaken the review requirement or relabel it an operator-only blocker. Checkpoint the dependency and continue independent work. Production remains unchanged at `ffa9ccc75251d0f1ccd93f57d87959b3b6215e37`.
 
 Next: resolve the candidate's independent review, then continue the runnable Academy/provider-harness/paired-experiment milestone. Keep Nim/exhibition-v2 draft PR27 separate until record compatibility and duplicate CI are reconciled. Do not grow public hosting or a creator marketplace before the core replay/challenge experience is accepted.
