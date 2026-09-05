@@ -221,21 +221,33 @@ def main():
                         # This disposable AVD contains only this test's generated games.
                         page.once("dialog", lambda dialog: dialog.accept())
                         page.locator("#forget-matches").click()
+                        expect(page.locator("[data-saved-resume]")).to_have_count(0)
+                        if recovery_snapshot(page)["storedEntries"]:
+                            raise RuntimeError("Generated trial games were not cleared")
                         page.locator("#save-matches").check()
                         page.locator("#step").click()
                         expect(page.locator("#metric-moves")).to_have_text("1")
                         page.locator("#step").click()
                         expect(page.locator("#metric-moves")).to_have_text("2")
+                        restart_path = "foreground" if trial == 1 else "background-resume"
+                        if restart_path == "background-resume":
+                            # Reproduce the original failing path without storage probes.
+                            device("shell", "input", "keyevent", "KEYCODE_HOME")
+                            expect(page.locator("#match-status")).to_have_text("Paused when app left foreground")
+                            launch()
+                            expect(page.locator("#notice")).to_contain_text("resumed paused")
+                            expect(page.locator("#metric-moves")).to_have_text("2")
                         device("shell", "am", "force-stop", PACKAGE)
                         browser.close()
                         launch()
                         browser, page = connect(p)
-                        trace = {"trial": trial + 1, "afterRestart": recovery_snapshot(page)}
+                        trace = {"trial": trial + 1, "path": restart_path, "afterRestart": recovery_snapshot(page)}
                         receipt["rapidRestartTrials"].append(trace)
                         expect(page.locator("#metric-moves")).to_have_text("0")
                         page.locator("#match-library summary").click()
                         expect(page.locator("[data-saved-resume]")).to_have_count(1)
                         page.locator("[data-saved-resume]").click()
+                        # Immediate diagnostic sample, not a substitute for the assertion.
                         trace["afterResume"] = recovery_snapshot(page)
                         expect(page.locator("#metric-moves")).to_have_text("2")
                         expect(page.locator("#start")).to_have_text("▶ Start match")
