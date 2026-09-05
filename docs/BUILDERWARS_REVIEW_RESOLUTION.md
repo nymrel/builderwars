@@ -68,8 +68,10 @@ Hosted run33942291399 at053a140 passed both Node jobs but the new Linux browser 
 Latest release138e5700 supersedes the production baseline in this checkpoint:
 see BUILDERWARS_CONTRAST_20260905.md for exact review/CI, canonical168pairs,
 twelve journeys, cross-browser proof, redirects and retained5f92f990 rollback.
-Required features are delivered; final receipt integration is the remaining
-closeout task. The following dated baseline and ranked future work are retained.
+Required engineering features are delivered and exact-main CI passes after one
+unchanged iOS failed-job rerun. The original timeout and subsequent inspected
+startup screenshot are retained. BETA_ACCEPTANCE records the completed audit;
+the following older baseline remains historical, not a new launch hold.
 
 This section supersedes the historical open-work table below, without rewriting
 its dated findings. Current production5f92f990 has all-five candidate/main CI,
@@ -98,8 +100,9 @@ visibility and has its own canonical sharing/replay coverage.
 
 ### Ranked next backlog
 
-1. Close the final candidate's actual CI/contrast findings and evidence audit;
-   never waive a required check or change its threshold merely to finish.
+1. Completed: final CI/contrast/evidence audit, without changing test thresholds.
+   Retain the iOS timeout history; later hardening should preserve partial timeout
+   diagnostics and explicit numeric/runtime selection without claiming a known cause.
 2. When an exact recruitment action is authorized, collect the five-tester
    observations described in the guide. Diagnose the first-play/replay/rematch
    friction before expanding the product surface.

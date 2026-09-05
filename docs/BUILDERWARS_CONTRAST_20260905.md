@@ -4,14 +4,39 @@ September5,2026. Released as138e57005782fcf2462958fb809f8c1821db790e.
 
 ## Production receipt
 
+Final gate status: all five exact-source jobs pass in33962910085 attempt2.
+Only the failed iOS job was rerun unchanged; Linux/Windows/browser/Android
+successes are retained. No application, workflow, timeout, OCR or cleanup change.
+The initial timeout below remains a real failed observation, not an erased result
+or a diagnosed application crash. No claim of cured CI intermittency is made.
+
+iOS passed job101299124829, artifact9968739446: sourceHead and builtCheckout both
+138e57005782fcf2462958fb809f8c1821db790e, launchPID6122, initialScreenTextVerified
+true. Actual settled screenshot inspected: full first screen/board visible.
+Screenshot SHA2568aa3a97d1c51d7dedff31691a49fbb43970865863e876b9d32b5f5ff9c4a3439;
+local directory output/playwright/ios-passed-138e5700-attempt2-20260905.
+Exact-device shutdown ran. This is simulator startup/OCR, not iOS gameplay,
+physical touch, signing, TestFlight or App Store submission.
+
+Android main artifact9968567857 independently records a complete7-ply free game,
+background/resume, process recovery and3rapid restart trials restoring2plies
+paused. Packaged assets match; source/builtCheckout both138e5700. APK SHA256
+a42c03995d341f53dde14d5a885ceac6e108075e787d869be309e3ec3a0a4aeb.
+It is Android15 emulator/WebView/debug evidence, not Google Play publication.
+
 PR36 candidate38ff928a20a54f5a63efa6e6048cc22b4c2e2093 passed all five CI jobs
 in33962628832. Its application/test tree is identical to Fable-reviewed7089da79;
 the follow-up only reconciled documentation. Merge138e5700 has the same tree.
-Merged-source CI33962910085 has an unresolved iOS simulator launch failure:
+Merged-source CI33962910085 initially had an iOS simulator launch failure:
 unsigned build/install succeeded, simctl launch exceeded60seconds, diagnostic
 spawn exceeded30seconds, and shutdown ran. Exact job101297815271/log retained.
 The app/test tree is unchanged from the passing candidate; that does not erase
-this failure or establish its underlying cause. No check bypass or rerun yet.
+this failure or establish its underlying cause. The one unchanged failed-job-only
+observation passed as described above; no check bypass or timeout change. Initial
+failure artifact9968556438 remains locally retained in
+output/playwright/ios-failed-138e5700-20260905; it contains no crash log because
+the diagnostic command also timed out. Runtime selection/partial-timeout output
+can receive later bounded hardening; neither is proven to cause this timeout.
 
 Exact committed git archive SHA256:
 57752305f6601623d781b950c85de6424028bd4a539c2ca54ceff7de34c89257.
@@ -32,7 +57,8 @@ Actual390px screenshot visually inspected:
 live-arena/output/playwright/nontext-live-138e5700-20260905.png,
 SHA256 ffe49f0855557a1ad8f21db8b6d20d044d742dc2f1fbcb94a57a6913aa03e2ca.
 Black piece silhouette, legal dots, coordinates and inset focus are discernible.
-This is human-driven QA fixture evidence, not an external tester or full WCAG audit.
+This is automated QA using human-seat fixtures, not an observed external tester
+or full WCAG audit.
 
 All three plural/www origins return308 to canonical. Previous production
 dpl_4cTgTHmFyQ2rePzQxn9QFe9Et5ZE remains READY/available: its immutable

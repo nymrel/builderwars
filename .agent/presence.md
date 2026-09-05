@@ -1,5 +1,13 @@
 # BuilderWars lane presence
 
+Open last used by Codex, final beta acceptance September5, exact live claim
+codex-builderwars-beta-final-audit-20260905, docs/.agent only. Read-only native
+review completed. One unchanged failed-job-only observation passed33962910085
+attempt2/job101299124829, exact138e5700. Original failed receipt preserved under
+output/playwright/ios-failed-138e5700-20260905; successful screenshot inspected.
+No code/threshold/workflow/runtime-selection changes, independent writer or local
+server. Engineering beta accepted; claim governs until released at closeout.
+
 Open last used by Codex, September5, beta closeout. Exact scoped claim
 codex-builderwars-beta-closeout-20260905 governs until released; no worker remains
 active. PR36 reviewed38ff928 passed all-five CI33962628832 and merged138e5700.

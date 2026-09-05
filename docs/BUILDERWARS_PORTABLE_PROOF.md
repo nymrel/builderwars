@@ -6,9 +6,9 @@ Connect Four portable proof is released at https://builderwars.com. Full canonic
 Chromium/Firefox/WebKit browser export, downloaded standalone verification,
 clean import and tamper checks are recorded in
 [the full release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md).
-Current source5f92f990 and canonical custody are recorded in
-[the latest release receipt](BUILDERWARS_RESULT_CARD_20260905.md); its only later
-application change is the result-image heading. The referee digest is unchanged.
+Current source138e5700 and canonical custody are recorded in
+[the latest release receipt](BUILDERWARS_CONTRAST_20260905.md). Later changes fixed
+the result-image heading and mobile contrast. The referee digest is unchanged.
 The implementation description below remains applicable. The old PR29 and failed
 review notes at the end are historical, not current integration or release holds.
 Portable rules proof still does not establish model identity or execution.
