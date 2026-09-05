@@ -122,31 +122,37 @@ def main():
                 "-port", "5556", "-no-window", "-no-audio", "-no-boot-anim", "-no-snapshot",
                 "-gpu", "swiftshader_indirect", "-memory", "2048"], env=env, stdout=log, stderr=log)
             try:
-                wait_for(lambda: device("shell", "getprop", "sys.boot_completed", timeout=10) == "1", 180)
+                def booted():
+                    if emulator.poll() is not None:
+                        raise ChildProcessError("Owned emulator exited before boot; inspect emulator.log")
+                    return device("shell", "getprop", "sys.boot_completed", timeout=10) == "1"
+                wait_for(booted, 180)
                 receipt["androidRelease"] = device("shell", "getprop", "ro.build.version.release")
                 receipt["stages"].append("booted")
                 device("install", str(apk), timeout=120)
                 device("shell", "input", "keyevent", "82")
                 def launch():
                     device("shell", "am", "start", "-W", "-n", PACKAGE + "/.MainActivity")
+                errors, paid_requests = [], []
                 def connect(p):
                     def ready():
                         pid = device("shell", "pidof", PACKAGE)
                         return app_socket(pid, device("shell", "cat", "/proc/net/unix"))
                     target = wait_for(ready)
                     device("forward", f"tcp:{CDP_PORT}", "localabstract:" + target)
-                    browser = p.chromium.connect_over_cdp(f"http://127.0.0.1:{CDP_PORT}")
+                    # Keep the actual WebView's download/focus/media defaults.
+                    # Android cannot implement desktop Browser.setDownloadBehavior.
+                    browser = p.chromium.connect_over_cdp(f"http://127.0.0.1:{CDP_PORT}", no_defaults=True)
                     page = wait_for(lambda: next((pg for c in browser.contexts for pg in c.pages
                                                   if pg.url.startswith("https://localhost")), None))
+                    page.on("pageerror", lambda error: errors.append(str(error)))
+                    page.on("request", lambda request: paid_requests.append(request.url)
+                            if request.method == "POST" and not request.url.startswith("https://localhost/") else None)
                     page.locator("#board .cell").first.wait_for()
                     return browser, page
                 launch()
                 with sync_playwright() as p:
                     browser, page = connect(p)
-                    errors, paid_requests = [], []
-                    page.on("pageerror", lambda error: errors.append(str(error)))
-                    page.on("request", lambda request: paid_requests.append(request.url)
-                            if request.method == "POST" and not request.url.startswith("https://localhost/") else None)
                     expect(page.locator("#quickplay")).to_have_text("Play free ↗")
                     screenshot("initial.png")
                     page.locator('[data-game="tictactoe"]').click()
@@ -174,7 +180,9 @@ def main():
                     browser, page = connect(p)
                     expect(page.locator("#metric-moves")).to_have_text("0")
                     page.locator("#match-library summary").click()
-                    page.locator("[data-saved-resume]").first.click()
+                    # Completed quickplay has no resume action; require one paused entry.
+                    expect(page.locator("[data-saved-resume]")).to_have_count(1)
+                    page.locator("[data-saved-resume]").click()
                     expect(page.locator("#metric-moves")).to_have_text("2")
                     expect(page.locator("#start")).to_have_text("▶ Start match")
                     screenshot("recovered.png")
@@ -186,6 +194,10 @@ def main():
             finally:
                 # Scope cleanup to our spawned emulator/process, never all adb devices.
                 if emulator is not None:
+                    try:
+                        device("forward", "--remove", f"tcp:{CDP_PORT}", timeout=10)
+                    except (RuntimeError, subprocess.TimeoutExpired):
+                        pass
                     try:
                         device("emu", "kill", timeout=15)
                     except (RuntimeError, subprocess.TimeoutExpired):
@@ -199,11 +211,6 @@ def main():
         receipt.update(status="failed", error=str(error))
         raise
     finally:
-        if emulator is not None:
-            try:
-                device("forward", "--remove", f"tcp:{CDP_PORT}", timeout=10)
-            except (RuntimeError, subprocess.TimeoutExpired):
-                pass
         if log is not None:
             log.close()
         (out / "receipt.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")

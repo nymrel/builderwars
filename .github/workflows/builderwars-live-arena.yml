@@ -82,7 +82,7 @@ jobs:
           test -c /dev/kvm
           sudo setfacl -m "u:$(id -un):rw" /dev/kvm
           python3 -m venv .android-venv
-          .android-venv/bin/python -m pip install -r tests/requirements-ci.txt
+          .android-venv/bin/python -m pip install -r tests/requirements-android.txt
           .android-venv/bin/python tests/android_emulator_smoke.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
