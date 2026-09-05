@@ -13,7 +13,7 @@ with sync_playwright() as p:
     page.locator('#agent-key').fill('synthetic');page.locator('#agent-form button[type=submit]').click()
     page.evaluate('''() => { window.testCalls=0; const original=window.fetch; window.fetch=(url,opts)=>String(url).includes('/chat/completions') ? (window.testCalls++,new Promise(resolve=>window.resolveMove=()=>resolve(new Response(JSON.stringify({model:'test/model',choices:[{message:{content:'{"move":"0"}'}}]}),{headers:{'Content-Type':'application/json'}})))) : original(url,opts); }''')
     page.locator('#step').click()
-    page.wait_for_function('window.testCalls===1')
+    page.wait_for_function('() => window.testCalls===1')
     page.evaluate("document.querySelector('#step').dispatchEvent(new Event('click'));document.querySelector('#start').dispatchEvent(new Event('click'))")
     assert page.evaluate('window.testCalls')==1
     assert page.locator('#step').is_disabled()
@@ -22,7 +22,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(150)
     assert page.locator('#metric-moves').inner_text()=='0'
     # A new step can succeed normally.
-    page.locator('#step').click();page.wait_for_function('window.testCalls===2');page.evaluate('window.resolveMove()')
+    page.locator('#step').click();page.wait_for_function('() => window.testCalls===2');page.evaluate('window.resolveMove()')
     page.wait_for_function("() => document.querySelector('#metric-moves').textContent==='1'")
     assert page.evaluate('window.testCalls')==2
     assert not page.locator('#step').is_disabled()

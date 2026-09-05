@@ -1,5 +1,24 @@
 # Academy and honest paired comparisons
 
+## Current release status — September 5, 2026
+
+Academy and the free paired comparison/creator exercise are included in web source
+`d0873da18dfeeda1062cdce5e503c82aa804d904`, deployed at https://builderwars.com/.
+The [release receipt](BUILDERWARS_RELEASE_20260905_NATIVE_CHECKPOINTS.md) supersedes
+the historical candidate/review/preflight status below. Exact-source CI includes
+`academy_browser.py`; the connection preflight is implemented and covered by
+`connections_browser.py`. Prior cross-family review accepted the integrated
+learning/connection path. Synthetic preflight and free lessons are not actual
+customer-provider execution or evidence of learning improvement.
+
+Limited connect-game practice context is now implemented; see
+[the learning contract](BUILDERWARS_GAME_LEARNING.md). The historical statement
+below that this Academy slice did not persist memory describes that earlier slice,
+not the current product. Model weights, built-in policies, chess and checkers do
+not learn automatically, and promotion based on unseen tests remains future work.
+
+## Historical implementation checkpoint
+
 Candidate implementation on `codex/builderwars-portable-proof-20260904`, draft PR #29.
 This document describes candidate behavior, not a production release or external-user result.
 
