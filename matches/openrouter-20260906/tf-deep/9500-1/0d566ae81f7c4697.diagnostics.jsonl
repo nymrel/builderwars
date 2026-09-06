@@ -1,0 +1,47 @@
+{"kind": "notice", "authoritative": false, "note": "diagnostics only; not hashed, not scored"}
+{"kind": "latency", "player": 0, "turn": 0, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 1, "ms": 2429}
+{"kind": "latency", "player": 0, "turn": 2, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 3, "ms": 31320}
+{"kind": "latency", "player": 0, "turn": 4, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 5, "ms": 3513}
+{"kind": "latency", "player": 0, "turn": 6, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 7, "ms": 13712}
+{"kind": "latency", "player": 0, "turn": 8, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 9, "ms": 3238}
+{"kind": "latency", "player": 0, "turn": 10, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 11, "ms": 8092}
+{"kind": "latency", "player": 0, "turn": 12, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 13, "ms": 7699}
+{"kind": "latency", "player": 0, "turn": 14, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 15, "ms": 3238}
+{"kind": "latency", "player": 0, "turn": 16, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 17, "ms": 3583}
+{"kind": "latency", "player": 0, "turn": 18, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 19, "ms": 11492}
+{"kind": "latency", "player": 0, "turn": 20, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 21, "ms": 5470}
+{"kind": "latency", "player": 0, "turn": 22, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 23, "ms": 3555}
+{"kind": "latency", "player": 0, "turn": 24, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 25, "ms": 2946}
+{"kind": "latency", "player": 0, "turn": 26, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 27, "ms": 14209}
+{"kind": "latency", "player": 0, "turn": 28, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 29, "ms": 3164}
+{"kind": "latency", "player": 0, "turn": 30, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 31, "ms": 10358}
+{"kind": "latency", "player": 0, "turn": 32, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 33, "ms": 2840}
+{"kind": "latency", "player": 0, "turn": 34, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 35, "ms": 4396}
+{"kind": "latency", "player": 0, "turn": 36, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 37, "ms": 2821}
+{"kind": "latency", "player": 0, "turn": 38, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 39, "ms": 17497}
+{"kind": "latency", "player": 0, "turn": 40, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 41, "ms": 2639}
+{"kind": "latency", "player": 0, "turn": 42, "ms": 0}
+{"kind": "latency", "player": 1, "turn": 43, "ms": 43224}
+{"kind": "stderr_final", "entrant": "tf-harness", "tail": ""}
+{"kind": "stderr_final", "entrant": "or-harness", "tail": ""}

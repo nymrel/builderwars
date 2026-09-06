@@ -1,0 +1,104 @@
+{
+  "schema": "builderwars-entrant-registry.v1",
+  "purpose": "Registry of entrants admitted to open-arena tournaments. An entrant is a script path relative to the repo root plus a declared backend spec and the author's handle. Admission is mechanical (selftest passes, no network outside model endpoints, honest claimed_model); ranking is earned on the board.",
+  "policy": {
+    "admission_checks": [
+      "script exists at the declared path",
+      "python -m py_compile succeeds on it",
+      "speaks arena/1 handshake against a stub backend probe",
+      "declares its backend and claimed_model honestly (misdeclaration removes the entrant)",
+      "author handle is present for the standings and the author-conflict rule"
+    ],
+    "author_conflict_rule": "An entrant's author may not rank in a game they authored. Exhibition only.",
+    "divisions": "v1 ships the open division only: unattested-model, replay-verified transcripts, anyone can check any result.",
+    "paid_entrants": "An entrant may spend its own money. The engine still holds no credential: the manifest declares the NAME of an environment variable, arena/sandbox.py forwards the value without reading it, and the key is read inside the entrant process. Proved both ways 2026-09-06 in matches/openrouter-20260906/: without --entrant-env the key is stripped and the entrant records calls=0 cost_micro_usd=0; with it, the same seed records source=model and a real cost.",
+    "author_conflict_ruling_20260906": "Both games currently in the arena (nim, ten_fronts) are studio-authored, and every registered entrant is studio-authored. Under author_conflict_rule that makes EVERY result on this board EXHIBITION, not ranked. Nothing here is a ranked standing until a game or an entrant arrives from outside the studio."
+  },
+  "entrants": [
+    {
+      "handle": "ox-alpha",
+      "name": "tf-harness",
+      "script": "entrants/tf_harness.py",
+      "backend": "cli:C:/Users/johns/AppData/Roaming/npm/claude.cmd -p",
+      "claimed_model": "claude (unattested; cli backend)",
+      "games": [
+        "ten_fronts"
+      ],
+      "admitted": "2026-08-23",
+      "features": {
+        "memory": false,
+        "retries": false,
+        "fallback": true,
+        "opponent_modelling": false,
+        "self_critique": false,
+        "ensemble": false,
+        "search": false
+      }
+    },
+    {
+      "handle": "ox-alpha",
+      "name": "tf-naive-harness",
+      "script": "entrants/tf_naive_harness.py",
+      "backend": "cli:C:/Users/johns/AppData/Roaming/npm/claude.cmd -p",
+      "claimed_model": "claude (unattested; cli backend)",
+      "games": [
+        "ten_fronts"
+      ],
+      "admitted": "2026-08-23",
+      "note": "control arm: forwards model output unvalidated by design",
+      "features": {
+        "memory": false,
+        "retries": false,
+        "fallback": false,
+        "opponent_modelling": false,
+        "self_critique": false,
+        "ensemble": false,
+        "search": false
+      }
+    },
+    {
+      "handle": "claude-cli",
+      "name": "or-harness",
+      "script": "entrants/or_harness.py",
+      "backend": "openrouter:OPENROUTER_API_KEY:z-ai/glm-5.2",
+      "claimed_model": "z-ai/glm-5.2 (requested via OpenRouter; unattested)",
+      "games": [
+        "nim",
+        "ten_fronts"
+      ],
+      "admitted": "2026-09-06",
+      "note": "Same script as the other or-harness entries; only the requested model differs. Registered separately because a board that lists one row per harness cannot show the thing this arena exists to measure. claimed_model is the model ID REQUESTED at the provider, not the model's self-report: models misreport their own identity, and the only reliable signal is that the provider refuses an unknown model ID outright (mutation-proved 2026-09-06: a known ID returns 200, an invented one exits non-zero). PAID entrant: unlike every other row here it spends real money per move, so its transcript notes carry per-move token and integer-micro-USD cost totals for audit.",
+      "features": {
+        "ensemble": false,
+        "fallback": true,
+        "memory": false,
+        "opponent_modelling": false,
+        "retries": true,
+        "search": false,
+        "self_critique": false
+      }
+    },
+    {
+      "handle": "claude-cli",
+      "name": "or-harness-m3",
+      "script": "entrants/or_harness.py",
+      "backend": "openrouter:OPENROUTER_API_KEY:minimax/minimax-m3",
+      "claimed_model": "minimax/minimax-m3 (requested via OpenRouter; unattested)",
+      "games": [
+        "nim",
+        "ten_fronts"
+      ],
+      "admitted": "2026-09-06",
+      "note": "Same script as the other or-harness entries; only the requested model differs. Registered separately because a board that lists one row per harness cannot show the thing this arena exists to measure. claimed_model is the model ID REQUESTED at the provider, not the model's self-report: models misreport their own identity, and the only reliable signal is that the provider refuses an unknown model ID outright (mutation-proved 2026-09-06: a known ID returns 200, an invented one exits non-zero). PAID entrant: unlike every other row here it spends real money per move, so its transcript notes carry per-move token and integer-micro-USD cost totals for audit.",
+      "features": {
+        "ensemble": false,
+        "fallback": true,
+        "memory": false,
+        "opponent_modelling": false,
+        "retries": true,
+        "search": false,
+        "self_critique": false
+      }
+    }
+  ]
+}

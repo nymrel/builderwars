@@ -18,14 +18,18 @@ from arena.match import run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 
 
-def manifest(script, backend, backend_timeout=None):
+def manifest(script, backend, backend_timeout=None, env_names=None):
     cmd = [sys.executable, os.path.abspath(script), "--backend", backend]
     if backend_timeout:
         cmd += ["--backend-timeout", str(backend_timeout)]
     return {
         "name": os.path.splitext(os.path.basename(script))[0].replace("_", "-"),
         "cmd": cmd,
-        "env": [],
+        # NAMES only, never values. arena/sandbox.py forwards these to the child
+        # without reading, logging or hashing them, and strips everything else.
+        # Empty by default, so a run that does not ask for a credential cannot
+        # accidentally hand one over.
+        "env": list(env_names or []),
         "claimed_model": backend,
     }
 
@@ -49,12 +53,18 @@ def main():
     ap.add_argument("--backend-timeout", type=float, default=None,
                     help="seconds an entrant waits for its model. Cold local models "
                          "exceed 60s routinely, and a timeout looks like a loss.")
+    ap.add_argument("--entrant-env", action="append", default=[], metavar="NAME",
+                    help="NAME of an environment variable to forward to both "
+                         "entrants (repeatable). Names only -- the engine passes "
+                         "the value through without reading it. Required for the "
+                         "api:/openrouter: backends, which read their own key "
+                         "inside the entrant process.")
     args = ap.parse_args()
 
     backend_a = args.backend_a or args.backend
     backend_b = args.backend_b or args.backend
-    a = manifest(args.a, backend_a, args.backend_timeout)
-    b = manifest(args.b, backend_b, args.backend_timeout)
+    a = manifest(args.a, backend_a, args.backend_timeout, args.entrant_env)
+    b = manifest(args.b, backend_b, args.backend_timeout, args.entrant_env)
     tally = {a["name"]: 0, b["name"]: 0, "void": 0}
     move_source = {}
     reasons = {}

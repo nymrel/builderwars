@@ -1,0 +1,20 @@
+{"kind": "notice", "authoritative": false, "note": "diagnostics only; not hashed, not scored"}
+{"kind": "latency", "player": 0, "turn": 0, "ms": 3730}
+{"kind": "latency", "player": 1, "turn": 1, "ms": 4480}
+{"kind": "latency", "player": 0, "turn": 2, "ms": 6039}
+{"kind": "latency", "player": 1, "turn": 3, "ms": 1453}
+{"kind": "latency", "player": 0, "turn": 4, "ms": 2758}
+{"kind": "latency", "player": 1, "turn": 5, "ms": 73370}
+{"kind": "latency", "player": 0, "turn": 6, "ms": 2243}
+{"kind": "latency", "player": 1, "turn": 7, "ms": 2984}
+{"kind": "latency", "player": 0, "turn": 8, "ms": 2197}
+{"kind": "latency", "player": 1, "turn": 9, "ms": 4662}
+{"kind": "latency", "player": 0, "turn": 10, "ms": 2837}
+{"kind": "latency", "player": 1, "turn": 11, "ms": 6054}
+{"kind": "latency", "player": 0, "turn": 12, "ms": 2868}
+{"kind": "latency", "player": 1, "turn": 13, "ms": 7160}
+{"kind": "latency", "player": 0, "turn": 14, "ms": 4527}
+{"kind": "latency", "player": 1, "turn": 15, "ms": 2202}
+{"kind": "latency", "player": 0, "turn": 16, "ms": 1260}
+{"kind": "stderr_final", "entrant": "or-harness", "tail": ""}
+{"kind": "stderr_final", "entrant": "naive-harness", "tail": ""}
