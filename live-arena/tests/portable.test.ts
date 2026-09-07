@@ -67,3 +67,25 @@ test("a copied verifier reproduces Connect Four with only Node, rejecting corrup
     await rm(dir, { recursive: true, force: true });
   }
 });
+test("every portable-proof game kind round-trips through the shared referee digest", async () => {
+  // Chess fool's mate and tic-tac-toe row win reach terminal states; checkers and
+  // Connect Four use mid-game snapshots (chain validity does not require completion —
+  // unfinished proofs stay "Incomplete snapshot", never forged results).
+  const games = [
+    fixture("chess", ["f2f3", "e7e5", "g2g4", "d8h4"]),
+    fixture("checkers", ["a6-b5", "b3-a4", "c6-d5", "a4-c6", "d7-b5", "a2-b3"]),
+    fixture("connect4", ["0", "1", "0", "1", "0", "1", "0"]),
+    fixture("tictactoe", ["0", "3", "1", "4", "2"]),
+  ];
+  for (const record of games) {
+    const expected = (() => {
+      let state = runtime.createGame(record.rules);
+      for (const e of record.events) state = runtime.applyMove(state, e.move);
+      return state;
+    })();
+    const proof = await runtime.createProof(record, runtime.refereeManifest.digest, 80, "browser_session");
+    const verified = await runtime.verifyProof(proof, runtime.refereeManifest.digest);
+    assert.deepEqual(verified.state, expected, `${record.rules.kind} replay must match the source engine state`);
+    assert.equal(verified.state.over, expected.over);
+  }
+});

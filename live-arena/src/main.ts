@@ -55,6 +55,13 @@ import {
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const isNativeApp = Capacitor.isNativePlatform();
+// Portable proof admission. The single referee bundle embeds every built-in rules
+// engine, so each admitted kind round-trips through createProof/verifyProof with the
+// same engine digest. Custom Forge boards stay replay-only for now: they are legal,
+// but admitting user-generated rulesets without dedicated parity review would widen
+// the evidence surface beyond what this release has validated.
+const PROOF_GAME_KINDS = new Set(["chess", "checkers", "connect4", "tictactoe"]);
+const proofAdmitted = (kind: string) => PROOF_GAME_KINDS.has(kind);
 let deviceStorage: DeviceStorage | undefined;
 let deviceStorageFailed = false;
 if (isNativeApp) {
@@ -365,7 +372,7 @@ $("notice").insertAdjacentHTML("afterend", `
   <details id="match-proof" class="match-settings">
     <summary>Verify this match</summary>
     <p class="muted">Reproduce moves and the result offline. Entrant names, models and usage are declarations—not independent identity, execution or billing proof.</p>
-    <p id="proof-status" class="muted" role="status">Connect Four proof is available. Other games retain their standard replay export.</p>
+    <p id="proof-status" class="muted" role="status">Built-in games (chess, checkers, Connect Four, tic-tac-toe) support portable proof. Custom Forge boards keep their standard replay export.</p>
     <button id="export-proof">Download proof (.jsonl)</button>
     <a id="download-verifier" class="file-button" download href="/${refereeManifest.verifier}">Download matching verifier</a>
     <label class="file-button">Verify a proof<input id="import-proof" type="file" accept=".jsonl,application/x-ndjson"></label>
@@ -792,7 +799,7 @@ function render() {
     spectating || running || pending || state.over,
   );
   $("quickplay").toggleAttribute("disabled", spectating || pending || running);
-  $("export-proof").toggleAttribute("disabled", !!currentExhibition || rules.kind !== "connect4" || proofExporting);
+  $("export-proof").toggleAttribute("disabled", !!currentExhibition || !proofAdmitted(rules.kind) || proofExporting);
   $("reset").toggleAttribute("disabled", spectating);
   $("replay-controls").hidden = replayPly === null;
   $<HTMLInputElement>("replay-position").max = String(record.events.length);
@@ -885,7 +892,7 @@ function reset(preserveSeries = false) {
   currentDeclarations = readDeclarations(contenderDeclarations);
   savedSource = "own";
   proofOrigin = "browser_session";
-  $("proof-status").textContent = "Connect Four proof is available. Other games retain their standard replay export.";
+  $("proof-status").textContent = "Built-in games (chess, checkers, Connect Four, tic-tac-toe) support portable proof. Custom Forge boards keep their standard replay export.";
   selected = -1;
   render();
   notify("Ready. Start a match or click Step for one move.");
@@ -1485,7 +1492,7 @@ $("export").onclick = async () => {
   catch (error) { notify((error as Error).message); }
 };
 $("export-proof").onclick = async () => {
-  if (currentExhibition || rules.kind !== "connect4" || proofExporting) return;
+  if (currentExhibition || !proofAdmitted(rules.kind) || proofExporting) return;
   const snapshot = structuredClone(record);
   const origin = proofOrigin;
   const check = fileTransfer.preparationGuard();
@@ -1549,7 +1556,7 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
     const verified = await verifyProof(text, refereeManifest.digest);
     check();
     if (generation !== runId || matchId !== record.id || moveCount !== record.events.length || running || pending) throw Error("The match changed during verification. Import again when paused.");
-    if (verified.record.rules.kind !== "connect4") throw Error("This release supports Connect Four proof imports. Use the matching offline verifier for other formats.");
+    if (!proofAdmitted(verified.record.rules.kind)) throw Error("Custom Forge boards are not admitted to portable proof yet. Use the matching offline verifier for their replay formats.");
     openReplay(verified, false);
     // Read only after exact referee verification; this does not trust an unverified header.
     currentLimits = validateMatchLimits(JSON.parse(text.split("\n")[0]).body.maxPlies, null);

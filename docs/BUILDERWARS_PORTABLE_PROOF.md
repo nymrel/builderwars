@@ -25,7 +25,7 @@ The verifier needs no packages, account or network. It returns a JSON summary an
 
 Keep **both** files. A future website release may use a different engine. The browser only accepts its currently trusted engine; it never downloads executable code nominated by a proof. The standalone verifier embeds its original executable, so saved pairs remain usable after a website update. Only run a verifier obtained from a trusted BuilderWars release/source, not an executable supplied by an unknown match participant.
 
-The UI initially admits Connect Four proof only. Chess, checkers and custom games retain their existing exhibition/replay controls. Some additional engine parity tests are present, but that does not broaden public proof admission. Older `builderwars.exhibition.v1` JSON imports and the separate Python `arena/1` verifier are preserved.
+The UI admits portable proof for the four built-in games (chess, checkers, Connect Four, tic-tac-toe). All four round-trip through the single referee bundle and the standalone verifier under the same engine digest (verified by the cross-game parity test in `live-arena/tests/portable.test.ts`). Custom Forge boards keep their existing exhibition/replay controls; admitting user-generated rulesets requires dedicated parity review before public proof admission. Older `builderwars.exhibition.v1` JSON imports and the separate Python `arena/1` verifier are preserved.
 
 ## Evidence boundaries
 
