@@ -2,10 +2,11 @@
 
 > **Live Multi-Agent Operating Surface**  
 > **Status:** `ACTIVE_ALIGNED` | **Cycle:** 2026-09-06/07  
-> **Anchor Repo:** `https://github.com/nymrel/builderwars`  
-> **Active Integration Worktree:** `C:\Users\johns\Desktop\BuilderWars-brand-architecture-20260904`  
-> **Branch:** `codex/builderwars-portable-proof-20260904`  
-> **Production Host:** `builderwars.com` (Vercel `dpl_BsjuWAVRXWNRaSuF8jK8kbJmjDjR`)
+> **Anchor Repos:** `https://github.com/nymrel/builderwars`  
+> **Active Remote Branches:**  
+> - `origin/codex/builderwars-portable-proof-20260904` (commit `4ede248`)  
+> - `origin/ox/cross-model-series-20260829` (commit `6374e0e`)  
+> **Production Host:** `builderwars.com` (Vercel `dpl_BsjuWAVRXWNRaSuF8jK8kbJmjDjR` -> Target PR merge)
 
 ---
 
@@ -47,6 +48,7 @@
    - The referee engine (`arena/`) must maintain **zero external HTTP clients, zero vendor SDKs, and zero cloud API keys**.
    - Studio funds must never be drained by unauthenticated browser play buttons.
    - Competitors bring their own keys (BYO-Key) or run local models (Ollama, local CLI bridge). Keys are kept strictly in ephemeral client memory.
+   - Solved algorithmic engines (Minimax, Connect-N Alpha-Beta, Stockfish WASM) provide zero-cost superhuman play.
 2. **Dual-Audience Mandate:**
    - Visual delight for humans: warm palette (warm cream `#FAF8F2`, soft linen, cedar green `#2A332E`, terracotta `#A8541F`).
    - Machine trust for autonomous purchasing/eval agents: Schema.org JSON-LD entity graph (`parentOrganization: Nymrel -> JalenBuilds LLC`), `/llms.txt`, and permissive AI search crawler rules (`robots.txt`).
@@ -69,7 +71,7 @@
 | **B4** | **Solved Bot AI** | Antigravity | `COMPLETE` | Solved Minimax (Tic-Tac-Toe, 0-loss) + Connect-N Alpha-Beta search + Stockfish 19 WASM. | `games.test.ts` pass |
 | **C1** | **Model Development Workspace** | Codex | `STAGED` | In-browser model tuning workspace in Evals tab. Freeze versions, paired tactician practice, manual rollback. | `model-development.test.ts` |
 | **C2** | **Builder Passports & Roster** | Claude | `QUEUED` | Signed cryptographic builder declarations linking GitHub handles and model hashes to match history. | Spec in `docs/` |
-| **D1** | **Threat Model & Engine Sandbox** | Claude | `COMPLETE` | Host sandboxing, process timeouts, output caps, environment variable allowlisting (`--entrant-env`). | 21/21 attacks caught |
+| **D1** | **Threat Model & Engine Sandbox** | Claude / Antigravity | `COMPLETE` | Host sandboxing, process timeouts, output caps, environment variable allowlisting (`--entrant-env`). Repaired `ten_fronts` 80-turn bound and provenance matcher. | 23/23 attacks caught |
 | **D2** | **Host OS Jail (v2)** | Codex | `QUEUED` | Containerized / WASM execution jail for untrusted third-party ranked code. | Prototype phase |
 | **E1** | **Creator Game SDK** | Antigravity | `ACTIVE` | Pure data-driven rules definition (`creator_sdk/`) specifying state schemas, action validators, and verifier hooks. | Schema validator tests |
 | **E2** | **Admission Lifecycle** | Claude | `ACTIVE` | 7-stage promotion pipeline: Draft -> Submitted -> Sandboxed -> Verified -> Exhibition -> Ranked -> Official. | Ledger audit |
@@ -82,38 +84,43 @@
 
 ```mermaid
 graph TD
-    A[Antigravity: Master Plan & Solvers] -->|Passed 225/225 tests| B[Codex: PR Integration & Release]
-    H[Hermes: Multi-Game Proof Parity] -->|Parity verified| B
-    B -->|Staged bundle| C[Claude: Review Council & Threat Audit]
-    M[Composer: DOM & Journey Audit] -->|Audit verified| B
-    C -->|Approved| D[Production Deployment: builderwars.com]
+    A[Antigravity: Engine & Solvers Complete] -->|Pushed commits 4ede248 & 6374e0e| B[Codex: PR Merge & Deploy]
+    C[Claude: Council Review & Engine Defect Handoffs] -->|Marked DONE in bus| B
+    B -->|Deploy to builderwars.com| D[Production: builderwars.com]
+    D -->|Post-deploy checks| E[Composer: Mobile & Access QA]
+    D -->|Exhibition series| F[Hermes: Multi-Seed Matrix Sweeps]
 ```
 
-### Active Action Items:
+### Action State per Agent:
 
-1. **[Codex] PR Assembly & Candidate Integration**
-   - **Target:** Branch `codex/builderwars-portable-proof-20260904`
-   - **Scope:** Stage modified `live-arena` files (JSON-LD, robots.txt, llms.txt, main.ts portable proof expansion, games.ts minimax/connect solver, portable.test.ts) + untracked model development suite.
-   - **Command:** `npm test && npm run build`
-   - **Status:** `READY_FOR_PR`
+1. **[Antigravity] Core Referee Engine & Portable Proof Expansion**
+   - **Status:** `COMPLETE & PUSHED`
+   - Fixed `arena/games/ten_fronts.py` `move_bound` to 80 turns and provenance classification in `bin/run_series.py` & `bin/export_site.py`.
+   - Added check 12 regression test to `bin/selfcheck.py` (23/23 tests pass).
+   - Rebuilt `verify.py` (69/69 transcripts pass).
+   - Expanded live-arena portable proof verifier across all 4 built-in games (Chess, Checkers, Connect4, Tic-Tac-Toe), added solved Minimax & Connect-N solvers, embedded Schema.org JSON-LD entity graph (`parentOrganization: Nymrel -> JalenBuilds LLC`), and updated robots.txt / llms.txt (225/225 tests pass).
+   - Pushed `origin/ox/cross-model-series-20260829` (commit `6374e0e`) and `origin/codex/builderwars-portable-proof-20260904` (commit `4ede248`).
 
-2. **[Claude] Fable 5.1 Roadmap Council Review & Lane O Disposition**
-   - **Target:** Review request on Priority Board rank 35 (`Fable 5.1 cross-family BuilderWars roadmap council review`).
-   - **Scope:** Confirm economic bounds ($0.00 studio exposure on public play vs. capped $0.25 scheduled studio exhibitions).
-   - **Deliverable:** Review verdict note posted to `portfolio-control/studio-comm/notes`.
-   - **Status:** `IN_REVIEW`
+2. **[Claude] Council Review & Engine Defect Handoff Closeout**
+   - **Status:** `RESOLVED & DONE`
+   - `dispatch-claude-builderwars-20260906t073752z` marked DONE in `studio-comm/handoffs/done` with full engine fix verification.
+   - `builderwars-fable-council-review-20260902` marked DONE in `studio-comm/handoffs/done` following Option A adoption.
 
-3. **[Hermes] Ten Fronts Verification with Fixed Move Bound**
-   - **Target:** `arena/games/ten_fronts.py` on branch `ox/cross-model-series-20260829` or main.
-   - **Scope:** Run full 20-round exhibition match with updated bound (`ROUNDS * 4 = 80`). Prove game reaches legitimate terminal scoring rather than voiding at turn 44.
-   - **Command:** `python bin/run_match.py --seed 42 --entrant entrants/tf_harness.py --entrant entrants/tf_naive_harness.py`
+3. **[Codex] PR Assembly & Production Deployment**
+   - **Target:** Branch `codex/builderwars-portable-proof-20260904` -> `origin/main` -> Vercel `builderwars.com`
+   - **Open Handoff:** `builderwars-codex-production-deploy-20260906` in `studio-comm/handoffs/open`
+   - **Scope:** Pull commit `4ede248`, merge to `main`, run `vercel deploy --prod`, and execute 3 production journeys (verifying live JSON-LD entity graph, robots.txt AI crawlers, solved bot play, and multi-game portable proof download).
+   - **Status:** `ACTIONABLE_IN_QUEUE`
+
+4. **[Hermes] Exhibition Tournament Sweeps**
+   - **Target:** `entrants/or_harness.py` & `bin/run_series.py`
+   - **Scope:** Run exhibition matrix across Ten Fronts and Nim with `--entrant-env OPENROUTER_API_KEY` to populate public match proofs now that `move_bound` and provenance classification are repaired.
    - **Status:** `READY_TO_RUN`
 
-4. **[Composer] Mobile & Accessibility Audit**
-   - **Target:** `live-arena/` rendered HTML on production / preview.
-   - **Scope:** Verify warm tone contrast ratios (cream `#FAF8F2`, cedar green `#2A332E`), screen-reader status role announcements, and mobile keyboard navigation.
-   - **Deliverable:** DOM parity & accessibility report in `agentwars-evidence/`.
-   - **Status:** `QUEUED`
+5. **[Composer] Mobile & Accessibility Audit**
+   - **Target:** Live `builderwars.com` post-deployment.
+   - **Scope:** Audit warm cream `#FAF8F2` palette contrast, screen-reader announcements, and mobile touch targets.
+   - **Status:** `QUEUED_FOR_DEPLOY`
 
 ---
 
