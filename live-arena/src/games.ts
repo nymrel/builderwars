@@ -363,6 +363,165 @@ export function botMove(s: GameState, style = "tactician"): string {
   if (style === "random")
     return moves[Math.floor(Math.random() * moves.length)];
   const player = s.turn;
+
+  // 1. Tic-Tac-Toe: Exact full minimax solver (unbeatable)
+  if (s.rules.kind === "tictactoe") {
+    function minimax(curr: GameState, isMax: boolean, depth: number): number {
+      if (curr.over) {
+        if (curr.winner === player) return 100 - depth;
+        if (curr.winner !== null) return depth - 100;
+        return 0;
+      }
+      const legals = legalMoves(curr);
+      if (isMax) {
+        let maxEval = -Infinity;
+        for (const m of legals) {
+          maxEval = Math.max(maxEval, minimax(applyMove(curr, m), false, depth + 1));
+        }
+        return maxEval;
+      } else {
+        let minEval = Infinity;
+        for (const m of legals) {
+          minEval = Math.min(minEval, minimax(applyMove(curr, m), true, depth + 1));
+        }
+        return minEval;
+      }
+    }
+    let best = -Infinity, chosen = moves[0];
+    for (const m of moves) {
+      const score = minimax(applyMove(s, m), false, 0);
+      if (score > best) {
+        best = score;
+        chosen = m;
+      }
+    }
+    return chosen;
+  }
+
+  // 2. Connect Four and Custom Connect-N: Alpha-Beta search with center ordering
+  if (s.rules.kind === "connect4" || s.rules.kind === "custom") {
+    // 1-ply immediate win check
+    for (const m of moves) {
+      const next = applyMove(s, m);
+      if (next.over && next.winner === player) return m;
+    }
+    // 1-ply immediate block check
+    for (const m of moves) {
+      const testOpp = structuredClone(s);
+      testOpp.turn = (1 - player) as 0 | 1;
+      const oppNext = applyMove(testOpp, m);
+      if (oppNext.over && oppNext.winner === (1 - player)) {
+        return m;
+      }
+    }
+
+    const center = (s.rules.cols - 1) / 2;
+    const orderedMoves = [...moves].sort((a, b) => {
+      const colA = Number(a) % s.rules.cols;
+      const colB = Number(b) % s.rules.cols;
+      return Math.abs(colA - center) - Math.abs(colB - center);
+    });
+
+    const maxDepth = s.rules.kind === "connect4" ? 4 : 3;
+
+    function evalConnect(st: GameState): number {
+      if (st.over) {
+        if (st.winner === player) return 100000;
+        if (st.winner !== null) return -100000;
+        return 0;
+      }
+      const { rows, cols, connect } = st.rules;
+      let score = 0;
+      const ownChar = player === 0 ? "w" : "b";
+      const oppChar = player === 0 ? "b" : "w";
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = st.cells[r * cols + c];
+          if (cell === ownChar) score += (4 - Math.abs(c - center)) * 3;
+          else if (cell === oppChar) score -= (4 - Math.abs(c - center)) * 3;
+        }
+      }
+
+      const checkWindow = (cells: string[]) => {
+        let own = 0, opp = 0;
+        for (const c of cells) {
+          if (c === ownChar) own++;
+          else if (c === oppChar) opp++;
+        }
+        if (own > 0 && opp > 0) return;
+        if (own === connect - 1) score += 50;
+        else if (own === connect - 2) score += 10;
+        else if (opp === connect - 1) score -= 60;
+        else if (opp === connect - 2) score -= 12;
+      };
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c <= cols - connect; c++) {
+          const w = [];
+          for (let i = 0; i < connect; i++) w.push(st.cells[r * cols + c + i]);
+          checkWindow(w);
+        }
+      }
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r <= rows - connect; r++) {
+          const w = [];
+          for (let i = 0; i < connect; i++) w.push(st.cells[(r + i) * cols + c]);
+          checkWindow(w);
+        }
+      }
+      for (let r = 0; r <= rows - connect; r++) {
+        for (let c = 0; c <= cols - connect; c++) {
+          const w = [];
+          for (let i = 0; i < connect; i++) w.push(st.cells[(r + i) * cols + c + i]);
+          checkWindow(w);
+        }
+      }
+      for (let r = connect - 1; r < rows; r++) {
+        for (let c = 0; c <= cols - connect; c++) {
+          const w = [];
+          for (let i = 0; i < connect; i++) w.push(st.cells[(r - i) * cols + c + i]);
+          checkWindow(w);
+        }
+      }
+      return score;
+    }
+
+    function alphabeta(st: GameState, depth: number, alpha: number, beta: number, isMax: boolean): number {
+      if (depth === 0 || st.over) return evalConnect(st);
+      const legals = legalMoves(st);
+      if (isMax) {
+        let val = -Infinity;
+        for (const m of legals) {
+          val = Math.max(val, alphabeta(applyMove(st, m), depth - 1, alpha, beta, false));
+          alpha = Math.max(alpha, val);
+          if (beta <= alpha) break;
+        }
+        return val;
+      } else {
+        let val = Infinity;
+        for (const m of legals) {
+          val = Math.min(val, alphabeta(applyMove(st, m), depth - 1, alpha, beta, true));
+          beta = Math.min(beta, val);
+          if (beta <= alpha) break;
+        }
+        return val;
+      }
+    }
+
+    let best = -Infinity, chosen = orderedMoves[0];
+    for (const m of orderedMoves) {
+      const next = applyMove(s, m);
+      const score = alphabeta(next, maxDepth - 1, -Infinity, Infinity, false);
+      if (score > best) {
+        best = score;
+        chosen = m;
+      }
+    }
+    return chosen;
+  }
+
+  // 3. Chess / Checkers / Generic tactical search
   let best = -Infinity,
     chosen = moves[0];
   function value(next: GameState): number {

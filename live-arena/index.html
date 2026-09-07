@@ -19,6 +19,55 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
     <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://nymrel.com/#organization",
+          "name": "Nymrel",
+          "legalName": "JalenBuilds LLC",
+          "url": "https://nymrel.com/",
+          "parentOrganization": {
+            "@type": "Organization",
+            "name": "JalenBuilds LLC",
+            "url": "https://jalenbuilds.com/"
+          },
+          "email": "contact@jalenbuilds.com"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://builderwars.com/#website",
+          "url": "https://builderwars.com/",
+          "name": "BuilderWars",
+          "description": "A contest between harnesses rather than vendors. Play chess, checkers, Connect Four, tic-tac-toe and creator games with your own models and harnesses. Re-run every match yourself.",
+          "publisher": { "@id": "https://nymrel.com/#organization" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://builderwars.com/#app",
+          "name": "BuilderWars Live Arena",
+          "url": "https://builderwars.com/",
+          "applicationCategory": "GameApplication, DeveloperApplication",
+          "operatingSystem": "Web, Android, iOS",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "featureList": [
+            "Deterministic Replay Verification",
+            "One-File Standalone Cryptographic Verifier",
+            "Free Client-Side Solved Opponents (Minimax, Alpha-Beta, Stockfish)",
+            "BYO-Key Browser Direct and Local Bridge Execution",
+            "Portable Proof Receipts for Built-in Games"
+          ],
+          "publisher": { "@id": "https://nymrel.com/#organization" }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <noscript>BuilderWars requires JavaScript to run games locally. Explore the open source project at github.com/nymrel/builderwars.</noscript>

@@ -36,6 +36,7 @@ import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } fro
 import { publicLinkOrigin } from "./public-links";
 import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
 import { connectionDialogMarkup, agentSetupBrief } from "./connection-guide";
+import { mountModelDevelopment } from "./model-development-ui";
 import { EXHIBITION_SCHEMA, readExhibition, exhibitionDescription, type Exhibition } from "./exhibition";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
 import { DECLARATION_FIELDS, readDeclaration, readDeclarations, unknownDeclarations, makeMatchPackage, readMatchFile, type MatchDeclarations } from "./match-package";
@@ -55,8 +56,11 @@ import {
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const isNativeApp = Capacitor.isNativePlatform();
+const PROOF_GAME_KINDS = new Set(["chess", "checkers", "connect4", "tictactoe"]);
+const proofAdmitted = (kind: string) => PROOF_GAME_KINDS.has(kind);
 let deviceStorage: DeviceStorage | undefined;
 let deviceStorageFailed = false;
+let development: ReturnType<typeof mountModelDevelopment> | undefined;
 if (isNativeApp) {
   try {
     const { nativeCheckpointPort } = await import("./native-checkpoint-port");
@@ -71,6 +75,7 @@ let nativeReady = !isNativeApp, nativeActive = true;
 let nativeEpoch = 0;
 let disposeNative: (() => Promise<void>) | undefined;
 function ensureDeviceReady(agent?: Agent) {
+  if (development?.busy) throw Error("Finish or cancel the model-development operation in Evals first.");
   if (isNativeApp && (!nativeReady || !nativeActive))
     throw Error("Mobile lifecycle protection is not ready. Return to the app or restart it before playing.");
   if (agent) validateNativeEndpoint(agent.kind, agent.endpoint, isNativeApp);
@@ -241,6 +246,16 @@ $("clear-learning").onclick = async () => {
   } catch { renderLearning("Cleared in this tab only. Device removal failed; retry Clear."); }
 };
 renderLearning();
+development = mountModelDevelopment($("evals"), {
+  connection: () => ({ agent: agents[0], rules, models }),
+  ready: () => {
+    ensureDeviceReady(agents[0]);
+    if (running || pending || seriesRemaining || spectating) throw Error("Pause Arena and leave any evaluation or broadcast before model development.");
+  },
+  connect: () => openAgent(0),
+  download: exportJson,
+});
+document.addEventListener("visibilitychange", () => { if (document.hidden) development?.cancel(); });
 // Visual thesis: a quiet scoreline and one board-led result image, no extra dashboard.
 // Content: outcome, exact evidence level, then replay/share/runback actions.
 // Interaction: reveal on pause/result, native setup dialog, existing button feedback.
@@ -365,7 +380,7 @@ $("notice").insertAdjacentHTML("afterend", `
   <details id="match-proof" class="match-settings">
     <summary>Verify this match</summary>
     <p class="muted">Reproduce moves and the result offline. Entrant names, models and usage are declarations—not independent identity, execution or billing proof.</p>
-    <p id="proof-status" class="muted" role="status">Connect Four proof is available. Other games retain their standard replay export.</p>
+    <p id="proof-status" class="muted" role="status">Built-in games (chess, checkers, Connect Four, tic-tac-toe) support portable proof. Custom Forge boards keep their standard replay export.</p>
     <button id="export-proof">Download proof (.jsonl)</button>
     <a id="download-verifier" class="file-button" download href="/${refereeManifest.verifier}">Download matching verifier</a>
     <label class="file-button">Verify a proof<input id="import-proof" type="file" accept=".jsonl,application/x-ndjson"></label>
@@ -792,7 +807,7 @@ function render() {
     spectating || running || pending || state.over,
   );
   $("quickplay").toggleAttribute("disabled", spectating || pending || running);
-  $("export-proof").toggleAttribute("disabled", !!currentExhibition || rules.kind !== "connect4" || proofExporting);
+  $("export-proof").toggleAttribute("disabled", !!currentExhibition || !proofAdmitted(rules.kind) || proofExporting);
   $("reset").toggleAttribute("disabled", spectating);
   $("replay-controls").hidden = replayPly === null;
   $<HTMLInputElement>("replay-position").max = String(record.events.length);
@@ -885,7 +900,7 @@ function reset(preserveSeries = false) {
   currentDeclarations = readDeclarations(contenderDeclarations);
   savedSource = "own";
   proofOrigin = "browser_session";
-  $("proof-status").textContent = "Connect Four proof is available. Other games retain their standard replay export.";
+  $("proof-status").textContent = "Built-in games (chess, checkers, Connect Four, tic-tac-toe) support portable proof. Custom Forge boards keep their standard replay export.";
   selected = -1;
   render();
   notify("Ready. Start a match or click Step for one move.");
@@ -1027,6 +1042,7 @@ async function oneMove() {
   }
 }
 async function play() {
+  if (development?.busy) { notify("Cancel or finish model development in Evals first."); return; }
   if (spectating || state.over) return;
   if (running) {
     stop();
@@ -1343,6 +1359,7 @@ $<HTMLSelectElement>("model-id").onchange = () => { importedSelection = null; up
 $<HTMLSelectElement>("effort").onchange = () => { importedSelection = null; };
 $("close-dialog").onclick = () => $<HTMLDialogElement>("agent-dialog").close();
 $("forget-key").onclick = () => {
+  development?.cancel();
   cancelConnectionProbe();
   forgetConnectionCheck(agents[selectedSeat]);
   agents[selectedSeat].key = "";
@@ -1485,7 +1502,7 @@ $("export").onclick = async () => {
   catch (error) { notify((error as Error).message); }
 };
 $("export-proof").onclick = async () => {
-  if (currentExhibition || rules.kind !== "connect4" || proofExporting) return;
+  if (currentExhibition || !proofAdmitted(rules.kind) || proofExporting) return;
   const snapshot = structuredClone(record);
   const origin = proofOrigin;
   const check = fileTransfer.preparationGuard();
@@ -1549,7 +1566,7 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
     const verified = await verifyProof(text, refereeManifest.digest);
     check();
     if (generation !== runId || matchId !== record.id || moveCount !== record.events.length || running || pending) throw Error("The match changed during verification. Import again when paused.");
-    if (verified.record.rules.kind !== "connect4") throw Error("This release supports Connect Four proof imports. Use the matching offline verifier for other formats.");
+    if (!proofAdmitted(verified.record.rules.kind)) throw Error("Custom Forge boards are not admitted to portable proof yet. Use the matching offline verifier for their replay formats.");
     openReplay(verified, false);
     // Read only after exact referee verification; this does not trust an unverified header.
     currentLimits = validateMatchLimits(JSON.parse(text.split("\n")[0]).body.maxPlies, null);
@@ -1703,7 +1720,7 @@ function renderSeries() {
   $("academy-status").textContent = `${summary.completed} rule-complete games in the current evaluation, ${summary.completePairs} complete pairs. Inspect Evals before drawing a conclusion. No automatic training or promotion occurred.`;
 }
 function runSeries() {
-  if (running || pending || spectating) {
+  if (running || pending || spectating || development?.busy) {
     notify("Pause or leave the current match first.");
     tab("arena");
     return;
@@ -1951,6 +1968,7 @@ $("clean-view").onclick = () => {
   window.open(url, "_blank", "noopener");
 };
 window.addEventListener("beforeunload", () => {
+  development?.cancel();
   controller?.abort();
   broadcast.close();
   agents.forEach((a) => (a.key = ""));
@@ -1992,6 +2010,7 @@ function loadFragment() {
       });
 }
 function suspendNative() {
+  development?.cancel();
   if (!nativeActive) return;
   nativeEpoch++;
   nativeActive = false;

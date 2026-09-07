@@ -26,6 +26,8 @@ export type Decision = {
   elapsed: number;
   model: string;
   tokens: number | null;
+  /** Provider-reported output count, when available; tokens remains the total. */
+  outputTokens?: number | null;
   cost: number | null;
 };
 export const EFFORTS = [
@@ -37,6 +39,12 @@ export const EFFORTS = [
   "xhigh",
   "max",
 ];
+function reportedOutputTokens(value: unknown, maxTokens: number): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0 || value > maxTokens)
+    throw Error("Invalid or over-limit reported output token count; no replacement move.");
+  return value;
+}
 export function publicAgent(a: Agent): PublicAgent {
   return {
     name: a.name.slice(0, 64),
@@ -225,6 +233,7 @@ export async function decide(
   let res: Response,
     actual = "",
     tokens: number | null = null,
+    outputTokens: number | null = null,
     cost: number | null = null,
     content: unknown;
   const timeout = AbortSignal.any([signal, AbortSignal.timeout(120000)]);
@@ -267,6 +276,7 @@ export async function decide(
     tokens = Number.isFinite(data.usage?.total_tokens)
       ? data.usage.total_tokens
       : null;
+    outputTokens = reportedOutputTokens(data.usage?.completion_tokens, maxTokens);
     cost = Number.isFinite(data.usage?.cost) ? data.usage.cost : null;
   } else {
     const url = validateEndpoint(a.endpoint);
@@ -302,12 +312,16 @@ export async function decide(
     actual =
       typeof data.model === "string" && data.model.trim() ? data.model : "harness/unreported";
     tokens = Number.isFinite(data.tokens) ? data.tokens : null;
+    outputTokens = reportedOutputTokens(data.outputTokens, maxTokens);
   }
+  // Never truncate a reported identity into a different apparently matching one.
+  if (actual.length > 160) throw Error("Reported model identity exceeds the supported length.");
   return {
     ...parseDecision(content, legal),
     elapsed: performance.now() - started,
     model: actual.slice(0, 160),
     tokens: tokens !== null && tokens >= 0 ? tokens : null,
+    outputTokens,
     cost: cost !== null && cost >= 0 ? cost : null,
   };
 }
