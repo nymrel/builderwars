@@ -292,6 +292,28 @@ def main():
               "an unparseable transcript that returns anything but FAIL is worse than a crash",
               f"non-FAIL verdicts: {no_verdict or 'none'}")
 
+        print("\n=== 12. full-length ten_fronts match reaches natural terminal, not move_bound void ===")
+        # Regression for Claude dispatch: ten_fronts move_bound was previously (ROUNDS-round)*2+4 (44 moves),
+        # but 20 rounds x 4 phases = 80 turns. Two competent computing harnesses must finish all 20 rounds
+        # with winner determined by points/terminal, NOT voided by hitting move_bound.
+        tf_match = run_match(
+            game_name="ten_fronts",
+            seed=9500,
+            entrants=[entrant("tf_harness.py"), entrant("tf_harness.py")],
+            out_dir=os.path.join(work, "tf-full"),
+        )
+        tf_records = load(tf_match["transcript"])
+        tf_rep = verify(tf_match["transcript"])
+        move_count = len([r for r in tf_records if r["kind"] == "move"])
+        check("ten_fronts 20-round match reaches terminal without move_bound void",
+              tf_match["reason"] != "void:move_bound_exceeded" and move_count == 80,
+              "a move_bound that truncates competent play leaves every match void",
+              f"moves={move_count}/80 reason={tf_match['reason']}")
+        check("the 20-round ten_fronts transcript verifies PASS",
+              tf_rep["verdict"] == "PASS",
+              "full-length 80-turn match transcript must be cryptographically valid",
+              f"verdict={tf_rep['verdict']}")
+
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
