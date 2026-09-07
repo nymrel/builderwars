@@ -1,6 +1,7 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { IncomingMessage } from "node:http";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const webPages = {
@@ -16,8 +17,9 @@ const originRoutes: Record<string, string> = {
   "/verify": "/verify.html",
   "/guide": "/guide.html",
 };
-function originCleanUrls() {
-  const rewrite = (req: { url?: string }) => {
+
+function originCleanUrls(): Plugin {
+  const rewrite = (req: IncomingMessage) => {
     const raw = req.url?.split("?")[0] || "";
     const path = raw.length > 1 ? raw.replace(/\/$/, "") : raw;
     const dest = originRoutes[path];
@@ -25,11 +27,17 @@ function originCleanUrls() {
   };
   return {
     name: "origin-clean-urls",
-    configureServer(server: { middlewares: { use: (fn: (req: { url?: string }, _res: unknown, next: () => void) => void) => void } }) {
-      server.middlewares.use((req, _res, next) => { rewrite(req); next(); });
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        rewrite(req);
+        next();
+      });
     },
-    configurePreviewServer(server: { middlewares: { use: (fn: (req: { url?: string }, _res: unknown, next: () => void) => void) => void } }) {
-      server.middlewares.use((req, _res, next) => { rewrite(req); next(); });
+    configurePreviewServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        rewrite(req);
+        next();
+      });
     },
   };
 }
@@ -40,16 +48,13 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: "es2022",
     outDir: mode === "native" ? "dist-native" : "dist",
-    rollupOptions: mode === "native" ? {} : { input: webPages },
+    ...(mode === "native" ? {} : { rollupOptions: { input: webPages } }),
   },
-  plugins: [
-    originCleanUrls(),
-    ...(mode === "native" ? [{
-      name: "native-content-policy",
-      transformIndexHtml: { order: "pre", handler: () => [
-        { tag: "meta", attrs: { "http-equiv": "Content-Security-Policy", content: nativeContentPolicy }, injectTo: "head-prepend" },
-        { tag: "meta", attrs: { name: "referrer", content: "no-referrer" }, injectTo: "head-prepend" },
-      ] },
-    }] : []),
-  ],
+  plugins: mode === "native" ? [{
+    name: "native-content-policy",
+    transformIndexHtml: { order: "pre" as const, handler: () => [
+      { tag: "meta", attrs: { "http-equiv": "Content-Security-Policy", content: nativeContentPolicy }, injectTo: "head-prepend" as const },
+      { tag: "meta", attrs: { name: "referrer", content: "no-referrer" }, injectTo: "head-prepend" as const },
+    ] },
+  }] : [originCleanUrls()],
 }));

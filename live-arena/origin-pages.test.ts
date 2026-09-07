@@ -43,7 +43,8 @@ test("Vite web build and Vercel routes admit the origin page family", async () =
     assert.match(vercel, new RegExp(`"/${route}"`));
     assert.match(vercel, new RegExp(`"/${page}"`));
   }
-  assert.match(vite, /mode === "native" \? \{\} : \{ input: webPages \}/);
+  assert.match(vite, /rollupOptions: \{ input: webPages \}/);
+  assert.match(vite, /originCleanUrls/);
 });
 
 test("guide and verify keep the honest product boundary", async () => {
