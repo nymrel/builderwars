@@ -24,7 +24,10 @@ Required module interface (see ENTRANT_CONTRACT.md for the wire side):
 
 import importlib
 
-REGISTRY = {"nim": "arena.games.nim"}
+REGISTRY = {
+    "nim": "arena.games.nim",
+    "ten_fronts": "arena.games.ten_fronts",
+}
 
 
 def load(name):
