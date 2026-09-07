@@ -98,7 +98,7 @@ def main():
                         note = rec["body"].get("entrant_message", {}).get("note", "")
                         who = pair[rec["body"]["player"]]["name"]
                         if note.startswith("source="):
-                            key = "model" if note == "source=model" else "fallback"
+                            key = "model" if note.startswith("source=model") else "fallback"
                             move_source[(who, key)] = move_source.get((who, key), 0) + 1
             except Exception:
                 pass

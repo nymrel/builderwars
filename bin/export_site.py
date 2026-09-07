@@ -75,7 +75,7 @@ def summarise(path):
         note = r["body"].get("entrant_message", {}).get("note", "") or ""
         seat = r["body"].get("player")
         if seat in by_seat and note.startswith("source="):
-            key = "modelMoves" if note == "source=model" else "fallbackMoves"
+            key = "modelMoves" if note.startswith("source=model") else "fallbackMoves"
             by_seat[seat][key] += 1
 
     winner = result.get("winner")
