@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import {
   RULES,
   applyMove,
@@ -15,6 +16,34 @@ import {
 import { replay } from "../src/records";
 
 const take = (heap: number, count: number) => JSON.stringify({ heap, take: count });
+
+test("Nim preserves the original Python-referee parity oracle across both seats", () => {
+  const oracle = JSON.parse(execFileSync(process.env.PYTHON || "python", ["tests/nim_oracle.py"],
+    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }));
+  let transitions = 0;
+  for (const c of oracle.cases) {
+    const state = createGame(RULES.nim);
+    state.rules = { ...state.rules, rows: c.heaps.length };
+    state.cells = c.heaps.flatMap((heap: number) =>
+      Array.from({ length: 7 }, (_, index) => index < heap ? "o" : ""));
+    state.turn = c.seat;
+    assert.deepEqual(legalMoves(state).map(move => JSON.parse(move)), c.moves);
+    c.moves.forEach((move: unknown, index: number) => {
+      const next = applyMove(state, JSON.stringify(move)), expected = c.after[index];
+      assert.deepEqual(nimHeaps(next), expected.state.heaps);
+      assert.equal(next.turn, expected.state.to_move);
+      assert.equal(next.over, expected.terminal !== null);
+      assert.equal(next.winner, expected.terminal?.winner ?? null);
+      if (next.over) assert.equal(next.reason, expected.terminal.reason);
+      transitions++;
+    });
+  }
+  for (const setup of oracle.setups)
+    assert.deepEqual(nimHeaps(createGame({ ...RULES.nim, initialHeaps: setup.heaps })), setup.heaps);
+  assert.equal(oracle.cases.length, 758);
+  assert.equal(transitions, 4572);
+  assert.equal(oracle.setups.length, 18);
+});
 
 test("Nim starts from deterministic heaps and exposes every legal one-heap take", () => {
   const state = createGame(RULES.nim);
