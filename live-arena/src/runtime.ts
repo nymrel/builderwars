@@ -31,7 +31,7 @@ const core = await load().catch(error => {
 });
 export const refereeManifest = manifest;
 export const { RULES, createGame, applyMove, legalMoves, moveLabel, square, validateRules,
-  botMove, gamePrompt, replayStepper, replay, encodeReplay, decodeReplay, download,
+  botMove, gamePrompt, gamePosition, nimHeaps, replayStepper, replay, encodeReplay, decodeReplay, download,
   canonical, sha256, createProof, verifyProof, parseProof, PROOF_LIMIT, PROOF_PROTOCOL } = core;
 export type { Rules, GameState, GameKind } from "./games";
 export type { RecordData, Event } from "./records";

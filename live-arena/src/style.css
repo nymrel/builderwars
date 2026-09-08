@@ -15,6 +15,20 @@
   --line: #2b332e;
   --control-edge: #7b8c76;
 }
+.board.nim {
+  display: block;
+  aspect-ratio: auto;
+  min-height: 300px;
+  padding: 16px;
+}
+.nim-heap {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.nim-heap h3 { margin: 0; font-size: 16px; }
+.nim-objects { color: var(--accent); font-size: 24px; margin: 10px 0; }
+.nim-takes { display: flex; flex-wrap: wrap; gap: 6px; }
+.nim-takes button { padding: 8px 10px; }
 * {
   box-sizing: border-box;
 }

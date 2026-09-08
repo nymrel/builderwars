@@ -1,4 +1,4 @@
-import { botMove, gamePrompt, legalMoves, type GameState } from "./runtime";
+import { botMove, gamePosition, gamePrompt, legalMoves, type GameState } from "./runtime";
 import type { MemoryContext } from "./learning";
 export type Agent = {
   name: string;
@@ -318,7 +318,7 @@ export async function decide(
       body: JSON.stringify({
         schema: "builderwars.move.v1",
         game: s.rules,
-        position: s.fen || s.cells,
+        position: gamePosition(s),
         turn: s.turn,
         moves: s.moves,
         legalMoves: legal,

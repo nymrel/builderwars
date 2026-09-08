@@ -1,5 +1,5 @@
 /** Local, outcome-trained value policies. No network, model weights, or referee mutations. */
-import { createGame, applyMove, legalMoves, replayStepper, validateRules, sha256, refereeManifest, type GameState, type Rules } from "./runtime";
+import { createGame, applyMove, legalMoves, nimHeaps, replayStepper, validateRules, sha256, refereeManifest, type GameState, type Rules } from "./runtime";
 import { isRuleComplete } from "./outcome";
 
 export const POLICY_SCHEMA = "builderwars.learned-value.v1";
@@ -52,6 +52,15 @@ function own(piece: string, seat: number) { return piece[0]?.toLowerCase() === (
 /** Fixed representation, learned coefficients. These features are not a chess engine. */
 export function boardFeatures(s: GameState, seat: number): number[] {
   const x = Array<number>(FEATURE_COUNT).fill(0), { rows, cols, connect } = s.rules;
+  if (s.rules.kind === "nim") {
+    const heaps = nimHeaps(s), total = heaps.reduce((sum, heap) => sum + heap, 0), xor = heaps.reduce((value, heap) => value ^ heap, 0);
+    const ownTurn = s.turn === seat;
+    x[ownTurn ? 0 : 6] = total / (s.rules.rows * s.rules.cols);
+    x[ownTurn ? 12 : 15] = xor / s.rules.cols;
+    x[18] = x[19] = total / s.cells.length;
+    x[20] = x[21] = xor / s.rules.cols;
+    return x;
+  }
   s.cells.forEach((piece, index) => {
     if (!piece) return;
     const side = own(piece, seat) ? 0 : 1;
