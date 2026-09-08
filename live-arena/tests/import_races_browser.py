@@ -58,7 +58,7 @@ with sync_playwright() as p:
     page.wait_for_function("() => __reads.length===1")
     page.locator("#creator-name").fill("Keep my edited draft")
     page.evaluate("__reads.shift()()")
-    expect(page.locator("#notice")).to_contain_text("rules draft changed during import")
+    expect(page.locator("#forge-status")).to_contain_text("rules draft changed during import")
     expect(page.locator("#game-title")).to_have_text("Connect Four")
     expect(page.locator("#creator-name")).to_have_value("Keep my edited draft")
     upload("#import", "invalid-utf8.json", b'{"bad":"\xff"}')
