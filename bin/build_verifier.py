@@ -336,16 +336,33 @@ def source_sets(current_files):
 
 
 def render_source_sets(sets):
-    """Readable Python literal with base64 split into reviewable 88-char lines."""
-    lines = ["{"]
+    """Render deduplicated source bytes and digest-indexed source sets.
+
+    Historical snapshots share most referee modules.  Keep every complete
+    snapshot available, but write each identical base64 payload once so the
+    standalone verifier remains within the runner bundle's member limit.
+    """
+    blobs = {}
+    for sources in sets.values():
+        for b64 in sources.values():
+            blob_id = hashlib.sha256(b64.encode("ascii")).hexdigest()
+            existing = blobs.setdefault(blob_id, b64)
+            if existing != b64:
+                raise SystemExit("verifier source blob digest collision")
+
+    lines = ["# encoded source bytes, deduplicated across historical snapshots", "SOURCE_BLOBS = {"]
+    for blob_id, b64 in sorted(blobs.items()):
+        chunks = [b64[i:i + 88] for i in range(0, len(b64), 88)] or [""]
+        lines.append(f'    "{blob_id}":')
+        for index, chunk in enumerate(chunks):
+            comma = "," if index == len(chunks) - 1 else ""
+            lines.append(f'        "{chunk}"{comma}')
+    lines.extend(["}", "", "# engine digest -> (relpath -> exact encoded source bytes)", "SOURCE_SETS = {"])
     for engine_digest, sources in sorted(sets.items()):
         lines.append(f'    "{engine_digest}": {{')
         for rel, b64 in sorted(sources.items()):
-            chunks = [b64[i:i + 88] for i in range(0, len(b64), 88)] or [""]
-            lines.append(f'        "{rel}":')
-            for index, chunk in enumerate(chunks):
-                comma = "," if index == len(chunks) - 1 else ""
-                lines.append(f'            "{chunk}"{comma}')
+            blob_id = hashlib.sha256(b64.encode("ascii")).hexdigest()
+            lines.append(f'        "{rel}": SOURCE_BLOBS["{blob_id}"],')
         lines.append("    },")
     lines.append("}")
     return "\n".join(lines)
@@ -388,9 +405,9 @@ import urllib.request
 
 BASE = os.environ.get("BUILDERWARS_BASE", {base_literal})
 
-# engine digest -> (relpath -> base64 bytes). Historical referee builds remain
-# embedded so a new game cannot strand already-published match receipts.
-SOURCE_SETS = {source_sets}
+# Historical referee source sets remain embedded so a new game cannot strand
+# already-published match receipts. Identical module bytes are stored once.
+{source_sets}
 DEFAULT_ENGINE_DIGEST = "{engine_digest}"
 
 _MAX_SOURCE_FILES = 256
@@ -685,7 +702,7 @@ if __name__ == "__main__":
 '''
 
 
-def build(base_url):
+def build(base_url, *, check_only=False):
     base_url = _validated_base_url(base_url)
     files = collect()
     engine_digest = digest_for(files)
@@ -696,6 +713,15 @@ def build(base_url):
         source_sets=render_source_sets(sets),
         engine_digest=engine_digest,
     )
+    if check_only:
+        try:
+            with open(OUT, "rb") as fh:
+                current = fh.read()
+        except FileNotFoundError:
+            current = None
+        if current != src.encode("utf-8"):
+            raise SystemExit("verify.py is stale; run python bin/build_verifier.py and commit the result")
+        return files, engine_digest, len(sets)
     fd, staged = tempfile.mkstemp(prefix=".verify-", suffix=".py", dir=ROOT)
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
@@ -1121,13 +1147,15 @@ if __name__ == "__main__":
                     help="preserve the current referee bytes under their engine digest")
     ap.add_argument("--base", default=DEFAULT_BASE, help="where verify.py fetches matches from")
     a = ap.parse_args()
+    if a.check and a.snapshot_current:
+        ap.error("--check cannot create snapshots")
 
     sys.path.insert(0, ROOT)
     if a.snapshot_current:
         snapshot_current()
-    files, dig, versions = build(a.base)
+    files, dig, versions = build(a.base, check_only=a.check)
     size = os.path.getsize(OUT)
-    print(f"wrote {os.path.relpath(OUT, ROOT)}  —  {len(files)} engine files, "
+    print(f"{'checked' if a.check else 'wrote'} {os.path.relpath(OUT, ROOT)}  —  {len(files)} engine files, "
           f"{versions} engine version(s), {size / 1024:.0f} KB, "
           f"current digest {dig[:16]}...")
     sys.exit(check() if a.check else 0)

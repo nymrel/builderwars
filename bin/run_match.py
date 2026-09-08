@@ -10,6 +10,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from arena.isolation import IsolationRequirementError  # noqa: E402
 from arena.match import run_customer_local_match as run_match  # noqa: E402
 from entrant_admission import EntrantAdmissionError, require_entry_admission, unconfined_warning
 from entrants.backends import execution_claim_for_backend  # noqa: E402
@@ -46,6 +47,8 @@ def main():
     )
     ap.add_argument("--out", default="matches")
     ap.add_argument("--timeout", type=float, default=15.0)
+    ap.add_argument("--isolation", default="process", help="implemented execution profile")
+    ap.add_argument("--require-capability-isolation", action="store_true", help="refuse before match output or entrant start when OS capability isolation is required")
     ap.add_argument(
         "--allow-unconfined-entrants",
         action="store_true",
@@ -75,7 +78,8 @@ def main():
         print(warning, file=sys.stderr)
 
     entrant_paths = [record["path"] for record in admission]
-    result = run_match(
+    try:
+        result = run_match(
         game_name=args.game,
         seed=args.seed,
         entrants=[
@@ -88,7 +92,12 @@ def main():
         ],
         out_dir=args.out,
         move_timeout_s=args.timeout,
+        isolation_mode=args.isolation,
+        require_capability_isolation=args.require_capability_isolation,
     )
+    except IsolationRequirementError as exc:
+        print(json.dumps(exc.to_json(), sort_keys=True), file=sys.stderr)
+        return 2
     print(json.dumps(result, indent=2))
     return 0
 
