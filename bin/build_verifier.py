@@ -702,7 +702,7 @@ if __name__ == "__main__":
 '''
 
 
-def build(base_url):
+def build(base_url, *, check_only=False):
     base_url = _validated_base_url(base_url)
     files = collect()
     engine_digest = digest_for(files)
@@ -713,6 +713,15 @@ def build(base_url):
         source_sets=render_source_sets(sets),
         engine_digest=engine_digest,
     )
+    if check_only:
+        try:
+            with open(OUT, "rb") as fh:
+                current = fh.read()
+        except FileNotFoundError:
+            current = None
+        if current != src.encode("utf-8"):
+            raise SystemExit("verify.py is stale; run python bin/build_verifier.py and commit the result")
+        return files, engine_digest, len(sets)
     fd, staged = tempfile.mkstemp(prefix=".verify-", suffix=".py", dir=ROOT)
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
@@ -1138,13 +1147,15 @@ if __name__ == "__main__":
                     help="preserve the current referee bytes under their engine digest")
     ap.add_argument("--base", default=DEFAULT_BASE, help="where verify.py fetches matches from")
     a = ap.parse_args()
+    if a.check and a.snapshot_current:
+        ap.error("--check cannot create snapshots")
 
     sys.path.insert(0, ROOT)
     if a.snapshot_current:
         snapshot_current()
-    files, dig, versions = build(a.base)
+    files, dig, versions = build(a.base, check_only=a.check)
     size = os.path.getsize(OUT)
-    print(f"wrote {os.path.relpath(OUT, ROOT)}  —  {len(files)} engine files, "
+    print(f"{'checked' if a.check else 'wrote'} {os.path.relpath(OUT, ROOT)}  —  {len(files)} engine files, "
           f"{versions} engine version(s), {size / 1024:.0f} KB, "
           f"current digest {dig[:16]}...")
     sys.exit(check() if a.check else 0)
