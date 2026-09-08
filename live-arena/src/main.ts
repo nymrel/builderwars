@@ -1531,8 +1531,11 @@ if (isNativeApp) {
   };
 }
 let fileImportGeneration = 0, creatorDraftRevision = 0;
-$("creator").addEventListener("input", () => creatorDraftRevision++);
-$("creator").addEventListener("change", () => creatorDraftRevision++);
+function bumpCreatorDraftRevision(event: Event) {
+  if ((event.target as HTMLElement | null)?.id !== "import-rules") creatorDraftRevision++;
+}
+$("creator").addEventListener("input", bumpCreatorDraftRevision);
+$("creator").addEventListener("change", bumpCreatorDraftRevision);
 function importGuard() {
   const ticket = ++fileImportGeneration, generation = runId, id = record.id, plies = record.events.length, watching = spectating;
   if (running || pending) throw Error("Pause the current match before importing.");
