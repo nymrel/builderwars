@@ -9,6 +9,7 @@ import {
   applyMove,
   legalMoves,
   moveLabel,
+  nimHeaps,
   square,
   validateRules,
   type Rules,
@@ -60,7 +61,7 @@ const isNativeApp = Capacitor.isNativePlatform();
 // same engine digest. Custom Forge boards stay replay-only for now: they are legal,
 // but admitting user-generated rulesets without dedicated parity review would widen
 // the evidence surface beyond what this release has validated.
-const PROOF_GAME_KINDS = new Set(["chess", "checkers", "connect4", "tictactoe"]);
+const PROOF_GAME_KINDS = new Set(["chess", "checkers", "connect4", "tictactoe", "nim"]);
 const proofAdmitted = (kind: string) => PROOF_GAME_KINDS.has(kind);
 let deviceStorage: DeviceStorage | undefined;
 let deviceStorageFailed = false;
@@ -210,7 +211,7 @@ document.querySelector("#app")!.innerHTML = `
 )
   .map(
     ([key, r], i) =>
-      `<button data-game="${key}" class="${i === 0 ? "active" : ""}"><span>${["♞", "◉", "▦", "×"][i]}</span>${r.name}</button>`,
+      `<button data-game="${key}" class="${i === 0 ? "active" : ""}"><span>${["♞", "◉", "▦", "×", "●"][i]}</span>${r.name}</button>`,
   )
   .join("")}<button id="create-game-shortcut">＋ Create game</button></div>
 <div class="arena-layout"><div class="board-column"><div class="match-top"><span><span id="match-dot" class="status-dot"></span><strong id="game-title">Chess</strong> <span id="match-status">Ready to play</span></span><span id="ply">MOVE 00</span></div><div id="board" role="group" aria-label="Game board"></div><div class="board-toolbar"><button id="start" class="primary">▶ Start match</button><button id="step">Step</button><button id="reset">↻ Rematch</button><button id="flip">⇅ Flip</button><button id="share">Share replay ↗</button></div><p id="notice" class="notice" role="status" aria-live="polite">Free built-in opponents are ready. Connect a model whenever you like.</p><div class="telemetry"><div><span>PLIES</span><strong id="metric-moves">0</strong></div><div><span>MEAN LATENCY</span><strong id="metric-latency">—</strong></div><div><span>REPORTED TOKENS</span><strong id="metric-tokens">—</strong></div><div><span>REPORTED COST</span><strong id="metric-cost">$0.0000</strong></div></div><details class="match-settings"><summary>Match settings & move history</summary><div class="settings-row"><label>Move limit<input id="move-limit" type="number" value="80" min="2" max="400"></label><label>Tokens / move<input id="max-tokens" type="number" value="2048" min="256" max="16384" step="256"></label><label>Pace<select id="pace"><option value="500">Watchable</option><option value="100">Fast</option><option value="1200">Slow</option></select></label></div><p class="muted">Model usage is billed by your provider. Effort is requested; provider execution may vary. Results are exhibition evidence, not certified rankings.</p><div id="move-history"></div><button id="export">Download match JSON</button><label class="file-button">Import replay<input id="import" type="file" accept="application/json,.json"></label></details></div>
@@ -738,10 +739,14 @@ function render() {
     cols = state.rules.cols,
     indices = Array.from({ length: rows * cols }, (_, i) =>
       flipped ? rows * cols - 1 - i : i,
-    );
+  );
   $("board").style.setProperty("--cols", String(cols));
   $("board").className = `board ${state.rules.kind}`;
-  $("board").innerHTML = indices
+  $("board").innerHTML = state.rules.kind === "nim"
+    ? nimHeaps(state)
+      .map((count, heap) => `<section class="nim-heap"><h3>Heap ${heap + 1} · ${count} object${count === 1 ? "" : "s"}</h3><p class="nim-objects" aria-hidden="true">${"● ".repeat(count) || "—"}</p><div class="nim-takes">${Array.from({ length: count }, (_, i) => `<button data-cell="${heap * cols + i}" aria-label="Heap ${heap + 1}: take ${i + 1}" ${spectating || pending || state.over || agents[state.turn].kind !== "human" ? "disabled" : ""}>Take ${i + 1}</button>`).join("")}</div></section>`)
+      .join("")
+    : indices
     .map((i) => {
       const p = state.cells[i],
         coord = square(i, state),
@@ -1068,9 +1073,11 @@ async function play() {
       break;
     }
     if (agents[state.turn].kind === "human") {
-      const instruction = state.rules.kind === "chess" || state.rules.kind === "checkers"
-        ? "choose a piece and destination"
-        : state.rules.gravity ? "choose a column" : "choose an open cell";
+      const instruction = state.rules.kind === "nim"
+        ? "choose how many objects to take from one heap"
+        : state.rules.kind === "chess" || state.rules.kind === "checkers"
+          ? "choose a piece and destination"
+          : state.rules.gravity ? "choose a column" : "choose an open cell";
       notify(`${agents[state.turn].name}: ${instruction}.`);
       return;
     }
@@ -1135,6 +1142,11 @@ async function humanClick(i: number) {
       render();
       return;
     }
+  } else if (state.rules.kind === "nim") {
+    move = JSON.stringify({
+      heap: Math.floor(i / state.rules.cols),
+      take: i % state.rules.cols + 1,
+    });
   } else move = String(state.rules.gravity ? i % state.rules.cols : i);
   if (!move || !legal.includes(move)) {
     notify("Choose one of the highlighted legal moves.");
