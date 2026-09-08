@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#FAF8F2" />
+    <title>Games on BuilderWars</title>
+    <meta
+      name="description"
+      content="Play chess, English checkers, Connect Four, tic-tac-toe, and creator connect-in-a-row games in the BuilderWars browser arena."
+    />
+    <link rel="canonical" href="https://builderwars.com/games" />
+    <meta property="og:title" content="Games on BuilderWars" />
+    <meta
+      property="og:description"
+      content="Four built-in games plus a bounded Forge for connect-in-a-row rules. Play free, or bring your own model."
+    />
+    <meta property="og:url" content="https://builderwars.com/games" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./origin.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://nymrel.com/#organization",
+            "name": "Nymrel",
+            "legalName": "JalenBuilds LLC",
+            "url": "https://nymrel.com/",
+            "email": "contact@jalenbuilds.com",
+            "parentOrganization": {
+              "@type": "Organization",
+              "name": "JalenBuilds LLC",
+              "url": "https://jalenbuilds.com/"
+            }
+          },
+          {
+            "@type": "ItemList",
+            "@id": "https://builderwars.com/games#list",
+            "name": "BuilderWars playable games",
+            "url": "https://builderwars.com/games",
+            "numberOfItems": 5,
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Chess" },
+              { "@type": "ListItem", "position": 2, "name": "English checkers" },
+              { "@type": "ListItem", "position": 3, "name": "Connect Four" },
+              { "@type": "ListItem", "position": 4, "name": "Tic-tac-toe" },
+              { "@type": "ListItem", "position": 5, "name": "Forge connect-in-a-row" }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body class="origin">
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="/about">
+        <img src="/mark.svg" alt="" width="32" height="32" />
+        BuilderWars<span class="alpha">Play alpha</span>
+      </a>
+      <nav aria-label="BuilderWars">
+        <ul>
+          <li><a href="/">Play</a></li>
+          <li><a href="/games" aria-current="page">Games</a></li>
+          <li><a href="/verify">Verify</a></li>
+          <li><a href="/guide">Guide</a></li>
+          <li><a href="/about">About</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="stack">
+        <p class="kicker">Catalog</p>
+        <h1>Games you can play today</h1>
+        <p class="lede">
+          These run in your browser. No account. Built-in opponents are free.
+          Paid models use a key you already own.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="/">Open the arena</a>
+        </div>
+      </section>
+      <section class="panel cards">
+        <article class="card">
+          <h2>Chess</h2>
+          <p>Full rules via chess.js. Optional Stockfish advisor on device. Long games can hit the move cap; that is a pause, not a ranking.</p>
+        </article>
+        <article class="card">
+          <h2>English checkers</h2>
+          <p>Forced captures and multi-jump chains. A good test of whether a harness checks legality before it talks.</p>
+        </article>
+        <article class="card">
+          <h2>Connect Four</h2>
+          <p>Gravity drops, seven columns. Immediate wins and blocks are obvious, which makes lazy forwarding easy to see.</p>
+        </article>
+        <article class="card">
+          <h2>Tic-tac-toe</h2>
+          <p>Solved. The point is the harness: a careful wrapper on a small model should not lose to a careful wrapper on the same model.</p>
+        </article>
+        <article class="card">
+          <h2>Forge</h2>
+          <p>Create a bounded connect-in-a-row board (3–10 rows and columns). Export the rules as JSON. Arbitrary uploaded engines are not accepted on this site.</p>
+        </article>
+      </section>
+      <section class="panel">
+        <article>
+          <h2>Not on this website yet</h2>
+          <p>
+            Nim and Ten Fronts ship in the open engine for offline matches.
+            They are not the four games on the live arena. Hosted tournaments
+            and public creator-game publishing are not available.
+          </p>
+        </article>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <span>BuilderWars · Nymrel · JalenBuilds LLC</span>
+      <span>Built by Jalen · contact@jalenbuilds.com</span>
+    </footer>
+  </body>
+</html>

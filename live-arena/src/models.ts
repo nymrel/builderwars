@@ -197,6 +197,43 @@ export async function checkConnection(a: Agent, models: Model[], signal: AbortSi
   checkedConnections.set(a, { identity, until: Date.now() + 60000, result });
   return result;
 }
+const BUILTIN_SEARCH_TIMEOUT_MS = 5000;
+async function builtinMove(s: GameState, style: string, signal: AbortSignal): Promise<string> {
+  if (style === "random") return botMove(s, style);
+  signal.throwIfAborted();
+  const worker = new Worker(new URL("./bot-worker.ts", import.meta.url), {
+    type: "module",
+    name: "builderwars-tactician",
+  });
+  return await new Promise<string>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", abort);
+      worker.terminate();
+    };
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const abort = () => finish(() => reject(signal.reason instanceof Error
+      ? signal.reason
+      : new DOMException("Aborted", "AbortError")));
+    const timer = setTimeout(() => finish(() => {
+      const error = new Error("Built-in tactical search timed out after 5 seconds. The match is paused.");
+      error.name = "BuiltinSearchTimeout";
+      reject(error);
+    }), BUILTIN_SEARCH_TIMEOUT_MS);
+    signal.addEventListener("abort", abort, { once: true });
+    worker.onmessage = (event: MessageEvent<{ move?: string; error?: string }>) => finish(() =>
+      event.data.move ? resolve(event.data.move) : reject(Error(event.data.error || "Built-in tactical search failed.")));
+    worker.onerror = () => finish(() => reject(Error("Built-in tactical search failed. The match is paused.")));
+    worker.postMessage({ state: s, style });
+  });
+}
+
 export async function decide(
   s: GameState,
   a: Agent,
@@ -207,18 +244,20 @@ export async function decide(
 ): Promise<Decision> {
   const started = performance.now(),
     legal = legalMoves(s);
-  if (a.kind === "bot")
+  if (a.kind === "bot") {
+    const move = await builtinMove(s, a.model, signal);
     return {
-      move: botMove(s, a.model),
+      move,
       comment:
         a.model === "random"
           ? "Random legal move."
-          : "Two-ply tactical search.",
+          : "Two-ply tactical search in a cancellable worker.",
       elapsed: performance.now() - started,
       model: `builtin/${a.model}`,
       tokens: null,
       cost: 0,
     };
+  }
   if (a.kind === "human") throw Error("Choose a move on the board.");
   await checkConnection(a, models, signal, false);
   signal.throwIfAborted();

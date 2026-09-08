@@ -55,6 +55,13 @@ import {
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const isNativeApp = Capacitor.isNativePlatform();
+// Portable proof admission. The single referee bundle embeds every built-in rules
+// engine, so each admitted kind round-trips through createProof/verifyProof with the
+// same engine digest. Custom Forge boards stay replay-only for now: they are legal,
+// but admitting user-generated rulesets without dedicated parity review would widen
+// the evidence surface beyond what this release has validated.
+const PROOF_GAME_KINDS = new Set(["chess", "checkers", "connect4", "tictactoe"]);
+const proofAdmitted = (kind: string) => PROOF_GAME_KINDS.has(kind);
 let deviceStorage: DeviceStorage | undefined;
 let deviceStorageFailed = false;
 if (isNativeApp) {
@@ -197,7 +204,7 @@ record = freshRecord();
 document.querySelector("#app")!.innerHTML = `
 <header class="topbar"><a class="wordmark" href="/" aria-label="BuilderWars home"><img src="/mark.svg" alt="" width="30" height="30">BuilderWars<span class="alpha">PLAY ALPHA</span></a><div class="toplinks"><a href="https://github.com/nymrel/builderwars" target="_blank" rel="noopener">Open source ↗</a><button id="connections">Connect models <span>↗</span></button></div></header>
 <div class="shell"><aside class="sidebar"><p class="nav-label">YOUR PLAYGROUND</p><nav aria-label="Main"><button data-tab="arena" class="active"><span>◈</span>Arena</button><button data-tab="forge"><span>⌘</span>Forge</button><button data-tab="evals"><span>▥</span>Evals</button><button data-tab="watch"><span>◉</span>Watch</button><button data-tab="academy"><span>◇</span>Academy</button></nav><div class="sidebar-bottom"><span class="status-dot"></span> Built for builders<p>By <a href="https://nymrel.com">Nymrel ↗</a></p><span class="muted">Agents. Humans. A level board.</span></div></aside>
-<main><section id="arena" class="view"><div class="page-heading"><div><p class="eyebrow">THE NEXT MOVE IS YOURS</p><h1>Your agent. Your arena.</h1><p class="subtitle">Pick a game. Choose your contenders. Watch it unfold.</p></div><button id="quickplay" class="primary">Quick match <span>↗</span></button></div>
+<main><section id="arena" class="view"><div class="page-heading"><div><p class="eyebrow">THE NEXT MOVE IS YOURS</p><h1>Your agent. Your arena.</h1><p class="subtitle">Pick a game. Choose your contenders. Watch it unfold.</p></div><div class="result-actions first-play-actions"><button id="play-human" class="primary">Play against a bot <span>↗</span></button><button id="quickplay">Watch bots play</button><button id="connect-first">Connect my agent</button></div></div>
 <div class="game-tabs" role="group" aria-label="Choose game">${Object.entries(
   RULES,
 )
@@ -208,9 +215,9 @@ document.querySelector("#app")!.innerHTML = `
   .join("")}<button id="create-game-shortcut">＋ Create game</button></div>
 <div class="arena-layout"><div class="board-column"><div class="match-top"><span><span id="match-dot" class="status-dot"></span><strong id="game-title">Chess</strong> <span id="match-status">Ready to play</span></span><span id="ply">MOVE 00</span></div><div id="board" role="group" aria-label="Game board"></div><div class="board-toolbar"><button id="start" class="primary">▶ Start match</button><button id="step">Step</button><button id="reset">↻ Rematch</button><button id="flip">⇅ Flip</button><button id="share">Share replay ↗</button></div><p id="notice" class="notice" role="status" aria-live="polite">Free built-in opponents are ready. Connect a model whenever you like.</p><div class="telemetry"><div><span>PLIES</span><strong id="metric-moves">0</strong></div><div><span>MEAN LATENCY</span><strong id="metric-latency">—</strong></div><div><span>REPORTED TOKENS</span><strong id="metric-tokens">—</strong></div><div><span>REPORTED COST</span><strong id="metric-cost">$0.0000</strong></div></div><details class="match-settings"><summary>Match settings & move history</summary><div class="settings-row"><label>Move limit<input id="move-limit" type="number" value="80" min="2" max="400"></label><label>Tokens / move<input id="max-tokens" type="number" value="2048" min="256" max="16384" step="256"></label><label>Pace<select id="pace"><option value="500">Watchable</option><option value="100">Fast</option><option value="1200">Slow</option></select></label></div><p class="muted">Model usage is billed by your provider. Effort is requested; provider execution may vary. Results are exhibition evidence, not certified rankings.</p><div id="move-history"></div><button id="export">Download match JSON</button><label class="file-button">Import replay<input id="import" type="file" accept="application/json,.json"></label></details></div>
 <aside class="match-panel"><div class="panel-heading"><h2>The contenders</h2><span>2 SEATS</span></div><div id="seats"></div><div class="panel-heading activity-title"><h2>At the board</h2><span id="feed-count">LIVE MOVES</span></div><div id="feed" class="feed"><div class="empty-feed"><span>⌁</span><p>Every move tells a story.</p><small>Start a match to see decisions, timing, and the position unfold.</small></div></div><button id="go-live" class="broadcast-button">◉ Broadcast this match</button><p id="broadcast-status" class="muted">Share a live board with up to 16 viewers. Keep this tab open.</p></aside></div></section>
-<section id="forge" class="view" hidden><p class="eyebrow">BUILDERWARS FORGE</p><h1>Change the game.</h1><p class="subtitle">Create a connect-in-a-row game. Export its rules, then put your agents to work.</p><form id="creator" class="workspace-form"><label>Game name<input id="creator-name" value="Five in the Foundry" maxlength="48" required></label><div class="settings-row"><label>Rows<input id="creator-rows" type="number" min="3" max="10" value="8" required></label><label>Columns<input id="creator-cols" type="number" min="3" max="10" value="8" required></label><label>In a row to win<input id="creator-connect" type="number" min="3" max="10" value="5" required></label></div><label class="checkbox"><input id="creator-gravity" type="checkbox">Gravity: pieces fall to the bottom</label><div class="form-actions"><button class="primary" type="submit">Create & play ↗</button><button id="export-rules" type="button">Export game</button><label class="file-button">Import game<input id="import-rules" type="file" accept="application/json,.json"></label></div><p class="muted">Game definitions contain rules only. To build a new engine or evaluation adapter, start with the open creator SDK.</p><a href="https://github.com/nymrel/builderwars/tree/main/creator_sdk" target="_blank" rel="noopener">Explore the creator SDK ↗</a></form></section>
+<section id="forge" class="view" hidden><p class="eyebrow">BUILDERWARS FORGE</p><h1>Change the game.</h1><p class="subtitle">Create a connect-in-a-row game. Export its rules, then put your agents to work.</p><form id="creator" class="workspace-form"><label>Game name<input id="creator-name" value="Five in the Foundry" maxlength="48" required></label><div class="settings-row"><label>Rows<input id="creator-rows" type="number" min="3" max="10" value="8" required></label><label>Columns<input id="creator-cols" type="number" min="3" max="10" value="8" required></label><label>In a row to win<input id="creator-connect" type="number" min="3" max="10" value="5" required></label></div><label class="checkbox"><input id="creator-gravity" type="checkbox">Gravity: pieces fall to the bottom</label><div class="form-actions"><button class="primary" type="submit">Create & play ↗</button><button id="export-rules" type="button">Export game</button><label class="file-button">Import game<input id="import-rules" type="file" accept="application/json,.json"></label></div><p id="forge-status" class="muted" role="status" aria-live="polite">Create or import rules here.</p><p class="muted">Game definitions contain rules only. To build a new engine or evaluation adapter, start with the open creator SDK.</p><a href="https://github.com/nymrel/builderwars/tree/main/creator_sdk" target="_blank" rel="noopener">Explore the creator SDK ↗</a></form></section>
 <section id="evals" class="view" hidden><p class="eyebrow">BUILDERWARS EVALS</p><h1>Run it back. Compare.</h1><p class="subtitle">A paired series swaps seats between games to reduce first-player advantage.</p><div class="workspace-form"><p>Uses the current game, contenders, move limit, and token limit from Arena.</p><label>Series length<select id="series-length"><option value="2">2 games · one pair</option><option value="4">4 games · two pairs</option><option value="10">10 games · five pairs</option></select></label><button id="run-series" class="primary">Run evaluation series ↗</button><p class="muted">A series may make up to games × move limit model requests. Built-in opponents are free. Model calls use your own provider account.</p><div id="series-results"><p>No series yet. Set your contenders, then run your first pair.</p></div><button id="export-series">Export evaluation</button></div></section>
-<section id="watch" class="view" hidden><p class="eyebrow">BUILDERWARS WATCH</p><h1>Bring an audience.</h1><p class="subtitle">The board, moves, model labels and timing stream directly from the host’s browser.</p><div class="workspace-form"><button id="watch-broadcast" class="primary">Broadcast my match ↗</button><p id="watch-link">Start broadcasting to create a spectator link.</p><label>Join a broadcast<input id="join-link" placeholder="Paste a BuilderWars watch link"></label><button id="join">Watch match</button><button id="leave-watch" hidden>Leave spectator mode</button><div class="divider"></div><h2>Ready for your stream</h2><p>Open the clean board view and add it as an OBS browser or window source. Your model keys and connection settings stay outside the broadcast.</p><button id="clean-view">Open stream view ↗</button><p class="muted">Live board sharing uses PeerJS and WebRTC. Viewers receive your IP address as part of the peer connection. Some networks block these connections; replay links work after a match ends. Video publishing to Twitch or YouTube is controlled in your streaming app.</p></div></section>
+<section id="watch" class="view" hidden><p class="eyebrow">BUILDERWARS WATCH</p><h1>Bring an audience.</h1><p class="subtitle">The board, moves, model labels and timing stream directly from the host’s browser.</p><div class="workspace-form"><button id="watch-broadcast" class="primary">Broadcast my match ↗</button><p id="watch-link">Start broadcasting to create a spectator link.</p><label>Join a broadcast<input id="join-link" placeholder="Paste a BuilderWars watch link"></label><button id="join">Watch match</button><p id="watch-join-status" class="muted" role="status" aria-live="polite">Paste a BuilderWars watch link to join.</p><button id="leave-watch" hidden>Leave spectator mode</button><div class="divider"></div><h2>Ready for your stream</h2><p>Open the clean board view and add it as an OBS browser or window source. Your model keys and connection settings stay outside the broadcast.</p><button id="clean-view">Open stream view ↗</button><p class="muted">Live board sharing uses PeerJS and WebRTC. Viewers receive your IP address as part of the peer connection. Some networks block these connections; replay links work after a match ends. Video publishing to Twitch or YouTube is controlled in your streaming app.</p></div></section>
 <section id="academy" class="view" hidden>${academyMarkup}</section>
 <footer><span>BuilderWars · An open playground by Nymrel</span><span>Play • Create • Replay</span></footer></main></div>
 ${connectionDialogMarkup}`;
@@ -350,8 +357,10 @@ $("copy-caption").onclick = async () => {
 // Visual thesis: the board stays dominant in the existing green/lime workspace.
 // Content: play free first; evidence is a secondary, plain-language disclosure.
 // Interaction: native disclosure and existing focus/hover feedback, no ornamental motion.
-$("quickplay").textContent = "Play free ↗";
+$("quickplay").textContent = "Watch bots play";
 $("quickplay").title = "Start a new game with two free built-in opponents. No model calls.";
+$("play-human").title = "Play yourself against the free built-in Tactician.";
+$("connect-first").title = "Configure your own model, harness, or human contender.";
 document.querySelector(".page-heading .subtitle")!.textContent = "Play free with built-in opponents, or connect your own contender.";
 $("notice").insertAdjacentHTML("afterend", `
   <section id="exhibition-evidence" class="exhibition-evidence" aria-labelledby="exhibition-title" hidden>
@@ -365,7 +374,7 @@ $("notice").insertAdjacentHTML("afterend", `
   <details id="match-proof" class="match-settings">
     <summary>Verify this match</summary>
     <p class="muted">Reproduce moves and the result offline. Entrant names, models and usage are declarations—not independent identity, execution or billing proof.</p>
-    <p id="proof-status" class="muted" role="status">Connect Four proof is available. Other games retain their standard replay export.</p>
+    <p id="proof-status" class="muted" role="status">Built-in games (chess, checkers, Connect Four, tic-tac-toe) support portable proof. Custom Forge boards keep their standard replay export.</p>
     <button id="export-proof">Download proof (.jsonl)</button>
     <a id="download-verifier" class="file-button" download href="/${refereeManifest.verifier}">Download matching verifier</a>
     <label class="file-button">Verify a proof<input id="import-proof" type="file" accept=".jsonl,application/x-ndjson"></label>
@@ -792,7 +801,7 @@ function render() {
     spectating || running || pending || state.over,
   );
   $("quickplay").toggleAttribute("disabled", spectating || pending || running);
-  $("export-proof").toggleAttribute("disabled", !!currentExhibition || rules.kind !== "connect4" || proofExporting);
+  $("export-proof").toggleAttribute("disabled", !!currentExhibition || !proofAdmitted(rules.kind) || proofExporting);
   $("reset").toggleAttribute("disabled", spectating);
   $("replay-controls").hidden = replayPly === null;
   $<HTMLInputElement>("replay-position").max = String(record.events.length);
@@ -885,7 +894,7 @@ function reset(preserveSeries = false) {
   currentDeclarations = readDeclarations(contenderDeclarations);
   savedSource = "own";
   proofOrigin = "browser_session";
-  $("proof-status").textContent = "Connect Four proof is available. Other games retain their standard replay export.";
+  $("proof-status").textContent = "Built-in games (chess, checkers, Connect Four, tic-tac-toe) support portable proof. Custom Forge boards keep their standard replay export.";
   selected = -1;
   render();
   notify("Ready. Start a match or click Step for one move.");
@@ -955,6 +964,7 @@ async function commit(
   broadcast.publish(record);
   if (!deviceStorage) void saveCurrent();
   if (!saved) notify("Move played, but device saving failed. Download the match to keep it.");
+  else if (!state.over && details.model === "human") notify(`${record.agents[seat].name} played ${label}.`);
   if (state.over)
   {
     if (practiceMatches.has(record) && supportsLearning(state.rules)) {
@@ -1058,7 +1068,10 @@ async function play() {
       break;
     }
     if (agents[state.turn].kind === "human") {
-      notify(`${agents[state.turn].name}: choose a piece and destination.`);
+      const instruction = state.rules.kind === "chess" || state.rules.kind === "checkers"
+        ? "choose a piece and destination"
+        : state.rules.gravity ? "choose a column" : "choose an open cell";
+      notify(`${agents[state.turn].name}: ${instruction}.`);
       return;
     }
     try {
@@ -1151,6 +1164,15 @@ $("quickplay").onclick = () => {
   reset();
   void play();
 };
+$("play-human").onclick = () => {
+  if (running || pending || spectating) return;
+  agents = freeAgents(true);
+  contenderDeclarations = unknownDeclarations();
+  seriesRemaining = 0;
+  reset();
+  void play();
+};
+$("connect-first").onclick = () => openAgent(0);
 $("step").onclick = async () => {
   if (running || spectating || state.over) return;
   try {
@@ -1485,7 +1507,7 @@ $("export").onclick = async () => {
   catch (error) { notify((error as Error).message); }
 };
 $("export-proof").onclick = async () => {
-  if (currentExhibition || rules.kind !== "connect4" || proofExporting) return;
+  if (currentExhibition || !proofAdmitted(rules.kind) || proofExporting) return;
   const snapshot = structuredClone(record);
   const origin = proofOrigin;
   const check = fileTransfer.preparationGuard();
@@ -1524,8 +1546,11 @@ if (isNativeApp) {
   };
 }
 let fileImportGeneration = 0, creatorDraftRevision = 0;
-$("creator").addEventListener("input", () => creatorDraftRevision++);
-$("creator").addEventListener("change", () => creatorDraftRevision++);
+function bumpCreatorDraftRevision(event: Event) {
+  if ((event.target as HTMLElement | null)?.id !== "import-rules") creatorDraftRevision++;
+}
+$("creator").addEventListener("input", bumpCreatorDraftRevision);
+$("creator").addEventListener("change", bumpCreatorDraftRevision);
 function importGuard() {
   const ticket = ++fileImportGeneration, generation = runId, id = record.id, plies = record.events.length, watching = spectating;
   if (running || pending) throw Error("Pause the current match before importing.");
@@ -1549,7 +1574,7 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
     const verified = await verifyProof(text, refereeManifest.digest);
     check();
     if (generation !== runId || matchId !== record.id || moveCount !== record.events.length || running || pending) throw Error("The match changed during verification. Import again when paused.");
-    if (verified.record.rules.kind !== "connect4") throw Error("This release supports Connect Four proof imports. Use the matching offline verifier for other formats.");
+    if (!proofAdmitted(verified.record.rules.kind)) throw Error("Custom Forge boards are not admitted to portable proof yet. Use the matching offline verifier for their replay formats.");
     openReplay(verified, false);
     // Read only after exact referee verification; this does not trust an unverified header.
     currentLimits = validateMatchLimits(JSON.parse(text.split("\n")[0]).body.maxPlies, null);
@@ -1620,6 +1645,9 @@ $<HTMLInputElement>("import").onchange = async (e) => {
     notify((e as Error).message);
   } finally { input.value = ""; }
 };
+function forgeMessage(message: string) {
+  $("forge-status").textContent = message;
+}
 function creatorRules() {
   return validateRules({
     kind: "custom",
@@ -1639,16 +1667,15 @@ $<HTMLFormElement>("creator").onsubmit = (e) => {
     reset();
     tab("arena");
   } catch (e) {
-    notify((e as Error).message);
-    tab("arena");
+    forgeMessage((e as Error).message);
   }
 };
 $("export-rules").onclick = async () => {
   try {
     await exportJson("builderwars-game.json", creatorRules(), "rules");
+    forgeMessage("Game rules downloaded.");
   } catch (e) {
-    notify((e as Error).message);
-    tab("arena");
+    forgeMessage((e as Error).message);
   }
 };
 $<HTMLInputElement>("import-rules").onchange = async (e) => {
@@ -1664,8 +1691,7 @@ $<HTMLInputElement>("import-rules").onchange = async (e) => {
     reset();
     tab("arena");
   } catch (e) {
-    notify((e as Error).message);
-    tab("arena");
+    forgeMessage((e as Error).message);
   } finally { input.value = ""; }
 };
 function finishSeriesGame() {
@@ -1915,14 +1941,18 @@ $("rejoin-watch").onclick = () => {
   if (watchId) void join(watchId).catch((e) => notify(e.message));
 };
 $("join").onclick = () => {
+  const status = $("watch-join-status");
   try {
-    const url = new URL($<HTMLInputElement>("join-link").value);
+    const raw = $<HTMLInputElement>("join-link").value.trim();
+    let url: URL;
+    try { url = new URL(raw); }
+    catch { throw Error("Paste a complete BuilderWars watch link."); }
     const id = new URLSearchParams(url.hash.slice(1)).get("watch");
-    if (!id) throw Error("Paste a link containing a broadcast id.");
+    if (!id) throw Error("Paste a BuilderWars watch link containing a broadcast id.");
+    status.textContent = "Opening live board…";
     void join(id).catch((e) => notify(e.message));
   } catch (e) {
-    tab("arena");
-    notify((e as Error).message);
+    status.textContent = (e as Error).message;
   }
 };
 $("leave-watch").onclick = () => {

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#FAF8F2" />
+    <title>Verify a BuilderWars result</title>
+    <meta
+      name="description"
+      content="Re-run a BuilderWars match yourself. Replay proves the transcript and winner, not which model produced a move."
+    />
+    <link rel="canonical" href="https://builderwars.com/verify" />
+    <meta property="og:title" content="Verify a BuilderWars result" />
+    <meta
+      property="og:description"
+      content="One file, no account. Rebuild the game from the seed and ignore the recorded winner."
+    />
+    <meta property="og:url" content="https://builderwars.com/verify" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./origin.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://nymrel.com/#organization",
+            "name": "Nymrel",
+            "legalName": "JalenBuilds LLC",
+            "url": "https://nymrel.com/",
+            "email": "contact@jalenbuilds.com",
+            "parentOrganization": {
+              "@type": "Organization",
+              "name": "JalenBuilds LLC",
+              "url": "https://jalenbuilds.com/"
+            }
+          },
+          {
+            "@type": "HowTo",
+            "name": "Verify a BuilderWars match",
+            "url": "https://builderwars.com/verify",
+            "description": "Replay a downloaded match transcript with the published verifier. This does not attest model identity."
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body class="origin">
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="/about">
+        <img src="/mark.svg" alt="" width="32" height="32" />
+        BuilderWars<span class="alpha">Play alpha</span>
+      </a>
+      <nav aria-label="BuilderWars">
+        <ul>
+          <li><a href="/">Play</a></li>
+          <li><a href="/games">Games</a></li>
+          <li><a href="/verify" aria-current="page">Verify</a></li>
+          <li><a href="/guide">Guide</a></li>
+          <li><a href="/about">About</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="stack">
+        <p class="kicker">Proof boundary</p>
+        <h1>Check a result without trusting us</h1>
+        <p class="lede">
+          Download a match from the arena, then replay it. The verifier rebuilds
+          the position and winner from the moves. It does not ask BuilderWars
+          servers what happened.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="/">Play, then export</a>
+          <a class="button ghost" href="https://github.com/nymrel/builderwars">Engine source</a>
+        </div>
+      </section>
+      <section class="panel">
+        <article>
+          <h2>Browser arena export</h2>
+          <p>
+            After a match, download the JSON. Pair it with the verifier file
+            named in that export. On a clean machine:
+          </p>
+          <pre><code>node verify-&lt;engine_digest&gt;.mjs builderwars-&lt;match_id&gt;.jsonl</code></pre>
+          <p>
+            Exit success means the transcript replays. <code>model_attested</code>
+            stays false unless a later layer proves more.
+          </p>
+        </article>
+        <article>
+          <h2>Offline engine matches</h2>
+          <p>
+            Harness duels in the Python engine still verify with the one-file
+            referee:
+          </p>
+          <pre><code>curl -sL https://nymrel.com/builderwars/verify.py -o verify.py
+python verify.py &lt;match_id&gt;</code></pre>
+          <p>
+            Read the file before you run it. It embeds the referee source and
+            checks that the verifying engine hashes to the refereeing one.
+          </p>
+        </article>
+        <article>
+          <h2>What replay proves</h2>
+          <p>The opening follows the seed. Each ruling reproduces. The winner follows from referee state, not a caption.</p>
+          <h2>What it does not prove</h2>
+          <p>
+            Which model or person produced a move. Provider identity. Audience
+            size. That a timeout happened on any machine besides the one that
+            recorded it.
+          </p>
+        </article>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <span>BuilderWars · Nymrel · JalenBuilds LLC</span>
+      <span>Built by Jalen · contact@jalenbuilds.com</span>
+    </footer>
+  </body>
+</html>

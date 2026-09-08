@@ -1,0 +1,52 @@
+name: BuilderWars Release Evidence
+on:
+  pull_request:
+    paths:
+      - 'live-arena/**'
+      - '.github/workflows/builderwars-release-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: builderwars-release-evidence-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  release-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: live-arena
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.17.0'
+          cache: npm
+          cache-dependency-path: live-arena/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: |
+          python3 -m venv .release-venv
+          .release-venv/bin/python -m pip install -r tests/requirements-ci.txt
+          .release-venv/bin/python -m playwright install --with-deps chromium
+      - name: Forge roundtrip and real PeerJS viewer handshake
+        env:
+          BUILDERWARS_TEST_URL: http://127.0.0.1:5178
+        run: |
+          node node_modules/vite/bin/vite.js preview --outDir dist --host 127.0.0.1 --port 5178 --strictPort > /tmp/builderwars-release-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 100); do
+            if curl --fail --silent --show-error "$BUILDERWARS_TEST_URL" >/dev/null; then
+              break
+            fi
+            if ! kill -0 "$preview_pid" 2>/dev/null; then
+              cat /tmp/builderwars-release-preview.log
+              exit 1
+            fi
+            sleep 0.1
+          done
+          curl --fail --silent --show-error "$BUILDERWARS_TEST_URL" >/dev/null
+          .release-venv/bin/python tests/release_rules_roundtrip.py
+          .release-venv/bin/python tests/recovery.py

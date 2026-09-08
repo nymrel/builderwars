@@ -29,7 +29,7 @@ with sync_playwright() as p:
     engine_script = page.locator("script[integrity]")
     assert engine_script.count() == 1
     assert engine_script.get_attribute("integrity").startswith("sha256-")
-    assert page.locator("#quickplay").inner_text() == "Play free ↗"
+    assert page.locator("#quickplay").inner_text() == "Watch bots play"
     page.locator("[data-game=connect4]").click()
     for seat in [0, 1]:
         page.locator(f'[data-seat="{seat}"]').click()

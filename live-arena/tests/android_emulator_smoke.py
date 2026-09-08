@@ -179,7 +179,7 @@ def main():
                 launch()
                 with sync_playwright() as p:
                     browser, page = connect(p)
-                    expect(page.locator("#quickplay")).to_have_text("Play free ↗")
+                    expect(page.locator("#quickplay")).to_have_text("Watch bots play")
                     screenshot("initial.png")
                     page.locator('[data-game="tictactoe"]').click()
                     page.locator("#quickplay").click()
