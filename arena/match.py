@@ -29,6 +29,7 @@ import time
 from .canonical import digest
 from .games import load as load_game
 from .integrity import engine_digest, engine_files, script_digest
+from .isolation import resolve_isolation, validate_isolation_profile
 from .admission import (
     CUSTOMER_CONTROLLED_LOCAL_V1,
     REFERENCE_REVIEWED_LOCAL_V1,
@@ -231,11 +232,19 @@ def run_match(
     match_id=None,
     keep_scratch=False,
     provisioned_envs=None,
+    isolation_mode="process",
+    require_capability_isolation=False,
 ):
     # This must remain the first operation: an unsupported hosted-untrusted
     # request is refused before manifest/passport reads, output directories,
     # scratch state, transcript files, or entrant processes can be created.
     entrant_admission = require_execution_scope(execution_scope)
+    isolation = validate_isolation_profile(
+        resolve_isolation(
+            mode=isolation_mode,
+            require_capability_isolation=require_capability_isolation,
+        )
+    )
     if len(entrants) != 2:
         raise ValueError("this runner plays two-seat games; got %d entrants" % len(entrants))
     if not isinstance(seed, int) or isinstance(seed, bool):
@@ -337,6 +346,7 @@ def run_match(
                 ],
                 "entrant_admission": entrant_admission,
                 "sandbox_policy": POLICY,
+                "isolation": isolation,
                 "attestation": {
                     "model_attested": False,
                     "execution_claims_attested": False,
@@ -577,6 +587,7 @@ def run_match(
             "diagnostics": sidecar_path,
             "chain_head": result["hash"],
             "engine_digest": engine_digest(),
+            "isolation": isolation,
             **result_body,
         }
     finally:

@@ -41,6 +41,7 @@ import random
 from .canonical import digest
 from .games import load as load_game
 from .integrity import engine_digest
+from .isolation import validate_isolation_profile
 from .scoring import referee_projection, score
 from .transcript import first, load, verify_chain
 
@@ -64,6 +65,17 @@ def _exact_equal(left, right):
             _exact_equal(a, b) for a, b in zip(left, right)
         )
     return left == right
+
+
+def _verify_isolation_profile(header):
+    """Validate a current declaration without weakening legacy transcripts."""
+    profile = header.get("isolation")
+    if profile is None:
+        return True, None, "legacy sandbox declaration"
+    try:
+        return True, validate_isolation_profile(profile), "current process profile"
+    except Exception as exc:
+        return False, None, f"invalid isolation profile: {exc}"
 
 
 def replayable_forfeit_evidence(records):
@@ -263,6 +275,7 @@ def verify(transcript_path):
         "chain_ok": False,
         "engine_digest_match": None,
         "attestation_ok": False,
+        "isolation_profile_ok": False,
         "forfeit_evidence_replayable": False,
         "forfeit_evidence_class": "invalid",
         "abort_free": False,
@@ -330,6 +343,12 @@ def verify(transcript_path):
     report["seed"] = h.get("seed")
     game_block = h.get("game")
     report["game"] = game_block.get("name") if isinstance(game_block, dict) else None
+
+    isolation_ok, isolation, isolation_detail = _verify_isolation_profile(h)
+    report["isolation_profile_ok"] = isolation_ok
+    if isolation is not None:
+        report["isolation"] = isolation
+    note("isolation_profile", isolation_ok, None if isolation_ok else isolation_detail)
 
     attestation = h.get("attestation")
     attestation_ok = (
@@ -675,6 +694,7 @@ def verify(transcript_path):
     passed = (
         report["chain_ok"]
         and report["engine_digest_match"] is True
+        and report["isolation_profile_ok"] is True
         and attestation_ok
         and structure_ok
         and kinds_ok

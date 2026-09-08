@@ -16,6 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from arena.isolation import IsolationRequirementError, resolve_isolation  # noqa: E402
 from arena.match import run_customer_local_match as run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
 from entrant_admission import (  # noqa: E402
@@ -66,11 +67,19 @@ def main():
         help="required when any selected backend is non-stub; records local "
              "intent only and is not OS isolation",
     )
+    ap.add_argument("--isolation", default="process", help="implemented execution profile")
+    ap.add_argument("--require-capability-isolation", action="store_true", help="refuse the whole series before output or entrant start when OS capability isolation is required")
     ap.add_argument(
         "--allow-unconfined-entrants", action="store_true",
         help="explicitly admit external entrant files; no OS confinement is provided",
     )
     args = ap.parse_args()
+
+    try:
+        resolve_isolation(mode=args.isolation, require_capability_isolation=args.require_capability_isolation)
+    except IsolationRequirementError as exc:
+        print(json.dumps(exc.to_json(), sort_keys=True), file=sys.stderr)
+        return 2
 
     try:
         admission = require_entry_admission(
@@ -112,6 +121,8 @@ def main():
                 game_name=args.game, seed=seed, entrants=pair,
                 out_dir=os.path.join(args.out, f"{seed}-{order}"),
                 move_timeout_s=args.timeout,
+                isolation_mode=args.isolation,
+                require_capability_isolation=args.require_capability_isolation,
             )
             rep = verify(m["transcript"])
             ok = rep["verdict"] == "PASS"

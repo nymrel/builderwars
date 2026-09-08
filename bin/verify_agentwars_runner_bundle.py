@@ -99,6 +99,7 @@ EXPECTED_BUNDLE_PATHS = (
     "arena/games/nim.py",
     "arena/games/ten_fronts.py",
     "arena/integrity.py",
+    "arena/isolation.py",
     "arena/match.py",
     "arena/passport.py",
     "arena/process_tree.py",

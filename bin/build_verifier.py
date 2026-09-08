@@ -336,16 +336,33 @@ def source_sets(current_files):
 
 
 def render_source_sets(sets):
-    """Readable Python literal with base64 split into reviewable 88-char lines."""
-    lines = ["{"]
+    """Render deduplicated source bytes and digest-indexed source sets.
+
+    Historical snapshots share most referee modules.  Keep every complete
+    snapshot available, but write each identical base64 payload once so the
+    standalone verifier remains within the runner bundle's member limit.
+    """
+    blobs = {}
+    for sources in sets.values():
+        for b64 in sources.values():
+            blob_id = hashlib.sha256(b64.encode("ascii")).hexdigest()
+            existing = blobs.setdefault(blob_id, b64)
+            if existing != b64:
+                raise SystemExit("verifier source blob digest collision")
+
+    lines = ["# encoded source bytes, deduplicated across historical snapshots", "SOURCE_BLOBS = {"]
+    for blob_id, b64 in sorted(blobs.items()):
+        chunks = [b64[i:i + 88] for i in range(0, len(b64), 88)] or [""]
+        lines.append(f'    "{blob_id}":')
+        for index, chunk in enumerate(chunks):
+            comma = "," if index == len(chunks) - 1 else ""
+            lines.append(f'        "{chunk}"{comma}')
+    lines.extend(["}", "", "# engine digest -> (relpath -> exact encoded source bytes)", "SOURCE_SETS = {"])
     for engine_digest, sources in sorted(sets.items()):
         lines.append(f'    "{engine_digest}": {{')
         for rel, b64 in sorted(sources.items()):
-            chunks = [b64[i:i + 88] for i in range(0, len(b64), 88)] or [""]
-            lines.append(f'        "{rel}":')
-            for index, chunk in enumerate(chunks):
-                comma = "," if index == len(chunks) - 1 else ""
-                lines.append(f'            "{chunk}"{comma}')
+            blob_id = hashlib.sha256(b64.encode("ascii")).hexdigest()
+            lines.append(f'        "{rel}": SOURCE_BLOBS["{blob_id}"],')
         lines.append("    },")
     lines.append("}")
     return "\n".join(lines)
@@ -388,9 +405,9 @@ import urllib.request
 
 BASE = os.environ.get("BUILDERWARS_BASE", {base_literal})
 
-# engine digest -> (relpath -> base64 bytes). Historical referee builds remain
-# embedded so a new game cannot strand already-published match receipts.
-SOURCE_SETS = {source_sets}
+# Historical referee source sets remain embedded so a new game cannot strand
+# already-published match receipts. Identical module bytes are stored once.
+{source_sets}
 DEFAULT_ENGINE_DIGEST = "{engine_digest}"
 
 _MAX_SOURCE_FILES = 256
