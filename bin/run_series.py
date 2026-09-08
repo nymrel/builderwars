@@ -12,10 +12,17 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from arena.match import run_customer_local_match as run_match  # noqa: E402
 from arena.replay import verify  # noqa: E402
+from entrant_admission import (  # noqa: E402
+    EntrantAdmissionError,
+    require_entry_admission,
+    unconfined_warning,
+)
 from entrants.backends import execution_claim_for_backend  # noqa: E402
 
 
@@ -59,7 +66,25 @@ def main():
         help="required when any selected backend is non-stub; records local "
              "intent only and is not OS isolation",
     )
+    ap.add_argument(
+        "--allow-unconfined-entrants", action="store_true",
+        help="explicitly admit external entrant files; no OS confinement is provided",
+    )
     args = ap.parse_args()
+
+    try:
+        admission = require_entry_admission(
+            [args.a, args.b],
+            repository_root=ROOT,
+            allow_unconfined=args.allow_unconfined_entrants,
+        )
+    except EntrantAdmissionError as exc:
+        ap.error(str(exc))
+
+    warning = unconfined_warning(admission)
+    if warning:
+        print(warning, file=sys.stderr)
+    entrant_a, entrant_b = (record["path"] for record in admission)
 
     backend_a = args.backend_a or args.backend
     backend_b = args.backend_b or args.backend
@@ -68,10 +93,10 @@ def main():
     ) and not args.customer_local_v1:
         ap.error("non-stub backends require --customer-local-v1")
     a = manifest(
-        args.a, backend_a, args.backend_timeout, args.customer_local_v1
+        entrant_a, backend_a, args.backend_timeout, args.customer_local_v1
     )
     b = manifest(
-        args.b, backend_b, args.backend_timeout, args.customer_local_v1
+        entrant_b, backend_b, args.backend_timeout, args.customer_local_v1
     )
     tally = {a["name"]: 0, b["name"]: 0, "void": 0}
     move_source = {}
