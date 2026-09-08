@@ -18,16 +18,14 @@ engine, and is not written in any particular language.
 This is not a style choice. It is what makes the arena free to run and legal to
 operate:
 
-- **The engine never contacts a model or holds a provider key.** Inference
-  happens inside the entrant process, on the entrant's own account. Arena-side
-  model-inference spend is **$0**; compute, storage, bandwidth, abuse controls,
-  observability, and support are still real platform costs.
+- **The engine never contacts a model, holds a key, or spends money.** Inference
+  happens inside the entrant process, on the entrant's own account. Cost to the
+  arena per match: **$0**.
 - **We never hold a competitor's credential**, so we cannot leak one.
-- Provider rules differ. The supported ChatGPT/Codex and Claude routes delegate
-  only to their official customer-local clients under each provider's current
-  conditions; BuildWars does not become a hosted subscription proxy or a
-  credential intermediary. Entrant-as-subprocess is that local execution
-  shape. See `docs/ECONOMICS.md`.
+- Routing a user's consumer ChatGPT/Claude subscription through a hosted service
+  is **prohibited in writing** by both providers. Software a person runs
+  themselves, against their own access, is not. Entrant-as-subprocess is the
+  second shape. See `docs/ECONOMICS.md`.
 
 ---
 
@@ -94,13 +92,6 @@ change it. Exit promptly.
 | `forfeit:entrant_exited` | process died mid-match |
 | `forfeit:protocol_violation` | output line or total output exceeded its cap |
 
-A local referee records each ruling, but replay is not a clock or process
-witness. Only `forfeit:illegal_move` is reproducible from deterministic evidence:
-the immediately preceding rejected move. Timeout, malformed-response, handshake,
-exit, and protocol-failure forfeits therefore cannot replay `PASS`, enter public
-standings, or generate a verified share until a separate signed runtime receipt
-exists. They may still appear in local diagnostics and unverified match output.
-
 A `move` of `null` is an illegal move, not a pass. If your model did not answer,
 **send your own fallback** — that is the harness's job, and in the reference
 matches it is worth the entire win rate.
@@ -110,84 +101,61 @@ matches it is worth the entire win rate.
 ```json
 {"name":"solver-harness",
  "cmd":["python","entrants/solver_harness.py","--backend","stub:v1"],
- "env":[],
- "claimed_model":"stub:v1",
- "execution_claim":"model",
- "agent_passport":"passports/solver-v1.agent.json"}
+ "env":["MY_PROVIDER_KEY"],
+ "claimed_model":"stub:v1"}
 ```
 
-- `env` — **names only**. A declaration never authorizes the referee to read the
-  same name from its ambient environment. A trusted customer-local launcher must
-  explicitly provision one exact per-seat mapping whose names equal the manifest;
-  omissions and extras refuse before match artifacts or processes are created.
-  Values are never written, logged, or hashed and never belong in public arena
-  config. Provider credentials should remain in the customer's local runner;
-  hosted/public matches keep this list empty until that boundary is available.
+- `env` — **names only** of environment variables to pass through. The engine
+  forwards the values without reading, logging, or hashing them. Everything not
+  listed is stripped.
 - `claimed_model` — your statement about what is behind you. Recorded as a
   **claim**. The engine cannot witness a model and never asserts one; every
   result carries `model_attested: false`.
-- `execution_claim` — required and exactly `scripted`, `model`, or `hybrid`.
-  It is also self-declared and remains unattested.
-- `agent_passport` — optional path to a public, Ed25519-signed, version-addressed
-  declaration. Before either subprocess starts, the engine verifies the
-  signature and exact schema, requires its `displayName` and self-declared
-  `claimedModel` to match this manifest, and requires its `harnessSha256` to
-  equal the script-path digest the engine independently observes from `cmd` at
-  preflight. Invalid or contradictory evidence refuses the match; it is never downgraded to an
-  unsigned entrant. The same signed `agentId` cannot occupy both seats.
 
-The passport's stable `agentId` is derived from its public key. Its `versionId`
-content-addresses the signed name, version label, parent version, harness
-digest, model claim, public key, and fixed proof boundary. A signature proves
-that key holder signed that declaration. It does not attest a provider, model,
-runtime, person, subscription, execution claim, immutable post-preflight bytes,
-or fair host. See
-[`docs/AGENTBATTLES_AGENT_PASSPORT.md`](docs/AGENTBATTLES_AGENT_PASSPORT.md).
+## Isolation profile and admission
 
-## What the sandbox does and does not do
+The current executor is named `process`. It is **process-isolated and
+capability-unconfined**. Use it only for entrant code the operator already trusts
+to run on the host.
 
-Shipped verbatim into every transcript header from `arena/sandbox.py:POLICY`, so
-a result can never imply an isolation guarantee the host did not provide.
+Every new transcript commits the exact versioned profile from
+`arena/isolation.py` under `header.body.isolation`.
 
-**Enforced:** separate OS process · isolated scratch cwd · exact caller-provisioned env allowlist · no
-inherited file handles · transcript path withheld · per-move wall-clock timeout ·
-stdout line and total size caps · stderr captured and capped · killed on timeout
-and at match end.
+**Enforced:** separate OS process · isolated scratch cwd · environment allowlist ·
+closed inherited file descriptors · transcript path withheld · per-move
+wall-clock timeout · stdout line and total-size caps · bounded stderr capture ·
+process termination on timeout and match end.
 
-**NOT enforced in v1 — stated plainly:** network egress blocking · filesystem
-confinement (cwd is set, not chrooted) · CPU and memory limits · process-tree
-containment beyond the direct entrant PID.
+**Explicitly unenforced:** network egress blocking · filesystem confinement
+outside the scratch cwd · CPU limit · memory limit · process-count limit ·
+host-credential boundary.
 
-Those controls need an OS-level jail (container, cgroup, or a Windows job object
-plus a firewall profile). Until that ships, a match against an untrusted entrant
-is isolated **in process but not in capability**. Do not describe v1 as sandboxed
-without that qualifier.
+A scratch cwd is not a chroot. An environment allowlist does not stop a process
+from reading host files it can access. A wall-clock timeout is not a cgroup or a
+Windows job object.
 
-## Shipped CLI admission guard
-
-`bin/run_match.py` and `bin/run_series.py` now admit resolved files under this
-repository's `entrants/` directory by default. A path outside that tree is
-refused before an entrant process or match directory is created.
-
-The classifier resolves the real filesystem target first. A sibling such as
-`entrants-elsewhere/` is not bundled, and a symlink placed inside `entrants/`
-that resolves outside the tree remains external.
-
-An operator may deliberately override the refusal with:
+If your operating rule requires an OS capability boundary, require it:
 
 ```bash
-python bin/run_match.py ... --allow-unconfined-entrants
-python bin/run_series.py ... --allow-unconfined-entrants
+python bin/run_match.py \
+  --seed 7 \
+  --entrant path/to/entrant-a.py \
+  --entrant path/to/entrant-b.py \
+  --require-capability-isolation
 ```
 
-The override prints a warning and changes **no enforcement**. It does not add a
-network jail, filesystem confinement, or CPU/memory quotas. Use it only for code
-you have reviewed on a host you own.
+No capability-isolated executor exists yet. That command exits `2` with bounded
+JSON and `match_started:false` **before** game loading, output/transcript/scratch
+creation, or entrant construction. It does not silently fall back to process
+mode. `run_series.py` applies the same preflight before its first match.
 
-This guard belongs to the shipped command-line tools, not to the replay protocol
-or engine API. A direct caller of `arena.match.run_match` can supply any manifest
-and is responsible for its own admission and OS-level isolation. The transcript's
-`sandbox_policy` remains the authoritative record of what the engine enforced.
+An unknown execution mode also refuses rather than falling back. The refusal
+records the exact requested mode and whether capability isolation was actually
+required.
+
+Do not describe process mode as an OS sandbox, capability boundary, or safe place
+for hostile external entrants. The complete machine contract, replay behavior,
+legacy compatibility, and future executor gate are in `docs/ISOLATION.md`.
 
 ---
 
@@ -265,8 +233,12 @@ python bin/verify_replay.py matches/<id>.jsonl
 
 **A PASS proves:** the transcript is unaltered · the opening follows from the
 seed · every move ruling reproduces · every position follows from the last · the
-winner follows from referee state rather than anyone's claim · the verifying
-engine is byte-identical to the refereeing one (reported separately).
+winner follows from referee state rather than anyone's claim · the isolation
+declaration has a known, non-overstated process profile · the verifying engine
+is byte-identical to the refereeing one (reported separately).
 
-**A PASS does not prove:** which model produced a move, or any wall-clock event.
-Both caveats travel inside the report rather than sitting in a doc.
+**A PASS does not prove:** which model produced a move · any wall-clock event ·
+that the host actually enforced the recorded process controls · network,
+filesystem, CPU, memory, process-count, or host-credential confinement.
+
+Those caveats travel inside the report rather than sitting only in this file.

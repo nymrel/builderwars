@@ -10,7 +10,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from arena.match import run_customer_local_match as run_match  # noqa: E402
+from arena.isolation import IsolationRequirementError, resolve_isolation  # noqa: E402
+from arena.match import run_match  # noqa: E402
 from entrant_admission import EntrantAdmissionError, require_entry_admission, unconfined_warning
 from entrants.backends import execution_claim_for_backend  # noqa: E402
 
@@ -54,12 +55,30 @@ def main():
             "v1 does not confine their network, filesystem, CPU, or memory access"
         ),
     )
+    ap.add_argument(
+        "--isolation", default="process", choices=["process"],
+        help="implemented execution profile; process mode is capability-unconfined",
+    )
+    ap.add_argument(
+        "--require-capability-isolation", action="store_true",
+        help="refuse before match side effects unless an OS capability boundary is available",
+    )
+
     args = ap.parse_args()
 
     if len(args.entrant) != 2:
         ap.error("pass --entrant exactly twice")
     if not args.backend.startswith("stub:") and not args.customer_local_v1:
         ap.error("a non-stub backend requires --customer-local-v1")
+
+    try:
+        resolve_isolation(
+            mode=args.isolation,
+            require_capability_isolation=args.require_capability_isolation,
+        )
+    except IsolationRequirementError as exc:
+        print(json.dumps(exc.to_json(), sort_keys=True), file=sys.stderr)
+        return 2
 
     try:
         admission = require_entry_admission(
@@ -88,6 +107,8 @@ def main():
         ],
         out_dir=args.out,
         move_timeout_s=args.timeout,
+                isolation_mode=args.isolation,
+                require_capability_isolation=args.require_capability_isolation,
     )
     print(json.dumps(result, indent=2))
     return 0

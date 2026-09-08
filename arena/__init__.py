@@ -12,9 +12,10 @@ carry that, and each is enforced structurally rather than by convention:
                 every record commits to the one before it, and the engine's own
                 source digest is committed in the header, so a competitor who
                 edits the referee cannot do it invisibly
-  isolation     entrants are subprocesses that speak JSON Lines and share
-                nothing with the referee; see sandbox.POLICY for exactly what is
-                and is not enforced
+  isolation     entrants are separate subprocesses with bounded pipes and a
+                scratch cwd; the versioned isolation profile states exactly
+                which capability controls remain unenforced, and strict callers
+                can refuse before a match starts
   no self-report
                 scoring accepts only a referee projection with entrant-authored
                 content removed, so a competitor's account of its own result

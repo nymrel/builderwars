@@ -5,71 +5,39 @@ entire coupling. It shares no memory with the referee, cannot import it, is not
 told where the transcript lives, and its working directory is a scratch dir
 created for the match.
 
-Honesty about what "sandbox" means here matters more than the word does, so the
-policy is enumerated and shipped into the transcript header. See POLICY below.
-A result should never imply an isolation guarantee the host did not actually
-provide.
+The historical module name is retained for protocol compatibility. This module
+is not an OS sandbox: network, host-filesystem, CPU, memory, process-count, and
+host-credential confinement remain unenforced in process mode. The canonical
+machine-readable boundary lives in `arena.isolation` and is committed to every
+new transcript.
 """
 
 import json
-import math
 import os
 import queue
 import shutil
 import subprocess
 import threading
-import time
+from copy import deepcopy
 
-from .process_tree import ProcessTree
+from .isolation import PROCESS_ISOLATION
 
 # Passed through so a subprocess can start at all on Windows and POSIX. None of
-# these carry model access.
-#
-# USERPROFILE / LOCALAPPDATA / APPDATA are here because real CLI tools need them
-# to find their own config and data. Probed 2026-08-14: without USERPROFILE,
-# `ollama` dies with `panic: %userprofile% is not defined` before reading a
-# prompt, which would block every CLI-based entrant on Windows. They widen what
-# an entrant can locate on disk, but v1 already declares filesystem confinement
-# unenforced below, so this removes no guarantee we actually make. Tighten this
-# list and the OS-level jail together, not separately.
+# the base names themselves carry model access, but USERPROFILE / LOCALAPPDATA /
+# APPDATA can help an entrant locate host files. The process isolation profile
+# therefore states filesystem and host-credential confinement as unenforced.
+# Tighten this list and the OS-level executor together, not separately.
 _BASE_ENV_KEYS = (
     "PATH", "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "TEMP", "TMP",
     "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOMEDRIVE", "HOMEPATH",
     "HOME", "LANG", "LC_ALL", "TZ",
 )
 
-_READ_CHUNK_BYTES = 8 * 1024
-_MIN_TIMEOUT_SECONDS = 0.1
-_MAX_TIMEOUT_SECONDS = 3600.0
-
-POLICY = {
-    "protocol": "arena/1",
-    "enforced": [
-        "separate_os_process (no shared memory or imports with the referee)",
-        "cwd_isolated_scratch_dir (entrant is started in a per-match scratch dir)",
-        "env_allowlist (base OS vars plus exact per-seat values explicitly provisioned by the trusted caller; manifest names never read the referee environment)",
-        "no_inherited_file_handles (close_fds)",
-        "transcript_path_withheld (entrant is never told where the record is written)",
-        "per_move_wall_clock_timeout (exceeded -> forfeit)",
-        "stdout_line_size_cap",
-        "stdout_total_size_cap",
-        "stderr_captured_and_capped",
-        "kill_on_timeout_and_at_match_end",
-        "descendant_process_tree_termination (Windows kill-on-close job; POSIX process group)",
-    ],
-    "unenforced_v1": [
-        "network_egress_blocking (an entrant CAN reach the network; not restricted by the host in v1)",
-        "filesystem_confinement (cwd is set, not chrooted; an entrant CAN read outside it)",
-        "cpu_and_memory_limits (no resource limits are applied to the job object / process group in v1)",
-        "deliberate_posix_session_escape_prevention (a permitted descendant can detach from a process group)",
-    ],
-    "note": (
-        "The unenforced items need an OS-level jail (container, WSL cgroup, Windows job "
-        "resource limits plus a firewall profile). Until that ships, a match run on an untrusted "
-        "entrant is isolated in process but not in capability, and results should be "
-        "labelled accordingly."
-    ),
-}
+# Compatibility for callers that imported `arena.sandbox.POLICY`. New match
+# headers use `arena.isolation.PROCESS_ISOLATION` under `header.body.isolation`.
+# Keep this copy synchronized by construction rather than maintaining a second
+# handwritten policy.
+POLICY = deepcopy(PROCESS_ISOLATION)
 
 
 class EntrantFailure(Exception):
@@ -81,27 +49,6 @@ class EntrantFailure(Exception):
         self.detail = detail
 
 
-def _bounded_timeout(value, *, label="timeout"):
-    if isinstance(value, bool):
-        raise ValueError(f"{label} must be a finite number")
-    try:
-        seconds = float(value)
-    except (TypeError, ValueError) as error:
-        raise ValueError(f"{label} must be a finite number") from error
-    if not math.isfinite(seconds) or not _MIN_TIMEOUT_SECONDS <= seconds <= _MAX_TIMEOUT_SECONDS:
-        raise ValueError(
-            f"{label} must be between {_MIN_TIMEOUT_SECONDS:g} and "
-            f"{_MAX_TIMEOUT_SECONDS:g} seconds"
-        )
-    return seconds
-
-
-def _positive_limit(value, *, label):
-    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
-        raise ValueError(f"{label} must be a positive integer")
-    return value
-
-
 class Entrant:
     def __init__(
         self,
@@ -111,61 +58,39 @@ class Entrant:
         max_line_bytes=64 * 1024,
         max_total_bytes=4 * 1024 * 1024,
         max_stderr_bytes=64 * 1024,
-        provisioned_env=None,
     ):
         self.name = manifest["name"]
         self.cmd = list(manifest["cmd"])
         self.declared_env = list(manifest.get("env", []))
         self.workdir = str(workdir)
-        self.move_timeout_s = _bounded_timeout(move_timeout_s, label="move_timeout_s")
-        self.max_line_bytes = _positive_limit(max_line_bytes, label="max_line_bytes")
-        self.max_total_bytes = _positive_limit(max_total_bytes, label="max_total_bytes")
-        self.max_stderr_bytes = _positive_limit(max_stderr_bytes, label="max_stderr_bytes")
-        if self.max_line_bytes > self.max_total_bytes:
-            raise ValueError("max_line_bytes must not exceed max_total_bytes")
-        supplied = {} if provisioned_env is None else provisioned_env
-        if not isinstance(supplied, dict):
-            raise ValueError("provisioned_env must be an object")
-        if len(self.declared_env) != len(set(self.declared_env)):
-            raise ValueError("declared environment names must be unique")
-        if set(supplied) != set(self.declared_env):
-            raise ValueError("provisioned environment names must exactly match the manifest declaration")
-        if any(
-            not isinstance(name, str)
-            or not isinstance(value, str)
-            or "\x00" in value
-            for name, value in supplied.items()
-        ):
-            raise ValueError("provisioned environment names and values must be strings without NUL")
-        # Values are process-local custody, never logged, hashed, or recovered
-        # from the referee's ambient environment merely because a manifest asks.
-        self._provisioned_env = dict(supplied)
+        self.move_timeout_s = float(move_timeout_s)
+        self.max_line_bytes = int(max_line_bytes)
+        self.max_total_bytes = int(max_total_bytes)
+        self.max_stderr_bytes = int(max_stderr_bytes)
 
         self._proc = None
-        self._process_tree = None
         self._q = queue.Queue()
         self._reader = None
         self._stderr_buf = bytearray()
         self._stderr_thread = None
         self._bytes_seen = 0
-        self._write_lock = threading.Lock()
-        self._writer_threads = set()
-        self._started_once = False
-        self._closed = False
 
     # -- lifecycle --------------------------------------------------------
 
     def _child_env(self):
-        env = {k: os.environ[k] for k in _BASE_ENV_KEYS if k in os.environ}
-        env.update(self._provisioned_env)
+        env = {key: os.environ[key] for key in _BASE_ENV_KEYS if key in os.environ}
+        # The entrant declares which credential-bearing variables it needs. The
+        # engine passes them through without logging or hashing values. This is
+        # why process mode is explicitly not a host-credential boundary.
+        for name in self.declared_env:
+            if name in os.environ:
+                env[name] = os.environ[name]
         env["PYTHONUNBUFFERED"] = "1"
         env["PYTHONIOENCODING"] = "utf-8"
         env["ARENA_PROTOCOL"] = "arena/1"
         return env
 
     def start(self):
-        if self._started_once:
-            raise RuntimeError("entrant process objects are single-use")
         os.makedirs(self.workdir, exist_ok=True)
         cmd = list(self.cmd)
         # Resolve the executable against PATH ourselves so a failure to find it
@@ -173,7 +98,7 @@ class Entrant:
         exe = shutil.which(cmd[0])
         if exe:
             cmd[0] = exe
-        self._process_tree = ProcessTree.spawn(
+        self._proc = subprocess.Popen(
             cmd,
             cwd=self.workdir,
             env=self._child_env(),
@@ -183,68 +108,32 @@ class Entrant:
             close_fds=True,
             bufsize=0,
         )
-        self._proc = self._process_tree.process
-        self._started_once = True
-        try:
-            self._reader = threading.Thread(target=self._pump_stdout, daemon=True)
-            self._reader.start()
-            self._stderr_thread = threading.Thread(target=self._pump_stderr, daemon=True)
-            self._stderr_thread.start()
-        except BaseException:
-            try:
-                self.close(grace_s=0.25)
-            except BaseException:
-                pass
-            raise
-
-    def _emit_stdout_line(self, raw):
-        line = bytes(raw).decode("utf-8", errors="replace").strip()
-        if line:
-            self._q.put(("line", line))
+        self._reader = threading.Thread(target=self._pump_stdout, daemon=True)
+        self._reader.start()
+        self._stderr_thread = threading.Thread(target=self._pump_stderr, daemon=True)
+        self._stderr_thread.start()
 
     def _pump_stdout(self):
-        pending = bytearray()
-        proc = self._proc
-        read_size = max(
-            1,
-            min(_READ_CHUNK_BYTES, self.max_line_bytes + 1, self.max_total_bytes + 1),
-        )
         try:
-            while True:
-                raw = os.read(proc.stdout.fileno(), read_size)
-                if not raw:
-                    break
+            for raw in iter(self._proc.stdout.readline, b""):
                 self._bytes_seen += len(raw)
+                if len(raw) > self.max_line_bytes:
+                    self._q.put(("error", f"stdout line exceeded {self.max_line_bytes} bytes"))
+                    return
                 if self._bytes_seen > self.max_total_bytes:
                     self._q.put(("error", f"stdout exceeded {self.max_total_bytes} bytes total"))
                     return
-                cursor = 0
-                while cursor < len(raw):
-                    newline = raw.find(b"\n", cursor)
-                    end = len(raw) if newline < 0 else newline
-                    pending.extend(raw[cursor:end])
-                    if len(pending) > self.max_line_bytes:
-                        self._q.put(("error", f"stdout line exceeded {self.max_line_bytes} bytes"))
-                        return
-                    if newline < 0:
-                        break
-                    self._emit_stdout_line(pending)
-                    pending.clear()
-                    cursor = newline + 1
-            if pending:
-                self._emit_stdout_line(pending)
-        except Exception as e:  # pipe torn down mid-read
-            self._q.put(("error", f"stdout read failed: {e.__class__.__name__}"))
+                line = raw.decode("utf-8", errors="replace").strip()
+                if line:
+                    self._q.put(("line", line))
+        except Exception as exc:  # pipe torn down mid-read
+            self._q.put(("error", f"stdout read failed: {exc.__class__.__name__}"))
         finally:
             self._q.put(("eof", None))
 
     def _pump_stderr(self):
-        proc = self._proc
         try:
-            while True:
-                raw = os.read(proc.stderr.fileno(), _READ_CHUNK_BYTES)
-                if not raw:
-                    break
+            for raw in iter(self._proc.stderr.readline, b""):
                 room = self.max_stderr_bytes - len(self._stderr_buf)
                 if room > 0:
                     self._stderr_buf.extend(raw[:room])
@@ -253,110 +142,37 @@ class Entrant:
 
     # -- messaging --------------------------------------------------------
 
-    def _abort_blocked_write(self, proc):
-        try:
-            if self._process_tree is not None:
-                self._process_tree.close(grace_s=1.0)
-            else:
-                proc.kill()
-        except Exception:
-            pass
-        try:
-            proc.wait(timeout=1.0)
-        except Exception:
-            pass
-
-    def send(self, payload, timeout_s=None):
-        timeout_s = self.move_timeout_s if timeout_s is None else _bounded_timeout(
-            timeout_s, label="send timeout"
-        )
+    def send(self, payload):
+        if self._proc is None or self._proc.poll() is not None:
+            raise EntrantFailure("entrant_not_running")
         data = (json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
-        with self._write_lock:
-            if self._closed:
-                raise EntrantFailure("entrant_closed")
-            proc = self._proc
-            if proc is None or proc.poll() is not None:
-                raise EntrantFailure("entrant_not_running")
-            outcome = queue.Queue(maxsize=1)
-
-            def write_all():
-                try:
-                    view = memoryview(data)
-                    written = 0
-                    while written < len(view):
-                        count = proc.stdin.write(view[written:])
-                        if count is None or count <= 0:
-                            raise BrokenPipeError("entrant stdin accepted no bytes")
-                        written += count
-                    proc.stdin.flush()
-                    outcome.put((True, None))
-                except BaseException as error:
-                    outcome.put((False, error))
-
-            writer = threading.Thread(target=write_all, daemon=True)
-            self._writer_threads.add(writer)
-            try:
-                writer.start()
-            except BaseException:
-                self._writer_threads.discard(writer)
-                raise
-            writer.join(timeout_s)
-            if writer.is_alive():
-                self._abort_blocked_write(proc)
-                try:
-                    proc.stdin.close()
-                except Exception:
-                    pass
-                writer.join(1.0)
-                if not writer.is_alive():
-                    self._writer_threads.discard(writer)
-                raise EntrantFailure(
-                    "timeout", f"stdin write did not complete within {timeout_s:g}s"
-                )
-            self._writer_threads.discard(writer)
-            succeeded, error = outcome.get_nowait()
-            if not succeeded:
-                if isinstance(error, (BrokenPipeError, OSError, ValueError)):
-                    raise EntrantFailure("entrant_stdin_closed", error.__class__.__name__) from error
-                raise EntrantFailure("entrant_stdin_failed", error.__class__.__name__) from error
+        try:
+            self._proc.stdin.write(data)
+            self._proc.stdin.flush()
+        except (BrokenPipeError, OSError) as exc:
+            raise EntrantFailure("entrant_stdin_closed", exc.__class__.__name__) from exc
 
     def recv(self, timeout_s=None):
-        timeout_s = self.move_timeout_s if timeout_s is None else _bounded_timeout(
-            timeout_s, label="receive timeout"
-        )
-        if self._closed:
-            raise EntrantFailure("entrant_closed")
-        proc = self._proc
-        if proc is None:
-            raise EntrantFailure("entrant_not_running")
+        timeout_s = self.move_timeout_s if timeout_s is None else timeout_s
         try:
             kind, value = self._q.get(timeout=timeout_s)
         except queue.Empty:
             raise EntrantFailure("timeout", f"no response within {timeout_s:g}s")
-        if self._closed:
-            raise EntrantFailure("entrant_closed")
         if kind == "eof":
-            raise EntrantFailure("entrant_exited", f"exit code {proc.poll()}")
+            raise EntrantFailure("entrant_exited", f"exit code {self._proc.poll()}")
         if kind == "error":
             raise EntrantFailure("protocol_violation", value)
         try:
             msg = json.loads(value)
-        except (ValueError, RecursionError) as e:
-            raise EntrantFailure("malformed_json", str(e)) from e
+        except json.JSONDecodeError as exc:
+            raise EntrantFailure("malformed_json", str(exc)) from exc
         if not isinstance(msg, dict):
             raise EntrantFailure("malformed_message", "top-level value must be an object")
         return msg
 
     def ask(self, payload, timeout_s=None):
-        timeout_s = self.move_timeout_s if timeout_s is None else _bounded_timeout(
-            timeout_s, label="request timeout"
-        )
-        deadline = time.monotonic() + timeout_s
-        self.send(payload, timeout_s=timeout_s)
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            raise EntrantFailure("timeout", f"request exceeded {timeout_s:g}s")
-        return self.recv(max(_MIN_TIMEOUT_SECONDS, remaining))
+        self.send(payload)
+        return self.recv(timeout_s)
 
     # -- teardown ---------------------------------------------------------
 
@@ -364,92 +180,27 @@ class Entrant:
         return self._stderr_buf.decode("utf-8", errors="replace")
 
     def close(self, grace_s=1.0):
-        proc = self._proc
-        if proc is None:
+        if self._proc is None:
             return
-        grace_s = _bounded_timeout(grace_s, label="close grace")
-        # Seal messaging before teardown so concurrent or later reads cannot
-        # consume a buffered line as if it belonged to a live entrant.
-        self._closed = True
-        errors = []
-
-        def remember(error):
-            if not errors:
-                errors.append(error)
-
         try:
-            if proc.poll() is None:
+            if self._proc.poll() is None:
                 try:
-                    proc.stdin.close()
+                    self._proc.stdin.close()
                 except Exception:
                     pass
                 try:
-                    proc.wait(timeout=grace_s)
+                    self._proc.wait(timeout=grace_s)
                 except subprocess.TimeoutExpired:
-                    try:
-                        if self._process_tree is not None:
-                            self._process_tree.close(grace_s=grace_s)
-                        else:
-                            proc.kill()
-                    except Exception as error:
-                        remember(error)
-                    try:
-                        proc.wait(timeout=grace_s)
-                    except Exception as error:
-                        remember(error)
-        except Exception as error:
-            remember(error)
+                    self._proc.kill()
+                    self._proc.wait(timeout=grace_s)
+        except Exception:
             try:
-                if self._process_tree is not None:
-                    self._process_tree.close(grace_s=grace_s)
-                else:
-                    proc.kill()
-                    proc.wait(timeout=grace_s)
-            except Exception as kill_error:
-                remember(kill_error)
+                self._proc.kill()
+            except Exception:
+                pass
         finally:
-            # Release the custody container even after a clean direct-process
-            # exit so an improperly detached provider descendant cannot linger.
-            if self._process_tree is not None:
-                try:
-                    self._process_tree.close(grace_s=grace_s)
-                except Exception as error:
-                    remember(error)
-            for stream in (proc.stdout, proc.stderr, proc.stdin):
+            for stream in (self._proc.stdout, self._proc.stderr, self._proc.stdin):
                 try:
                     stream.close()
                 except Exception:
                     pass
-            for thread in (self._reader, self._stderr_thread, *tuple(self._writer_threads)):
-                if thread is not None and thread is not threading.current_thread():
-                    if thread.ident is None:
-                        self._writer_threads.discard(thread)
-                        continue
-                    thread.join(grace_s)
-                    if thread.is_alive():
-                        remember(RuntimeError("entrant I/O thread did not stop"))
-                    else:
-                        self._writer_threads.discard(thread)
-            if proc.poll() is None:
-                try:
-                    if self._process_tree is not None:
-                        self._process_tree.close(grace_s=grace_s)
-                    else:
-                        proc.kill()
-                        proc.wait(timeout=grace_s)
-                except Exception as error:
-                    remember(error)
-            if proc.poll() is None:
-                remember(RuntimeError("entrant process was not reaped"))
-            else:
-                self._proc = None
-                self._process_tree = None
-                self._reader = None
-                self._stderr_thread = None
-            while True:
-                try:
-                    self._q.get_nowait()
-                except queue.Empty:
-                    break
-        if errors:
-            raise errors[0]
