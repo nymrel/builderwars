@@ -13,12 +13,14 @@ import json
 import re
 import sys
 import threading
+import time
 from contextlib import contextmanager
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterator
 from urllib.parse import urlparse
+from urllib.request import urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,16 +67,41 @@ class QuietHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
 
+class LoopbackThreadingHTTPServer(ThreadingHTTPServer):
+    """Keep concurrent local preload traffic deterministic across browser versions."""
+
+    request_queue_size = 64
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        error = sys.exc_info()[1]
+        if isinstance(error, (BrokenPipeError, ConnectionAbortedError, ConnectionResetError)):
+            return
+        super().handle_error(request, client_address)
+
+
 @contextmanager
 def loopback_server() -> Iterator[str]:
     handler = partial(QuietHandler, directory=str(MOBILE_ARENA))
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    server = LoopbackThreadingHTTPServer(("127.0.0.1", 0), handler)
     server.daemon_threads = True
     thread = threading.Thread(target=server.serve_forever, name="builderwars-mobile-arena-http", daemon=True)
     thread.start()
     host, port = server.server_address
+    base_url = f"http://{host}:{port}/index.html?v={SHELL_VERSION}"
     try:
-        yield f"http://{host}:{port}/index.html?v={SHELL_VERSION}"
+        for _attempt in range(20):
+            try:
+                with urlopen(base_url, timeout=0.5) as response:
+                    if response.status == 200:
+                        break
+            except OSError:
+                pass
+            if not thread.is_alive():
+                raise AcceptanceFailure("loopback HTTP server stopped before becoming ready")
+            time.sleep(0.05)
+        else:
+            raise AcceptanceFailure("loopback HTTP server did not become ready")
+        yield base_url
     finally:
         server.shutdown()
         server.server_close()
@@ -1006,12 +1033,13 @@ def offline_journey(browser: Any, base_url: str, evidence: Evidence) -> None:
         wait_for_source(page, "verified_corpus")
         evidence.require(page.evaluate("navigator.serviceWorker.controller !== null") is True, "offline: service worker controls the warmed shell")
         context.set_offline(True)
-        page.reload(wait_until="domcontentloaded")
-        wait_for_source(page, "verified_corpus")
         page.wait_for_function("document.querySelector('#connection-status')?.dataset.state === 'offline'")
         offline_copy = page.locator("#connection-copy").inner_text().strip()
         evidence.require("offline · verified corpus ready" == offline_copy.lower(), f"offline: local verified corpus remains available ({offline_copy!r})")
         evidence.require("Browser reports offline" in (page.locator("#connection-status").get_attribute("aria-label") or ""), "offline: browser connectivity is disclosed")
+        evidence.require(page.evaluate("navigator.onLine") is False, "offline: browser reports offline before cached reload")
+        page.reload(wait_until="domcontentloaded")
+        wait_for_source(page, "verified_corpus")
         page.locator('.bottom-nav [data-nav="learn"]').click()
         assert_view(evidence, page, "learn")
         evidence.require(page.locator("#creator-game-lesson .creator-admission-list li").count() == 8, "offline: verified creator-game admission lesson remains available")
