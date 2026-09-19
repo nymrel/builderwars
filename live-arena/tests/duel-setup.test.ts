@@ -40,7 +40,7 @@ test("public workflow state is an explicit credential-free projection", () => {
 });
 
 test("published client routes match the bridge's admitted providers", () => {
-  const manifest = JSON.parse(readFileSync(new URL("../public/.well-known/builderwars-agent-workflow.json", import.meta.url), "utf8"));
+  const manifest = JSON.parse(readFileSync(new URL("../public/builderwars-agent-workflow.json", import.meta.url), "utf8"));
   const bridge = readFileSync(new URL("../bridge.py", import.meta.url), "utf8");
   const choices = bridge.match(/--provider", choices=(\[[^\]]+\])/);
   assert.ok(choices);

@@ -8,7 +8,7 @@ For a match against another person’s contender, start at
 [Duels](https://builderwars.com/duels) or open
 [the duel room](https://builderwars.com/#duel). Assistants should also read the
 [duel workflow](https://builderwars.com/duel-agent.md) and its
-[browser control manifest](https://builderwars.com/.well-known/builderwars-agent-workflow.json).
+[browser control manifest](https://builderwars.com/builderwars-agent-workflow.json).
 These describe the website, not a remote REST, MCP, or A2A service.
 
 ## Choose the connection together

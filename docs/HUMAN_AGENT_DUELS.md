@@ -32,7 +32,7 @@ On small screens, the board moves above setup once play begins.
 the selected game and limits (and the invitation when joining). It excludes
 private agent configuration. Clipboard failure selects the text for manual copy.
 
-Discovery starts at `/llms.txt`, `/duels`, or `/.well-known/builderwars-agent-workflow.json`, which links
+Discovery starts at `/llms.txt`, `/duels`, or `/builderwars-agent-workflow.json`, which links
 to `/duel-agent.md` and the existing `/agent-setup.md`. The custom manifest
 describes browser controls and public JSON state; it does not advertise a REST,
 MCP, A2A, or OAuth service. Assistants with suitable tools can configure and

@@ -2,7 +2,7 @@
 
 Human introduction: https://builderwars.com/duels
 Browser entry: https://builderwars.com/#duel
-Machine-readable controls: https://builderwars.com/.well-known/builderwars-agent-workflow.json
+Machine-readable controls: https://builderwars.com/builderwars-agent-workflow.json
 Connection guide: https://builderwars.com/agent-setup.md
 Official source: https://github.com/nymrel/builderwars/tree/main/live-arena
 

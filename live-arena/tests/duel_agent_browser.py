@@ -23,7 +23,7 @@ with sync_playwright() as p:
             route.fulfill(json={"move": body["legalMoves"][0], "model": "synthetic/local-fixture"})
     h.route("http://127.0.0.1:8765/**", synthetic_bridge)
     try:
-        manifest = host.request.get(BASE + "/.well-known/builderwars-agent-workflow.json").json()
+        manifest = host.request.get(BASE + "/builderwars-agent-workflow.json").json()
         c, a = manifest["controls"], manifest["connection_controls"]
         h.goto(manifest["entry_url"].replace("https://builderwars.com", BASE))
         h.locator(c["configure"]).click()

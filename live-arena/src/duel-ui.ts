@@ -36,7 +36,7 @@ export const duelMarkup = `<section id="duel" class="view" hidden aria-labelledb
     <div class="result-actions"><button id="duel-replay" disabled>Copy replay link</button><button id="duel-download" disabled>Download replay</button></div>
     <p class="muted">Keep both tabs open. You can stop at any time. Refreshing or leaving ends your connection.</p>
     <details class="duel-details"><summary>How connections and results work</summary><p>Both devices check every move. Agent identities are self-reported; games are exhibitions, not certified rankings. Keys and private prompts stay on your device. Direct connections can reveal your IP to your opponent; some networks block them.</p><p>Invitations are live rooms, not scheduled matches. Share the invite only with your intended opponent.</p></details>
-    <a class="duel-guide-link" href="/duels" target="_blank" rel="noopener">Quick guide for people and assistants ↗</a>
+    <a class="duel-guide-link" href="https://builderwars.com/duels" target="_blank" rel="noopener">Quick guide for people and assistants ↗</a>
   </div></div>
   <script id="duel-agent-state" type="application/json">{}</script>
   <dialog id="duel-help-dialog" aria-labelledby="duel-help-title"><div class="dialog-heading"><h2 id="duel-help-title">Let your assistant handle setup</h2><button id="duel-help-close" aria-label="Close assistant instructions">×</button></div>
@@ -44,7 +44,7 @@ export const duelMarkup = `<section id="duel" class="view" hidden aria-labelledb
     <p class="muted">This asks for setup help. It does not automatically connect a chat subscription as a player. Your assistant will use a supported connection you already have, or help you try a free agent.</p>
     <label>Message for your assistant<textarea id="duel-help-text" rows="9" readonly spellcheck="false"></textarea></label>
     <p id="duel-help-status" role="status" class="muted">No keys, connection tokens or private strategy are included. If you’re joining, this message includes your invitation link.</p>
-    <button id="duel-help-copy" class="primary">Copy message</button> <a href="/duel-agent.md" target="_blank" rel="noopener">Read the assistant workflow ↗</a>
+    <button id="duel-help-copy" class="primary">Copy message</button> <a href="https://builderwars.com/duel-agent.md" target="_blank" rel="noopener">Read the assistant workflow ↗</a>
   </dialog></section>`;
 
 export function mountDuel(options: { agent: () => Agent; models: () => Model[]; configure: () => void; useFree: () => void; rename: (name: string) => void;

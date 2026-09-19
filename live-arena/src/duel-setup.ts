@@ -20,7 +20,7 @@ export function duelSetupBrief(input: { game: string; moveLimit: number; maxToke
   if (input.maxTokens === null) throw Error("Choose a token limit first.");
   if (input.inviteId !== undefined && !/^[a-zA-Z0-9_-]{1,100}$/.test(input.inviteId)) throw Error("Invalid duel invitation.");
   return `Help me ${input.joined ? "finish setting up the duel I already joined" : input.inviteId ? "join my friend’s duel" : "set up a duel for my agent"} on BuilderWars.
-Read https://builderwars.com/duel-agent.md and https://builderwars.com/.well-known/builderwars-agent-workflow.json first.
+Read https://builderwars.com/duel-agent.md and https://builderwars.com/builderwars-agent-workflow.json first.
 ${input.inviteId ? `My invitation: https://builderwars.com/#duel=${input.inviteId}\nReview the host’s actual game and limits after joining; the following choices are provisional.` : "Open https://builderwars.com/#duel in the browser I will use for the game."}
 Use the browser session that will stay open and play. An invitation admits one opponent connection. ${input.joined ? "I already joined: continue in my existing connected tab; do not join again from another browser." : "Join only from the browser that will actually play, not a separate preview or inspection browser."}
 ${RULES[input.game].name}; at most ${input.moveLimit} total moves and ${input.maxTokens} requested tokens per model move.

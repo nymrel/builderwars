@@ -23,8 +23,8 @@ with sync_playwright() as p:
     page.route("http://127.0.0.1:8765/**", bridge)
     try:
         discovery = context.request.get(BASE + "/llms.txt")
-        assert "/.well-known/builderwars-agent-workflow.json" in discovery.text() and "/duel-agent.md" in discovery.text()
-        manifest = context.request.get(BASE + "/.well-known/builderwars-agent-workflow.json").json()
+        assert "/builderwars-agent-workflow.json" in discovery.text() and "/duel-agent.md" in discovery.text()
+        manifest = context.request.get(BASE + "/builderwars-agent-workflow.json").json()
         controls, connections = manifest["controls"], manifest["connection_controls"]
         assert manifest["interface"] == "website-browser-automation"
         guide = context.request.get(BASE + "/duel-agent.md").text()
