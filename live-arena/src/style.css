@@ -1327,3 +1327,32 @@ dialog [id$="fields"] {
 #duel-link { width: 100%; }
 @media (max-width: 850px) { .duel-layout { grid-template-columns: 1fr; gap: 24px; } .duel-empty { min-height: 220px; } }
 @media (max-width: 650px) { nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; } nav button { justify-content: center; min-width: 0; } }
+
+.duel-progress { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 14px; }
+.duel-progress li { padding: 8px 12px; border: 1px solid var(--line); border-radius: 24px; color: var(--muted); font-size: 13px; }
+.duel-progress li.done { color: var(--accent); border-color: #65823e; }
+.duel-notice { font-size: 15px; padding: 14px 16px; border-left: 3px solid var(--accent); background: #1a231b; margin-bottom: 22px; }
+.duel-setup { display: block; padding: 0; background: transparent; border: 0; }
+.duel-step { padding: 22px; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 14px; background: #19201b; }
+.duel-step h2 { margin: 0 0 14px; font-size: 18px; }
+.duel-step label { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+.duel-step p { margin: 10px 0; }
+.duel-step input, .duel-step select { width: 100%; min-width: 0; }
+.duel-agent-summary { font-weight: 600; color: var(--accent); }
+.duel-choice-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.duel-choice-actions #duel-assistant { grid-column: 1 / -1; }
+.duel-incoming-card { padding: 14px 16px; border: 1px solid #65823e; border-radius: 10px; margin-bottom: 18px; }
+.duel-incoming-card button { margin-top: 10px; }
+.duel-details { color: var(--muted); font-size: 13px; margin: 18px 0; }
+.duel-guide-link { display: inline-block; margin: 12px 0; font-size: 13px; }
+#duel-advanced { margin: 16px 0; }
+#duel-advanced summary, .duel-details summary { cursor: pointer; padding: 6px 0; }
+#duel-lobby { padding: 8px 12px; border-radius: 8px; background: #222d22; }
+#duel-help-dialog { width: min(620px, calc(100vw - 24px)); padding: 24px; }
+#duel-help-dialog label { display: block; margin: 20px 0; }
+#duel-help-text { width: 100%; margin-top: 10px; font-size: 13px; resize: vertical; }
+#duel-help-dialog .dialog-heading h2 { margin: 0; font-size: 24px; }
+@media(max-width: 850px) {
+  #duel[data-duel-phase="playing"] .duel-stage, #duel[data-duel-phase="finished"] .duel-stage, #duel[data-duel-phase="stopped"] .duel-stage { order: -1; }
+  .duel-step { padding: 18px; }
+}

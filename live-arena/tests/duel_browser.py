@@ -25,6 +25,8 @@ with sync_playwright() as p:
     try:
         h.goto(BASE)
         h.locator("#duel-first").click()
+        h.locator("#duel-name").fill("Dawn challenger")
+        h.locator("#duel-name").press("Tab")
         h.locator("#duel-game").select_option("tictactoe")
         h.locator("#duel-create").click()
         expect(h.locator("#duel-link")).to_have_value(__import__("re").compile(".*#duel=.+"), timeout=30000)
@@ -47,6 +49,7 @@ with sync_playwright() as p:
         h.locator("#duel-ready").click()
         expect(g.locator("#duel-status")).to_contain_text(__import__("re").compile("wins|Draw"), timeout=30000)
         assert h.locator("#duel-score").inner_text() == g.locator("#duel-score").inner_text()
+        assert "Dawn challenger" in g.locator("#duel-score").inner_text()
         expect(g.locator("#duel-board .cell")).to_have_count(9)
         assert g.evaluate("document.documentElement.scrollWidth <= innerWidth"), "mobile overflow"
         Path("output/duels").mkdir(parents=True, exist_ok=True)
@@ -61,6 +64,11 @@ with sync_playwright() as p:
         g.locator("#duel-leave").click()
         expect(h.locator("#duel-create")).to_be_visible(timeout=10000)
         expect(h.locator("#duel-download")).to_be_enabled()
+        h.locator("#duel-game").select_option("chess")
+        h.locator("#duel-assistant").click()
+        assert "Chess;" in h.locator("#duel-help-text").input_value()
+        h.locator("#duel-help-close").click()
+        h.locator("#duel-game").select_option("tictactoe")
         # Header connection editing must revoke the frozen agent/key in the room.
         h.locator("#duel-create").click()
         expect(h.locator("#duel-link")).not_to_have_value(link)
@@ -73,6 +81,7 @@ with sync_playwright() as p:
         h.locator("#connections").click()
         expect(h.locator("#duel-status")).to_contain_text("change or remove")
         expect(g.locator("#duel-create")).to_be_visible(timeout=10000)
+        expect(g.locator("#duel-incoming")).to_have_value("")
         expect(h.locator("#duel-ready")).to_be_disabled()
         assert not errors, errors
         assert not inference, inference

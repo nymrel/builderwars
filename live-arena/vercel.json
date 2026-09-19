@@ -4,6 +4,10 @@
   "outputDirectory": "dist",
   "headers": [
     {
+      "source": "/:file*.md",
+      "headers": [{ "key": "Content-Type", "value": "text/markdown; charset=utf-8" }]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
@@ -30,6 +34,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/duels", "destination": "/duels.html" },
+    { "source": "/duels/", "destination": "/duels.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/about/", "destination": "/about.html" },
     { "source": "/games", "destination": "/games.html" },
