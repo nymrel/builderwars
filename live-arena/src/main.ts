@@ -687,7 +687,7 @@ function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: Matc
 }
 function tab(name: string) {
   if (name !== "duel" && duelUI?.room.view().active) duelUI.room.close("Duel stopped when you left the room. Replay remains in Duel a friend.");
-  if (name === "duel") { stop("Paused for duel setup"); duelUI?.render(); }
+  if (name === "duel") { if (spectating) leaveWatch(); stop("Paused for duel setup"); duelUI?.render(); }
   activeTab = name;
   document
     .querySelectorAll<HTMLElement>(".view")
@@ -702,6 +702,9 @@ document
   .querySelectorAll<HTMLButtonElement>("[data-tab]")
   .forEach((b) => (b.onclick = () => tab(b.dataset.tab!)));
 let duelUI: ReturnType<typeof mountDuel> | undefined;
+let duelAgentOverride: Agent | null = null;
+const currentDuelAgent = () => duelAgentOverride ?? agents[0];
+const connectionAgent = () => activeTab === "duel" ? currentDuelAgent() : agents[selectedSeat];
 $("duel-first").onclick = () => tab("duel");
 let flipped = false;
 const glyphs: Record<string, string> = {
@@ -1232,8 +1235,10 @@ function openAgent(seat: number) {
   fillDeclarationForm(contenderDeclarations[seat]);
   importedSelection = null;
   cancelConnectionProbe();
-  const a = agents[seat];
-  $("agent-title").textContent = `${seat === 0 ? "White" : "Black"} contender`;
+  const a = activeTab === "duel" ? currentDuelAgent() : agents[seat];
+  $("agent-title").textContent = activeTab === "duel" ? "Connect your duel agent" : `${seat === 0 ? "White" : "Black"} contender`;
+  $<HTMLSelectElement>("agent-kind").querySelector<HTMLOptionElement>('option[value="human"]')!.hidden = activeTab === "duel";
+  $<HTMLSelectElement>("agent-kind").querySelector<HTMLOptionElement>('option[value="human"]')!.disabled = activeTab === "duel";
   $<HTMLInputElement>("agent-name").value = a.name;
   $<HTMLSelectElement>("agent-kind").value = a.kind;
   $<HTMLSelectElement>("bot-model").value =
@@ -1338,7 +1343,7 @@ function filterModels() {
   const q = $<HTMLInputElement>("model-search").value.toLowerCase(),
     free = $<HTMLInputElement>("free-models").checked,
     prior =
-      importedSelection?.model || $<HTMLSelectElement>("model-id").value || (agents[selectedSeat].kind === "openrouter" ? agents[selectedSeat].model : "");
+      importedSelection?.model || $<HTMLSelectElement>("model-id").value || (connectionAgent().kind === "openrouter" ? connectionAgent().model : "");
   const available = models.filter(
     (m) =>
       (!q || (m.id + " " + m.name).toLowerCase().includes(q)) &&
@@ -1367,8 +1372,8 @@ function updateEfforts() {
         `<option value="${e}">${e === "default" ? "Provider default" : e}</option>`,
     )
     .join("");
-  if (efforts.includes(agents[selectedSeat].effort))
-    $<HTMLSelectElement>("effort").value = agents[selectedSeat].effort;
+  if (efforts.includes(connectionAgent().effort))
+    $<HTMLSelectElement>("effort").value = connectionAgent().effort;
   if (importedSelection) {
     if (!efforts.includes(importedSelection.effort))
       $<HTMLSelectElement>("effort").add(new Option(`${importedSelection.effort} · unconfirmed`, importedSelection.effort));
@@ -1386,8 +1391,9 @@ $<HTMLSelectElement>("effort").onchange = () => { importedSelection = null; };
 $("close-dialog").onclick = () => $<HTMLDialogElement>("agent-dialog").close();
 $("forget-key").onclick = () => {
   cancelConnectionProbe();
-  forgetConnectionCheck(agents[selectedSeat]);
-  agents[selectedSeat].key = "";
+  if (activeTab === "duel" && !duelAgentOverride) duelAgentOverride = { ...currentDuelAgent() };
+  forgetConnectionCheck(connectionAgent());
+  connectionAgent().key = "";
   $<HTMLInputElement>("agent-key").value = "";
   $("dialog-status").textContent = "Key removed from this contender.";
 };
@@ -1428,7 +1434,7 @@ $("agent-form").addEventListener("change", cancelConnectionProbe);
 $("agent-dialog").addEventListener("close", cancelConnectionProbe);
 $("profile-options").insertAdjacentHTML("beforeend", '<p id="profile-comparison" class="muted" aria-live="polite"></p><p class="muted">Profile files include your name, model settings and strategy text. Keys and endpoints are excluded. Inspect strategy text for secrets before exporting or sharing. Import only edits this draft; it never starts play.</p>');
 function profileComparison() {
-  const result = compareProfiles(agents[selectedSeat], agentFromForm());
+  const result = compareProfiles(connectionAgent(), agentFromForm());
   const labels: Record<string, string> = { kind: "connection type", model: "model / opponent", effort: "effort", strategy: "strategy" };
   $("profile-comparison").textContent = result.changed.length
     ? `${result.changed.length} setting${result.changed.length === 1 ? "" : "s"} changed from the saved contender: ${result.changed.map(k => labels[k]).join(", ")}. ${result.changed.length === 1 ? "One-change draft." : "Change one setting at a time for a clearer experiment."} This comparison does not check endpoints, keys, external harness versions or game resources; it is not performance evidence.`
@@ -1510,6 +1516,12 @@ $<HTMLFormElement>("agent-form").onsubmit = (e) => {
   try { ensureDeviceReady(a); validateConnection(a, models); declaration = declarationFromForm(); }
   catch (error) { $("dialog-status").textContent = (error as Error).message; return; }
   if (running || pending || spectating) { $("dialog-status").textContent = "Pause the match before replacing a contender."; return; }
+  if (activeTab === "duel") {
+    cancelConnectionProbe();
+    duelAgentOverride = a;
+    $<HTMLDialogElement>("agent-dialog").close();
+    return;
+  }
   if (record.events.length && !state.over && !confirm("Use this contender and reset the unfinished match? Export the current match first if you want to keep it.")) return;
   cancelConnectionProbe();
   agents[selectedSeat] = a;
@@ -1975,7 +1987,7 @@ $("join").onclick = () => {
     status.textContent = (e as Error).message;
   }
 };
-$("leave-watch").onclick = () => {
+function leaveWatch() {
   joinGeneration++;
   broadcast.close();
   spectating = false;
@@ -1985,8 +1997,8 @@ $("leave-watch").onclick = () => {
   $("rejoin-watch").hidden = true;
   history.replaceState(null, "", location.pathname);
   reset();
-  tab("arena");
-};
+}
+$("leave-watch").onclick = () => { leaveWatch(); tab("arena"); };
 $("clean-view").onclick = () => {
   const url = watchId
     ? `${publicLinkOrigin(location.origin)}/?stream=1#watch=${watchId}`
@@ -2000,7 +2012,14 @@ $("clean-view").onclick = () => {
   }
   window.open(url, "_blank", "noopener");
 };
-duelUI = mountDuel({ agent: () => agents[0], models: () => models, configure: () => openAgent(0),
+duelUI = mountDuel({ agent: currentDuelAgent, models: () => models, configure: () => {
+    openAgent(0);
+    if (currentDuelAgent().kind === "bot" || currentDuelAgent().kind === "human") {
+      $<HTMLSelectElement>("agent-kind").value = "harness";
+      $("agent-kind").dispatchEvent(new Event("change"));
+    }
+  }, useFree: () => { duelAgentOverride = freeAgents()[0]; },
+  rename: name => { duelAgentOverride = { ...currentDuelAgent(), name: name.slice(0, 64) }; },
   enter: () => tab("duel"), ensure: ensureDeviceReady, share: copyOrNativeShare,
   download: (name, value) => exportJson(name, value, "replay"),
 });
@@ -2009,6 +2028,7 @@ window.addEventListener("beforeunload", () => {
   controller?.abort();
   broadcast.close();
   agents.forEach((a) => (a.key = ""));
+  if (duelAgentOverride) duelAgentOverride.key = "";
   void disposeNative?.();
 });
 if (new URLSearchParams(location.search).get("stream") === "1")
@@ -2056,6 +2076,7 @@ function suspendNative() {
   stop("Paused when app left foreground");
   cancelConnectionProbe();
   agents.forEach(forgetConnectionCheck);
+  if (duelAgentOverride) forgetConnectionCheck(duelAgentOverride);
   joinGeneration++;
   saveCurrent();
   broadcast.close();

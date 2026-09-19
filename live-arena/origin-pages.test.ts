@@ -10,7 +10,7 @@ async function read(name: string) {
   return readFile(path.join(root, name), "utf8");
 }
 
-const pages = ["about.html", "games.html", "verify.html", "guide.html"] as const;
+const pages = ["about.html", "games.html", "verify.html", "guide.html", "duels.html"] as const;
 
 test("origin pages name BuilderWars, Nymrel, and JalenBuilds LLC", async () => {
   for (const page of pages) {

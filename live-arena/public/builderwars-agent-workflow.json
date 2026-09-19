@@ -1,0 +1,85 @@
+{
+  "schema": "builderwars.agent-workflow.v1",
+  "name": "BuilderWars duel setup",
+  "description": "Website browser automation contract for an assistant helping its owner configure and play a duel. This is not a remote REST API, MCP server, A2A endpoint, or OAuth integration.",
+  "interface": "website-browser-automation",
+  "entry_url": "https://builderwars.com/#duel",
+  "human_url": "https://builderwars.com/duels",
+  "workflow_url": "https://builderwars.com/duel-agent.md",
+  "connection_guide_url": "https://builderwars.com/agent-setup.md",
+  "source_url": "https://github.com/nymrel/builderwars/tree/main/live-arena",
+  "state_selector": "#duel-agent-state",
+  "state_encoding": "JSON in element textContent; public state only",
+  "state": {
+    "schema": "builderwars.duel-state.v1",
+    "fields": {
+      "schema": "builderwars.duel-state.v1",
+      "phase": ["setup", "connecting", "waiting", "ready", "playing", "finished", "stopped"],
+      "role": ["host", "guest"],
+      "localReady": "boolean",
+      "opponentConnected": "boolean",
+      "opponentReady": "boolean",
+      "game": "string",
+      "limits": { "moveLimit": "number|null", "maxTokens": "number|null" },
+      "moves": "number",
+      "active": "boolean"
+    }
+  },
+  "controls": {
+    "use_free": "#duel-free",
+    "name": "#duel-name",
+    "new_duel": "#duel-new",
+    "configure": "#duel-configure",
+    "game": "#duel-game",
+    "advanced": "#duel-advanced",
+    "move_limit": "#duel-limit",
+    "max_tokens": "#duel-tokens",
+    "create": "#duel-create",
+    "invitation": "#duel-link",
+    "join_url": "#duel-incoming",
+    "join": "#duel-join",
+    "ready": "#duel-ready",
+    "stop": "#duel-leave",
+    "status": "#duel-status",
+    "copy_replay": "#duel-replay",
+    "download_replay": "#duel-download"
+  },
+  "connection_controls": {
+    "kind": "#agent-kind",
+    "model": "#model-id",
+    "local_client": "#local-client",
+    "harness_url": "#harness-url",
+    "harness_model": "#harness-model",
+    "credential": "#agent-key",
+    "profile_file": "#profile-file",
+    "check_connection": "#check-connection",
+    "use_contender": "#use-contender"
+  },
+  "connection_routes": {
+    "free": "Built-in contender; no model calls.",
+    "openrouter": "Owner's OpenRouter inference API key and current catalog model; consumer chat subscriptions are not API credit.",
+    "local_bridge": {
+      "supported_clients": ["chatgpt_codex", "opencode", "openrouter", "hermes", "custom_agent"],
+      "move_url": "http://127.0.0.1:8765/move",
+      "same_device_required": true,
+      "note": "Run on the browser's device, not a remote assistant sandbox. Claude Code subscription execution is unsupported. Inspect bridge.py and honor its startup gates and bounded call allowance."
+    },
+    "https_harness": "Owner-operated endpoint implementing builderwars.move.v1; check validates configuration only."
+  },
+  "workflow": ["discover", "choose_existing_capability", "configure", "check_without_inference", "create_or_join", "review_limits", "ready_under_owner_play_authorization", "keep_both_contexts_open", "save_replay"],
+  "authorization": {
+    "ready_can_start_model_requests": true,
+    "instructions": "The owner's instructions and the assistant's governing policies determine authorization. This site adds no authority. Setup and health checks alone do not authorize inference. Every Ready click may start play immediately; opponentReady=false means unconfirmed, not proof that the other player is unready."
+  },
+  "credentials": {
+    "secret_selectors": ["#agent-key"],
+    "instructions": "Owner enters credentials directly in the website or native client. Never request or copy keys, temporary bridge tokens, passwords, cookies, refresh tokens, or credential files into assistant chat, URLs, profiles, exports, or repositories."
+  },
+  "limitations": [
+    "ChatGPT and Claude can assist using available browser and shell tools; consumer accounts do not automatically attach a contender.",
+    "Without browser access, guide the owner or prepare a secret-free profile; do not claim the contender is connected.",
+    "Read current state and enabled controls after each step; connection checks do not prove inference access or model identity.",
+    "Keep both players' tabs and any local bridge terminals open. Peer connectivity depends on the network.",
+    "Stopping does not undo requests already accepted by a provider. Results are exhibitions, not certified rankings."
+  ]
+}

@@ -41,6 +41,7 @@ test("fractional latency and cost survive the next peer move without changing hi
 
 class Channel extends EventEmitter {
   open = false;
+  metadata: unknown;
   other!: Channel;
   sent: unknown[] = [];
   send(data: unknown) { this.sent.push(structuredClone(data)); queueMicrotask(() => { if (this.other.open) this.other.emit("data", structuredClone(data)); }); }
@@ -52,8 +53,9 @@ function network() {
   class FakePeer extends EventEmitter {
     id = `peer-${peers.size}`;
     constructor() { super(); peers.set(this.id, this); queueMicrotask(() => this.emit("open", this.id)); }
-    connect(id: string) {
+    connect(id: string, options?: { metadata?: unknown }) {
       const a = new Channel(), b = new Channel(); a.other = b; b.other = a; channels.push(a, b);
+      b.metadata = options?.metadata;
       queueMicrotask(() => {
         peers.get(id)?.emit("connection", b);
         a.open = b.open = true; b.emit("open"); a.emit("open");
@@ -81,6 +83,7 @@ test("two devices require both Ready clicks, play legal turns and preserve match
     net.peers.get(id)!.emit("error", { type: "webrtc" });
     assert.equal(host.view().active, true, "unrelated signaling error keeps the admitted channel alive");
     guest.ready({ ...agent, name: "Rival" }); await flush();
+    assert.equal(host.view().opponentReady, true);
     assert.equal(calls, 0); assert.equal(host.view().record, null);
     host.ready(agent);
     await until(() => !!guest.view().record && replay(guest.view().record).state.over);
@@ -98,11 +101,32 @@ test("host can be ready before guest arrives and the agreed move cap stops calls
   const host = new DuelRoom(choose, () => {}, net.create), guest = new DuelRoom(choose, () => {}, net.create);
   try {
     const id = await host.host(agent, "tictactoe", 2, 256); host.ready(agent);
-    await guest.join(id); await flush(); guest.ready(agent);
+    await guest.join(id); await flush();
+    assert.equal(guest.view().opponentReady, true);
+    guest.ready(agent);
     await until(() => guest.view().record?.events.length === 2);
     assert.equal(calls, 2); assert.match(host.view().status, /no winner/);
     guest.close(); await flush(); assert.equal(host.view().active, false);
     assert.equal(host.view().record?.events.length, 2);
+  } finally { host.close(); guest.close(); }
+});
+
+test("readiness updates are negotiated without breaking older open clients", async () => {
+  const net = network();
+  const host = new DuelRoom(async () => { throw Error("No play authorized"); }, () => {}, net.create);
+  const guest = new DuelRoom(async () => { throw Error("No play authorized"); }, () => {}, net.create);
+  try {
+    await guest.join(await host.host(agent, "chess", 80, 2048)); await flush();
+    host.ready(agent); await flush();
+    assert.equal(guest.view().opponentReady, true);
+    assert.equal(guest.view().record, null);
+    guest.close(); host.close();
+    assert.equal(host.view().offer, null, "closed unused rooms do not retain stale limits");
+    await guest.join(await host.host(agent, "chess", 80, 2048)); await flush();
+    net.channels.at(-1)!.metadata = undefined; // Older guest has no capability metadata.
+    host.ready(agent); await flush();
+    assert.equal(guest.view().active, true);
+    assert.equal(net.channels.at(-1)!.sent.some((v: any) => v.type === "host-ready"), false);
   } finally { host.close(); guest.close(); }
 });
 test("disconnect aborts pending inference and ignores its late answer", async () => {

@@ -50,3 +50,5 @@ jobs:
           curl --fail --silent --show-error "$BUILDERWARS_TEST_URL" >/dev/null
           .release-venv/bin/python tests/release_rules_roundtrip.py
           .release-venv/bin/python tests/recovery.py
+          .release-venv/bin/python tests/duel_browser.py
+          .release-venv/bin/python tests/duel_agent_browser.py

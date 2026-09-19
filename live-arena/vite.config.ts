@@ -10,12 +10,14 @@ const webPages = {
   games: resolve(root, "games.html"),
   verify: resolve(root, "verify.html"),
   guide: resolve(root, "guide.html"),
+  duels: resolve(root, "duels.html"),
 };
 const originRoutes: Record<string, string> = {
   "/about": "/about.html",
   "/games": "/games.html",
   "/verify": "/verify.html",
   "/guide": "/guide.html",
+  "/duels": "/duels.html",
 };
 
 function originCleanUrls(): Plugin {

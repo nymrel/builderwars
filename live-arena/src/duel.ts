@@ -4,7 +4,7 @@ import { publicAgent, type Agent, type PublicAgent, type Decision } from "./mode
 import { matchLimits } from "./resources";
 
 export type DuelOffer = { game: string; moveLimit: number; maxTokens: number; agent: PublicAgent };
-export type DuelView = { status: string; offer: DuelOffer | null; record: RecordData | null; seat: 0 | 1; ready: boolean; active: boolean };
+export type DuelView = { status: string; offer: DuelOffer | null; record: RecordData | null; seat: 0 | 1; ready: boolean; active: boolean; opponentConnected: boolean; opponentReady: boolean };
 type Choose = (state: GameState, agent: Agent, tokens: number, signal: AbortSignal) => Promise<Decision>;
 // Only explicit public labels cross the connection. Prompts, keys and endpoints stay local.
 export function duelAgent(agent: Agent): PublicAgent {
@@ -47,6 +47,7 @@ export class DuelRoom {
   private local: Agent | null = null;
   private remote: PublicAgent | null = null;
   private localReady = false;
+  private remoteReady = false;
   private started = false;
   private busy = false;
   private generation = 0;
@@ -57,7 +58,8 @@ export class DuelRoom {
   constructor(private choose: Choose, private changed: (view: DuelView) => void,
     private createPeer: () => Peer = () => new Peer()) {}
 
-  view(): DuelView { return { status: this.status, offer: this.offer, record: this.record, seat: this.seat, ready: this.localReady, active: this.peer !== null }; }
+  view(): DuelView { return { status: this.status, offer: this.offer, record: this.record, seat: this.seat, ready: this.localReady, active: this.peer !== null,
+    opponentConnected: !!this.connection?.open, opponentReady: this.remoteReady }; }
   private update(status: string) { this.status = status; this.changed(this.view()); }
   close(message = "Duel ended. Create a new invitation to play again.") {
     const connection = this.connection, peer = this.peer;
@@ -68,7 +70,8 @@ export class DuelRoom {
     this.timer = null;
     if (connection?.open) connection.send({ type: "stop" });
     connection?.close(); peer?.destroy();
-    this.local = null; this.localReady = false;
+    this.local = null; this.localReady = false; this.remoteReady = false;
+    if (!this.record) this.offer = null;
     if (this.record) {
       const state = replay(this.record).state;
       if (state.over) message = state.winner === null ? `Draw · ${state.reason}` : `${this.record.agents[state.winner].name} wins · ${state.reason}`;
@@ -114,7 +117,7 @@ export class DuelRoom {
   async join(id: string) {
     if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) throw Error("Invalid duel invitation.");
     const peer = await this.open(1);
-    this.attach(peer.connect(id, { reliable: true }), peer);
+    this.attach(peer.connect(id, { reliable: true, metadata: { duelReadyState: 1 } }), peer);
   }
   ready(agent: Agent) {
     if (!this.peer || !this.offer || this.localReady || this.started) return;
@@ -123,6 +126,7 @@ export class DuelRoom {
     const publicLocal = duelAgent(this.local);
     this.localReady = true;
     if (this.seat === 1) this.send({ type: "ready", agent: publicLocal });
+    else if (this.connection?.open && this.connection.metadata?.duelReadyState === 1) this.send({ type: "host-ready" });
     this.update("You’re ready. Waiting for your friend…");
     this.start();
   }
@@ -137,7 +141,11 @@ export class DuelRoom {
     c.on("open", () => {
       clearTimeout(timeout); if (!current()) { c.close(); return; }
       this.lastSeen = Date.now();
-      if (this.seat === 0) this.send({ type: "offer", offer: this.offer });
+      if (this.seat === 0) {
+        // Optional offer field and negotiated updates preserve already-open older clients.
+        this.send({ type: "offer", offer: this.offer, hostReady: this.localReady });
+        this.update(this.localReady ? "Your friend joined. Waiting for them to press Ready…" : "Your friend joined. You can both press Ready when you’re set.");
+      }
     });
     c.on("close", () => { clearTimeout(timeout); if (current()) this.close("Opponent left. Duel stopped; replay is still available."); });
     c.on("error", () => { clearTimeout(timeout); if (current()) this.close("Connection interrupted. Duel stopped; replay is still available."); });
@@ -155,16 +163,20 @@ export class DuelRoom {
     if (message.type === "stop") { this.close("Your friend stopped the duel. Replay is still available."); return; }
     if (message.type === "offer" && this.seat === 1 && !this.offer) {
       this.offer = readOffer(message.offer);
+      this.remoteReady = message.hostReady === true;
       this.update("Invitation received. Review the game and limits, choose your agent, then press Ready.");
+    } else if (message.type === "host-ready" && this.seat === 1 && this.offer && !this.started) {
+      this.remoteReady = true;
+      this.update("Your friend is ready. Press Ready when your agent is set.");
     } else if (message.type === "ready" && this.seat === 0 && !this.remote && !this.started) {
-      this.remote = readAgent(message.agent);
+      this.remote = readAgent(message.agent); this.remoteReady = true;
       this.update("Your friend is ready. Press Ready when your agent is set."); this.start();
     } else if (message.type === "start" && this.seat === 1 && this.localReady && !this.started && this.offer) {
       const record = replay(message.record).record;
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(record.id) ||
           record.events.length || canonical(record.rules) !== canonical(RULES[this.offer.game]) ||
           canonical(record.agents) !== canonical([this.offer.agent, duelAgent(this.local!)])) throw Error("Unexpected duel setup.");
-      this.record = record; this.started = true; this.advance();
+      this.record = record; this.started = true; this.remoteReady = true; this.advance();
     } else if (message.type === "move" && this.started && this.record && this.offer) {
       this.record = acceptDuelMove(this.record, message.record, 1 - this.seat, this.offer.moveLimit);
       this.advance();
