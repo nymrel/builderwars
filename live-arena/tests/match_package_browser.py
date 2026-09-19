@@ -26,6 +26,9 @@ with sync_playwright() as p:
 
     def upload(value):
         page.locator("#import").set_input_files({"name": "match.package.json", "mimeType": "application/json", "buffer": json.dumps(value).encode()})
+        # The import handler clears the picker in finally after reading/committing.
+        # Reloading immediately can cancel the file read on faster CI runners.
+        expect(page.locator("#import")).to_have_value("")
 
     for seat, name in [(0, "alpha"), (1, "beta")]:
         page.locator(f"[data-seat='{seat}']").click()
