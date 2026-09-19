@@ -1,4 +1,5 @@
 import "./style.css";
+import { duelMarkup, mountDuel } from "./duel-ui";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { FileTransfer, webDownload, transferMessage, boundedResponse, EXPORT_LIMITS, type ExportKind } from "./file-transfer";
@@ -204,8 +205,8 @@ function freshRecord(): RecordData {
 record = freshRecord();
 document.querySelector("#app")!.innerHTML = `
 <header class="topbar"><a class="wordmark" href="/" aria-label="BuilderWars home"><img src="/mark.svg" alt="" width="30" height="30">BuilderWars<span class="alpha">PLAY ALPHA</span></a><div class="toplinks"><a href="https://github.com/nymrel/builderwars" target="_blank" rel="noopener">Open source ↗</a><button id="connections">Connect models <span>↗</span></button></div></header>
-<div class="shell"><aside class="sidebar"><p class="nav-label">YOUR PLAYGROUND</p><nav aria-label="Main"><button data-tab="arena" class="active"><span>◈</span>Arena</button><button data-tab="forge"><span>⌘</span>Forge</button><button data-tab="evals"><span>▥</span>Evals</button><button data-tab="watch"><span>◉</span>Watch</button><button data-tab="academy"><span>◇</span>Academy</button></nav><div class="sidebar-bottom"><span class="status-dot"></span> Built for builders<p>By <a href="https://nymrel.com">Nymrel ↗</a></p><span class="muted">Agents. Humans. A level board.</span></div></aside>
-<main><section id="arena" class="view"><div class="page-heading"><div><p class="eyebrow">THE NEXT MOVE IS YOURS</p><h1>Your agent. Your arena.</h1><p class="subtitle">Pick a game. Choose your contenders. Watch it unfold.</p></div><div class="result-actions first-play-actions"><button id="play-human" class="primary">Play against a bot <span>↗</span></button><button id="quickplay">Watch bots play</button><button id="connect-first">Connect my agent</button></div></div>
+<div class="shell"><aside class="sidebar"><p class="nav-label">YOUR PLAYGROUND</p><nav aria-label="Main"><button data-tab="arena" class="active"><span>◈</span>Arena</button><button data-tab="duel"><span>⚔</span>Duel a friend</button><button data-tab="forge"><span>⌘</span>Forge</button><button data-tab="evals"><span>▥</span>Evals</button><button data-tab="watch"><span>◉</span>Watch</button><button data-tab="academy"><span>◇</span>Academy</button></nav><div class="sidebar-bottom"><span class="status-dot"></span> Built for builders<p>By <a href="https://nymrel.com">Nymrel ↗</a></p><span class="muted">Agents. Humans. A level board.</span></div></aside>
+<main><section id="arena" class="view"><div class="page-heading"><div><p class="eyebrow">THE NEXT MOVE IS YOURS</p><h1>Your agent. Your arena.</h1><p class="subtitle">Pick a game. Choose your contenders. Watch it unfold.</p></div><div class="result-actions first-play-actions"><button id="play-human" class="primary">Play against a bot <span>↗</span></button><button id="quickplay">Watch bots play</button><button id="duel-first">Duel a friend ⚔</button><button id="connect-first">Connect my agent</button></div></div>
 <div class="game-tabs" role="group" aria-label="Choose game">${Object.entries(
   RULES,
 )
@@ -216,6 +217,7 @@ document.querySelector("#app")!.innerHTML = `
   .join("")}<button id="create-game-shortcut">＋ Create game</button></div>
 <div class="arena-layout"><div class="board-column"><div class="match-top"><span><span id="match-dot" class="status-dot"></span><strong id="game-title">Chess</strong> <span id="match-status">Ready to play</span></span><span id="ply">MOVE 00</span></div><div id="board" role="group" aria-label="Game board"></div><div class="board-toolbar"><button id="start" class="primary">▶ Start match</button><button id="step">Step</button><button id="reset">↻ Rematch</button><button id="flip">⇅ Flip</button><button id="share">Share replay ↗</button></div><p id="notice" class="notice" role="status" aria-live="polite">Free built-in opponents are ready. Connect a model whenever you like.</p><div class="telemetry"><div><span>PLIES</span><strong id="metric-moves">0</strong></div><div><span>MEAN LATENCY</span><strong id="metric-latency">—</strong></div><div><span>REPORTED TOKENS</span><strong id="metric-tokens">—</strong></div><div><span>REPORTED COST</span><strong id="metric-cost">$0.0000</strong></div></div><details class="match-settings"><summary>Match settings & move history</summary><div class="settings-row"><label>Move limit<input id="move-limit" type="number" value="80" min="2" max="400"></label><label>Tokens / move<input id="max-tokens" type="number" value="2048" min="256" max="16384" step="256"></label><label>Pace<select id="pace"><option value="500">Watchable</option><option value="100">Fast</option><option value="1200">Slow</option></select></label></div><p class="muted">Model usage is billed by your provider. Effort is requested; provider execution may vary. Results are exhibition evidence, not certified rankings.</p><div id="move-history"></div><button id="export">Download match JSON</button><label class="file-button">Import replay<input id="import" type="file" accept="application/json,.json"></label></details></div>
 <aside class="match-panel"><div class="panel-heading"><h2>The contenders</h2><span>2 SEATS</span></div><div id="seats"></div><div class="panel-heading activity-title"><h2>At the board</h2><span id="feed-count">LIVE MOVES</span></div><div id="feed" class="feed"><div class="empty-feed"><span>⌁</span><p>Every move tells a story.</p><small>Start a match to see decisions, timing, and the position unfold.</small></div></div><button id="go-live" class="broadcast-button">◉ Broadcast this match</button><p id="broadcast-status" class="muted">Share a live board with up to 16 viewers. Keep this tab open.</p></aside></div></section>
+${duelMarkup}
 <section id="forge" class="view" hidden><p class="eyebrow">BUILDERWARS FORGE</p><h1>Change the game.</h1><p class="subtitle">Create a connect-in-a-row game. Export its rules, then put your agents to work.</p><form id="creator" class="workspace-form"><label>Game name<input id="creator-name" value="Five in the Foundry" maxlength="48" required></label><div class="settings-row"><label>Rows<input id="creator-rows" type="number" min="3" max="10" value="8" required></label><label>Columns<input id="creator-cols" type="number" min="3" max="10" value="8" required></label><label>In a row to win<input id="creator-connect" type="number" min="3" max="10" value="5" required></label></div><label class="checkbox"><input id="creator-gravity" type="checkbox">Gravity: pieces fall to the bottom</label><div class="form-actions"><button class="primary" type="submit">Create & play ↗</button><button id="export-rules" type="button">Export game</button><label class="file-button">Import game<input id="import-rules" type="file" accept="application/json,.json"></label></div><p id="forge-status" class="muted" role="status" aria-live="polite">Create or import rules here.</p><p class="muted">Game definitions contain rules only. To build a new engine or evaluation adapter, start with the open creator SDK.</p><a href="https://github.com/nymrel/builderwars/tree/main/creator_sdk" target="_blank" rel="noopener">Explore the creator SDK ↗</a></form></section>
 <section id="evals" class="view" hidden><p class="eyebrow">BUILDERWARS EVALS</p><h1>Run it back. Compare.</h1><p class="subtitle">A paired series swaps seats between games to reduce first-player advantage.</p><div class="workspace-form"><p>Uses the current game, contenders, move limit, and token limit from Arena.</p><label>Series length<select id="series-length"><option value="2">2 games · one pair</option><option value="4">4 games · two pairs</option><option value="10">10 games · five pairs</option></select></label><button id="run-series" class="primary">Run evaluation series ↗</button><p class="muted">A series may make up to games × move limit model requests. Built-in opponents are free. Model calls use your own provider account.</p><div id="series-results"><p>No series yet. Set your contenders, then run your first pair.</p></div><button id="export-series">Export evaluation</button></div></section>
 <section id="watch" class="view" hidden><p class="eyebrow">BUILDERWARS WATCH</p><h1>Bring an audience.</h1><p class="subtitle">The board, moves, model labels and timing stream directly from the host’s browser.</p><div class="workspace-form"><button id="watch-broadcast" class="primary">Broadcast my match ↗</button><p id="watch-link">Start broadcasting to create a spectator link.</p><label>Join a broadcast<input id="join-link" placeholder="Paste a BuilderWars watch link"></label><button id="join">Watch match</button><p id="watch-join-status" class="muted" role="status" aria-live="polite">Paste a BuilderWars watch link to join.</p><button id="leave-watch" hidden>Leave spectator mode</button><div class="divider"></div><h2>Ready for your stream</h2><p>Open the clean board view and add it as an OBS browser or window source. Your model keys and connection settings stay outside the broadcast.</p><button id="clean-view">Open stream view ↗</button><p class="muted">Live board sharing uses PeerJS and WebRTC. Viewers receive your IP address as part of the peer connection. Some networks block these connections; replay links work after a match ends. Video publishing to Twitch or YouTube is controlled in your streaming app.</p></div></section>
@@ -684,6 +686,8 @@ function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: Matc
   if (save) saveCurrent();
 }
 function tab(name: string) {
+  if (name !== "duel" && duelUI?.room.view().active) duelUI.room.close("Duel stopped when you left the room. Replay remains in Duel a friend.");
+  if (name === "duel") { stop("Paused for duel setup"); duelUI?.render(); }
   activeTab = name;
   document
     .querySelectorAll<HTMLElement>(".view")
@@ -697,6 +701,8 @@ function tab(name: string) {
 document
   .querySelectorAll<HTMLButtonElement>("[data-tab]")
   .forEach((b) => (b.onclick = () => tab(b.dataset.tab!)));
+let duelUI: ReturnType<typeof mountDuel> | undefined;
+$("duel-first").onclick = () => tab("duel");
 let flipped = false;
 const glyphs: Record<string, string> = {
   wk: "♔",
@@ -1215,6 +1221,8 @@ $("connections").onclick = () => openAgent(0);
 $("learn-connect").onclick = () => openAgent(0);
 $("create-game-shortcut").onclick = () => tab("forge");
 function openAgent(seat: number) {
+  if (duelUI?.room.view().active && (duelUI.room.view().ready || duelUI.room.view().seat === 0))
+    duelUI.room.close("Duel stopped so you can change or remove your agent connection.");
   if (pending || running || spectating) {
     notify("Pause the match before editing contenders.");
     tab("arena");
@@ -1992,7 +2000,12 @@ $("clean-view").onclick = () => {
   }
   window.open(url, "_blank", "noopener");
 };
+duelUI = mountDuel({ agent: () => agents[0], models: () => models, configure: () => openAgent(0),
+  enter: () => tab("duel"), ensure: ensureDeviceReady, share: copyOrNativeShare,
+  download: (name, value) => exportJson(name, value, "replay"),
+});
 window.addEventListener("beforeunload", () => {
+  duelUI?.room.close();
   controller?.abort();
   broadcast.close();
   agents.forEach((a) => (a.key = ""));
@@ -2008,7 +2021,9 @@ function loadFragment() {
   const fragment = new URLSearchParams(hash.slice(1));
   pendingSetup = null;
   $<HTMLDialogElement>("setup-dialog").close();
-  if (fragment.has("setup")) {
+  if (fragment.has("duel")) {
+    duelUI?.invitation(fragment.get("duel")!);
+  } else if (fragment.has("setup")) {
     try {
       pendingSetup = decodeSetup(fragment.get("setup")!);
       const seats = pendingSetup.entrants.map(a => a.kind === "harness" ? "Harness (connect locally)" : `${a.model} · ${a.effort} effort`).join(" vs ");
@@ -2034,6 +2049,7 @@ function loadFragment() {
       });
 }
 function suspendNative() {
+  if (duelUI?.room.view().active) duelUI.room.close("Duel stopped when the app left the foreground.");
   if (!nativeActive) return;
   nativeEpoch++;
   nativeActive = false;

@@ -1314,3 +1314,16 @@ dialog [id$="fields"] {
 #exhibition-sources { white-space: pre-line; }
 #exhibition-identities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 420px) { #exhibition-identities { grid-template-columns: 1fr; gap: 0; } }
+
+.duel-layout { display: grid; grid-template-columns: minmax(280px, 390px) minmax(0, 1fr); gap: 32px; align-items: start; }
+.duel-setup { width: 100%; margin: 0; }
+.duel-setup h2 { margin-top: 24px; }
+.duel-setup h2:first-child { margin-top: 0; }
+.duel-setup button { margin: 6px 0; }
+.duel-stage { min-width: 0; }
+.duel-empty { min-height: 340px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; border: 1px solid var(--line); border-radius: 16px; color: var(--muted); background: #19211b; }
+.duel-empty span { font-size: 72px; color: var(--accent); }
+#duel-board { width: 100%; max-width: 620px; }
+#duel-link { width: 100%; }
+@media (max-width: 850px) { .duel-layout { grid-template-columns: 1fr; gap: 24px; } .duel-empty { min-height: 220px; } }
+@media (max-width: 650px) { nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; } nav button { justify-content: center; min-width: 0; } }

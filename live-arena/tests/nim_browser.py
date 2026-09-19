@@ -15,6 +15,9 @@ with sync_playwright() as p:
     assert page.locator(".nim-heap").count() == 3
     assert page.locator(".nim-heap").nth(0).inner_text().startswith("Heap 1 · 3 objects")
     page.locator("#play-human").click()
+    # Keep this assertion about the human move deterministic: otherwise the free
+    # opponent can change the same heap between the two browser observations.
+    page.locator("#start").click()
     page.locator('[data-cell="0"]').click()
     page.wait_for_function("() => document.querySelector('#metric-moves').textContent === '1'")
     assert page.locator(".nim-heap").nth(0).inner_text().startswith("Heap 1 · 2 objects")
