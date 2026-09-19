@@ -34,6 +34,13 @@ with sync_playwright() as p:
         expect(g.locator("#duel-ready")).to_be_disabled()
         g.locator("#duel-join").click()
         expect(g.locator("#duel-ready")).to_be_enabled(timeout=30000)
+        # A duplicate/forwarded invitation cannot evict the admitted opponent.
+        extra = browser.new_page()
+        extra.goto(link)
+        extra.locator("#duel-join").click()
+        expect(extra.locator("#duel-status")).to_contain_text(__import__("re").compile("left|closed|unavailable|interrupted|connect"), timeout=30000)
+        extra.close()
+        expect(h.locator("#duel-ready")).to_be_enabled()
         g.locator("#duel-ready").click()
         expect(h.locator("#duel-status")).to_contain_text("Your friend is ready", timeout=15000)
         expect(h.locator("#duel-replay")).to_be_disabled()

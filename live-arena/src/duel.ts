@@ -19,7 +19,7 @@ function readAgent(raw: unknown): PublicAgent {
 }
 export function readOffer(raw: unknown): DuelOffer {
   const offer = raw as DuelOffer;
-  if (!offer || !Object.hasOwn(RULES, offer.game)) throw Error("Unsupported duel game.");
+  if (!offer || typeof offer.game !== "string" || !Object.hasOwn(RULES, offer.game)) throw Error("Unsupported duel game.");
   matchLimits(offer.moveLimit, offer.maxTokens);
   if (offer.maxTokens === null) throw Error("A duel needs a token limit.");
   return { game: offer.game, moveLimit: offer.moveLimit, maxTokens: offer.maxTokens, agent: readAgent(offer.agent) };
@@ -43,7 +43,7 @@ export class DuelRoom {
   private controller: AbortController | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastSeen = 0;
-  private cancelOpen: (() => void) | null = null;
+  private cancelOpen: ((message: string) => void) | null = null;
   private local: Agent | null = null;
   private remote: PublicAgent | null = null;
   private localReady = false;
@@ -63,14 +63,18 @@ export class DuelRoom {
     const connection = this.connection, peer = this.peer;
     this.peer = null; this.connection = null; this.generation++;
     this.controller?.abort(); this.controller = null; this.busy = false;
-    this.cancelOpen?.(); this.cancelOpen = null;
+    this.cancelOpen?.(message); this.cancelOpen = null;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     if (connection?.open) connection.send({ type: "stop" });
     connection?.close(); peer?.destroy();
     this.local = null; this.localReady = false;
-    if (this.record && !replay(this.record).state.over && this.record.events.length < (this.offer?.moveLimit ?? 400))
-      this.record.status = "Duel stopped · incomplete";
+    if (this.record) {
+      const state = replay(this.record).state;
+      if (state.over) message = state.winner === null ? `Draw · ${state.reason}` : `${this.record.agents[state.winner].name} wins · ${state.reason}`;
+      else if (this.record.events.length >= (this.offer?.moveLimit ?? 400)) message = "Move limit reached · no winner.";
+      else this.record.status = "Duel stopped · incomplete";
+    }
     this.update(message);
   }
   private async open(seat: 0 | 1) {
@@ -83,7 +87,9 @@ export class DuelRoom {
         this.connection.send({ type: "heartbeat" });
       }
     }, 5000);
-    peer.on("error", () => { if (this.peer === peer) this.close("Could not connect. Try a new invitation or another network."); });
+    // Signaling errors (including a rejected extra connector) must not kill a
+    // healthy game channel. Its own close/error events and heartbeat govern it.
+    peer.on("error", () => { if (this.peer === peer && !this.connection?.open) this.close("Could not connect. Try a new invitation or another network."); });
     // Reserve the single opponent as soon as its channel is created.
     peer.on("connection", c => {
       if (this.peer !== peer || seat !== 0 || this.connection) c.close();
@@ -92,7 +98,7 @@ export class DuelRoom {
     this.update(seat === 0 ? "Creating invitation…" : "Connecting to your friend…");
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => this.close("Connection timed out. Try another network."), 20000);
-      this.cancelOpen = () => { clearTimeout(timeout); reject(Error("Duel connection closed.")); };
+      this.cancelOpen = message => { clearTimeout(timeout); reject(Error(message)); };
       peer.once("open", () => { if (this.peer !== peer) return; clearTimeout(timeout); this.cancelOpen = null; resolve(); });
     });
     return peer;
@@ -155,7 +161,8 @@ export class DuelRoom {
       this.update("Your friend is ready. Press Ready when your agent is set."); this.start();
     } else if (message.type === "start" && this.seat === 1 && this.localReady && !this.started && this.offer) {
       const record = replay(message.record).record;
-      if (record.events.length || canonical(record.rules) !== canonical(RULES[this.offer.game]) ||
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(record.id) ||
+          record.events.length || canonical(record.rules) !== canonical(RULES[this.offer.game]) ||
           canonical(record.agents) !== canonical([this.offer.agent, duelAgent(this.local!)])) throw Error("Unexpected duel setup.");
       this.record = record; this.started = true; this.advance();
     } else if (message.type === "move" && this.started && this.record && this.offer) {

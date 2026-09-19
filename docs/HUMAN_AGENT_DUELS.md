@@ -31,6 +31,12 @@ Provider usage is billed to each owner; identities remain self-reported.
   connection setup, replay/proof, resource caps, learning and import races.
 - Independent static review found retained credential access after editing and
   incorrect interrupted replay status. Both fixed and independently rechecked.
+- Fable 5.1 text review prompted protection against unrelated signaling errors,
+  preservation of terminal results after disconnect, actionable setup errors,
+  and strict game/record-ID validation. Missing token limits were already
+  rejected by the shared resource validator; a regression now pins this.
+  The real browser journey also attempts a third entrant without evicting the
+  admitted opponent. Firefox and WebKit proof journeys passed separately.
 - Unit regressions cover consent order, immutable history, fractional cost and
   latency, move caps, prompt/key omission, abort and late-result rejection.
 

@@ -18,6 +18,8 @@ test("duel metadata removes credentials, endpoints and private prompts", () => {
   assert.throws(() => readOffer({ game: "__proto__", moveLimit: 80, maxTokens: 2048, agent: shared }));
   assert.throws(() => readOffer({ game: "chess", moveLimit: 401, maxTokens: 2048, agent: shared }));
   assert.throws(() => readOffer({ game: "chess", moveLimit: 80, maxTokens: null, agent: shared }));
+  assert.throws(() => readOffer({ game: "chess", moveLimit: 80, agent: shared }));
+  assert.throws(() => readOffer({ game: ["chess"], moveLimit: 80, maxTokens: 2048, agent: shared }));
 });
 test("only one legal move by the agreed seat extends an immutable history", () => {
   const accepted = acceptDuelMove(initial(), first(), 0, 80);
@@ -60,7 +62,7 @@ function network() {
     }
     destroy() { peers.delete(this.id); }
   }
-  return { create: () => new FakePeer() as any, channels };
+  return { create: () => new FakePeer() as any, channels, peers };
 }
 const flush = () => new Promise(resolve => setTimeout(resolve, 20));
 async function until(check: () => boolean) {
@@ -76,6 +78,8 @@ test("two devices require both Ready clicks, play legal turns and preserve match
     const id = await host.host(agent, "tictactoe", 80, 2048);
     await guest.join(id); await flush();
     assert.ok(guest.view().offer); assert.equal(calls, 0);
+    net.peers.get(id)!.emit("error", { type: "webrtc" });
+    assert.equal(host.view().active, true, "unrelated signaling error keeps the admitted channel alive");
     guest.ready({ ...agent, name: "Rival" }); await flush();
     assert.equal(calls, 0); assert.equal(host.view().record, null);
     host.ready(agent);
@@ -84,6 +88,8 @@ test("two devices require both Ready clicks, play legal turns and preserve match
     assert.equal(calls, host.view().record!.events.length);
     assert.doesNotMatch(JSON.stringify(net.channels.flatMap(c => c.sent)), /PRIVATE|http:\/\/private/);
     const before = calls; guest.ready(agent); await flush(); assert.equal(calls, before);
+    const result = host.view().status;
+    guest.close(); await flush(); assert.equal(host.view().status, result);
   } finally { host.close(); guest.close(); }
 });
 test("host can be ready before guest arrives and the agreed move cap stops calls", async () => {
