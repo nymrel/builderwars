@@ -3,7 +3,7 @@
   const E = globalThis.Agentworld, $ = (id) => document.getElementById(id);
   const KEY = 'builderwars.agentworld.experimental.v1';
   let cfg = { seed: 20260920, mode: 'cooperative' }, state = E.create(cfg), actions = [];
-  let revision = 0;
+  let revision = 0, importSequence = 0;
   let timer = null, dirtyEditor = false, autosave = true, lastStored = null, storageConflict = false;
   const names = { 'amber-1': 'Amber 01', 'amber-2': 'Amber 02', 'tide-1': 'Tide 01', 'tide-2': 'Tide 02' };
   const codes = { 'amber-1': 'A1', 'amber-2': 'A2', 'tide-1': 'T1', 'tide-2': 'T2' };
@@ -54,7 +54,9 @@
       const row = el('li'); row.append(el('time', '', String(a.turn + 1).padStart(3, '0')), el('span', '', `${names[a.actor]} · ${a.type}${a.direction ? ' ' + a.direction : ''}`), el('span', 'source', a.source)); return row;
     }));
     if (!actions.length) $('log').append(el('li', 'empty', 'Start the crews. Every accepted action will be recorded here.'));
+    const focusedManual = $('manual').contains(document.activeElement) ? document.activeElement.textContent : null;
     $('manual').replaceChildren(...E.legal(state, 'manual').map((a) => { const button = el('button', '', a.type === 'move' ? a.direction : a.type); button.addEventListener('click', () => { pause(); accept(a); }); return button; }));
+    if (focusedManual !== null) (Array.from($('manual').children).find((button) => button.textContent === focusedManual) || $('manual').firstElementChild || $('verify')).focus({ preventScroll: true });
     $('legal-json').textContent = JSON.stringify(E.legal(state, 'manual'), null, 2);
     if (!dirtyEditor && document.activeElement !== $('action-json')) sample();
   }
@@ -99,11 +101,14 @@
   });
   $('export').addEventListener('click', () => { pause(); render(); download(E.pack(cfg, actions), `agentworld-${cfg.seed}-turn-${state.turn}.json`); });
   $('import').addEventListener('change', async (event) => {
+    const importRequest = ++importSequence;
     pause(); render(); const file = event.target.files[0]; if (!file) return;
     const importRevision = revision;
     try {
       if (file.size > E.MAX_BYTES) throw new Error('Replay exceeds the 128 KiB limit.');
-      const verified = E.verify(E.parse(await file.text()));
+      const text = await file.text();
+      if (importRequest !== importSequence) return;
+      const verified = E.verify(E.parse(text));
       if (revision !== importRevision) throw new Error('World changed while reading the file; select the replay again.');
       // A file read yields. Pause again and confirm against the current tab, not the pre-read state.
       pause();
@@ -112,8 +117,8 @@
       cfg = verified.config; actions = verified.actions; state = verified.state; revision++; dirtyEditor = false;
       $('seed').value = cfg.seed; $('mode').value = cfg.mode; $('proof').textContent = 'Local replay pass';
       render(); save(); message('Imported after local replay validation. Actor source labels remain self-declared.');
-    } catch (error) { message(`Import refused: ${error.message}`, true); }
-    finally { event.target.value = ''; render(); }
+    } catch (error) { if (importRequest === importSequence) message(`Import refused: ${error.message}`, true); }
+    finally { if (importRequest === importSequence) { event.target.value = ''; render(); } }
   });
   $('autosave').addEventListener('change', () => {
     if (storageConflict && $('autosave').checked) { $('autosave').checked = false; message('Another tab owns the saved checkpoint. Reload to adopt it or export this tab first.', true); return; }
