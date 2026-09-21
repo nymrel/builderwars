@@ -1,0 +1,29 @@
+{
+  "scope": "In-memory Chromium DOM validation; origin navigation, real storage persistence, cross-tab integration and deployed behavior NOT VERIFIED.",
+  "browser_executable": "/usr/bin/chromium",
+  "navigation_blocker": "ERR_BLOCKED_BY_ADMINISTRATOR for loopback and file navigation; no browser policy was changed.",
+  "checks_passed": 21,
+  "checks": [
+    "Initial world renders 64 cells and four actors",
+    "Synthetic and local-only boundary visible",
+    "No horizontal overflow at 320px",
+    "No horizontal overflow at 390px",
+    "No horizontal overflow at 768px",
+    "No horizontal overflow at 1280px",
+    "Scripted batch accepts exactly 16 turns",
+    "Unavailable storage disables autosave without blocking the world",
+    "Explicit replay verification passes",
+    "Export contains exact rules-bound state and action count",
+    "Tampered import refused without state change",
+    "Duplicate-key replay refused",
+    "Unknown action fields refused without mutation",
+    "World updates preserve in-progress action edits",
+    "Stale action rejected",
+    "Manual JSON action accepted and disclosed in journal",
+    "Pause stops automatic advancement",
+    "Valid import verifies before adoption",
+    "No browser JavaScript errors",
+    "No external network requests",
+    "Non-JavaScript rules remain readable"
+  ]
+}
