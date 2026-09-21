@@ -30,6 +30,7 @@ import {
 import { Broadcast } from "./broadcast";
 import { keyboardCell } from "./board-keyboard";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
+import { READINESS_SUITES, runReadinessCheck, type ReadinessReceipt } from "./readiness";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
 import { PracticeMemory, MEMORY_KEY, supportsLearning, scoreTactics, type MemorySnapshot, type MemoryContext } from "./learning";
@@ -1222,6 +1223,94 @@ $<HTMLSelectElement>("pace").onchange = (e) => {
 };
 $("connections").onclick = () => openAgent(0);
 $("learn-connect").onclick = () => openAgent(0);
+function readinessStatus(message: string) {
+  $("readiness-status").textContent = message;
+}
+const escapeReadiness = (value: string) =>
+  value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
+function refreshReadinessTargets() {
+  const select = $<HTMLSelectElement>("readiness-agent");
+  const previous = select.value;
+  select.innerHTML = "";
+  agents.forEach((agent, index) => {
+    if (agent.kind === "human") return;
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${agent.name} · ${agent.kind === "bot" ? "built-in" : agent.kind === "openrouter" ? "OpenRouter" : "harness"}${agent.model ? ` · ${agent.model.slice(0, 48)}` : ""}`;
+    select.append(option);
+  });
+  if (!select.options.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No contender configured — connect one first";
+    select.append(option);
+  }
+  if ([...select.options].some((option) => option.value === previous)) select.value = previous;
+}
+let readinessController: AbortController | null = null;
+$("readiness-stop").onclick = () => readinessController?.abort();
+$("academy-readiness").onclick = async () => {
+  refreshReadinessTargets();
+  const select = $<HTMLSelectElement>("readiness-agent");
+  const button = $<HTMLButtonElement>("academy-readiness");
+  if (readinessController) {
+    readinessStatus("A readiness check is already running. Stop it before starting another.");
+    return;
+  }
+  if (pending) {
+    readinessStatus("Wait for the current match move to finish, then run the check.");
+    return;
+  }
+  const agentIndex = Number(select.value);
+  if (select.value === "" || Number.isNaN(agentIndex) || !agents[agentIndex] || agents[agentIndex].kind === "human") {
+    readinessStatus("Connect a contender first — a readiness check questions an agent or built-in, not a human seat.");
+    return;
+  }
+  const suiteId = $<HTMLSelectElement>("readiness-suite").value;
+  const controller = new AbortController();
+  readinessController = controller;
+  button.disabled = true;
+  $("readiness-stop").hidden = false;
+  $("readiness-output").innerHTML = "";
+  try {
+    const receipt: ReadinessReceipt = await runReadinessCheck({
+      agent: agents[agentIndex],
+      suiteId,
+      models,
+      signal: controller.signal,
+      onPosition: (result, index, total) =>
+        readinessStatus(`Position ${index + 1}/${total} · ${result.id} · ${result.outcome}.`),
+    });
+    const cards = receipt.positions
+      .map(
+        (position) =>
+          `<div class="telemetry readiness-card"><div><span>${escapeReadiness(position.id)}</span><strong>${position.outcome}</strong></div><div><span>REPLY</span><strong>${escapeReadiness(position.replyMove ?? "—")}</strong></div><div><span>LATENCY</span><strong>${position.latencyMs === null ? "—" : `${position.latencyMs} ms`}</strong></div><div><span>DETAIL</span><strong>${escapeReadiness(position.detail)}</strong></div></div>`,
+      )
+      .join("");
+    const summary = `Readiness: ${receipt.summary.valid}/${receipt.summary.positions} valid · ${receipt.summary.invalidReply} invalid reply · ${receipt.summary.timeout} timeout · ${receipt.summary.connectionError} connection error${receipt.summary.skipped ? ` · ${receipt.summary.skipped} skipped` : ""}.`;
+    const container = $("readiness-output");
+    container.innerHTML = `<p class="subtitle">${escapeReadiness(summary)} Protocol readiness only — no ranking.</p>${cards}`;
+    const download = document.createElement("button");
+    download.textContent = "Download readiness receipt";
+    download.onclick = () =>
+      webDownload(
+        `readiness-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
+        new Blob([JSON.stringify(receipt, null, 2)], { type: "application/json" }),
+      );
+    container.append(download);
+    readinessStatus(
+      receipt.summary.skipped
+        ? "Check stopped early. The partial receipt marks every position that did not run as skipped."
+        : `Check complete over the ${receipt.suite.game} suite. One suite is practice evidence, not a leaderboard.`,
+    );
+  } catch (error) {
+    readinessStatus((error as Error).message);
+  } finally {
+    readinessController = null;
+    button.disabled = false;
+    $("readiness-stop").hidden = true;
+  }
+};
 $("create-game-shortcut").onclick = () => tab("forge");
 function openAgent(seat: number) {
   if (duelUI?.room.view().active && (duelUI.room.view().ready || duelUI.room.view().seat === 0))

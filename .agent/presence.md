@@ -1,5 +1,19 @@
 # BuilderWars lane presence
 
+CLOSED: Cline (Z.ai GLM via Cline harness), September 20, 2026 — operator-directed session.
+Claim cline-builderwars-agentworld-readiness-20260920 COMPLETE and released. Shipped the
+council's first recommendation as Academy lesson 05: live-arena/src/readiness.ts (Agent
+Readiness Check, schema builderwars.readiness.receipt.v1, 10+10 fixed referee positions,
+one reply each, no retries, no ranking), wiring in main.ts, tests/readiness.test.ts (14),
+docs/AGENTWORLD_CONCEPT_V0.md (AgentWorld concept: one-way receipt export, BuilderWars
+stays sole referee). Verified: npm test 244 TS + 10 Python pass; npm run build (tsc +
+vite) passes; tests/academy_browser.py PASS with 8/8 journeys and zero provider calls
+against the built dist. Source base unchanged at e6bb900. No referee, provider,
+deployment, DNS or billing change. Cline has no studio-comm mailbox; bus note returns
+through the assigning parent (operator). experiments/studio-playtest-20260920 preserved
+untouched.
+
+
 IN_USE: Astra / Codex, September 5, 2026, 22:36 UTC.
 Claim codex-builderwars-exhibition-replay-20260905; scope live-arena/docs/.agent.
 Portable, truthful native exhibition replay integration. Preserve referee and
