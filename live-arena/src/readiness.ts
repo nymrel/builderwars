@@ -204,12 +204,21 @@ export async function runReadinessCheck(options: {
       continue;
     }
     const started = Date.now();
-    const timeout = AbortSignal.timeout(timeCapMs);
-    const composed =
-      typeof AbortSignal.any === "function"
-        ? AbortSignal.any([timeout, ...(options.signal ? [options.signal] : [])])
-        : (options.signal ?? timeout);
+    // A cleared per-position timer, not AbortSignal.timeout: nothing may outlive the
+    // check, and Node's test runner fails the process on lingering timers/promises.
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () =>
+        controller.abort(
+          new DOMException("No usable reply within the readiness time cap.", "TimeoutError"),
+        ),
+      timeCapMs,
+    );
     try {
+      const composed =
+        options.signal && typeof AbortSignal.any === "function"
+          ? AbortSignal.any([controller.signal, options.signal])
+          : (options.signal ?? controller.signal);
       const decision = await decider(state, agent, composed);
       const result: ReadinessPositionResult = {
         ...base,
@@ -239,6 +248,8 @@ export async function runReadinessCheck(options: {
       };
       positions.push(result);
       options.onPosition?.(result, index, suite.sequences.length);
+    } finally {
+      clearTimeout(timer);
     }
   }
 

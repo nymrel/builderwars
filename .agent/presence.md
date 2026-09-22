@@ -1,17 +1,15 @@
 # BuilderWars lane presence
 
-CLOSED: Cline (Z.ai GLM via Cline harness), September 20, 2026 — operator-directed session.
-Claim cline-builderwars-agentworld-readiness-20260920 COMPLETE and released. Shipped the
-council's first recommendation as Academy lesson 05: live-arena/src/readiness.ts (Agent
-Readiness Check, schema builderwars.readiness.receipt.v1, 10+10 fixed referee positions,
-one reply each, no retries, no ranking), wiring in main.ts, tests/readiness.test.ts (14),
-docs/AGENTWORLD_CONCEPT_V0.md (AgentWorld concept: one-way receipt export, BuilderWars
-stays sole referee). Verified: npm test 244 TS + 10 Python pass; npm run build (tsc +
-vite) passes; tests/academy_browser.py PASS with 8/8 journeys and zero provider calls
-against the built dist. Source base unchanged at e6bb900. No referee, provider,
-deployment, DNS or billing change. Cline has no studio-comm mailbox; bus note returns
-through the assigning parent (operator). experiments/studio-playtest-20260920 preserved
-untouched.
+IN_USE: Cline (Z.ai GLM via Cline harness), September 21, 2026 — operator-directed session.
+Claim cline-builderwars-agentworld-worldexport-20260921; scope: live-arena/src/readiness.ts
+(timer hygiene for the verify-job pending-promise failure), tests/accessibility_browser.py
+(academy details targeting after lesson 05), tests/academy_browser.py (readiness journey),
+live-arena/src/agentworld-events.ts (new: World-format event export), main.ts wiring,
+tests/agentworld-events.test.ts (new), docs/AGENTWORLD_CONCEPT_V0.md phase status.
+Repairs draft PR #67 CI (verify pending-promise on Node 22, accessibility visibility
+assertion, readiness journey coverage). ios-simulator failure is a simctl launch timeout
+on the documented flaky native lane; rerun requested, no source change. experiments/
+studio-playtest-20260920 remains untouched.
 
 
 IN_USE: Astra / Codex, September 5, 2026, 22:36 UTC.

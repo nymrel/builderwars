@@ -31,6 +31,7 @@ import { Broadcast } from "./broadcast";
 import { keyboardCell } from "./board-keyboard";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
 import { READINESS_SUITES, runReadinessCheck, type ReadinessReceipt } from "./readiness";
+import { agentWorldEventFile } from "./agentworld-events";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
 import { PracticeMemory, MEMORY_KEY, supportsLearning, scoreTactics, type MemorySnapshot, type MemoryContext } from "./learning";
@@ -1298,6 +1299,21 @@ $("academy-readiness").onclick = async () => {
         new Blob([JSON.stringify(receipt, null, 2)], { type: "application/json" }),
       );
     container.append(download);
+    const worldEvent = document.createElement("button");
+    worldEvent.id = "readiness-world";
+    worldEvent.textContent = "Download AgentWorld event";
+    worldEvent.onclick = async () => {
+      try {
+        const file = await agentWorldEventFile(receipt);
+        webDownload(
+          `agentworld-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
+          new Blob([JSON.stringify(file, null, 2)], { type: "application/json" }),
+        );
+      } catch (error) {
+        notify((error as Error).message);
+      }
+    };
+    container.append(worldEvent);
     readinessStatus(
       receipt.summary.skipped
         ? "Check stopped early. The partial receipt marks every position that did not run as skipped."
@@ -1311,6 +1327,7 @@ $("academy-readiness").onclick = async () => {
     $("readiness-stop").hidden = true;
   }
 };
+refreshReadinessTargets();
 $("create-game-shortcut").onclick = () => tab("forge");
 function openAgent(seat: number) {
   if (duelUI?.room.view().active && (duelUI.room.view().ready || duelUI.room.view().seat === 0))
