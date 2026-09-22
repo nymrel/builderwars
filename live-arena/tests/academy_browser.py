@@ -115,7 +115,13 @@ with sync_playwright() as p:
     assert readiness["summary"]["valid"] == 10 and readiness["summary"]["positions"] == 10
     assert readiness["summary"]["invalidReply"] == 0 and readiness["summary"]["skipped"] == 0
     assert "key" not in json.dumps(readiness) and "endpoint" not in json.dumps(readiness)
-    assert page.get_by_role("button", name="Download AgentWorld event").is_visible()
+    with page.expect_download() as result:
+        page.get_by_role("button", name="Download AgentWorld event").click()
+    world = json.loads(Path(result.value.path()).read_text())
+    assert world["schema"] == "builderwars.agentworld.world-event.v1"
+    assert world["status"] == "export_only_not_ingested"
+    assert world["preview"]["idempotency_key"].startswith("builderwars-readiness-")
+    assert "SECRET" not in json.dumps(world)
     for width in [320, 390, 768, 1440]:
         page.set_viewport_size({"width": width, "height": 900})
         for section in ["academy", "forge", "evals"]:

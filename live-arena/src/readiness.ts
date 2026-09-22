@@ -155,7 +155,7 @@ export const READINESS_NOTES = [
   "One reply per position; invalid replies are never retried or replaced.",
   "Readiness measures protocol validity and completion, not strategic strength; it supports no ranking or leaderboard.",
   "Raw provider replies are not retained; the receipt records the validator verdict and failure class only.",
-  "Latency is the contender's reported decision time, or local wall time when no valid reply arrived.",
+  "Latency is local wall time around the request and validation, measured by the arena.",
   "Results are local evidence for this browser session; download the receipt to keep it.",
 ];
 
@@ -204,8 +204,9 @@ export async function runReadinessCheck(options: {
       continue;
     }
     const started = Date.now();
-    // A cleared per-position timer, not AbortSignal.timeout: nothing may outlive the
-    // check, and Node's test runner fails the process on lingering timers/promises.
+    // A cleared per-position timer with an explicit abort relay: the cap always
+    // governs (no AbortSignal.any required), nothing outlives the check, and
+    // external stops propagate into this position's signal.
     const controller = new AbortController();
     const timer = setTimeout(
       () =>
@@ -214,12 +215,10 @@ export async function runReadinessCheck(options: {
         ),
       timeCapMs,
     );
+    const relayStop = () => controller.abort(options.signal?.reason);
+    options.signal?.addEventListener("abort", relayStop, { once: true });
     try {
-      const composed =
-        options.signal && typeof AbortSignal.any === "function"
-          ? AbortSignal.any([controller.signal, options.signal])
-          : (options.signal ?? controller.signal);
-      const decision = await decider(state, agent, composed);
+      const decision = await decider(state, agent, controller.signal);
       const result: ReadinessPositionResult = {
         ...base,
         outcome: "valid",
@@ -250,6 +249,7 @@ export async function runReadinessCheck(options: {
       options.onPosition?.(result, index, suite.sequences.length);
     } finally {
       clearTimeout(timer);
+      options.signal?.removeEventListener("abort", relayStop);
     }
   }
 

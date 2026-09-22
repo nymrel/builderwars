@@ -1258,8 +1258,8 @@ $("academy-readiness").onclick = async () => {
     readinessStatus("A readiness check is already running. Stop it before starting another.");
     return;
   }
-  if (pending) {
-    readinessStatus("Wait for the current match move to finish, then run the check.");
+  if (pending || running || spectating) {
+    readinessStatus("Pause the current match or leave spectator mode before running a readiness check.");
     return;
   }
   const agentIndex = Number(select.value);
