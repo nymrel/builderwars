@@ -1,15 +1,18 @@
 # BuilderWars lane presence
 
-IN_USE: Cline (Z.ai GLM via Cline harness), September 21, 2026 — operator-directed session.
-Claim cline-builderwars-agentworld-worldexport-20260921; scope: live-arena/src/readiness.ts
-(timer hygiene for the verify-job pending-promise failure), tests/accessibility_browser.py
-(academy details targeting after lesson 05), tests/academy_browser.py (readiness journey),
-live-arena/src/agentworld-events.ts (new: World-format event export), main.ts wiring,
-tests/agentworld-events.test.ts (new), docs/AGENTWORLD_CONCEPT_V0.md phase status.
-Repairs draft PR #67 CI (verify pending-promise on Node 22, accessibility visibility
-assertion, readiness journey coverage). ios-simulator failure is a simctl launch timeout
-on the documented flaky native lane; rerun requested, no source change. experiments/
-studio-playtest-20260920 remains untouched.
+CLOSED: Cline (Z.ai GLM via Cline harness), September 21, 2026 — operator-directed session.
+Claim cline-builderwars-agentworld-worldexport-20260921 COMPLETE and released at commit
+d3159c9 (pushed; updates draft PR #67). Diagnosed and repaired all three PR67 CI failures:
+(1) verify pending-promise — readiness time cap now uses cleared setTimeout, verified
+under exact CI Node 22.17.0; (2) browser accessibility — details targeting fixed after
+lesson 05 plus readiness control contrast/focus audits; (3) ios-simulator was a simctl
+launch timeout on the documented flaky native lane (no source change; fresh run triggered
+by push). Added AgentWorld Phase-1 format layer: agentworld-events.ts (World
+agent_world_lib-compatible event export, golden-vector pinned against the World's own
+Python _event_hash), Academy Download AgentWorld event button, select populated at load,
+6 agentworld tests. Local ladder: full npm test, Node 22 both files, build, academy 9/9
+journeys 0 provider calls, accessibility PASS no contrast failures. Bus note returns via
+operator. experiments/ untouched.
 
 
 IN_USE: Astra / Codex, September 5, 2026, 22:36 UTC.
