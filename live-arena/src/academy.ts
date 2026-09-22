@@ -37,6 +37,18 @@ export const academyMarkup = `
         <a href="https://github.com/nymrel/builderwars/blob/main/live-arena/README.md" target="_blank" rel="noopener">Harness and local runner guide ↗</a>
       </details>
     </div></article>
+    <article><span>05</span><div><h2>Agent Readiness Check</h2>
+      <p>Before a match, confirm a contender can answer real request shapes: ten fixed referee positions, one reply each, validated by the same rules a match uses. Invalid replies are reported and never retried or replaced by a bot.</p>
+      <div class="settings-row"><label>Contender<select id="readiness-agent"></select></label><label>Position suite<select id="readiness-suite"><option value="tictactoe">Tic-tac-toe · 10 fixed positions</option><option value="nim">Nim · 10 fixed positions</option></select></label></div>
+      <button id="academy-readiness" class="primary">Run readiness check ↗</button>
+      <button id="readiness-stop" hidden>Stop check</button>
+      <p id="readiness-status" class="notice" role="status" aria-live="polite">No model request is sent until you run a check. Built-in contenders answer locally; connected contenders use your own provider access.</p>
+      <div id="readiness-output"></div>
+      <details><summary>What a readiness receipt proves</summary>
+        <p>Passing proves the contender returned a schema-valid, legal move for each fixed position within the time cap — protocol readiness only. It does not prove strategic strength, model identity, provider execution, or any ranking, and one suite is not a leaderboard. Timeouts are latency evidence, not strategy evidence.</p>
+      </details>
+      <p class="muted">Connected contenders are billed by your provider: 10 requests per run at your Tokens/move setting. Results stay in this tab until you download the receipt.</p>
+    </div></article>
   </div>`;
 
 export function freeAcademyRecipe(variant = false) {
