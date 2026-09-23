@@ -39,7 +39,7 @@ with sync_playwright() as p:
     page.on('pageerror', lambda e: errors.append(str(e)))
     try:
         page.goto(BASE)
-        page.locator('[data-tab="evals"]').click()
+        page.locator('nav [data-tab="evals"]').click()
         expect(page.locator('#dev-probe')).to_be_disabled()
         expect(page.locator('#dev-status')).to_contain_text('No version yet')
         assert not submitted
@@ -53,7 +53,7 @@ with sync_playwright() as p:
             page.locator('#connection-advanced > summary').click()
         page.locator('#strategy').fill('Baseline strategy')
         page.locator('#agent-form button[type=submit]').click()
-        page.locator('[data-tab="evals"]').click()
+        page.locator('nav [data-tab="evals"]').click()
         page.locator('#dev-consent').check()
         page.locator('#dev-probe').click()
         expect(page.locator('#dev-status')).to_contain_text('Baseline frozen')
@@ -134,7 +134,7 @@ with sync_playwright() as p:
             page.locator('#development-title').scroll_into_view_if_needed()
             page.screenshot(path=str(OUT / f'workspace-{width}.png'), full_page=True)
         page.reload()
-        page.locator('[data-tab="evals"]').click()
+        page.locator('nav [data-tab="evals"]').click()
         expect(page.locator('#dev-status')).to_contain_text('No version yet')
         page.locator('#dev-import').set_input_files({'name': 'version.json', 'mimeType': 'application/json', 'buffer': json.dumps(baseline).encode()})
         expect(page.locator('#dev-status')).to_contain_text('disconnected and not selected')
