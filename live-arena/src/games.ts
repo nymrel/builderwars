@@ -416,26 +416,34 @@ export function botMove(s: GameState, style = "tactician"): string {
 
   // 1. Tic-Tac-Toe: Exact full minimax solver (unbeatable)
   if (s.rules.kind === "tictactoe") {
+    // Every move fills one cell, so for this root the board alone fixes depth and
+    // side to move: memoizing by cells is exact. Without it the empty-board search
+    // walks ~550k nodes and overruns the 5s built-in search timeout on slow devices.
+    const memo = new Map<string, number>();
     function minimax(curr: GameState, isMax: boolean, depth: number): number {
       if (curr.over) {
         if (curr.winner === player) return 100 - depth;
         if (curr.winner !== null) return depth - 100;
         return 0;
       }
+      const key = curr.cells.join(",");
+      const known = memo.get(key);
+      if (known !== undefined) return known;
       const legals = legalMoves(curr);
+      let value: number;
       if (isMax) {
-        let maxEval = -Infinity;
+        value = -Infinity;
         for (const m of legals) {
-          maxEval = Math.max(maxEval, minimax(applyMove(curr, m), false, depth + 1));
+          value = Math.max(value, minimax(applyMove(curr, m), false, depth + 1));
         }
-        return maxEval;
       } else {
-        let minEval = Infinity;
+        value = Infinity;
         for (const m of legals) {
-          minEval = Math.min(minEval, minimax(applyMove(curr, m), true, depth + 1));
+          value = Math.min(value, minimax(applyMove(curr, m), true, depth + 1));
         }
-        return minEval;
       }
+      memo.set(key, value);
+      return value;
     }
     let best = -Infinity, chosen = moves[0];
     for (const m of moves) {
