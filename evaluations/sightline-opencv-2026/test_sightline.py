@@ -187,6 +187,25 @@ class SightlineTests(unittest.TestCase):
         self.assertEqual(trace.action, "request_human_approval")
         self.assertTrue(trace.human_approval_required)
 
+    def test_fragmented_material_change_requires_human_approval(self) -> None:
+        left = sightline.VisualFinding(
+            "missing_region", "low", (0, 0, 4, 4), 11, 1000
+        )
+        right = sightline.VisualFinding(
+            "missing_region", "low", (10, 0, 4, 4), 11, 1000
+        )
+        trace = sightline.SightlineAgent().plan([left, right])
+        self.assertEqual(trace.action, "request_human_approval")
+        self.assertTrue(trace.human_approval_required)
+
+    def test_isolated_low_risk_change_remains_accepted(self) -> None:
+        finding = sightline.VisualFinding(
+            "visual_change", "low", (0, 0, 2, 2), 4, 1000
+        )
+        trace = sightline.SightlineAgent().plan([finding])
+        self.assertEqual(trace.action, "accept_no_material_change")
+        self.assertFalse(trace.human_approval_required)
+
     def test_digest_is_order_independent(self) -> None:
         left = sightline.VisualFinding("visual_change", "low", (0, 0, 2, 2), 4, 100)
         right = sightline.VisualFinding("visual_change", "high", (8, 8, 2, 2), 4, 100)
