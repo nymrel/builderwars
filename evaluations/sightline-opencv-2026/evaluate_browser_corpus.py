@@ -28,13 +28,19 @@ ROOT = Path(__file__).resolve().parents[2]
 EVALUATION_ROOT = Path(__file__).resolve().parent
 MOBILE_ARENA = ROOT / "mobile-arena"
 SIGHTLINE_PATH = EVALUATION_ROOT / "sightline.py"
-VIEWPORT = {"width": 1040, "height": 900}
+VIEWPORTS = {
+    "desktop": {"width": 1040, "height": 900},
+    "mobile": {"width": 390, "height": 844},
+}
 SOURCE_HEAD_ENV = "SOURCE_HEAD"
 
 
 @dataclass(frozen=True)
 class UserFlowCase:
     name: str
+    viewport: str
+    viewport_width: int
+    viewport_height: int
     workflow: str
     regression: str
     expected_material: bool
@@ -140,6 +146,9 @@ def _evaluate_pair(
     sightline: Any,
     perception: Any,
     name: str,
+    viewport: str,
+    viewport_width: int,
+    viewport_height: int,
     workflow: str,
     regression: str,
     expected_material: bool,
@@ -176,6 +185,9 @@ def _evaluate_pair(
     )
     return UserFlowCase(
         name=name,
+        viewport=viewport,
+        viewport_width=viewport_width,
+        viewport_height=viewport_height,
         workflow=workflow,
         regression=regression,
         expected_material=expected_material,
@@ -251,7 +263,7 @@ def evaluate() -> dict[str, Any]:
         with sync_playwright() as runtime:
             browser = runtime.chromium.launch(headless=True)
             context = browser.new_context(
-                viewport=VIEWPORT,
+                viewport=VIEWPORTS["desktop"],
                 device_scale_factor=1,
                 color_scheme="dark",
                 reduced_motion="reduce",
@@ -282,16 +294,19 @@ def evaluate() -> dict[str, Any]:
             )
 
             captures: list[
-                tuple[str, str, str, bool, Path, Path]
+                tuple[str, str, int, int, str, str, bool, Path, Path]
             ] = []
 
             def record(
                 name: str,
+                viewport: str,
                 workflow: str,
                 regression: str,
                 expected_material: bool,
                 mutate: Callable[[Any], None] | None,
             ) -> None:
+                dimensions = VIEWPORTS[viewport]
+                page.set_viewport_size(dimensions)
                 _reset(page, url)
                 baseline = root / f"{name}-baseline.png"
                 candidate = root / f"{name}-candidate.png"
@@ -302,6 +317,9 @@ def evaluate() -> dict[str, Any]:
                 captures.append(
                     (
                         name,
+                        viewport,
+                        dimensions["width"],
+                        dimensions["height"],
                         workflow,
                         regression,
                         expected_material,
@@ -310,16 +328,8 @@ def evaluate() -> dict[str, Any]:
                     )
                 )
 
-            record(
-                "arena_stable",
-                "inspect the Arena landing view",
-                "none",
-                False,
-                None,
-            )
-
             def remove_featured(current_page: Any) -> None:
-                _require_visible(current_page, "#featured-match", 10_000)
+                _require_visible(current_page, "#featured-match", 5_000)
                 current_page.evaluate(
                     """() => {
                         const target = document.querySelector('#featured-match');
@@ -327,26 +337,10 @@ def evaluate() -> dict[str, Any]:
                     }"""
                 )
 
-            record(
-                "featured_receipt_missing",
-                "inspect the featured reviewed receipt",
-                "featured receipt region disappears",
-                True,
-                remove_featured,
-            )
-
             def open_session_sheet(current_page: Any) -> None:
                 _require_visible(current_page, "#profile-button")
                 current_page.locator("#profile-button").click()
                 _require_visible(current_page, "#session-sheet", 10_000)
-
-            record(
-                "session_sheet_unexpected",
-                "review the Arena while the local-session sheet should remain closed",
-                "local-session sheet appears unexpectedly",
-                True,
-                open_session_sheet,
-            )
 
             def route_to_wrong_view(current_page: Any) -> None:
                 selector = ".bottom-nav [data-nav='watch']"
@@ -354,19 +348,48 @@ def evaluate() -> dict[str, Any]:
                 current_page.locator(selector).click()
                 _require_visible(current_page, "#view-watch")
 
-            record(
-                "primary_view_misroute",
-                "open the Arena primary destination",
-                "navigation resolves to Watch instead of Arena",
-                True,
-                route_to_wrong_view,
-            )
+            for viewport in VIEWPORTS:
+                record(
+                    f"{viewport}_arena_stable",
+                    viewport,
+                    "inspect the Arena landing view",
+                    "none",
+                    False,
+                    None,
+                )
+                record(
+                    f"{viewport}_featured_receipt_missing",
+                    viewport,
+                    "inspect the featured reviewed receipt",
+                    "featured receipt region disappears",
+                    True,
+                    remove_featured,
+                )
+                record(
+                    f"{viewport}_session_sheet_unexpected",
+                    viewport,
+                    "review the Arena while the local-session sheet should remain closed",
+                    "local-session sheet appears unexpectedly",
+                    True,
+                    open_session_sheet,
+                )
+                record(
+                    f"{viewport}_primary_view_misroute",
+                    viewport,
+                    "open the Arena primary destination",
+                    "navigation resolves to Watch instead of Arena",
+                    True,
+                    route_to_wrong_view,
+                )
 
             cases = [
                 _evaluate_pair(
                     sightline=sightline,
                     perception=perception,
                     name=name,
+                    viewport=viewport,
+                    viewport_width=viewport_width,
+                    viewport_height=viewport_height,
                     workflow=workflow,
                     regression=regression,
                     expected_material=expected_material,
@@ -375,6 +398,9 @@ def evaluate() -> dict[str, Any]:
                 )
                 for (
                     name,
+                    viewport,
+                    viewport_width,
+                    viewport_height,
                     workflow,
                     regression,
                     expected_material,
@@ -411,7 +437,7 @@ def evaluate() -> dict[str, Any]:
             "opencv": perception.cv2.__version__,
             "browser": "chromium",
             "playwright": "1.58.0",
-            "viewport": VIEWPORT,
+            "viewports": VIEWPORTS,
         },
         "scope": "loopback_browser_rendered_labeled_user_flows",
         "task_success": {
