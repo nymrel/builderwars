@@ -72,11 +72,25 @@ The artifact is neither uploaded nor deployed. A successful receipt must report 
 
 ## Hosted validation
 
-`.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 23 tests without skips, compiles every Python module, emits the measured baseline, and builds the deterministic review-only AWS artifact. The workflow has read-only repository permission and no AWS or deployment capability.
+`.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 26 tests without skips, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The workflow has read-only repository permission and no AWS or deployment capability.
+
+## Judge-facing preparation
+
+The private draft packet contains:
+
+- technical report;
+- architecture and trust boundaries;
+- limitations and claim boundary;
+- sub-five-minute demo script;
+- official-terms and registration matrix; and
+- official submission-requirements traceability.
+
+The packet verifier hashes an exact allowlist, rejects unexpected or sensitive content, and always reports `draft_not_submitted`, `publication_authorized=false`, and `submission_authorized=false`.
 
 ## Remaining gates
 
 1. Expand evaluation to a provenance-safe corpus of representative Nymrel-owned or publicly licensed browser screenshots before making any competition-quality claim.
-2. Produce judge-safe report, architecture, reproducibility, limitations, and demo materials.
-3. Review the competition's Submitted Materials and registration terms against the exact judge-facing package.
-4. Credentialed AWS deployment remains blocked until authorized account access is available and no billing, promotional-credit acceptance, or spend is required.
+2. Demonstrate a meaningful component actually running on AWS; local Lambda compatibility and an inert plan are not AWS execution.
+3. Render and review judge-facing assets using only cleared fixtures, then freeze the exact Submitted Materials corpus.
+4. Monitor for the final controlling Devpost terms and organizer reconciliation of the deadline and reward conflicts.
+5. Credentialed AWS deployment remains blocked until authorized account access is available and no billing, promotional-credit acceptance, or spend is required.
