@@ -54,3 +54,6 @@ jobs:
         run: |
           python evaluations/sightline-opencv-2026/build_aws_artifact.py \
             --output-dir "$RUNNER_TEMP/sightline-artifact"
+      - name: Verify draft judge-facing packet
+        run: |
+          python evaluations/sightline-opencv-2026/verify_submission_packet.py
