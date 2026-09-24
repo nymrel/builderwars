@@ -7,11 +7,13 @@ import json
 from pathlib import Path
 import re
 from typing import Any
+from xml.etree import ElementTree
 
 
 PACKET_ROOT = Path(__file__).with_name("submission-packet")
 ALLOWED_FILES = (
     "ARCHITECTURE.draft.md",
+    "ARCHITECTURE.draft.svg",
     "DEMO_SCRIPT.draft.md",
     "LIMITATIONS.draft.md",
     "REQUIREMENTS_TRACEABILITY.draft.md",
@@ -26,7 +28,16 @@ FORBIDDEN = (
     re.compile(r"[A-Za-z]:\\Users\\"),
     re.compile(r"(?i)(?:api[_-]?key|secret|access[_-]?token)\s*[:=]\s*[^\s`]{8,}"),
 )
+SVG_FORBIDDEN = (
+    re.compile(r"(?i)<!DOCTYPE"),
+    re.compile(r"(?i)<!ENTITY"),
+    re.compile(r"(?i)<\s*(?:script|foreignObject|image)\b"),
+    re.compile(r"(?i)\bon[a-z]+\s*="),
+    re.compile(r"(?i)\b(?:href|xlink:href)\s*="),
+    re.compile(r"(?i)url\(\s*[\"']?\s*(?:https?:)?//"),
+)
 REQUIRED_MARKER = "Draft, Not Submitted"
+SVG_ROOT_TAG = "{http://www.w3.org/2000/svg}svg"
 
 
 def verify_packet(root: Path = PACKET_ROOT) -> dict[str, Any]:
@@ -48,6 +59,16 @@ def verify_packet(root: Path = PACKET_ROOT) -> dict[str, Any]:
         for pattern in FORBIDDEN:
             if pattern.search(text):
                 raise ValueError(f"{name}: forbidden sensitive pattern")
+        if name.endswith(".svg"):
+            for pattern in SVG_FORBIDDEN:
+                if pattern.search(text):
+                    raise ValueError(f"{name}: unsafe SVG content")
+            try:
+                root_element = ElementTree.fromstring(text)
+            except ElementTree.ParseError as exc:
+                raise ValueError(f"{name}: invalid SVG XML") from exc
+            if root_element.tag != SVG_ROOT_TAG:
+                raise ValueError(f"{name}: invalid SVG root")
         receipts.append(
             {
                 "path": name,

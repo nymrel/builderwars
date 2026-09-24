@@ -17,6 +17,10 @@ SPEC.loader.exec_module(verifier)
 
 
 class SubmissionPacketVerifierTests(unittest.TestCase):
+    def copy_packet(self, root: Path) -> None:
+        for name in verifier.ALLOWED_FILES:
+            shutil.copy2(verifier.PACKET_ROOT / name, root / name)
+
     def test_current_packet_is_allowlisted_and_draft_only(self) -> None:
         receipt = verifier.verify_packet()
         self.assertEqual(receipt["status"], "draft_not_submitted")
@@ -32,8 +36,7 @@ class SubmissionPacketVerifierTests(unittest.TestCase):
     def test_rejects_sensitive_content(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for name in verifier.ALLOWED_FILES:
-                shutil.copy2(verifier.PACKET_ROOT / name, root / name)
+            self.copy_packet(root)
             target = root / verifier.ALLOWED_FILES[0]
             target.write_text(
                 target.read_text(encoding="utf-8")
@@ -46,14 +49,33 @@ class SubmissionPacketVerifierTests(unittest.TestCase):
     def test_rejects_unexpected_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for name in verifier.ALLOWED_FILES:
-                shutil.copy2(verifier.PACKET_ROOT / name, root / name)
+            self.copy_packet(root)
             (root / "private-notes.md").write_text(
                 "# Draft, Not Submitted\n",
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "allowlist mismatch"):
                 verifier.verify_packet(root)
+
+    def test_rejects_active_or_external_svg_content(self) -> None:
+        payloads = (
+            "<script>alert('blocked')</script>",
+            '<image href="https://example.invalid/pixel.png"/>',
+        )
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                with tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    self.copy_packet(root)
+                    target = root / "ARCHITECTURE.draft.svg"
+                    target.write_text(
+                        target.read_text(encoding="utf-8").replace(
+                            "</svg>", f"{payload}</svg>"
+                        ),
+                        encoding="utf-8",
+                    )
+                    with self.assertRaisesRegex(ValueError, "unsafe SVG content"):
+                        verifier.verify_packet(root)
 
 
 if __name__ == "__main__":

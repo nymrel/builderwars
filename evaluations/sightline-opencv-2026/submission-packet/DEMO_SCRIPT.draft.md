@@ -24,11 +24,11 @@ Build the deterministic source ZIP. Show its SHA-256 and the inert `prepare_only
 
 ## 3:35–4:10 — Evaluation
 
-Show the generated-fixture baseline: 3/3 expected task outcomes and 2/2 fail-closed controls, followed by the full hosted test count. State the small-sample limitation.
+Show 3/3 generated task outcomes and 2/2 fail-closed controls, then the labeled loopback browser corpus: 12/12 desktop/mobile cases, 10 true positives, 2 true negatives, and zero false positives or false negatives. Show the full 30-test hosted result. State that this small managed-Chromium set is not cross-browser or production-accuracy evidence.
 
 ## 4:10–4:30 — Close
 
-Summarize the perception → decision → human-approval loop and the next validation step: a provenance-safe representative browser screenshot corpus.
+Use the self-contained architecture graphic to summarize perception → decision → human approval. Identify the next validation steps as broader provenance-cleared browsers/routes and meaningful AWS execution only through an authorized zero-spend path.
 
 ## Recording Rules
 

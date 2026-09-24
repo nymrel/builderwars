@@ -80,7 +80,7 @@ The artifact is neither uploaded nor deployed. A successful receipt must report 
 
 ## Hosted validation
 
-`.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 29 tests without skips, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The workflow has read-only repository permission and no AWS or deployment capability.
+`.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 30 tests without skips, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The workflow has read-only repository permission and no AWS or deployment capability.
 
 `.github/workflows/sightline-browser-corpus.yml` separately installs pinned Playwright 1.58.0 and managed Chromium, renders tracked BuilderWars source only over loopback, and runs the browser corpus without uploading the temporary PNGs.
 
@@ -89,18 +89,18 @@ The artifact is neither uploaded nor deployed. A successful receipt must report 
 The private draft packet contains:
 
 - technical report;
-- architecture and trust boundaries;
+- architecture narrative and a self-contained rendered SVG;
 - limitations and claim boundary;
 - sub-five-minute demo script;
 - official-terms and registration matrix; and
 - official submission-requirements traceability.
 
-The packet verifier hashes an exact allowlist, rejects unexpected or sensitive content, and always reports `draft_not_submitted`, `publication_authorized=false`, and `submission_authorized=false`.
+The packet verifier hashes an exact seven-file allowlist, parses the SVG as XML, rejects active or externally referenced SVG content plus unexpected or sensitive content, and always reports `draft_not_submitted`, `publication_authorized=false`, and `submission_authorized=false`.
 
 ## Remaining gates
 
 1. Expand beyond the current six workflow types and two fixed viewports across more routes, responsive breakpoints, browsers, and provenance-cleared states before making any competition-quality claim.
 2. Demonstrate a meaningful component actually running on AWS; local Lambda compatibility and an inert plan are not AWS execution.
-3. Render and review judge-facing assets using only cleared fixtures, then freeze the exact Submitted Materials corpus.
+3. Review the deterministic architecture SVG, record the demonstration using only cleared fixtures, then freeze the exact Submitted Materials corpus.
 4. Monitor for the final controlling Devpost terms and organizer reconciliation of the deadline and reward conflicts.
 5. Credentialed AWS deployment remains blocked until authorized account access is available and no billing, promotional-credit acceptance, or spend is required.

@@ -17,6 +17,8 @@ flowchart LR
     M --> N["Prepare only; no credentials or deployment"]
 ```
 
+A self-contained companion rendering is stored in `ARCHITECTURE.draft.svg`. It contains no external fonts, scripts, images, links, or network references.
+
 ## Trust Boundaries
 
 - Image inputs are bounded and decoded locally.

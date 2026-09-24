@@ -24,7 +24,7 @@ Status vocabulary:
 | Technical report | `TECHNICAL_REPORT.draft.md` covers problem, users, architecture, OpenCV role, AWS boundary, evaluation, limitations, and responsible operation. | **Prepared** | Reconcile with final measured corpus and actual AWS evidence. |
 | Judge-accessible repository or archive | Private draft PR and deterministic review-only source ZIP exist. | **Partial** | Freeze the exact authorized corpus and establish judge access without exposing excluded private assets. |
 | Pinned dependencies and build/deploy/test instructions | OpenCV 5.0.0 and NumPy 2.3.5 wheels are hash-locked; local and hosted test/build commands are documented. | **Implemented** for local validation | Add real deployment instructions only after an authorized, zero-spend AWS path exists. |
-| Architecture diagram | `ARCHITECTURE.draft.md` traces PNG inputs, OpenCV perception, typed findings, policy, human approval, evidence digest, Lambda handler, and inert AWS plan. | **Prepared** | Replace the inert AWS box with verified runtime evidence if deployment occurs. |
+| Architecture diagram | `ARCHITECTURE.draft.md` and the self-contained `ARCHITECTURE.draft.svg` trace PNG inputs, OpenCV perception, typed findings, policy, human approval, evidence digest, Lambda handler, and inert AWS plan. | **Prepared** | Replace the inert AWS box with verified runtime evidence if deployment occurs. |
 | Working endpoint or arranged live screen-share | No endpoint is deployed and no demonstration session is arranged. | **Blocked** | Requires an authorized deployment or later organizer coordination; do not claim availability. |
 | Public or unlisted video no longer than five minutes | A 4:30 draft script exists with recording safeguards. | **Partial** | Record only with provenance-cleared fixtures after the exact Submitted Materials scope is authorized. |
 | Evaluation including failure cases or limitations | Generated baseline passes 3/3 task cases and 2/2 fail-closed controls. Six labeled loopback Chromium workflow types run at desktop and mobile fixed viewports and pass 12/12 with 10 true positives, 2 true negatives, zero false positives, and zero false negatives; precision, recall, specificity, and accuracy are 1.0 on this twelve-case set. Limitations are explicit. | **Partial** | Broaden the twelve-case corpus across more Nymrel-owned routes, states, responsive breakpoints, and browsers before making a competition-quality claim. |
@@ -34,7 +34,7 @@ Status vocabulary:
 | Qualifying evidence | Exact evidence | Status | Remaining proof |
 |---|---|---|---|
 | OpenCV output changes a later decision, action, tool call, or human-approval request | Typed findings deterministically change the policy outcome; material findings produce `request_human_approval`. | **Implemented** |
-| Workflow diagram | Architecture draft shows perception → decision → human approval and evidence trace. | **Prepared** |
+| Workflow diagram | Architecture narrative and self-contained SVG show perception → decision → human approval and evidence trace. | **Prepared** |
 | Trace or demonstration | Deterministic finding digest and decision trace exist in tests and evaluator receipts. | **Implemented** for generated fixtures |
 | Task effectiveness | 3/3 generated cases and 12/12 labeled browser cases pass across desktop and mobile fixed viewports. The browser confusion matrix has zero false positives and zero false negatives on twelve cases. | **Partial** — the corpus remains too small and controlled for a competition-quality claim. |
 | Failure handling and observability | Unreadable input and dimension mismatch fail closed; receipts expose false execution/AWS authority. | **Implemented** for current boundary |
@@ -50,11 +50,11 @@ Sightline does not currently claim the Best Use of COOL Award. No COOL integrati
 
 | Criterion | Weight | Current evidence | Primary gap |
 |---|---:|---|---|
-| Technical execution | 30% | Exact OpenCV 5 runtime, typed findings, aggregate/fragmented materiality guards, deterministic traces, bounded handler, 29 passing hosted tests, and a digest-bound labeled Chromium corpus. | Broader representative-workflow performance and deployed AWS evidence. |
+| Technical execution | 30% | Exact OpenCV 5 runtime, typed findings, aggregate/fragmented materiality guards, deterministic traces, bounded handler, 30 passing hosted tests, and a digest-bound labeled Chromium corpus. | Broader representative-workflow performance and deployed AWS evidence. |
 | Innovation | 20% | Perception-to-auditable-decision loop with explicit no-execution authority. | Comparative positioning and demonstrated iteration beyond a narrow pixel-difference baseline. |
 | Real-world impact | 20% | Clear visual-regression problem and human-control model. | User evidence, representative workflows, and measured benefit. |
 | User experience | 10% | Typed results and explicit approval state. | Judge-visible interface or live demonstration. |
-| Documentation and presentation | 10% | Draft report, architecture, limitations, demo script, terms matrix, and this traceability matrix. | Final rendered assets and recorded demonstration. |
+| Documentation and presentation | 10% | Draft report, architecture, limitations, demo script, terms matrix, and this traceability matrix. | Recorded demonstration and final packet review. |
 | Cloud delivery, reproducibility, responsible operation | 10% | Hash-locked runtime, deterministic artifact, credential/spend guards, fail-closed tests. | Actual AWS deployment, runtime observability, latency/cost evidence, and reproducible deployment instructions. |
 
 ## Fail-closed conclusion
