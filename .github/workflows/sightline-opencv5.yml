@@ -50,6 +50,10 @@ jobs:
       - name: Measure task success and fail-closed controls
         run: |
           python evaluations/sightline-opencv-2026/evaluate_stage1.py
+      - name: Build synthetic-only demo review bundle
+        run: |
+          python evaluations/sightline-opencv-2026/build_demo_bundle.py \
+            --output-dir "$RUNNER_TEMP/sightline-demo"
       - name: Build review-only deterministic AWS artifact
         run: |
           python evaluations/sightline-opencv-2026/build_aws_artifact.py \

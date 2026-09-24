@@ -29,7 +29,7 @@ OpenCV 5.0.0 performs image decoding, absolute difference, grayscale conversion,
 
 ## Evaluation
 
-The generated offline baseline covers missing-region, unexpected-region, and layout-shift cases. All three expected task outcomes pass. Two fail-closed controls cover unreadable images and dimension mismatch. The full hosted unit suite contains 30 tests.
+The generated offline baseline covers missing-region, unexpected-region, and layout-shift cases. All three expected task outcomes pass. Two fail-closed controls cover unreadable images and dimension mismatch. The full hosted unit suite contains 33 tests.
 
 A separate browser workflow serves tracked Nymrel-owned BuilderWars Mobile Arena source on loopback and evaluates six labeled workflows at fixed 1040×900 desktop and 390×844 mobile viewports: a stable Arena, a missing featured receipt, unexpectedly open local-session and proof sheets, and Arena misroutes to Watch and Build. All 12/12 outcomes pass against OpenCV 5.0.0, with 10 true positives, 2 true negatives, zero false positives, and zero false negatives. Precision, recall, specificity, and accuracy are each 1.0 on this twelve-case set.
 
@@ -45,7 +45,7 @@ A deterministic source builder emits an allowlisted ZIP and passes its metadata 
 
 ## Reproducibility
 
-The repository documents the hash-locked CPython 3.12 environment, test command, evaluator, artifact builder, and hosted exact-head evidence. The generated artifact uses fixed timestamps, permissions, ordering, and content. The judge packet includes a self-contained SVG architecture rendering; the verifier parses it as XML and rejects scripts, foreign objects, embedded images, event handlers, doctypes/entities, links, and external CSS URLs.
+The repository documents the hash-locked CPython 3.12 environment, test command, evaluator, AWS artifact builder, synthetic-only demo-bundle builder, and hosted exact-head evidence. The generated artifact uses fixed timestamps, permissions, ordering, and content. The deterministic private demo bundle contains only three generated PNG pairs, a machine-readable evaluation, the tracked architecture SVG, and a SHA-256 manifest; its receipt excludes local paths and denies execution, publication, and submission authority. The judge packet includes a self-contained SVG architecture rendering; the verifier parses it as XML and rejects scripts, foreign objects, embedded images, event handlers, doctypes/entities, links, and external CSS URLs.
 
 ## Responsible Operation
 
