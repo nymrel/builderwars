@@ -39,8 +39,10 @@ class UserFlowCase:
     regression: str
     expected_material: bool
     observed_material: bool
-    observed_kinds: tuple[str, ...]
+    observed_kind_counts: dict[str, int]
+    finding_count: int
     action: str
+    safe_stop: bool
     human_approval_required: bool
     baseline_sha256: str
     candidate_sha256: str
@@ -152,15 +154,23 @@ def _evaluate_pair(
     )
     trace = sightline.SightlineAgent().plan(findings)
     observed_material = bool(findings)
-    expected_action = (
-        "request_human_approval"
-        if expected_material
-        else "accept_no_material_change"
-    )
+    safe_stop = trace.action in {
+        "request_human_approval",
+        "reject_unbounded_input",
+    }
+    kind_counts = {
+        kind: sum(finding.kind == kind for finding in findings)
+        for kind in sorted({finding.kind for finding in findings})
+    }
     passed = (
         observed_material is expected_material
-        and trace.action == expected_action
-        and trace.human_approval_required is expected_material
+        and (
+            safe_stop
+            if expected_material
+            else trace.action == "accept_no_material_change"
+        )
+        and trace.human_approval_required
+        is (trace.action == "request_human_approval")
         and not trace.execution_authorized
         and not trace.aws_invoked
     )
@@ -170,8 +180,10 @@ def _evaluate_pair(
         regression=regression,
         expected_material=expected_material,
         observed_material=observed_material,
-        observed_kinds=tuple(finding.kind for finding in findings),
+        observed_kind_counts=kind_counts,
+        finding_count=len(findings),
         action=trace.action,
+        safe_stop=safe_stop,
         human_approval_required=trace.human_approval_required,
         baseline_sha256=_digest(baseline),
         candidate_sha256=_digest(candidate),
