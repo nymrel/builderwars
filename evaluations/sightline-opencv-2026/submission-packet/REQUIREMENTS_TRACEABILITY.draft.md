@@ -27,7 +27,7 @@ Status vocabulary:
 | Architecture diagram | `ARCHITECTURE.draft.md` traces PNG inputs, OpenCV perception, typed findings, policy, human approval, evidence digest, Lambda handler, and inert AWS plan. | **Prepared** | Replace the inert AWS box with verified runtime evidence if deployment occurs. |
 | Working endpoint or arranged live screen-share | No endpoint is deployed and no demonstration session is arranged. | **Blocked** | Requires an authorized deployment or later organizer coordination; do not claim availability. |
 | Public or unlisted video no longer than five minutes | A 4:30 draft script exists with recording safeguards. | **Partial** | Record only with provenance-cleared fixtures after the exact Submitted Materials scope is authorized. |
-| Evaluation including failure cases or limitations | Generated baseline passes 3/3 task cases and 2/2 fail-closed controls. Four labeled loopback Chromium workflow types run at desktop and mobile fixed viewports and pass 8/8 with 6 true positives, 2 true negatives, zero false positives, and zero false negatives; precision, recall, specificity, and accuracy are 1.0 on this eight-case set. Limitations are explicit. | **Partial** | Broaden the eight-case corpus across more Nymrel-owned routes, states, responsive breakpoints, and browsers before making a competition-quality claim. |
+| Evaluation including failure cases or limitations | Generated baseline passes 3/3 task cases and 2/2 fail-closed controls. Six labeled loopback Chromium workflow types run at desktop and mobile fixed viewports and pass 12/12 with 10 true positives, 2 true negatives, zero false positives, and zero false negatives; precision, recall, specificity, and accuracy are 1.0 on this twelve-case set. Limitations are explicit. | **Partial** | Broaden the twelve-case corpus across more Nymrel-owned routes, states, responsive breakpoints, and browsers before making a competition-quality claim. |
 
 ## Agentic Vision category
 
@@ -36,7 +36,7 @@ Status vocabulary:
 | OpenCV output changes a later decision, action, tool call, or human-approval request | Typed findings deterministically change the policy outcome; material findings produce `request_human_approval`. | **Implemented** |
 | Workflow diagram | Architecture draft shows perception → decision → human approval and evidence trace. | **Prepared** |
 | Trace or demonstration | Deterministic finding digest and decision trace exist in tests and evaluator receipts. | **Implemented** for generated fixtures |
-| Task effectiveness | 3/3 generated cases and 8/8 labeled browser cases pass across desktop and mobile fixed viewports. The browser confusion matrix has zero false positives and zero false negatives on eight cases. | **Partial** — the corpus remains too small and controlled for a competition-quality claim. |
+| Task effectiveness | 3/3 generated cases and 12/12 labeled browser cases pass across desktop and mobile fixed viewports. The browser confusion matrix has zero false positives and zero false negatives on twelve cases. | **Partial** — the corpus remains too small and controlled for a competition-quality claim. |
 | Failure handling and observability | Unreadable input and dimension mismatch fail closed; receipts expose false execution/AWS authority. | **Implemented** for current boundary |
 | Appropriate human control | Medium/high-risk findings stop for approval; no mutation or deployment tool exists. | **Implemented** |
 
@@ -61,7 +61,7 @@ Sightline does not currently claim the Best Use of COOL Award. No COOL integrati
 
 The current private branch is a reproducible Stage 1 implementation, not a competition-ready submission. The two largest technical gaps are:
 
-1. a broader representative-workflow browser evaluation beyond the current four workflow types and two fixed viewports; and
+1. a broader representative-workflow browser evaluation beyond the current six workflow types and two fixed viewports; and
 2. meaningful, verified AWS execution without spending, billing activation, promotional-credit acceptance, or unauthorized credentials.
 
 Registration, terms acceptance, publication, deployment, and submission remain disabled. The packet remains **Draft, Not Submitted**.
