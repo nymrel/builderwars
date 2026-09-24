@@ -47,3 +47,6 @@ jobs:
             -s evaluations/sightline-opencv-2026 \
             -p 'test_*.py'
           python -m py_compile evaluations/sightline-opencv-2026/*.py
+      - name: Measure task success and fail-closed controls
+        run: |
+          python evaluations/sightline-opencv-2026/evaluate_stage1.py
