@@ -46,7 +46,13 @@ python -m unittest discover \
 - Every case reported `execution_authorized=false` and `aws_invoked=false`.
 - The JSON receipt includes deterministic input and trace SHA-256 digests and exits nonzero if any check fails.
 
-These generated fixtures establish reproducibility and failure observability only. They do not establish browser coverage, production accuracy, leaderboard performance, or competition qualification.
+These generated fixtures establish reproducibility and failure observability only. They do not establish production accuracy, leaderboard performance, or competition qualification.
+
+## Browser-rendered controlled corpus
+
+`evaluate_browser_corpus.py` serves the tracked Nymrel-owned `mobile-arena/` source on loopback and captures controlled no-change, missing-region, unexpected-region, and layout-shift cases in managed Chromium. It then evaluates the temporary PNGs through the exact OpenCV 5 adapter and deletes them when the process exits.
+
+The receipt binds the repository head, source path, browser/runtime versions, viewport, each PNG SHA-256, and each findings digest. It fails on unexpected findings, cross-origin requests, console warnings/errors, persisted PNGs, AWS invocation, or execution authority. This is browser-rendered controlled evidence on a real tracked surface; it is not a public-site capture, user-traffic corpus, or production-accuracy claim.
 
 ## Inert AWS boundary
 
@@ -74,6 +80,8 @@ The artifact is neither uploaded nor deployed. A successful receipt must report 
 
 `.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 26 tests without skips, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The workflow has read-only repository permission and no AWS or deployment capability.
 
+`.github/workflows/sightline-browser-corpus.yml` separately installs pinned Playwright 1.58.0 and managed Chromium, renders tracked BuilderWars source only over loopback, and runs the browser corpus without uploading the temporary PNGs.
+
 ## Judge-facing preparation
 
 The private draft packet contains:
@@ -89,7 +97,7 @@ The packet verifier hashes an exact allowlist, rejects unexpected or sensitive c
 
 ## Remaining gates
 
-1. Expand evaluation to a provenance-safe corpus of representative Nymrel-owned or publicly licensed browser screenshots before making any competition-quality claim.
+1. Expand the controlled loopback browser corpus into labeled representative Nymrel-owned user workflows and measure false positives/negatives before making any competition-quality claim.
 2. Demonstrate a meaningful component actually running on AWS; local Lambda compatibility and an inert plan are not AWS execution.
 3. Render and review judge-facing assets using only cleared fixtures, then freeze the exact Submitted Materials corpus.
 4. Monitor for the final controlling Devpost terms and organizer reconciliation of the deadline and reward conflicts.
