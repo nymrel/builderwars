@@ -29,9 +29,11 @@ OpenCV 5.0.0 performs image decoding, absolute difference, grayscale conversion,
 
 ## Evaluation
 
-The generated offline baseline currently covers missing-region, unexpected-region, and layout-shift cases. All three expected task outcomes pass. Two fail-closed controls cover unreadable images and dimension mismatch. The full hosted suite contains 23 tests.
+The generated offline baseline covers missing-region, unexpected-region, and layout-shift cases. All three expected task outcomes pass. Two fail-closed controls cover unreadable images and dimension mismatch. The full hosted unit suite contains 26 tests.
 
-These results establish deterministic behavior for the current fixtures only. They do not establish production accuracy or representative browser coverage.
+A separate browser workflow serves tracked Nymrel-owned BuilderWars Mobile Arena source on loopback and captures controlled no-change, missing-region, unexpected-region, and layout-shift screenshots in Chromium. All 4/4 browser cases pass against OpenCV 5.0.0. Material browser cases require human approval; the receipt records zero cross-origin requests, zero console warnings/errors, no persisted PNGs, false AWS invocation, and false execution authority.
+
+These results establish deterministic behavior for generated and controlled browser-rendered fixtures only. They do not establish public-site capture, user-traffic representativeness, production accuracy, precision, recall, or generalization.
 
 ## AWS-Compatible Boundary
 
@@ -49,4 +51,4 @@ Inputs are size-bounded and must be PNG. Invalid base64, unreadable images, dime
 
 ## Current Limitations
 
-The corpus is generated rather than representative browser traffic. The classifier is intentionally narrow. No AWS deployment, production endpoint, user study, or competition submission has occurred. See `LIMITATIONS.md` for the complete claim boundary.
+The corpus combines generated arrays with controlled loopback browser rendering; it is not representative browser traffic. The classifier is intentionally narrow. No AWS deployment, production endpoint, user study, or competition submission has occurred. See `LIMITATIONS.md` for the complete claim boundary.
