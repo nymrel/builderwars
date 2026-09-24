@@ -5,8 +5,6 @@ from pathlib import Path
 import sys
 import unittest
 
-import numpy as np
-
 
 MODULE_PATH = Path(__file__).with_name("sightline.py")
 SPEC = importlib.util.spec_from_file_location("sightline_stage1", MODULE_PATH)
@@ -14,6 +12,74 @@ assert SPEC and SPEC.loader
 sightline = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = sightline
 SPEC.loader.exec_module(sightline)
+
+
+class Image:
+    def __init__(self, height: int, width: int, pixels=None) -> None:
+        self.pixels = pixels or [
+            [[0, 0, 0] for _ in range(width)] for _ in range(height)
+        ]
+
+    @property
+    def shape(self) -> tuple[int, int, int]:
+        return (len(self.pixels), len(self.pixels[0]), 3)
+
+    def copy(self):
+        return Image(
+            self.shape[0],
+            self.shape[1],
+            [[pixel[:] for pixel in row] for row in self.pixels],
+        )
+
+    def astype(self, _: str):
+        return self.copy()
+
+    def __getitem__(self, key):
+        y_slice, x_slice = key
+        rows = self.pixels[y_slice]
+        cropped = [[pixel[:] for pixel in row[x_slice]] for row in rows]
+        return Image(len(cropped), len(cropped[0]), cropped)
+
+    def __setitem__(self, key, value: int) -> None:
+        y_slice, x_slice = key
+        y_range = range(*y_slice.indices(self.shape[0]))
+        x_range = range(*x_slice.indices(self.shape[1]))
+        for y in y_range:
+            for x in x_range:
+                self.pixels[y][x] = [value, value, value]
+
+    def __sub__(self, other):
+        pixels = []
+        for left_row, right_row in zip(self.pixels, other.pixels, strict=True):
+            pixels.append(
+                [
+                    [left - right for left, right in zip(left_pixel, right_pixel, strict=True)]
+                    for left_pixel, right_pixel in zip(left_row, right_row, strict=True)
+                ]
+            )
+        return Image(self.shape[0], self.shape[1], pixels)
+
+    def mean(self) -> float:
+        values = [value for row in self.pixels for pixel in row for value in pixel]
+        return sum(values) / len(values)
+
+
+class Mask:
+    def __init__(self, pixels: list[list[int]]) -> None:
+        self.pixels = pixels
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        return (len(self.pixels), len(self.pixels[0]))
+
+
+class Stats:
+    def __init__(self, rows: list[list[int]]) -> None:
+        self.rows = rows
+
+    def __getitem__(self, key) -> int:
+        row, column = key
+        return self.rows[row][column]
 
 
 class FakeCV2:
@@ -27,39 +93,50 @@ class FakeCV2:
     CC_STAT_HEIGHT = 3
     CC_STAT_AREA = 4
 
-    def __init__(self, images: dict[str, np.ndarray]) -> None:
+    def __init__(self, images: dict[str, Image]) -> None:
         self.images = images
 
-    def imread(self, path: str, _: int) -> np.ndarray | None:
+    def imread(self, path: str, _: int):
         image = self.images.get(path)
         return None if image is None else image.copy()
 
     @staticmethod
-    def absdiff(left: np.ndarray, right: np.ndarray) -> np.ndarray:
-        return np.abs(left.astype(np.int16) - right.astype(np.int16)).astype(np.uint8)
+    def absdiff(left: Image, right: Image) -> Image:
+        pixels = []
+        for left_row, right_row in zip(left.pixels, right.pixels, strict=True):
+            pixels.append(
+                [
+                    [abs(a - b) for a, b in zip(x, y, strict=True)]
+                    for x, y in zip(left_row, right_row, strict=True)
+                ]
+            )
+        return Image(left.shape[0], left.shape[1], pixels)
 
     @staticmethod
-    def cvtColor(image: np.ndarray, _: int) -> np.ndarray:
-        return image.max(axis=2)
+    def cvtColor(image: Image, _: int) -> Mask:
+        return Mask([[max(pixel) for pixel in row] for row in image.pixels])
 
     @staticmethod
-    def threshold(image: np.ndarray, threshold: int, maximum: int, _: int):
-        return threshold, np.where(image > threshold, maximum, 0).astype(np.uint8)
+    def threshold(image: Mask, threshold: int, maximum: int, _: int):
+        mask = Mask(
+            [[maximum if value > threshold else 0 for value in row] for row in image.pixels]
+        )
+        return threshold, mask
 
     @classmethod
-    def connectedComponentsWithStats(cls, mask: np.ndarray, _: int):
+    def connectedComponentsWithStats(cls, mask: Mask, _: int):
         height, width = mask.shape
-        labels = np.zeros((height, width), dtype=np.int32)
-        stats = [[0, 0, width, height, int((mask == 0).sum())]]
+        labels = [[0 for _ in range(width)] for _ in range(height)]
+        rows = [[0, 0, width, height, sum(value == 0 for row in mask.pixels for value in row)]]
         centroids = [[0.0, 0.0]]
         next_label = 1
         for start_y in range(height):
             for start_x in range(width):
-                if mask[start_y, start_x] == 0 or labels[start_y, start_x] != 0:
+                if mask.pixels[start_y][start_x] == 0 or labels[start_y][start_x] != 0:
                     continue
                 stack = [(start_x, start_y)]
                 pixels = []
-                labels[start_y, start_x] = next_label
+                labels[start_y][start_x] = next_label
                 while stack:
                     x, y = stack.pop()
                     pixels.append((x, y))
@@ -67,27 +144,27 @@ class FakeCV2:
                         if (
                             0 <= nx < width
                             and 0 <= ny < height
-                            and mask[ny, nx] != 0
-                            and labels[ny, nx] == 0
+                            and mask.pixels[ny][nx] != 0
+                            and labels[ny][nx] == 0
                         ):
-                            labels[ny, nx] = next_label
+                            labels[ny][nx] = next_label
                             stack.append((nx, ny))
                 xs = [pixel[0] for pixel in pixels]
                 ys = [pixel[1] for pixel in pixels]
-                stats.append(
+                rows.append(
                     [min(xs), min(ys), max(xs) - min(xs) + 1, max(ys) - min(ys) + 1, len(pixels)]
                 )
                 centroids.append([sum(xs) / len(xs), sum(ys) / len(ys)])
                 next_label += 1
-        return next_label, labels, np.asarray(stats), np.asarray(centroids)
+        return next_label, labels, Stats(rows), centroids
 
 
 class OldCV2:
     __version__ = "4.99.0"
 
 
-def canvas() -> np.ndarray:
-    return np.zeros((20, 20, 3), dtype=np.uint8)
+def canvas() -> Image:
+    return Image(20, 20)
 
 
 class SightlineTests(unittest.TestCase):
