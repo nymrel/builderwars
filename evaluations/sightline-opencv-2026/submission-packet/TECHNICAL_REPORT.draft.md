@@ -31,11 +31,11 @@ OpenCV 5.0.0 performs image decoding, absolute difference, grayscale conversion,
 
 The generated offline baseline covers missing-region, unexpected-region, and layout-shift cases. All three expected task outcomes pass. Two fail-closed controls cover unreadable images and dimension mismatch. The full hosted unit suite contains 29 tests.
 
-A separate browser workflow serves tracked Nymrel-owned BuilderWars Mobile Arena source on loopback and evaluates four labeled workflows: a stable Arena, a missing featured receipt, an unexpectedly open local-session sheet, and an Arena-to-Watch misroute. All 4/4 outcomes pass against OpenCV 5.0.0, with 3 true positives, 1 true negative, zero false positives, and zero false negatives. Precision, recall, specificity, and accuracy are each 1.0 on this small set.
+A separate browser workflow serves tracked Nymrel-owned BuilderWars Mobile Arena source on loopback and evaluates four labeled workflows at fixed 1040×900 desktop and 390×844 mobile viewports: a stable Arena, a missing featured receipt, an unexpectedly open local-session sheet, and an Arena-to-Watch misroute. All 8/8 outcomes pass against OpenCV 5.0.0, with 6 true positives, 2 true negatives, zero false positives, and zero false negatives. Precision, recall, specificity, and accuracy are each 1.0 on this eight-case set.
 
 The first labeled run exposed an accepted fragmented missing-panel regression. Sightline now stops when aggregate changed area reaches 2% or when eight disconnected components are present; dedicated tests preserve both aggregate and fragmented materiality. The missing receipt requests human approval, while the two changes exceeding 100 findings fail closed as unbounded. The receipt records zero cross-origin requests, zero console warnings/errors, no persisted PNGs, false AWS invocation, and false execution authority.
 
-These results establish deterministic behavior for generated fixtures and four labeled loopback workflows only. They do not establish public-site capture, user-traffic representativeness, production accuracy, or generalization.
+These results establish deterministic behavior for generated fixtures and four labeled loopback workflow types at two fixed viewports only. They do not establish public-site capture, user-traffic representativeness, production accuracy, cross-browser behavior, or generalization.
 
 ## AWS-Compatible Boundary
 
@@ -53,4 +53,4 @@ Inputs are size-bounded and must be PNG. Invalid base64, unreadable images, dime
 
 ## Current Limitations
 
-The corpus combines generated arrays with four labeled loopback browser workflows; it remains too small to represent browser traffic, devices, or production conditions. The classifier is intentionally narrow. No AWS deployment, production endpoint, user study, or competition submission has occurred. See `LIMITATIONS.md` for the complete claim boundary.
+The corpus combines generated arrays with four labeled loopback workflow types at two fixed viewports; it remains too small to represent browser traffic, devices, browsers, responsive breakpoints, or production conditions. The classifier is intentionally narrow. No AWS deployment, production endpoint, user study, or competition submission has occurred. See `LIMITATIONS.md` for the complete claim boundary.
