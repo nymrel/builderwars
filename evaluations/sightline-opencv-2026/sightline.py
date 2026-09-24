@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -19,7 +19,7 @@ Action = Literal[
 
 @dataclass(frozen=True)
 class VisualFinding:
-    kind: Literal["visual_change"]
+    kind: Literal["missing_region", "unexpected_region", "layout_shift", "visual_change"]
     risk: Risk
     bbox_xywh: tuple[int, int, int, int]
     changed_pixels: int
@@ -150,13 +150,29 @@ class OpenCV5Perception:
                 int(stats[label, self.cv2.CC_STAT_WIDTH]),
                 int(stats[label, self.cv2.CC_STAT_HEIGHT]),
             )
+            x, y, width, height = bbox
+            signed_delta = (
+                candidate[y : y + height, x : x + width].astype("int16")
+                - baseline[y : y + height, x : x + width].astype("int16")
+            )
+            mean_delta = float(signed_delta.mean())
+            kind: Literal["missing_region", "unexpected_region", "visual_change"]
+            if mean_delta <= -threshold:
+                kind = "missing_region"
+            elif mean_delta >= threshold:
+                kind = "unexpected_region"
+            else:
+                kind = "visual_change"
             findings.append(
                 VisualFinding(
-                    kind="visual_change",
+                    kind=kind,
                     risk=risk,
                     bbox_xywh=bbox,
                     changed_pixels=area,
                     image_pixels=image_pixels,
                 )
             )
+        kinds = {finding.kind for finding in findings}
+        if "missing_region" in kinds and "unexpected_region" in kinds:
+            findings = [replace(finding, kind="layout_shift") for finding in findings]
         return findings
