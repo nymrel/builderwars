@@ -4,15 +4,15 @@
 
 - OpenCV 5.0.0 is exercised in the hosted integration workflow.
 - Generated missing-region, unexpected-region, and layout-shift fixtures produce the expected bounded outcomes.
-- A loopback-only Chromium corpus renders tracked Nymrel-owned BuilderWars source; six labeled workflow types at desktop and mobile fixed viewports produce the expected safe outcomes without cross-origin requests or persisted PNGs.
-- On that twelve-case set only, the material-change confusion matrix is 10 true positives, 2 true negatives, zero false positives, and zero false negatives.
+- Loopback-only managed Chromium and Firefox runs render tracked Nymrel-owned BuilderWars source; six labeled workflow types at desktop and mobile fixed viewports produce the expected safe outcomes in both engines without cross-origin requests or persisted PNGs.
+- Within each twelve-case browser set, the material-change confusion matrix is 10 true positives, 2 true negatives, zero false positives, and zero false negatives; all 24 case executions pass across both receipts.
 - Material findings require human approval.
 - The source artifact is deterministic for identical inputs.
 - The AWS planning boundary is credential-free and non-executable.
 
 ## Unsupported Claims
 
-- Production accuracy or generalization; the reported precision and recall apply only to twelve labeled loopback cases at two fixed viewports.
+- Production accuracy or generalization; the reported precision and recall apply only to twelve labeled loopback cases per browser at two fixed viewports.
 - Representative user-traffic, device, accessibility, or public-site coverage.
 - Production safety or availability.
 - AWS deployment, scalability, latency, or cost.
@@ -23,7 +23,7 @@
 
 - Pixel-difference methods remain sensitive to animation, antialiasing, font rendering, and responsive-layout variation.
 - Current findings cover a small set of visual-regression classes.
-- Browser evidence uses controlled state changes on a tracked interface. Its six workflow types and two fixed viewports are insufficient to represent naturally occurring regressions, devices, responsive breakpoints, browsers, or production traffic.
+- Browser evidence uses controlled state changes on a tracked interface. Its six workflow types, two fixed viewports, and two browser engines are insufficient to represent naturally occurring regressions, devices, responsive breakpoints, broad browser coverage, or production traffic.
 - Fragmented materiality uses a conservative eight-component stop threshold; broader corpus work is required to characterize nuisance-alert risk.
 - Inputs must be equally sized PNG images and are limited to 1 MiB each at the handler boundary.
 - The current artifact is a source package, not a deployed dependency layer or container image.

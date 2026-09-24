@@ -19,7 +19,7 @@ Status vocabulary:
 
 | Organizer requirement | Exact evidence | Status | Remaining proof |
 |---|---|---|---|
-| Substantive OpenCV 5 image or video analysis | `OpenCV5Perception` uses OpenCV 5.0.0 for decoding, absolute difference, grayscale conversion, thresholding, and connected-component extraction; official wheels are hash-locked in hosted CI and four labeled BuilderWars workflows run in Chromium. | **Implemented** | Broaden the small provenance-cleared workflow corpus across routes and viewport classes. |
+| Substantive OpenCV 5 image or video analysis | `OpenCV5Perception` uses OpenCV 5.0.0 for decoding, absolute difference, grayscale conversion, thresholding, and connected-component extraction; official wheels are hash-locked in hosted CI and six labeled BuilderWars workflows run independently in managed Chromium and Firefox. | **Implemented** | Broaden the small provenance-cleared workflow corpus across routes and viewport classes. |
 | Meaningful component running on AWS | Lambda-compatible handler, deterministic source artifact, and inert AWS plan exist. The plan explicitly has no credentials, upload, execution, deployment, or spend authority. | **Partial** | A real AWS deployment and evidence are still required; local compatibility is not AWS execution. |
 | Technical report | `TECHNICAL_REPORT.draft.md` covers problem, users, architecture, OpenCV role, AWS boundary, evaluation, limitations, and responsible operation. | **Prepared** | Reconcile with final measured corpus and actual AWS evidence. |
 | Judge-accessible repository or archive | Private draft PR and deterministic review-only source ZIP exist. | **Partial** | Freeze the exact authorized corpus and establish judge access without exposing excluded private assets. |
@@ -27,7 +27,7 @@ Status vocabulary:
 | Architecture diagram | `ARCHITECTURE.draft.md` and the self-contained `ARCHITECTURE.draft.svg` trace PNG inputs, OpenCV perception, typed findings, policy, human approval, evidence digest, Lambda handler, and inert AWS plan. | **Prepared** | Replace the inert AWS box with verified runtime evidence if deployment occurs. |
 | Working endpoint or arranged live screen-share | No endpoint is deployed and no demonstration session is arranged. | **Blocked** | Requires an authorized deployment or later organizer coordination; do not claim availability. |
 | Public or unlisted video no longer than five minutes | A 4:30 draft script and deterministic synthetic-only review-bundle builder exist with recording safeguards. | **Partial** | Record only with provenance-cleared fixtures after the exact Submitted Materials scope is authorized. |
-| Evaluation including failure cases or limitations | Generated baseline passes 3/3 task cases and 2/2 fail-closed controls. Six labeled loopback Chromium workflow types run at desktop and mobile fixed viewports and pass 12/12 with 10 true positives, 2 true negatives, zero false positives, and zero false negatives; precision, recall, specificity, and accuracy are 1.0 on this twelve-case set. Limitations are explicit. | **Partial** | Broaden the twelve-case corpus across more Nymrel-owned routes, states, responsive breakpoints, and browsers before making a competition-quality claim. |
+| Evaluation including failure cases or limitations | Generated baseline passes 3/3 task cases and 2/2 fail-closed controls. Six labeled loopback workflow types run at desktop and mobile fixed viewports in managed Chromium and Firefox. Each browser passes 12/12 with 10 true positives, 2 true negatives, zero false positives, and zero false negatives; all 24 case executions pass across both receipts. Limitations are explicit. | **Partial** | Broaden beyond the two-browser, twelve-case-per-engine corpus across more Nymrel-owned routes, states, and responsive breakpoints before making a competition-quality claim. |
 
 ## Agentic Vision category
 
@@ -36,7 +36,7 @@ Status vocabulary:
 | OpenCV output changes a later decision, action, tool call, or human-approval request | Typed findings deterministically change the policy outcome; material findings produce `request_human_approval`. | **Implemented** |
 | Workflow diagram | Architecture narrative and self-contained SVG show perception → decision → human approval and evidence trace. | **Prepared** |
 | Trace or demonstration | Deterministic finding digest and decision trace exist in tests and evaluator receipts. | **Implemented** for generated fixtures |
-| Task effectiveness | 3/3 generated cases and 12/12 labeled browser cases pass across desktop and mobile fixed viewports. The browser confusion matrix has zero false positives and zero false negatives on twelve cases. | **Partial** — the corpus remains too small and controlled for a competition-quality claim. |
+| Task effectiveness | 3/3 generated cases pass. In both Chromium and Firefox, 12/12 labeled browser cases pass across desktop and mobile fixed viewports with zero false positives and zero false negatives; all 24 case executions pass across the two receipts. | **Partial** — the corpus remains too small and controlled for a competition-quality claim. |
 | Failure handling and observability | Unreadable input and dimension mismatch fail closed; receipts expose false execution/AWS authority. | **Implemented** for current boundary |
 | Appropriate human control | Medium/high-risk findings stop for approval; no mutation or deployment tool exists. | **Implemented** |
 
@@ -50,7 +50,7 @@ Sightline does not currently claim the Best Use of COOL Award. No COOL integrati
 
 | Criterion | Weight | Current evidence | Primary gap |
 |---|---:|---|---|
-| Technical execution | 30% | Exact OpenCV 5 runtime, typed findings, aggregate/fragmented materiality guards, deterministic traces, bounded handler, 33 passing hosted tests, and a digest-bound labeled Chromium corpus. | Broader representative-workflow performance and deployed AWS evidence. |
+| Technical execution | 30% | Exact OpenCV 5 runtime, typed findings, aggregate/fragmented materiality guards, deterministic traces, bounded handler, 33 passing hosted tests, and digest-bound labeled Chromium and Firefox receipts. | Broader representative-workflow performance and deployed AWS evidence. |
 | Innovation | 20% | Perception-to-auditable-decision loop with explicit no-execution authority. | Comparative positioning and demonstrated iteration beyond a narrow pixel-difference baseline. |
 | Real-world impact | 20% | Clear visual-regression problem and human-control model. | User evidence, representative workflows, and measured benefit. |
 | User experience | 10% | Typed results and explicit approval state. | Judge-visible interface or live demonstration. |
@@ -61,7 +61,7 @@ Sightline does not currently claim the Best Use of COOL Award. No COOL integrati
 
 The current private branch is a reproducible Stage 1 implementation, not a competition-ready submission. The two largest technical gaps are:
 
-1. a broader representative-workflow browser evaluation beyond the current six workflow types and two fixed viewports; and
+1. a broader representative-workflow browser evaluation beyond the current six workflow types, two fixed viewports, and two browser engines; and
 2. meaningful, verified AWS execution without spending, billing activation, promotional-credit acceptance, or unauthorized credentials.
 
 Registration, terms acceptance, publication, deployment, and submission remain disabled. The packet remains **Draft, Not Submitted**.

@@ -1,7 +1,7 @@
 """Browser-rendered, labeled user-flow evaluation for Sightline.
 
 Serves tracked BuilderWars Mobile Arena source only on loopback, captures
-representative UI-state regressions in Chromium, evaluates them with OpenCV 5,
+representative UI-state regressions in a pinned managed browser, evaluates them with OpenCV 5,
 emits classification metrics and a digest-bound receipt, and deletes every PNG
 when the process exits.
 """
@@ -33,6 +33,8 @@ VIEWPORTS = {
     "mobile": {"width": 390, "height": 844},
 }
 SOURCE_HEAD_ENV = "SOURCE_HEAD"
+BROWSER_ENGINE_ENV = "BROWSER_ENGINE"
+ALLOWED_BROWSER_ENGINES = ("chromium", "firefox")
 
 
 @dataclass(frozen=True)
@@ -244,6 +246,11 @@ def evaluate() -> dict[str, Any]:
     ):
         raise RuntimeError("SOURCE_HEAD must be an exact lowercase 40-character Git SHA")
 
+    browser_engine = os.environ.get(BROWSER_ENGINE_ENV, "").strip().lower()
+    if browser_engine not in ALLOWED_BROWSER_ENGINES:
+        allowed = ", ".join(ALLOWED_BROWSER_ENGINES)
+        raise RuntimeError(f"BROWSER_ENGINE must be one of: {allowed}")
+
     try:
         from playwright.sync_api import sync_playwright
     except ImportError as exc:
@@ -261,7 +268,9 @@ def evaluate() -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as directory, loopback_server() as url:
         root = Path(directory)
         with sync_playwright() as runtime:
-            browser = runtime.chromium.launch(headless=True)
+            browser_type = getattr(runtime, browser_engine)
+            browser = browser_type.launch(headless=True)
+            browser_version = browser.version
             context = browser.new_context(
                 viewport=VIEWPORTS["desktop"],
                 device_scale_factor=1,
@@ -475,7 +484,8 @@ def evaluate() -> dict[str, Any]:
         },
         "runtime": {
             "opencv": perception.cv2.__version__,
-            "browser": "chromium",
+            "browser": browser_engine,
+            "browser_version": browser_version,
             "playwright": "1.58.0",
             "viewports": VIEWPORTS,
         },

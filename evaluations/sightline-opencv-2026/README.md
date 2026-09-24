@@ -61,11 +61,11 @@ The builder re-runs all three fixture pairs through the exact OpenCV adapter and
 
 ## Browser-rendered controlled corpus
 
-`evaluate_browser_corpus.py` serves tracked Nymrel-owned `mobile-arena/` source on loopback and captures six labeled Chromium workflows: a stable Arena, a missing featured receipt, unexpectedly open local-session and proof sheets, and Arena misroutes to Watch and Build. The temporary PNGs are evaluated through the exact OpenCV 5 adapter and deleted when the process exits.
+`evaluate_browser_corpus.py` serves tracked Nymrel-owned `mobile-arena/` source on loopback and captures six labeled workflows independently in managed Chromium and Firefox: a stable Arena, a missing featured receipt, unexpectedly open local-session and proof sheets, and Arena misroutes to Watch and Build. The temporary PNGs are evaluated through the exact OpenCV 5 adapter and deleted when the process exits.
 
-The six workflow types run at fixed 1040×900 desktop and 390×844 mobile viewports. The resulting twelve-case corpus reports 12/12 correct outcomes, 10 true positives, 2 true negatives, zero false positives, and zero false negatives. Precision, recall, specificity, and accuracy are each 1.0 on this twelve-case set. The missing-receipt case exposed and now regression-tests fragmented visual materiality: eight or more disconnected low-area components stop for approval even when no single component reaches 2% of the viewport. Larger changes that exceed 100 findings fail closed as unbounded.
+The six workflow types run at fixed 1040×900 desktop and 390×844 mobile viewports in each browser. Both browser runs report 12/12 correct outcomes, 10 true positives, 2 true negatives, zero false positives, and zero false negatives. Across the two independent receipts, all 24 case executions pass with 20 true positives and 4 true negatives. Precision, recall, specificity, and accuracy are each 1.0 within each twelve-case browser set. The missing-receipt case exposed and now regression-tests fragmented visual materiality: eight or more disconnected low-area components stop for approval even when no single component reaches 2% of the viewport. Larger changes that exceed 100 findings fail closed as unbounded.
 
-The receipt binds the repository head, source path, browser/runtime versions, viewport, each PNG SHA-256, and each findings digest. It fails on wrong outcomes, cross-origin requests, console warnings/errors, persisted PNGs, AWS invocation, or execution authority. This is labeled loopback evidence on a real tracked surface; it is not public-site capture, user traffic, or a production-accuracy claim.
+The receipt binds the repository head, source path, browser/runtime versions, viewport, each PNG SHA-256, and each findings digest. It fails on wrong outcomes, cross-origin requests, console warnings/errors, persisted PNGs, AWS invocation, or execution authority. This is labeled loopback evidence on a real tracked surface in two browser engines; it is not public-site capture, user traffic, broad browser coverage, or a production-accuracy claim.
 
 ## Inert AWS boundary
 
@@ -93,7 +93,7 @@ The artifact is neither uploaded nor deployed. A successful receipt must report 
 
 `.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 33 tests without skips, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The workflow has read-only repository permission and no AWS or deployment capability.
 
-`.github/workflows/sightline-browser-corpus.yml` separately installs pinned Playwright 1.58.0 and managed Chromium, renders tracked BuilderWars source only over loopback, and runs the browser corpus without uploading the temporary PNGs.
+`.github/workflows/sightline-browser-corpus.yml` uses a fail-independent matrix to install pinned Playwright 1.58.0 with managed Chromium and Firefox, renders tracked BuilderWars source only over loopback, and runs the same corpus in each engine without uploading temporary PNGs.
 
 ## Judge-facing preparation
 
@@ -110,7 +110,7 @@ The packet verifier hashes an exact seven-file allowlist, parses the SVG as XML,
 
 ## Remaining gates
 
-1. Expand beyond the current six workflow types and two fixed viewports across more routes, responsive breakpoints, browsers, and provenance-cleared states before making any competition-quality claim.
+1. Expand beyond the current six workflow types, two fixed viewports, and two browser engines across more routes, responsive breakpoints, and provenance-cleared states before making any competition-quality claim.
 2. Demonstrate a meaningful component actually running on AWS; local Lambda compatibility and an inert plan are not AWS execution.
 3. Review the deterministic synthetic demo bundle and architecture SVG, record the demonstration using only cleared fixtures, then freeze the exact Submitted Materials corpus.
 4. Monitor for the final controlling Devpost terms and organizer reconciliation of the deadline and reward conflicts.
