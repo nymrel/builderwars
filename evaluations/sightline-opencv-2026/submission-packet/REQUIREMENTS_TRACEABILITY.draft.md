@@ -27,7 +27,7 @@ Status vocabulary:
 | Architecture diagram | `ARCHITECTURE.draft.md` traces PNG inputs, OpenCV perception, typed findings, policy, human approval, evidence digest, Lambda handler, and inert AWS plan. | **Prepared** | Replace the inert AWS box with verified runtime evidence if deployment occurs. |
 | Working endpoint or arranged live screen-share | No endpoint is deployed and no demonstration session is arranged. | **Blocked** | Requires an authorized deployment or later organizer coordination; do not claim availability. |
 | Public or unlisted video no longer than five minutes | A 4:30 draft script exists with recording safeguards. | **Partial** | Record only with provenance-cleared fixtures after the exact Submitted Materials scope is authorized. |
-| Evaluation including failure cases or limitations | Generated baseline passes 3/3 task cases and 2/2 fail-closed controls; limitations are explicit. | **Partial** | Add representative browser corpus, precision/recall-style metrics, and observed false-positive/false-negative analysis. |
+| Evaluation including failure cases or limitations | Generated baseline passes 3/3 task cases and 2/2 fail-closed controls. Controlled loopback Chromium corpus passes 4/4 cases on tracked Nymrel-owned BuilderWars source with zero cross-origin requests and no persisted PNGs. Limitations are explicit. | **Partial** | Add labeled representative user workflows, precision/recall-style metrics, and observed false-positive/false-negative analysis. |
 
 ## Agentic Vision category
 
@@ -36,7 +36,7 @@ Status vocabulary:
 | OpenCV output changes a later decision, action, tool call, or human-approval request | Typed findings deterministically change the policy outcome; material findings produce `request_human_approval`. | **Implemented** |
 | Workflow diagram | Architecture draft shows perception → decision → human approval and evidence trace. | **Prepared** |
 | Trace or demonstration | Deterministic finding digest and decision trace exist in tests and evaluator receipts. | **Implemented** for generated fixtures |
-| Task effectiveness | 3/3 generated task cases pass. | **Partial** — corpus is too small and synthetic for a competition-quality claim. |
+| Task effectiveness | 3/3 generated cases and 4/4 controlled browser-rendered cases pass. | **Partial** — the corpus is still too small and controlled for a competition-quality claim. |
 | Failure handling and observability | Unreadable input and dimension mismatch fail closed; receipts expose false execution/AWS authority. | **Implemented** for current boundary |
 | Appropriate human control | Medium/high-risk findings stop for approval; no mutation or deployment tool exists. | **Implemented** |
 
@@ -50,7 +50,7 @@ Sightline does not currently claim the Best Use of COOL Award. No COOL integrati
 
 | Criterion | Weight | Current evidence | Primary gap |
 |---|---:|---|---|
-| Technical execution | 30% | Exact OpenCV 5 runtime, typed findings, deterministic traces, bounded handler, passing hosted tests. | Representative-corpus performance and deployed AWS evidence. |
+| Technical execution | 30% | Exact OpenCV 5 runtime, typed findings, deterministic traces, bounded handler, passing hosted tests, and digest-bound Chromium corpus. | Labeled representative-workflow performance and deployed AWS evidence. |
 | Innovation | 20% | Perception-to-auditable-decision loop with explicit no-execution authority. | Comparative positioning and demonstrated iteration beyond a narrow pixel-difference baseline. |
 | Real-world impact | 20% | Clear visual-regression problem and human-control model. | User evidence, representative workflows, and measured benefit. |
 | User experience | 10% | Typed results and explicit approval state. | Judge-visible interface or live demonstration. |
@@ -61,7 +61,7 @@ Sightline does not currently claim the Best Use of COOL Award. No COOL integrati
 
 The current private branch is a reproducible Stage 1 implementation, not a competition-ready submission. The two largest technical gaps are:
 
-1. a provenance-cleared representative browser screenshot evaluation; and
+1. a labeled representative-workflow browser evaluation beyond the controlled loopback cases; and
 2. meaningful, verified AWS execution without spending, billing activation, promotional-credit acceptance, or unauthorized credentials.
 
 Registration, terms acceptance, publication, deployment, and submission remain disabled. The packet remains **Draft, Not Submitted**.
