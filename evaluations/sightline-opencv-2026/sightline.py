@@ -62,10 +62,18 @@ def _normalized_findings(findings: Iterable[VisualFinding]) -> list[dict[str, An
 class SightlineAgent:
     """Deterministic proposal engine. It never performs the proposed action."""
 
-    def __init__(self, *, max_findings: int = 100) -> None:
+    def __init__(
+        self,
+        *,
+        max_findings: int = 100,
+        material_changed_fraction: float = 0.02,
+    ) -> None:
         if max_findings < 1:
             raise ValueError("max_findings must be positive")
+        if not 0 < material_changed_fraction <= 1:
+            raise ValueError("material_changed_fraction must be between zero and one")
         self.max_findings = max_findings
+        self.material_changed_fraction = material_changed_fraction
 
     def plan(self, findings: Iterable[VisualFinding]) -> DecisionTrace:
         normalized = _normalized_findings(findings)
@@ -76,7 +84,13 @@ class SightlineAgent:
         if len(normalized) > self.max_findings:
             action: Action = "reject_unbounded_input"
             approval_required = False
-        elif any(row["risk"] in {"medium", "high"} for row in normalized):
+        elif (
+            any(row["risk"] in {"medium", "high"} for row in normalized)
+            or sum(
+                row["changed_pixels"] / row["image_pixels"] for row in normalized
+            )
+            >= self.material_changed_fraction
+        ):
             action = "request_human_approval"
             approval_required = True
         else:
