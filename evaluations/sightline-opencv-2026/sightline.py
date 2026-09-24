@@ -73,10 +73,8 @@ class SightlineAgent:
             raise ValueError("max_findings must be positive")
         if not 0 < material_changed_fraction <= 1:
             raise ValueError("material_changed_fraction must be between zero and one")
-        if not 1 <= material_component_count <= max_findings:
-            raise ValueError(
-                "material_component_count must be positive and within max_findings"
-            )
+        if material_component_count < 1:
+            raise ValueError("material_component_count must be positive")
         self.max_findings = max_findings
         self.material_changed_fraction = material_changed_fraction
         self.material_component_count = material_component_count
