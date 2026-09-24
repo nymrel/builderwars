@@ -36,9 +36,12 @@ python -m unittest \
   evaluations/sightline-opencv-2026/test_opencv5_integration.py
 ```
 
+## Hosted validation
+
+`.github/workflows/sightline-opencv5.yml` repeats the exact hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 12 tests without skips, and compiles every Python module in this slice. The workflow has read-only repository permission and no AWS or deployment capability.
+
 ## Remaining gates
 
-1. Reproduce the hash-checked OpenCV 5 integration suite in hosted CI.
-2. Measure task success, failure handling, and observability without overstating synthetic results.
-3. Select and review an inert AWS boundary before any credentialed cloud work.
-4. Review the competition's submitted-materials license before any proposal, report, presentation, or video is submitted.
+1. Measure task success, failure handling, and observability without overstating synthetic results.
+2. Select and review an inert AWS boundary before any credentialed cloud work.
+3. Review the competition's submitted-materials license before any proposal, report, presentation, or video is submitted.
