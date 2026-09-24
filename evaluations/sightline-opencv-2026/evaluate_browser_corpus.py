@@ -337,8 +337,9 @@ def evaluate() -> dict[str, Any]:
             )
 
             def route_to_wrong_view(current_page: Any) -> None:
-                _require_visible(current_page, "[data-nav='watch']")
-                current_page.locator("[data-nav='watch']").click()
+                selector = ".bottom-nav [data-nav='watch']"
+                _require_visible(current_page, selector)
+                current_page.locator(selector).click()
                 _require_visible(current_page, "#view-watch")
 
             record(
