@@ -348,11 +348,23 @@ def evaluate() -> dict[str, Any]:
                 current_page.locator("#profile-button").click()
                 _require_visible(current_page, "#session-sheet", 10_000)
 
+            def open_proof_sheet(current_page: Any) -> None:
+                selector = "#featured-match [data-proof-open]"
+                _require_visible(current_page, selector)
+                current_page.locator(selector).click()
+                _require_visible(current_page, "#proof-sheet", 10_000)
+
             def route_to_wrong_view(current_page: Any) -> None:
                 selector = ".bottom-nav [data-nav='watch']"
                 _require_visible(current_page, selector)
                 current_page.locator(selector).click()
                 _require_visible(current_page, "#view-watch")
+
+            def route_to_build_view(current_page: Any) -> None:
+                selector = ".bottom-nav [data-nav='build']"
+                _require_visible(current_page, selector)
+                current_page.locator(selector).click()
+                _require_visible(current_page, "#view-build")
 
             for viewport in VIEWPORTS:
                 record(
@@ -383,6 +395,15 @@ def evaluate() -> dict[str, Any]:
                     open_session_sheet,
                 )
                 record(
+                    f"{viewport}_proof_sheet_unexpected",
+                    viewport,
+                    "inspect the featured receipt without opening its proof sheet",
+                    "proof sheet appears unexpectedly",
+                    True,
+                    prepare_featured,
+                    open_proof_sheet,
+                )
+                record(
                     f"{viewport}_primary_view_misroute",
                     viewport,
                     "open the Arena primary destination",
@@ -390,6 +411,15 @@ def evaluate() -> dict[str, Any]:
                     True,
                     None,
                     route_to_wrong_view,
+                )
+                record(
+                    f"{viewport}_build_view_misroute",
+                    viewport,
+                    "open the Arena primary destination",
+                    "navigation resolves to Build instead of Arena",
+                    True,
+                    None,
+                    route_to_build_view,
                 )
 
             cases = [
