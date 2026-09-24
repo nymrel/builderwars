@@ -104,8 +104,8 @@ def _marker_script(left: int) -> str:
             'position:fixed',
             'left:{left}px',
             'top:660px',
-            'width:180px',
-            'height:90px',
+            'width:260px',
+            'height:110px',
             'background:#ffffff',
             'border-radius:12px',
             'box-shadow:none',
@@ -241,7 +241,7 @@ def evaluate() -> dict[str, Any]:
                 ("no_change", None, None),
                 ("missing_region", 80, None),
                 ("unexpected_region", None, 80),
-                ("layout_shift", 80, 620),
+                ("layout_shift", 80, 650),
             ):
                 baseline = root / f"{name}-baseline.png"
                 candidate = root / f"{name}-candidate.png"
