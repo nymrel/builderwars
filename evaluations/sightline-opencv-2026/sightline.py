@@ -67,13 +67,19 @@ class SightlineAgent:
         *,
         max_findings: int = 100,
         material_changed_fraction: float = 0.02,
+        material_component_count: int = 8,
     ) -> None:
         if max_findings < 1:
             raise ValueError("max_findings must be positive")
         if not 0 < material_changed_fraction <= 1:
             raise ValueError("material_changed_fraction must be between zero and one")
+        if not 1 <= material_component_count <= max_findings:
+            raise ValueError(
+                "material_component_count must be positive and within max_findings"
+            )
         self.max_findings = max_findings
         self.material_changed_fraction = material_changed_fraction
+        self.material_component_count = material_component_count
 
     def plan(self, findings: Iterable[VisualFinding]) -> DecisionTrace:
         normalized = _normalized_findings(findings)
@@ -90,6 +96,7 @@ class SightlineAgent:
                 row["changed_pixels"] / row["image_pixels"] for row in normalized
             )
             >= self.material_changed_fraction
+            or len(normalized) >= self.material_component_count
         ):
             action = "request_human_approval"
             approval_required = True
