@@ -15,6 +15,7 @@ ALLOWED_FILES = (
     "DEMO_SCRIPT.draft.md",
     "LIMITATIONS.draft.md",
     "TECHNICAL_REPORT.draft.md",
+    "TERMS_AND_REGISTRATION_MATRIX.draft.md",
 )
 MAX_FILE_BYTES = 32768
 FORBIDDEN = (
