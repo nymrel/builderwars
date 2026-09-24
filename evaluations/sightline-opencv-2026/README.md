@@ -25,12 +25,12 @@ Every trace includes a deterministic digest of the normalized findings. The engi
 python -m unittest discover -s evaluations/sightline-opencv-2026 -p 'test_*.py'
 ```
 
-The deterministic policy tests use no network or cloud service. Exercising the perception adapter additionally requires an installed OpenCV 5 Python runtime and rights-safe local images.
+The deterministic policy tests use no network or cloud service. Three generated in-memory fixtures exercise missing-region, unexpected-region, and layout-shift paths through an explicitly labeled OpenCV 5 API test double. This verifies the adapter contract, not OpenCV itself. Re-running the same cases with an official OpenCV 5 build remains required before any OpenCV result is claimed.
 
 ## Remaining gates
 
 1. Run the adapter with an exact OpenCV 5 build and record the version plus dependency lock.
-2. Add 2–3 rights-safe synthetic fixture pairs covering missing region, unexpected region, and layout shift.
+2. Re-run the three generated fixture classes with the exact OpenCV 5 build and preserve the receipt.
 3. Measure task success, failure handling, and observability without overstating synthetic results.
 4. Select and review an inert AWS boundary before any credentialed cloud work.
 5. Review the competition's submitted-materials license before any proposal, report, presentation, or video is submitted.
