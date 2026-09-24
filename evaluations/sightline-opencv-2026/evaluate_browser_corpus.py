@@ -303,11 +303,14 @@ def evaluate() -> dict[str, Any]:
                 workflow: str,
                 regression: str,
                 expected_material: bool,
+                prepare: Callable[[Any], None] | None,
                 mutate: Callable[[Any], None] | None,
             ) -> None:
                 dimensions = VIEWPORTS[viewport]
                 page.set_viewport_size(dimensions)
                 _reset(page, url)
+                if prepare is not None:
+                    prepare(page)
                 baseline = root / f"{name}-baseline.png"
                 candidate = root / f"{name}-candidate.png"
                 _capture(page, baseline)
@@ -328,8 +331,11 @@ def evaluate() -> dict[str, Any]:
                     )
                 )
 
-            def remove_featured(current_page: Any) -> None:
+            def prepare_featured(current_page: Any) -> None:
                 _require_visible(current_page, "#featured-match", 5_000)
+                current_page.locator("#featured-match").scroll_into_view_if_needed()
+
+            def remove_featured(current_page: Any) -> None:
                 current_page.evaluate(
                     """() => {
                         const target = document.querySelector('#featured-match');
@@ -356,6 +362,7 @@ def evaluate() -> dict[str, Any]:
                     "none",
                     False,
                     None,
+                    None,
                 )
                 record(
                     f"{viewport}_featured_receipt_missing",
@@ -363,6 +370,7 @@ def evaluate() -> dict[str, Any]:
                     "inspect the featured reviewed receipt",
                     "featured receipt region disappears",
                     True,
+                    prepare_featured,
                     remove_featured,
                 )
                 record(
@@ -371,6 +379,7 @@ def evaluate() -> dict[str, Any]:
                     "review the Arena while the local-session sheet should remain closed",
                     "local-session sheet appears unexpectedly",
                     True,
+                    None,
                     open_session_sheet,
                 )
                 record(
@@ -379,6 +388,7 @@ def evaluate() -> dict[str, Any]:
                     "open the Arena primary destination",
                     "navigation resolves to Watch instead of Arena",
                     True,
+                    None,
                     route_to_wrong_view,
                 )
 
