@@ -1,0 +1,5 @@
+# Exact, hash-checked Linux x86_64 / CPython 3.12 integration environment.
+numpy==2.3.5 \
+    --hash=sha256:0d8163f43acde9a73c2a33605353a4f1bc4798745a8b1d73183b28e5b435ae28
+opencv-python-headless==5.0.0.93 \
+    --hash=sha256:ed709fdf9aa0bd1f2ed8549e71d19449b03a675bb581eb292285f6861953be37
