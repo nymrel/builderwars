@@ -4,6 +4,7 @@
 
 - OpenCV 5.0.0 is exercised in the hosted integration workflow.
 - Generated missing-region, unexpected-region, and layout-shift fixtures produce the expected bounded outcomes.
+- A loopback-only Chromium corpus renders tracked Nymrel-owned BuilderWars source; its no-change, missing-region, unexpected-region, and layout-shift controls produce the expected outcomes without cross-origin requests or persisted PNGs.
 - Material findings require human approval.
 - The source artifact is deterministic for identical inputs.
 - The AWS planning boundary is credential-free and non-executable.
@@ -11,7 +12,7 @@
 ## Unsupported Claims
 
 - Production accuracy, precision, recall, or generalization.
-- Representative browser, device, accessibility, or user coverage.
+- Representative user-traffic, device, accessibility, or public-site coverage.
 - Production safety or availability.
 - AWS deployment, scalability, latency, or cost.
 - Competition qualification, ranking, or prize eligibility.
@@ -21,6 +22,7 @@
 
 - Pixel-difference methods remain sensitive to animation, antialiasing, font rendering, and responsive-layout variation.
 - Current findings cover a small set of visual-regression classes.
+- Browser evidence uses controlled markers on a tracked interface. It does not measure naturally occurring regressions, precision, recall, false positives, or false negatives.
 - Inputs must be equally sized PNG images and are limited to 1 MiB each at the handler boundary.
 - The current artifact is a source package, not a deployed dependency layer or container image.
 - No authenticated storage, queue, database, telemetry, or external tool is used.
