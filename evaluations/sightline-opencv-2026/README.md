@@ -52,7 +52,7 @@ These generated fixtures establish reproducibility and failure observability onl
 
 `evaluate_browser_corpus.py` serves tracked Nymrel-owned `mobile-arena/` source on loopback and captures four labeled Chromium workflows: a stable Arena, a missing featured receipt, an unexpectedly open local-session sheet, and an Arena-to-Watch misroute. The temporary PNGs are evaluated through the exact OpenCV 5 adapter and deleted when the process exits.
 
-The current labeled corpus reports 4/4 correct outcomes, 3 true positives, 1 true negative, zero false positives, and zero false negatives. Precision, recall, specificity, and accuracy are each 1.0 on this four-case set. The missing-receipt case exposed and now regression-tests fragmented visual materiality: eight or more disconnected low-area components stop for approval even when no single component reaches 2% of the viewport. Larger changes that exceed 100 findings fail closed as unbounded.
+The four workflow types run at fixed 1040×900 desktop and 390×844 mobile viewports. The resulting eight-case corpus reports 8/8 correct outcomes, 6 true positives, 2 true negatives, zero false positives, and zero false negatives. Precision, recall, specificity, and accuracy are each 1.0 on this eight-case set. The missing-receipt case exposed and now regression-tests fragmented visual materiality: eight or more disconnected low-area components stop for approval even when no single component reaches 2% of the viewport. Larger changes that exceed 100 findings fail closed as unbounded.
 
 The receipt binds the repository head, source path, browser/runtime versions, viewport, each PNG SHA-256, and each findings digest. It fails on wrong outcomes, cross-origin requests, console warnings/errors, persisted PNGs, AWS invocation, or execution authority. This is labeled loopback evidence on a real tracked surface; it is not public-site capture, user traffic, or a production-accuracy claim.
 
@@ -99,7 +99,7 @@ The packet verifier hashes an exact allowlist, rejects unexpected or sensitive c
 
 ## Remaining gates
 
-1. Expand beyond the current four labeled Nymrel-owned workflows across more routes, viewport classes, and provenance-cleared states before making any competition-quality claim.
+1. Expand beyond the current four workflow types and two fixed viewports across more routes, responsive breakpoints, browsers, and provenance-cleared states before making any competition-quality claim.
 2. Demonstrate a meaningful component actually running on AWS; local Lambda compatibility and an inert plan are not AWS execution.
 3. Render and review judge-facing assets using only cleared fixtures, then freeze the exact Submitted Materials corpus.
 4. Monitor for the final controlling Devpost terms and organizer reconciliation of the deadline and reward conflicts.
