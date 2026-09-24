@@ -41,15 +41,15 @@ def _png(image: np.ndarray) -> bytes:
 
 
 def _canvas() -> np.ndarray:
-    image = np.full((360, 640, 3), (248, 250, 252), dtype=np.uint8)
-    cv2.rectangle(image, (40, 36), (600, 324), (226, 232, 240), 2)
+    image = np.full((360, 640, 3), (15, 23, 42), dtype=np.uint8)
+    cv2.rectangle(image, (40, 36), (600, 324), (71, 85, 105), 2)
     cv2.putText(
         image,
         "SIGHTLINE SYNTHETIC FIXTURE",
         (70, 76),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.72,
-        (30, 41, 59),
+        (226, 232, 240),
         2,
         cv2.LINE_8,
     )
@@ -59,16 +59,16 @@ def _canvas() -> np.ndarray:
 def _fixtures() -> dict[str, tuple[np.ndarray, np.ndarray, tuple[str, ...]]]:
     missing_baseline = _canvas()
     missing_candidate = _canvas()
-    cv2.rectangle(missing_baseline, (150, 125), (490, 255), (79, 70, 229), -1)
+    cv2.rectangle(missing_baseline, (150, 125), (490, 255), (248, 250, 252), -1)
 
     unexpected_baseline = _canvas()
     unexpected_candidate = _canvas()
-    cv2.rectangle(unexpected_candidate, (150, 125), (490, 255), (14, 165, 233), -1)
+    cv2.rectangle(unexpected_candidate, (150, 125), (490, 255), (248, 250, 252), -1)
 
     shift_baseline = _canvas()
     shift_candidate = _canvas()
-    cv2.rectangle(shift_baseline, (90, 130), (270, 250), (16, 185, 129), -1)
-    cv2.rectangle(shift_candidate, (370, 130), (550, 250), (16, 185, 129), -1)
+    cv2.rectangle(shift_baseline, (90, 130), (270, 250), (248, 250, 252), -1)
+    cv2.rectangle(shift_candidate, (370, 130), (550, 250), (248, 250, 252), -1)
 
     return {
         "layout-shift": (shift_baseline, shift_candidate, ("layout_shift", "layout_shift")),
