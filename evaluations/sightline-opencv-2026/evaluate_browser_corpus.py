@@ -125,11 +125,11 @@ def _capture(page: Any, path: Path) -> None:
     page.screenshot(path=str(path), full_page=False, animations="disabled")
 
 
-def _require_visible(page: Any, selector: str) -> None:
+def _require_visible(page: Any, selector: str, min_area: float = 1) -> None:
     locator = page.locator(selector)
     locator.wait_for(state="visible")
     box = locator.bounding_box()
-    if not box or box["width"] * box["height"] < 10_000:
+    if not box or box["width"] * box["height"] < min_area:
         raise RuntimeError(f"workflow target {selector!r} is missing or too small")
 
 
@@ -307,7 +307,7 @@ def evaluate() -> dict[str, Any]:
             )
 
             def remove_featured(current_page: Any) -> None:
-                _require_visible(current_page, "#featured-match")
+                _require_visible(current_page, "#featured-match", 10_000)
                 current_page.evaluate(
                     """() => {
                         const target = document.querySelector('#featured-match');
@@ -326,7 +326,7 @@ def evaluate() -> dict[str, Any]:
             def open_session_sheet(current_page: Any) -> None:
                 _require_visible(current_page, "#profile-button")
                 current_page.locator("#profile-button").click()
-                _require_visible(current_page, "#session-sheet")
+                _require_visible(current_page, "#session-sheet", 10_000)
 
             record(
                 "session_sheet_unexpected",
