@@ -14,6 +14,7 @@ ALLOWED_FILES = (
     "ARCHITECTURE.draft.md",
     "DEMO_SCRIPT.draft.md",
     "LIMITATIONS.draft.md",
+    "REQUIREMENTS_TRACEABILITY.draft.md",
     "TECHNICAL_REPORT.draft.md",
     "TERMS_AND_REGISTRATION_MATRIX.draft.md",
 )
