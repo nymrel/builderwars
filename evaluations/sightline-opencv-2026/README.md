@@ -54,12 +54,25 @@ python evaluations/sightline-opencv-2026/evaluate_stage1.py
 
 These generated fixtures establish reproducibility and failure observability only. They do not establish browser coverage, production accuracy, leaderboard performance, or competition qualification.
 
+## Inert AWS boundary
+
+`aws_boundary.py` prepares a reviewable AWS Lambda deployment plan without importing an AWS SDK, loading credentials, or exposing an execution method. It is intentionally incapable of deployment.
+
+The boundary:
+
+- requires credential, deployment, and spend authority to remain false;
+- rejects common credential-bearing AWS environment variables without logging their values;
+- allows only bounded artifact names, exact lowercase SHA-256 digests, packages no larger than 50 MiB, and an explicit region allowlist;
+- emits `operation=prepare_only`, `execute=false`, and false credential/deployment/spend authority fields.
+
+This closes design-time review of the inert boundary only. Credentialed AWS work still requires authorized account access and confirmation that no billing, promotional-credit acceptance, or spend is involved.
+
 ## Hosted validation
 
-`.github/workflows/sightline-opencv5.yml` repeats the exact hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 12 tests without skips, compiles every Python module, and emits the measured offline-baseline JSON. The workflow has read-only repository permission and no AWS or deployment capability.
+`.github/workflows/sightline-opencv5.yml` repeats the exact hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 18 tests without skips, compiles every Python module, and emits the measured offline-baseline JSON. The workflow has read-only repository permission and no AWS or deployment capability.
 
 ## Remaining gates
 
 1. Expand the evaluation beyond generated fixtures to representative real-world or browser screenshots before making any competition-quality claim.
-2. Select and review an inert AWS boundary before any credentialed cloud work.
-3. Review the competition's submitted-materials license before any proposal, report, presentation, or video is submitted.
+2. Package and exercise the inert AWS interface locally without credentials; credentialed deployment remains separately gated.
+3. Review the competition's submitted-materials license against the exact judge-facing package before submission.
