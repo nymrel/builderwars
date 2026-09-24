@@ -36,12 +36,30 @@ python -m unittest \
   evaluations/sightline-opencv-2026/test_opencv5_integration.py
 ```
 
+## Measured offline baseline
+
+`evaluate_stage1.py` runs a deterministic, generated-fixture baseline against the pinned real OpenCV runtime. It measures the narrow Stage 1 contract without making a real-world quality claim:
+
+- 3/3 expected finding classifications and policy outcomes passed: missing region, unexpected region, and layout shift.
+- 2/2 fail-closed controls passed: unreadable input and dimension mismatch.
+- Every material case returned `request_human_approval`.
+- Every case reported `execution_authorized=false` and `aws_invoked=false`.
+- The JSON receipt includes deterministic input and trace SHA-256 digests and exits nonzero if any check fails.
+
+Run it only after the hash-checked dependency installation above:
+
+```bash
+python evaluations/sightline-opencv-2026/evaluate_stage1.py
+```
+
+These generated fixtures establish reproducibility and failure observability only. They do not establish browser coverage, production accuracy, leaderboard performance, or competition qualification.
+
 ## Hosted validation
 
-`.github/workflows/sightline-opencv5.yml` repeats the exact hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 12 tests without skips, and compiles every Python module in this slice. The workflow has read-only repository permission and no AWS or deployment capability.
+`.github/workflows/sightline-opencv5.yml` repeats the exact hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 12 tests without skips, compiles every Python module, and emits the measured offline-baseline JSON. The workflow has read-only repository permission and no AWS or deployment capability.
 
 ## Remaining gates
 
-1. Measure task success, failure handling, and observability without overstating synthetic results.
+1. Expand the evaluation beyond generated fixtures to representative real-world or browser screenshots before making any competition-quality claim.
 2. Select and review an inert AWS boundary before any credentialed cloud work.
 3. Review the competition's submitted-materials license before any proposal, report, presentation, or video is submitted.
