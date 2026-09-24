@@ -7,7 +7,7 @@ Sightline is a bounded visual-regression evaluation candidate for the OpenCV AI 
 - No AWS call, account mutation, credit use, deployment, registration, or competition submission occurs here.
 - The OpenCV adapter refuses every runtime whose reported major version is not exactly 5.
 - The local decision engine never claims that a proposed action was executed.
-- Synthetic fixtures and measured OpenCV 5 evidence remain required before the candidate can claim competition qualification.
+- The adapter has been exercised against the official OpenCV 5.0.0 Python wheel in a hash-checked Linux x86_64 / CPython 3.12 environment. This is narrow adapter evidence, not competition qualification.
 
 ## Stage 1 contract
 
@@ -25,12 +25,20 @@ Every trace includes a deterministic digest of the normalized findings. The engi
 python -m unittest discover -s evaluations/sightline-opencv-2026 -p 'test_*.py'
 ```
 
-The deterministic policy tests use no network or cloud service. Three generated in-memory fixtures exercise missing-region, unexpected-region, and layout-shift paths through an explicitly labeled OpenCV 5 API test double. This verifies the adapter contract, not OpenCV itself. Re-running the same cases with an official OpenCV 5 build remains required before any OpenCV result is claimed.
+The deterministic policy tests use no network or cloud service. Three generated in-memory fixtures exercise missing-region, unexpected-region, and layout-shift paths through an explicitly labeled OpenCV 5 API test double. This verifies the dependency-free adapter contract independently from the real-runtime integration suite.
+
+The same three fixture classes are also covered by `test_opencv5_integration.py` against the exact dependencies in `requirements-opencv5-linux-x86_64-py312.txt`. Install them in an isolated CPython 3.12 environment with hash checking:
+
+```bash
+python -m pip install --require-hashes \
+  -r evaluations/sightline-opencv-2026/requirements-opencv5-linux-x86_64-py312.txt
+python -m unittest \
+  evaluations/sightline-opencv-2026/test_opencv5_integration.py
+```
 
 ## Remaining gates
 
-1. Run the adapter with an exact OpenCV 5 build and record the version plus dependency lock.
-2. Re-run the three generated fixture classes with the exact OpenCV 5 build and preserve the receipt.
-3. Measure task success, failure handling, and observability without overstating synthetic results.
-4. Select and review an inert AWS boundary before any credentialed cloud work.
-5. Review the competition's submitted-materials license before any proposal, report, presentation, or video is submitted.
+1. Reproduce the hash-checked OpenCV 5 integration suite in hosted CI.
+2. Measure task success, failure handling, and observability without overstating synthetic results.
+3. Select and review an inert AWS boundary before any credentialed cloud work.
+4. Review the competition's submitted-materials license before any proposal, report, presentation, or video is submitted.
