@@ -82,6 +82,20 @@ Produce a short flow showing:
 - replay/evidence inspection;
 - a failed or bounded case.
 
+The local evaluator can now produce a self-contained, script-free inspection
+report from the same canonical receipt:
+
+```sh
+python bin/run_nebius_policy_repair.py \
+  --response-file candidate.json \
+  --model nvidia/nemotron-3-super-120b-a12b \
+  --report-file evaluation-receipt.html
+```
+
+The HTML report makes the score, nine checks, receipt bindings, and evidence
+boundary readable without exposing the raw model response. It loads no external
+resource and does not upgrade fixture evidence into provider-call evidence.
+
 ## Optional Tavily prize
 
 Do not add Tavily unless web search is genuinely required by the selected task. Prize stacking must not make the evaluation less reproducible.

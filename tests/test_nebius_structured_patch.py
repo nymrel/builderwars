@@ -1,5 +1,9 @@
 import json
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 from competitions.nebius_nvidia_2026.structured_patch import (
     BASELINE_POLICY,
@@ -8,6 +12,7 @@ from competitions.nebius_nvidia_2026.structured_patch import (
     evaluate_response,
     task_document,
 )
+from competitions.nebius_nvidia_2026.report import render_receipt_report
 
 
 MODEL = "nvidia/nemotron-3-super-120b-a12b"
@@ -97,7 +102,48 @@ class StructuredPatchTests(unittest.TestCase):
         with self.assertRaisesRegex(StructuredPatchError, "nvidia/<model>"):
             evaluate_response(CORRECT, model="openai/example")
 
+    def test_offline_report_is_deterministic_and_preserves_truth_boundary(self):
+        receipt = evaluate_response(CORRECT, model=MODEL)
+        first = render_receipt_report(receipt)
+        second = render_receipt_report(receipt)
+        self.assertEqual(first, second)
+        self.assertIn("9 / 9", first)
+        self.assertIn(receipt["receiptDigest"], first)
+        self.assertIn("Provider call observed</span><strong>No", first)
+        self.assertIn("default-src 'none'", first)
+        self.assertNotIn(CORRECT, first)
+
+    def test_cli_writes_report_without_changing_canonical_receipt(self):
+        root = Path(__file__).resolve().parent.parent
+        with tempfile.TemporaryDirectory() as directory:
+            response_path = Path(directory) / "response.json"
+            report_path = Path(directory) / "receipt.html"
+            response_path.write_text(CORRECT, encoding="utf-8")
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(root / "bin" / "run_nebius_policy_repair.py"),
+                    "--response-file",
+                    str(response_path),
+                    "--model",
+                    MODEL,
+                    "--report-file",
+                    str(report_path),
+                ],
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(
+                json.loads(completed.stdout)["score"],
+                {"passed": 9, "total": 9},
+            )
+            report = report_path.read_text(encoding="utf-8")
+            self.assertIn("Evaluation receipt", report)
+            self.assertNotIn(CORRECT, report)
+
 
 if __name__ == "__main__":
     unittest.main()
-
