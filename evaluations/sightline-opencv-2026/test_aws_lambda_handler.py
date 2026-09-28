@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import importlib.util
 from pathlib import Path
+import struct
 import sys
 import unittest
 
@@ -23,6 +24,16 @@ def _png(image: np.ndarray) -> str:
     if not ok:
         raise RuntimeError("fixture encoding failed")
     return base64.b64encode(encoded.tobytes()).decode("ascii")
+
+
+def _png_header(width: int, height: int) -> str:
+    payload = (
+        handler.PNG_SIGNATURE
+        + struct.pack(">I4sII", 13, b"IHDR", width, height)
+        + b"\x08\x02\x00\x00\x00"
+        + b"\x00\x00\x00\x00"
+    )
+    return base64.b64encode(payload).decode("ascii")
 
 
 class LambdaHandlerTests(unittest.TestCase):
@@ -65,6 +76,26 @@ class LambdaHandlerTests(unittest.TestCase):
                 {
                     "baseline_png_base64": oversized,
                     "candidate_png_base64": oversized,
+                }
+            )
+
+    def test_rejects_small_compressed_payload_with_oversized_dimensions(self) -> None:
+        oversized = _png_header(handler.MAX_IMAGE_DIMENSION + 1, 1)
+        self.assertLess(len(oversized), handler.MAX_ENCODED_CHARS)
+        with self.assertRaisesRegex(ValueError, "dimensions exceed"):
+            handler.lambda_handler(
+                {
+                    "baseline_png_base64": oversized,
+                    "candidate_png_base64": oversized,
+                }
+            )
+
+    def test_rejects_mismatched_dimensions_before_opencv_decode(self) -> None:
+        with self.assertRaisesRegex(ValueError, "dimensions must match"):
+            handler.lambda_handler(
+                {
+                    "baseline_png_base64": _png_header(20, 20),
+                    "candidate_png_base64": _png_header(21, 20),
                 }
             )
 
