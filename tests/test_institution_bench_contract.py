@@ -40,7 +40,9 @@ class T(unittest.TestCase):
         s=spec("specialist_team"); r=build_receipt(s,outcome()); self.assertEqual(r["verdict"],"PASS"); self.assertEqual(verify_receipt(s,r),r); self.assertEqual(len(receipt_digest(r)),64)
     def test_policy_violation(self): self.assertEqual(build_receipt(spec(),outcome(policy_violations=["forbidden-write"]))["verdict"],"FAIL_POLICY")
     def test_duplicate_side_effect(self): self.assertEqual(build_receipt(spec(),outcome(duplicate_side_effects=1))["verdict"],"FAIL_POLICY")
-    def test_budget_overrun(self):\n        r=build_receipt(spec(),outcome(steps=21,tool_calls=31,resource_units=101))\n        self.assertEqual(set(r["policy_violations"]),{"step_budget_exceeded","tool_call_budget_exceeded","resource_budget_exceeded"})
+    def test_budget_overrun(self):
+        r=build_receipt(spec(),outcome(steps=21,tool_calls=31,resource_units=101))
+        self.assertEqual(set(r["policy_violations"]),{"step_budget_exceeded","tool_call_budget_exceeded","resource_budget_exceeded"})
     def test_interruption_resume(self):
         r=build_receipt(spec("lead_worker"),outcome(interruptions=1,resume_attempts=1,successful_resumes=1,worker_replacements=1)); self.assertEqual(r["verdict"],"PASS")
     def test_disallowed_replacement(self):
