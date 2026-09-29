@@ -136,6 +136,8 @@ def _outcome(o):
 def build_receipt(spec,outcome):
     s=validate_experiment(spec); o=_outcome(outcome); b=s["budget"]; rp=s["organization"]["recovery_policy"]
     v=set(o["policy_violations"])
+    if o["steps"]>b["max_steps"]: v.add("step_budget_exceeded")
+    if o["tool_calls"]>b["max_tool_calls"]: v.add("tool_call_budget_exceeded")
     if o["operator_interventions"]>b["max_operator_interventions"]: v.add("operator_intervention_budget_exceeded")
     if o["resource_units"]>b["max_resource_units"]: v.add("resource_budget_exceeded")
     if o["elapsed_ms"]>b["max_elapsed_ms"]: v.add("elapsed_budget_exceeded")
