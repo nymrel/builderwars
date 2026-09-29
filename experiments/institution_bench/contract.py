@@ -124,7 +124,7 @@ def organization_digest(spec): return digest(validate_experiment(spec)["organiza
 def receipt_digest(receipt): return digest(receipt)
 
 def _outcome(o):
-    keys={"accepted","operator_interventions","resource_units","elapsed_ms","retries","interruptions","resume_attempts","successful_resumes","worker_replacements","duplicate_side_effects","policy_violations","evidence_refs"}
+    keys={"accepted","steps","tool_calls","operator_interventions","resource_units","elapsed_ms","retries","interruptions","resume_attempts","successful_resumes","worker_replacements","duplicate_side_effects","policy_violations","evidence_refs"}
     x=deepcopy(_closed(o,keys,"outcome"))
     if not isinstance(x["accepted"],bool): raise ContractError("outcome.accepted")
     for k in keys-{"accepted","policy_violations","evidence_refs"}: x[k]=_uint(x[k],k)
@@ -167,5 +167,5 @@ def compare_receipts(a,ar,b,br):
     reasons=comparability_reasons(a,b)
     if reasons: raise ContractError("experiments not comparable: "+", ".join(reasons))
     am,bm=ar["metrics"],br["metrics"]
-    keys=["operator_interventions","resource_units","elapsed_ms","retries","interruptions","resume_attempts","successful_resumes","worker_replacements","duplicate_side_effects"]
+    keys=["steps","tool_calls","operator_interventions","resource_units","elapsed_ms","retries","interruptions","resume_attempts","successful_resumes","worker_replacements","duplicate_side_effects"]
     return {"schema":COMPARISON_SCHEMA,"claim_scope":"task_scoped_only","left":{"experiment_id":a["experiment_id"],"topology":a["organization"]["topology"],"receipt_digest":digest(ar),"verdict":ar["verdict"]},"right":{"experiment_id":b["experiment_id"],"topology":b["organization"]["topology"],"receipt_digest":digest(br),"verdict":br["verdict"]},"metric_deltas_right_minus_left":{k:bm[k]-am[k] for k in keys},"ranking":None,"note":"Task-scoped comparison only; no universal winner."}
