@@ -26,6 +26,10 @@ A receipt records accepted outcome, operator interventions, resource units, elap
 retries, interruption/recovery facts, duplicate side effects, policy violations and evidence
 references. A policy violation or duplicate side effect fails closed.
 
+Receipt validation is structural by default; it is **not authentication**. For integrity-sensitive use,
+callers must retain the receipt digest in Nymrel Evidence (or another independent trusted record)
+and pass that expected digest back into `verify_receipt`. InstitutionBench does not invent a second signer.
+
 Two receipts are comparable only when task, fixture, acceptance test, budget, tool surface
 and evidence policy match exactly. The comparison returns deltas and explicitly leaves
 `ranking: null`; a task-scoped experiment is not a universal model/team/organization score.
