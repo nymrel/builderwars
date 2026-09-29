@@ -10,7 +10,8 @@ COMPARISON_SCHEMA = "builderwars.institution-experiment.comparison.v0"
 TOPOLOGIES = {"single", "lead_worker", "independent_adjudicator", "specialist_team"}
 ROLE_KINDS = {"worker", "lead", "adjudicator", "specialist"}
 MEMORY = {"none", "ephemeral", "reviewed"}
-EVIDENCE = {"declared", "replay_validated", "hosted_run_recorded", "independent_review", "independent_rerun"}\nINDEPENDENT_EVIDENCE = {"independent_review", "independent_rerun"}
+EVIDENCE = {"declared", "replay_validated", "hosted_run_recorded", "independent_review", "independent_rerun"}
+INDEPENDENT_EVIDENCE = {"independent_review", "independent_rerun"}
 _ID = re.compile(r"^[a-z0-9][a-z0-9._:-]{0,127}$")
 _SHA = re.compile(r"^[0-9a-f]{64}$")
 
@@ -127,6 +128,7 @@ def validate_experiment(spec):
     if ep["require_receipt"] is not True or not isinstance(ep["require_independent_review"],bool): raise ContractError("evidence flags")
     classes=_strings(ep["accepted_evidence_classes"],"evidence classes",True)
     if set(classes)-EVIDENCE: raise ContractError("unknown evidence class")
+    if ep["require_independent_review"] and not (set(classes) & INDEPENDENT_EVIDENCE): raise ContractError("independent evidence class required")
     s["evidence_policy"]={**ep,"accepted_evidence_classes":classes}
     a=_closed(s["acceptance"],{"acceptance_test_digest","critical_policy_violations_allowed"},"acceptance")
     if _uint(a["critical_policy_violations_allowed"],"critical violations") != 0: raise ContractError("critical violations must be zero")
@@ -137,14 +139,15 @@ def experiment_digest(spec): return digest(validate_experiment(spec))
 def organization_digest(spec): return digest(validate_experiment(spec)["organization"])
 def receipt_digest(receipt): return digest(receipt)
 
-def _outcome(o):
-    keys={"accepted","steps","tool_calls","operator_interventions","resource_units","elapsed_ms","retries","interruptions","resume_attempts","successful_resumes","worker_replacements","duplicate_side_effects","policy_violations","evidence_refs"}
+def _outcome(o, accepted_evidence):
+    keys={"accepted","steps","tool_calls","operator_interventions","operator_active_ms","resource_units","elapsed_ms","retries","interruptions","resume_attempts","successful_resumes","worker_replacements","duplicate_side_effects","policy_violations","evidence_refs"}
     x=deepcopy(_closed(o,keys,"outcome"))
     if not isinstance(x["accepted"],bool): raise ContractError("outcome.accepted")
     for k in keys-{"accepted","policy_violations","evidence_refs"}: x[k]=_uint(x[k],k)
     if x["successful_resumes"]>x["resume_attempts"]: raise ContractError("resume counts")
     x["policy_violations"]=_strings(x["policy_violations"],"policy_violations")
-    if x["successful_resumes"]>x["interruptions"]: raise ContractError("resume without interruption")\n    x["evidence_refs"]=_evidence_refs(x["evidence_refs"],set(accepted_evidence))
+    if x["successful_resumes"]>x["interruptions"]: raise ContractError("resume without interruption")
+    x["evidence_refs"]=_evidence_refs(x["evidence_refs"],set(accepted_evidence))
     return x
 
 def build_receipt(spec,outcome):
@@ -156,7 +159,9 @@ def build_receipt(spec,outcome):
     if o["resource_units"]>b["max_resource_units"]: v.add("resource_budget_exceeded")
     if o["elapsed_ms"]>b["max_elapsed_ms"]: v.add("elapsed_budget_exceeded")
     if o["resume_attempts"]>rp["max_resume_attempts"]: v.add("resume_attempt_budget_exceeded")
-    if o["accepted"] and o["interruptions"] and rp["checkpoint_required"] and o["successful_resumes"] != o["interruptions"]: v.add("checkpoint_recovery_incomplete")\n    if o["accepted"] and not o["evidence_refs"]: v.add("accepted_without_evidence")\n    if o["accepted"] and s["evidence_policy"]["require_independent_review"] and not any(e["class"] in INDEPENDENT_EVIDENCE for e in o["evidence_refs"]): v.add("independent_review_missing")
+    if o["accepted"] and o["interruptions"] and rp["checkpoint_required"] and o["successful_resumes"] != o["interruptions"]: v.add("checkpoint_recovery_incomplete")
+    if o["accepted"] and not o["evidence_refs"]: v.add("accepted_without_evidence")
+    if o["accepted"] and s["evidence_policy"]["require_independent_review"] and not any(e["class"] in INDEPENDENT_EVIDENCE for e in o["evidence_refs"]): v.add("independent_review_missing")
     if o["worker_replacements"] and not rp["allow_worker_replacement"]: v.add("worker_replacement_not_allowed")
     if o["worker_replacements"]>o["interruptions"]: v.add("replacement_without_matching_interruption")
     if o["duplicate_side_effects"]: v.add("duplicate_side_effect_observed")
