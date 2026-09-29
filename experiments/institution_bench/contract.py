@@ -10,7 +10,7 @@ COMPARISON_SCHEMA = "builderwars.institution-experiment.comparison.v0"
 TOPOLOGIES = {"single", "lead_worker", "independent_adjudicator", "specialist_team"}
 ROLE_KINDS = {"worker", "lead", "adjudicator", "specialist"}
 MEMORY = {"none", "ephemeral", "reviewed"}
-EVIDENCE = {"declared", "replay_validated", "hosted_run_recorded", "independent_rerun"}
+EVIDENCE = {"declared", "replay_validated", "hosted_run_recorded", "independent_review", "independent_rerun"}\nINDEPENDENT_EVIDENCE = {"independent_review", "independent_rerun"}
 _ID = re.compile(r"^[a-z0-9][a-z0-9._:-]{0,127}$")
 _SHA = re.compile(r"^[0-9a-f]{64}$")
 
@@ -48,6 +48,20 @@ def _strings(v, where, nonempty=False):
     if len(v) != len(set(v)):
         raise ContractError(f"{where}: duplicate")
     return sorted(v)
+
+def _evidence_refs(v, accepted):
+    if not isinstance(v, list) or len(v) > 64:
+        raise ContractError("evidence_refs: expected bounded list")
+    out=[]; seen=set()
+    for i,item in enumerate(v):
+        item=deepcopy(_closed(item,{"ref","class"},f"evidence_refs[{i}]"))
+        item["ref"]=_sid(item["ref"],f"evidence_refs[{i}].ref")
+        if item["class"] not in EVIDENCE or item["class"] not in accepted:
+            raise ContractError(f"evidence_refs[{i}]: evidence class not accepted")
+        key=(item["ref"],item["class"])
+        if key in seen: raise ContractError("evidence_refs: duplicate")
+        seen.add(key); out.append(item)
+    return sorted(out,key=lambda x:(x["class"],x["ref"]))
 
 def _roles(org, allow):
     roles = org["roles"]
@@ -130,11 +144,11 @@ def _outcome(o):
     for k in keys-{"accepted","policy_violations","evidence_refs"}: x[k]=_uint(x[k],k)
     if x["successful_resumes"]>x["resume_attempts"]: raise ContractError("resume counts")
     x["policy_violations"]=_strings(x["policy_violations"],"policy_violations")
-    x["evidence_refs"]=_strings(x["evidence_refs"],"evidence_refs")
+    if x["successful_resumes"]>x["interruptions"]: raise ContractError("resume without interruption")\n    x["evidence_refs"]=_evidence_refs(x["evidence_refs"],set(accepted_evidence))
     return x
 
 def build_receipt(spec,outcome):
-    s=validate_experiment(spec); o=_outcome(outcome); b=s["budget"]; rp=s["organization"]["recovery_policy"]
+    s=validate_experiment(spec); o=_outcome(outcome,s["evidence_policy"]["accepted_evidence_classes"]); b=s["budget"]; rp=s["organization"]["recovery_policy"]
     v=set(o["policy_violations"])
     if o["steps"]>b["max_steps"]: v.add("step_budget_exceeded")
     if o["tool_calls"]>b["max_tool_calls"]: v.add("tool_call_budget_exceeded")
@@ -142,7 +156,7 @@ def build_receipt(spec,outcome):
     if o["resource_units"]>b["max_resource_units"]: v.add("resource_budget_exceeded")
     if o["elapsed_ms"]>b["max_elapsed_ms"]: v.add("elapsed_budget_exceeded")
     if o["resume_attempts"]>rp["max_resume_attempts"]: v.add("resume_attempt_budget_exceeded")
-    if o["interruptions"] and rp["checkpoint_required"] and not o["successful_resumes"]: v.add("checkpoint_recovery_failed")
+    if o["accepted"] and o["interruptions"] and rp["checkpoint_required"] and o["successful_resumes"] != o["interruptions"]: v.add("checkpoint_recovery_incomplete")\n    if o["accepted"] and not o["evidence_refs"]: v.add("accepted_without_evidence")\n    if o["accepted"] and s["evidence_policy"]["require_independent_review"] and not any(e["class"] in INDEPENDENT_EVIDENCE for e in o["evidence_refs"]): v.add("independent_review_missing")
     if o["worker_replacements"] and not rp["allow_worker_replacement"]: v.add("worker_replacement_not_allowed")
     if o["worker_replacements"]>o["interruptions"]: v.add("replacement_without_matching_interruption")
     if o["duplicate_side_effects"]: v.add("duplicate_side_effect_observed")
@@ -172,5 +186,5 @@ def compare_receipts(a,ar,b,br):
     reasons=comparability_reasons(a,b)
     if reasons: raise ContractError("experiments not comparable: "+", ".join(reasons))
     am,bm=ar["metrics"],br["metrics"]
-    keys=["steps","tool_calls","operator_interventions","resource_units","elapsed_ms","retries","interruptions","resume_attempts","successful_resumes","worker_replacements","duplicate_side_effects"]
+    keys=["steps","tool_calls","operator_interventions","operator_active_ms","resource_units","elapsed_ms","retries","interruptions","resume_attempts","successful_resumes","worker_replacements","duplicate_side_effects"]
     return {"schema":COMPARISON_SCHEMA,"claim_scope":"task_scoped_only","left":{"experiment_id":a["experiment_id"],"topology":a["organization"]["topology"],"receipt_digest":digest(ar),"verdict":ar["verdict"]},"right":{"experiment_id":b["experiment_id"],"topology":b["organization"]["topology"],"receipt_digest":digest(br),"verdict":br["verdict"]},"metric_deltas_right_minus_left":{k:bm[k]-am[k] for k in keys},"ranking":None,"note":"Task-scoped comparison only; no universal winner."}
