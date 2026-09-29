@@ -49,8 +49,11 @@ class T(unittest.TestCase):
         s=spec("lead_worker"); s["organization"]["recovery_policy"]["allow_worker_replacement"]=False
         self.assertEqual(build_receipt(s,outcome(interruptions=1,resume_attempts=1,successful_resumes=1,worker_replacements=1))["verdict"],"FAIL_POLICY")
     def test_tamper(self):
-        s=spec(); r=build_receipt(s,outcome()); r["metrics"]["duplicate_side_effects"]=1
-        with self.assertRaises(ContractError): verify_receipt(s,r)
+        s=spec(); r=build_receipt(s,outcome()); d=receipt_digest(r); r["metrics"]["resource_units"]+=1
+        with self.assertRaisesRegex(ContractError,"receipt digest mismatch"): verify_receipt(s,r,d)
+    def test_structural_verification_is_not_authentication(self):
+        s=spec(); r=build_receipt(s,outcome()); r["metrics"]["resource_units"]+=1
+        self.assertEqual(verify_receipt(s,r),r)
     def test_comparable_structures(self): self.assertEqual(comparability_reasons(spec(),spec("lead_worker")),[])
     def test_budget_drift(self):
         b=spec("lead_worker"); b["budget"]["max_resource_units"]=101; self.assertEqual(comparability_reasons(spec(),b),["budget_mismatch"])
