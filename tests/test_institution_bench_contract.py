@@ -13,10 +13,10 @@ def spec(t="single"):
     if t=="lead_worker": roles=[role("lead","lead",tools=["read","write"],d=True),role("worker")]
     if t=="independent_adjudicator": roles=[role("a",ref="worker:a"),role("b",ref="worker:b"),role("judge","adjudicator",ref="worker:judge",a=True)]
     if t=="specialist_team": roles=[role("research","specialist"),role("verify","specialist")]
-    return {"schema":EXPERIMENT_SCHEMA,"experiment_id":f"exp:{t}","task":{"task_id":"task:fixture","task_digest":D1,"fixture_digest":D2},"organization":{"organization_id":f"org:{t}","topology":t,"roles":roles,"tool_allowlist":["read","write"],"memory_policy":"reviewed","recovery_policy":{"checkpoint_required":True,"allow_worker_replacement":True,"max_resume_attempts":2}},"budget":{"max_steps":20,"max_tool_calls":30,"max_operator_interventions":2,"max_resource_units":100,"max_elapsed_ms":60000},"evidence_policy":{"require_receipt":True,"require_independent_review":True,"accepted_evidence_classes":["replay_validated","independent_rerun"]},"acceptance":{"acceptance_test_digest":D3,"critical_policy_violations_allowed":0}}
+    return {"schema":EXPERIMENT_SCHEMA,"experiment_id":f"exp:{t}","task":{"task_id":"task:fixture","task_digest":D1,"fixture_digest":D2},"organization":{"organization_id":f"org:{t}","topology":t,"roles":roles,"tool_allowlist":["read","write"],"memory_policy":"reviewed","recovery_policy":{"checkpoint_required":True,"allow_worker_replacement":True,"max_resume_attempts":2}},"budget":{"max_steps":20,"max_tool_calls":30,"max_operator_interventions":2,"max_resource_units":100,"max_elapsed_ms":60000},"evidence_policy":{"require_receipt":True,"require_independent_review":True,"accepted_evidence_classes":["replay_validated","independent_review","independent_rerun"]},"acceptance":{"acceptance_test_digest":D3,"critical_policy_violations_allowed":0}}
 
 def outcome(**kw):
-    x={"accepted":True,"steps":10,"tool_calls":8,"operator_interventions":0,"resource_units":40,"elapsed_ms":5000,"retries":0,"interruptions":0,"resume_attempts":0,"successful_resumes":0,"worker_replacements":0,"duplicate_side_effects":0,"policy_violations":[],"evidence_refs":["receipt:fixture"]}; x.update(kw); return x
+    x={"accepted":True,"steps":10,"tool_calls":8,"operator_interventions":0,"operator_active_ms":1000,"resource_units":40,"elapsed_ms":5000,"retries":0,"interruptions":0,"resume_attempts":0,"successful_resumes":0,"worker_replacements":0,"duplicate_side_effects":0,"policy_violations":[],"evidence_refs":[{"ref":"receipt:fixture","class":"independent_review"}]}; x.update(kw); return x
 
 class T(unittest.TestCase):
     def test_topologies(self):
@@ -34,7 +34,7 @@ class T(unittest.TestCase):
         x=spec("independent_adjudicator"); x["organization"]["roles"][2]["worker_ref"]="worker:a"
         with self.assertRaises(ContractError): validate_experiment(x)
     def test_digest_normalization(self):
-        a=spec("lead_worker"); b=copy.deepcopy(a); b["organization"]["tool_allowlist"]=["write","read"]; b["organization"]["roles"][0]["tools"]=["write","read"]; b["evidence_policy"]["accepted_evidence_classes"]=["independent_rerun","replay_validated"]
+        a=spec("lead_worker"); b=copy.deepcopy(a); b["organization"]["tool_allowlist"]=["write","read"]; b["organization"]["roles"][0]["tools"]=["write","read"]; b["evidence_policy"]["accepted_evidence_classes"]=["independent_rerun","replay_validated","independent_review"]
         self.assertEqual(experiment_digest(a),experiment_digest(b)); self.assertEqual(organization_digest(a),organization_digest(b))
     def test_pass_and_verify(self):
         s=spec("specialist_team"); r=build_receipt(s,outcome()); self.assertEqual(r["verdict"],"PASS"); self.assertEqual(verify_receipt(s,r),r); self.assertEqual(len(receipt_digest(r)),64)
@@ -45,6 +45,15 @@ class T(unittest.TestCase):
         self.assertEqual(set(r["policy_violations"]),{"step_budget_exceeded","tool_call_budget_exceeded","resource_budget_exceeded"})
     def test_interruption_resume(self):
         r=build_receipt(spec("lead_worker"),outcome(interruptions=1,resume_attempts=1,successful_resumes=1,worker_replacements=1)); self.assertEqual(r["verdict"],"PASS")
+    def test_incomplete_recovery_fails_policy(self):
+        r=build_receipt(spec("lead_worker"),outcome(interruptions=2,resume_attempts=2,successful_resumes=1,worker_replacements=1)); self.assertIn("checkpoint_recovery_incomplete",r["policy_violations"])
+    def test_evidence_class_must_be_accepted(self):
+        with self.assertRaisesRegex(ContractError,"evidence class not accepted"):
+            build_receipt(spec(),outcome(evidence_refs=[{"ref":"receipt:fixture","class":"declared"}]))
+    def test_independent_review_required_for_accepted_outcome(self):
+        s=spec(); s["evidence_policy"]["accepted_evidence_classes"]=["replay_validated","independent_review"]
+        r=build_receipt(s,outcome(evidence_refs=[{"ref":"receipt:fixture","class":"replay_validated"}]))
+        self.assertIn("independent_review_missing",r["policy_violations"])
     def test_disallowed_replacement(self):
         s=spec("lead_worker"); s["organization"]["recovery_policy"]["allow_worker_replacement"]=False
         self.assertEqual(build_receipt(s,outcome(interruptions=1,resume_attempts=1,successful_resumes=1,worker_replacements=1))["verdict"],"FAIL_POLICY")
