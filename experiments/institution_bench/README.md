@@ -22,9 +22,9 @@ v0 supports four structures:
 3. `independent_adjudicator` — two or more workers plus an independent adjudicator;
 4. `specialist_team` — two or more specialists, optionally with one delegating lead.
 
-A receipt records accepted outcome, operator interventions, resource units, elapsed time,
+A receipt records accepted outcome, operator interventions, operator-active time, resource units, elapsed time,
 retries, interruption/recovery facts, duplicate side effects, policy violations and evidence
-references. A policy violation or duplicate side effect fails closed.
+typed evidence references. Evidence classes must satisfy the declared evidence policy; accepted outcomes that require independent review fail closed without independent evidence. A policy violation, incomplete required recovery, or duplicate side effect fails closed.
 
 Receipt validation is structural by default; it is **not authentication**. For integrity-sensitive use,
 callers must retain the receipt digest in Nymrel Evidence (or another independent trusted record)
