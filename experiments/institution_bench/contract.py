@@ -150,8 +150,11 @@ def build_receipt(spec,outcome):
     metrics={k:o[k] for k in o if k not in {"policy_violations","evidence_refs"}}
     return {"schema":RECEIPT_SCHEMA,"experiment_id":s["experiment_id"],"experiment_digest":digest(s),"organization_id":s["organization"]["organization_id"],"organization_digest":digest(s["organization"]),"topology":s["organization"]["topology"],"task":s["task"],"acceptance_test_digest":s["acceptance"]["acceptance_test_digest"],"budget":s["budget"],"tool_allowlist":s["organization"]["tool_allowlist"],"evidence_policy":s["evidence_policy"],"verdict":verdict,"claim_scope":"task_scoped_only","metrics":metrics,"policy_violations":sorted(v),"evidence_refs":o["evidence_refs"]}
 
-def verify_receipt(spec,r):
+def verify_receipt(spec,r,expected_digest=None):
     s=validate_experiment(spec)
+    if expected_digest is not None:
+        expected_digest=_sha(expected_digest,"expected_receipt_digest")
+        if digest(r) != expected_digest: raise ContractError("receipt digest mismatch")
     if not isinstance(r,dict) or r.get("schema")!=RECEIPT_SCHEMA or r.get("experiment_id")!=s["experiment_id"] or r.get("experiment_digest")!=digest(s) or r.get("organization_digest")!=digest(s["organization"]): raise ContractError("receipt binding mismatch")
     if r.get("claim_scope")!="task_scoped_only": raise ContractError("receipt scope")
     observed={**r.get("metrics",{}),"policy_violations":r.get("policy_violations",[]),"evidence_refs":r.get("evidence_refs",[])}
