@@ -1356,3 +1356,13 @@ dialog [id$="fields"] {
   #duel[data-duel-phase="playing"] .duel-stage, #duel[data-duel-phase="finished"] .duel-stage, #duel[data-duel-phase="stopped"] .duel-stage { order: -1; }
   .duel-step { padding: 18px; }
 }
+/* Model development stays a compact operational workspace, not a dashboard. */
+.model-development { max-width: 850px; }
+.model-development select, .model-development textarea { max-width: 100%; min-width: 0; }
+.model-development p, .development-attempt { overflow-wrap: anywhere; }
+.model-development details { margin-block: 1rem; }
+.model-development summary { cursor: pointer; padding-block: .75rem; }
+.development-attempt { border-top: 1px solid var(--border, #ddd); padding-block: 1rem; }
+.development-attempt h3 { margin-block: .2rem .6rem; }
+.model-development .form-actions { flex-wrap: wrap; }
+.model-development .form-actions button { white-space: normal; }

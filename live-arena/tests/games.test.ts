@@ -146,6 +146,17 @@ test("tactician takes immediate wins and blocks opponent wins", () => {
   for (const m of ["0", "4", "1"]) s = applyMove(s, m);
   assert.equal(botMove(s), "2");
 });
+test("tic-tac-toe tactician is a perfect player: self-play draws and it never loses to random", () => {
+  let s = createGame(RULES.tictactoe);
+  while (!s.over) s = applyMove(s, botMove(s));
+  assert.equal(s.winner, null);
+  for (let game = 0; game < 40; game++) {
+    const tactician = (game % 2) as 0 | 1;
+    s = createGame(RULES.tictactoe);
+    while (!s.over) s = applyMove(s, botMove(s, s.turn === tactician ? "tactician" : "random"));
+    assert.notEqual(s.winner, 1 - tactician, `tactician lost game ${game}`);
+  }
+});
 test("all built-in bots play legal games through terminal states", () => {
   for (const key of Object.keys(RULES)) {
     let s = createGame(RULES[key]);
