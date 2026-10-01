@@ -225,10 +225,11 @@ with sync_playwright() as p, ExitStack() as cleanup:
                 check("#series-length", "Evals form", "focus")
                 check("#series-length", "Evals form", "outside-border")
             elif tab == "academy":
-                for selector in ["#academy-status", "#academy-pair", "#academy .lessons .muted"]:
+                for selector in ["#academy-status", "#academy-pair", "#readiness-status", "#academy-readiness", "#academy .lessons .muted"]:
                     check(selector, "Academy")
                 check("#academy-pair", "Academy", "focus")
-                page.locator("#academy details").last.locator("summary").click()
+                check("#readiness-agent", "Academy form", "focus")
+                page.locator("#academy details").filter(has_text="Connection and evaluation limits").locator("summary").click()
                 check("#academy a", "Academy link")
         page.locator('nav [data-tab="arena"]').click()
         page.locator('[data-seat="0"]').click()
