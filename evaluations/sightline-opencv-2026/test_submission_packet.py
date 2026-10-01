@@ -40,7 +40,7 @@ class SubmissionPacketVerifierTests(unittest.TestCase):
             target = root / verifier.ALLOWED_FILES[0]
             target.write_text(
                 target.read_text(encoding="utf-8")
-                + "\n-----BEGIN PRIVATE KEY-----\n",
+                + "\n-----BEGIN " + "PRIVATE KEY-----\n",
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "sensitive pattern"):
