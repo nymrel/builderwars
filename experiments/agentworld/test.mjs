@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import './engine.js';
+import './ledger.js';
 const E = globalThis.Agentworld;
+const L = globalThis.AgentworldLedger;
 const cfg = { seed: 20260920, mode: 'cooperative' };
 const clone = (x) => JSON.parse(JSON.stringify(x));
 function play(c = cfg) { let state = E.create(c); const actions = []; while (state.status === 'running') { const a = E.scripted(state); actions.push(a); state = E.step(state, a); } return { state, actions }; }
@@ -87,4 +89,40 @@ test('JSON parser supports escapes and cannot prototype-pollute', () => {
 test('both modes retain identical mechanics and separate mode in manifest', () => {
   const a = play(cfg), b = play({ ...cfg, mode: 'crew-race' }); assert.deepEqual(a.actions, b.actions); assert.deepEqual(a.state.scores, b.state.scores);
   assert.notEqual(E.pack(cfg, []).config.mode, E.pack({ ...cfg, mode: 'crew-race' }, []).config.mode);
+});
+
+test('hive ledger aggregates verified runs and matches engine scores', () => {
+  const entries = [5, 20260920].map((seed) => {
+    let s = E.create({ seed, mode: 'cooperative' }); const actions = [];
+    while (s.status === 'running') { const a = E.scripted(s); actions.push(a); s = E.step(s, a); }
+    return { label: `seed-${seed}`, text: JSON.stringify(E.pack({ seed, mode: 'cooperative' }, actions)) };
+  });
+  const ledger = L.tallyRuns(entries);
+  assert.equal(ledger.totals.runs, 2); assert.equal(ledger.totals.refused, 0);
+  const perActor = {};
+  for (const run of ledger.runs) for (const id of E.ORDER) perActor[id] = (perActor[id] || 0) + run.perActor[id].deliveries;
+  for (const id of E.ORDER) assert.equal(ledger.actors[id].deliveries, perActor[id]);
+  assert.equal(ledger.actors['amber-1'].deliveries + ledger.actors['amber-2'].deliveries, ledger.runs.reduce((n, r) => n + r.amber, 0));
+  assert.equal(ledger.runs.map((r) => r.fingerprint).join(','), ledger.runs.map((r) => r.fingerprint).join(','));
+});
+test('hive ledger is order-independent and refuses tampered or malformed packets with reasons', () => {
+  const run = (seed) => { let s = E.create({ seed, mode: 'crew-race' }); const actions = []; while (s.status === 'running') { const a = E.scripted(s); actions.push(a); s = E.step(s, a); } return { label: `s${seed}`, text: JSON.stringify(E.pack({ seed, mode: 'crew-race' }, actions)) }; };
+  const good = [run(7), run(9)];
+  const tampered = { label: 'tampered', text: JSON.stringify((() => { const p = E.pack({ seed: 5, mode: 'cooperative' }, []); p.finalState.scores.amber = 3; return p; })()) };
+  const malformed = { label: 'malformed', text: '{"seed":1,"seed":2}' };
+  const a = L.tallyRuns([...good, tampered, malformed]);
+  const b = L.tallyRuns([malformed, tampered, ...good]);
+  assert.equal(a.totals.runs, 2); assert.equal(a.totals.refused, 2);
+  assert.deepEqual(JSON.parse(JSON.stringify(a.runs)), JSON.parse(JSON.stringify(b.runs)));
+  assert.equal(a.refused.filter((r) => r.label === 'tampered').length, 1);
+  assert.ok(a.refused.every((r) => r.reason && r.reason.length > 0));
+  assert.deepEqual(a.modes['crew-race'], { runs: 2, complete: a.modes['crew-race'].complete, capped: 0, delivered: a.modes['crew-race'].delivered });
+});
+test('hive ledger keeps manual source labels visible and bounds input fail-closed', () => {
+  const s = E.create({ seed: 5, mode: 'cooperative' });
+  const mixed = E.pack({ seed: 5, mode: 'cooperative' }, [{ ...E.scripted(s), source: 'manual' }]);
+  const ledger = L.tallyRuns([{ label: 'mixed', text: JSON.stringify(mixed) }]);
+  assert.equal(ledger.totals.sources.manual, 1); assert.equal(ledger.totals.sources.scripted, 0);
+  assert.throws(() => L.tallyRuns(Array.from({ length: 65 }, (_, i) => ({ label: `r${i}`, text: JSON.stringify(E.pack({ seed: i + 1, mode: 'cooperative' }, [])) }))));
+  assert.equal(L.tallyRuns([]).totals.runs, 0);
 });

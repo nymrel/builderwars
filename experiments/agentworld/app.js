@@ -131,6 +131,65 @@
     try { window.localStorage.removeItem(KEY); lastStored = null; autosave = false; storageConflict = false; $('autosave').checked = false; $('save-status').textContent = 'Saved session removed. Current run is in memory only.'; message('Saved session removed; automatic saving is off.'); }
     catch { message('The browser refused storage access. The current run remains in memory.', true); }
   });
+  const L = globalThis.AgentworldLedger;
+  function renderLedger(aggregate) {
+    const out = $('ledger-out');
+    $('ledger-status').textContent = aggregate.totals.runs
+      ? `Aggregate over ${aggregate.totals.runs} verified run${aggregate.totals.runs === 1 ? '' : 's'}; ${aggregate.totals.refused} refused.`
+      : 'No runs accepted; nothing to aggregate.';
+    if (!aggregate.totals.runs && !aggregate.totals.refused) { out.replaceChildren(); return; }
+    const frag = document.createDocumentFragment();
+    const totals = el('p', 'subtle', `Delivered ${aggregate.totals.delivered} supplies across ${aggregate.totals.actions} accepted actions. Source labels: ${aggregate.totals.sources.scripted} scripted, ${aggregate.totals.sources.manual} manual (self-declared).`);
+    frag.append(totals);
+    if (aggregate.totals.runs) {
+      const actorHead = el('strong', '', 'Per-actor outcomes');
+      const actorTable = el('table');
+      const head = el('tr');
+      for (const label of ['Actor', 'Deliveries', 'Collects', 'Moves', 'Waits', 'Runs']) head.append(el('th', '', label));
+      actorTable.append(head);
+      for (const id of E.ORDER) {
+        const row = el('tr');
+        for (const value of [names[id], aggregate.actors[id].deliveries, aggregate.actors[id].collects, aggregate.actors[id].moves, aggregate.actors[id].waits, aggregate.actors[id].runsAppeared]) row.append(el('td', '', String(value)));
+        actorTable.append(row);
+      }
+      frag.append(actorHead, actorTable);
+      const runTable = el('table');
+      const runHead = el('tr');
+      for (const label of ['Run', 'Seed', 'Mode', 'Outcome', 'Turns', 'Amber', 'Tide', 'Fingerprint']) runHead.append(el('th', '', label));
+      runTable.append(runHead);
+      for (const run of aggregate.runs) {
+        const row = el('tr');
+        for (const value of [run.label || '(unnamed)', run.seed, run.mode, run.status, run.turns, run.amber, run.tide, run.fingerprint]) row.append(el('td', '', String(value)));
+        runTable.append(row);
+      }
+      frag.append(el('strong', '', 'Per-run outcomes'), runTable);
+    }
+    for (const refusal of aggregate.refused) frag.append(el('p', 'subtle', `Refused: ${refusal.label || '(unnamed)'} \u2014 ${refusal.reason}`));
+    for (const boundary of aggregate.boundaries) frag.append(el('p', 'subtle', boundary));
+    out.replaceChildren(frag);
+  }
+  let lastAggregate = null;
+  $('ledger-build').addEventListener('click', async () => {
+    pause(); render();
+    const files = Array.from($('ledger-import').files || []);
+    if (!files.length) { message('Select one or more replay files before building hive memory.', true); return; }
+    if (files.length > L.MAX_RUNS) { message(`Hive memory accepts at most ${L.MAX_RUNS} replays.`, true); return; }
+    try {
+      const entries = [];
+      for (const file of files) entries.push({ label: file.name, text: await file.text() });
+      const aggregate = L.tallyRuns(entries);
+      lastAggregate = aggregate;
+      renderLedger(aggregate);
+      message(aggregate.totals.runs
+        ? `Hive memory built from ${aggregate.totals.runs} verified run${aggregate.totals.runs === 1 ? '' : 's'}. Descriptive only \u2014 not a ranking.`
+        : 'No replay passed verification; nothing was aggregated.', !aggregate.totals.runs);
+    } catch (error) { message(error.message, true); }
+  });
+  $('ledger-export').addEventListener('click', () => {
+    pause(); render();
+    if (!lastAggregate) { message('Build hive memory before exporting it.', true); return; }
+    download(lastAggregate, 'agentworld-hive-ledger.json');
+  });
   $('action-json').addEventListener('input', () => { dirtyEditor = true; });
   $('sample-action').addEventListener('click', sample);
   $('apply-action').addEventListener('click', () => { pause(); try { if (accept(E.parse($('action-json').value))) { dirtyEditor = false; sample(); } } catch (error) { message(error.message, true); render(); } });

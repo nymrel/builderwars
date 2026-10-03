@@ -177,13 +177,32 @@ def main():
                 page.locator('#step').click()
                 assert page.evaluate('(key) => localStorage.getItem(key)',KEY)==saved
                 second.close()
+            def hive_ledger(page):
+                def packet(seed):
+                    return page.evaluate('(seed) => JSON.stringify(Agentworld.pack({seed, mode:"cooperative"}, (() => { let s = Agentworld.create({seed, mode:"cooperative"}); const a = []; while (s.status === "running") { const x = Agentworld.scripted(s); a.push(x); s = Agentworld.step(s, x); } return a; })()))',seed)
+                page.locator('details:has(#ledger-import) summary').click()
+                page.locator('#ledger-import').set_input_files(files=[
+                    {'name':'seed-5.json','mimeType':'application/json','buffer':packet(5).encode('utf-8')},
+                    {'name':'seed-9.json','mimeType':'application/json','buffer':packet(9).encode('utf-8')},
+                    {'name':'broken.json','mimeType':'application/json','buffer':b'{broken'},
+                ])
+                page.locator('#ledger-build').click()
+                for _ in range(50):
+                    if 'verified run' in page.locator('#ledger-status').inner_text():
+                        break
+                    page.wait_for_timeout(100)
+                assert '2 verified runs' in page.locator('#ledger-status').inner_text()
+                out=page.locator('#ledger-out').inner_text()
+                assert 'Refused: broken.json' in out
+                assert 'not a ranking' in out.lower()
+                assert 'seed-9.json' in out
             cases=[('pending import refuses intervening turn',step_race),('pending import refuses same-turn reset',reset_race),
                    ('latest file selection wins: older resolves first',oldest_first),('newer success survives late older read',newest_first),
                    ('invalid latest selection does not resurrect older import',newest_invalid),
                    ('replacement cancellation preserves run',cancelled_replace),('oversized file leaves run unchanged',oversized),
                    ('manual keyboard action retains useful focus',keyboard_focus)]
             if not args.controller_fixture:
-                cases += [('checkpoint reload verified',reload_checkpoint),('corrupt checkpoint not overwritten',corrupt_checkpoint),('real same-origin tabs preserve checkpoint on conflict',tabs)]
+                cases += [('checkpoint reload verified',reload_checkpoint),('corrupt checkpoint not overwritten',corrupt_checkpoint),('real same-origin tabs preserve checkpoint on conflict',tabs),('hive ledger aggregates verified replays and lists refusals',hive_ledger)]
             names=[name for name,_ in cases]
             for name, fn in cases:
                 context=browser.new_context(viewport={'width':1280,'height':1000})

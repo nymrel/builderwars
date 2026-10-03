@@ -47,6 +47,12 @@ Actions require exact fields. A move additionally requires direction; other acti
 
 The replay contract contains the version, initial configuration, accepted actions and claimed final state. Import runs every action from the seed and compares the reconstructed state. The strict JSON parser rejects duplicate keys, unsafe/non-integer numbers, oversized input, excessive nesting, unknown schema fields and unsupported actions. Packets are capped at 128 KiB and 240 actions. This is local replay consistency, **not** a signature, origin proof, independent rerun, hosted-execution receipt or ranking admission. Editing an entire valid replay can still produce another valid local replay.
 
+## Hive memory (`ledger.js`)
+
+The hive-memory panel aggregates up to 64 replay exports into one descriptive record of what actually happened: per-actor delivery/collect/move/wait tallies, crew totals, per-run outcomes (seed, mode, outcome, turns), and mode summaries. Every file is engine-verified before it counts; refused files are listed with reasons, and each counted run carries a non-cryptographic fingerprint (FNV-1a over the engine's canonical form) used only for stable ordering and dedup. Aggregation is deterministic (order-independent), fails closed on input beyond bounds, and cross-checks actor deliveries against each run's verified final scores.
+
+The aggregate is **descriptive, not a ranking**: it says nothing about which actor, crew, strategy, or operator is better. Source labels remain self-declared. It adds no network calls, storage, or provider surface, and exports as `builderwars.agentworld.hive-ledger.v0.1` JSON.
+
 ## Browser behavior
 
 Watch, pause, single-step and bounded batch controls use scripted policies. Manual controls and JSON actions are recorded separately. Auto-play pauses when the page is hidden. Live rendering preserves in-progress JSON edits; stale actions fail without mutation. Replay import checks the run revision after asynchronous file reading and requires confirmation before replacing a nonempty run.
