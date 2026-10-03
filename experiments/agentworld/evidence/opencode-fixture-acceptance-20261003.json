@@ -1,0 +1,65 @@
+{
+  "schema": "builderwars.agentworld.supplemental-review.v1",
+  "started_at": "2026-10-03T07:37:13.858197+00:00",
+  "scope": "controller-only in-memory fixture; NOT index/CSP/origin/storage/cross-tab acceptance",
+  "browser": "chromium",
+  "executable": null,
+  "playwright": "1.58.0",
+  "harness_sha256": "88a7795ab765f67ac8606cd5b1cd9ae4fb9bf41d317edc270300ed18716f301a",
+  "source_files": {
+    "engine.js": {
+      "sha256": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+      "git_blob_sha1": "27b2cb9e49c6332172ff506fbfe1f829a7aa5e61"
+    },
+    "app.js": {
+      "sha256": "c98d63ba595b5818bcb287019c62d6d7c4aa79e6c4ffebe59bc7bba69b9c3d1e",
+      "git_blob_sha1": "b93da55c319ae684ccac101ab4bad46a68b9d907"
+    }
+  },
+  "checks": [
+    {
+      "name": "pending import refuses intervening turn",
+      "status": "PASS"
+    },
+    {
+      "name": "pending import refuses same-turn reset",
+      "status": "PASS"
+    },
+    {
+      "name": "latest file selection wins: older resolves first",
+      "status": "PASS"
+    },
+    {
+      "name": "newer success survives late older read",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid latest selection does not resurrect older import",
+      "status": "PASS"
+    },
+    {
+      "name": "replacement cancellation preserves run",
+      "status": "PASS"
+    },
+    {
+      "name": "oversized file leaves run unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "manual keyboard action retains useful focus",
+      "status": "PASS"
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "status": "PASS",
+  "policy_changes": false,
+  "browser_version": "145.0.7632.6",
+  "finished_at": "2026-10-03T07:37:15.620907+00:00",
+  "counts": {
+    "PASS": 8,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_RUN": 0
+  }
+}
