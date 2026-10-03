@@ -159,7 +159,7 @@ def main():
             def reload_checkpoint(page):
                 page.locator('#batch').click(); page.reload()
                 assert page.locator('#turn').inner_text()=='16 / 240'
-                assert page.locator('#proof').inner_text()=='Local replay pass'
+                assert page.locator('#proof').inner_text().strip().lower()=='local replay pass'
             def corrupt_checkpoint(page):
                 page.evaluate('(key) => localStorage.setItem(key,"{broken")',KEY); page.reload()
                 assert not page.locator('#autosave').is_checked()
@@ -168,7 +168,11 @@ def main():
             def tabs(page):
                 page.locator('#step').click(); second=page.context.new_page(); second.goto(url)
                 second.locator('#step').click()
-                page.wait_for_function('!document.querySelector("#autosave").checked')
+                for _ in range(50):
+                    if not page.locator('#autosave').is_checked():
+                        break
+                    page.wait_for_timeout(100)
+                assert not page.locator('#autosave').is_checked(), 'Cross-tab storage change must disable autosave'
                 saved=page.evaluate('(key) => localStorage.getItem(key)',KEY)
                 page.locator('#step').click()
                 assert page.evaluate('(key) => localStorage.getItem(key)',KEY)==saved

@@ -1,6 +1,6 @@
 # BuilderWars Agentworld Lab — Relay Commons v0.1
 
-**Status: isolated experimental prototype; not merged, deployed, ranked, or independently reviewed.**
+**Status: merged to `main` as an isolated experimental namespace on 2026-10-03; still not deployed, ranked, hosted, or independently cross-team reviewed.**
 
 ## Product hypothesis
 
@@ -61,6 +61,10 @@ Local saving uses a versioned localStorage key. Restoration verifies the replay 
 - Screenshot inspection covers the rendered desktop and 390 px mobile fixtures, not physical-device, screen-reader or actual-zoom acceptance.
 
 `browser_test.py` runs the full loopback harness by default. It requires Python Playwright and an installed Chromium executable; adjust its executable path for the reviewer host. `--memory` runs the explicitly narrower fixture suite after `python build_preview.py`. It must not be substituted for full-origin acceptance.
+
+## Integration re-validation (2026-10-03, opencode, claim `opencode-agentworld-relay-commons-20261003`)
+
+Landed onto current `main` (`2361f30`, PR #74) by merge with zero conflicts; engine.js/app.js/index.html byte-identical to the reviewed branch (receipts bind SHA-256). Engine suite 19/19 (`node --test test.mjs`, Node via the reviewer host). First-ever real loopback-origin run of the origin-only checks found two **harness** defects, both fixed in `review_acceptance.py` only: `#proof` is styled `text-transform:uppercase` on a real origin so the rendered-text assertion had to compare case-insensitively, and the cross-tab check's string-argument `wait_for_function` evaluates as page JavaScript, which this experiment's own strict CSP (`script-src 'self'`, no `unsafe-eval`) correctly refuses; it now polls the checkbox from the harness side. After those fixes: real-origin acceptance **11/11 PASS**, controller fixture **8/8 PASS** (`evidence/opencode-*-20261003.json`). The previously blocked-on-policy origin checks (reload persistence, corrupt checkpoint, real same-origin tabs) are now exercised on a loopback origin; screen-reader, physical-device, cross-browser and deployment acceptance remain open.
 
 ## Integration and coordination
 
