@@ -1,0 +1,108 @@
+{
+  "schema": "builderwars.agentworld.supplemental-review.v1",
+  "started_at": "2026-10-05T08:26:37.023744+00:00",
+  "scope": "loopback supplemental browser acceptance; NOT deployed/lab-integrated/independently approved",
+  "browser": "chromium",
+  "executable": "/workspace/scratch/f143978048af/test-browser-runtime/chromium",
+  "playwright": "1.58.0",
+  "harness_sha256": "076c5866e774da6cb7fbf45636b5f55fc640fd7ca31e43a687c71af0ceac9d14",
+  "source_files": {
+    "engine.js": {
+      "sha256": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+      "git_blob_sha1": "27b2cb9e49c6332172ff506fbfe1f829a7aa5e61"
+    },
+    "ledger.js": {
+      "sha256": "b4510a22117674e39b62c3e91370151dd1adb2a412a8a1ff3086ff26e01c8498",
+      "git_blob_sha1": "4726ebf618bd49e19315b68fd4da7c32d0616330"
+    },
+    "app.js": {
+      "sha256": "06b4918feaa8c8578c8684759469b8c87f127edd9e92d77c087e3784421a25fa",
+      "git_blob_sha1": "70d3b10801b27f059cb9bae67c0c731f0491bde9"
+    },
+    "index.html": {
+      "sha256": "32b6b313758cca7f964d56b7b416b92b343613a9c63c50be9a1e351067a0595f",
+      "git_blob_sha1": "5d88cee5944423219c50689f60ec50d803da84e9"
+    }
+  },
+  "checks": [
+    {
+      "name": "pending import refuses intervening turn",
+      "status": "PASS"
+    },
+    {
+      "name": "pending import refuses same-turn reset",
+      "status": "PASS"
+    },
+    {
+      "name": "latest file selection wins: older resolves first",
+      "status": "PASS"
+    },
+    {
+      "name": "newer success survives late older read",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid latest selection does not resurrect older import",
+      "status": "PASS"
+    },
+    {
+      "name": "replacement cancellation preserves run",
+      "status": "PASS"
+    },
+    {
+      "name": "oversized file leaves run unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "manual keyboard action retains useful focus",
+      "status": "PASS"
+    },
+    {
+      "name": "hive ledger deduplicates verified contents and exports refusals",
+      "status": "PASS"
+    },
+    {
+      "name": "hive file bounds prevent reads and preserve per-file refusals",
+      "status": "PASS"
+    },
+    {
+      "name": "hive input change cancels pending build without exporting stale results",
+      "status": "PASS"
+    },
+    {
+      "name": "hive newer build survives older read error",
+      "status": "PASS"
+    },
+    {
+      "name": "hive newer selection survives older success with matching export",
+      "status": "PASS"
+    },
+    {
+      "name": "checkpoint reload verified",
+      "status": "PASS"
+    },
+    {
+      "name": "corrupt checkpoint not overwritten",
+      "status": "PASS"
+    },
+    {
+      "name": "real same-origin tabs preserve checkpoint on conflict",
+      "status": "PASS"
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "csp_violations": [],
+  "preview_subresource_requests": [],
+  "status": "PASS",
+  "policy_changes": false,
+  "origin": "http://127.0.0.1:39149/",
+  "browser_version": "153.0.8010.0",
+  "finished_at": "2026-10-05T08:26:42.554881+00:00",
+  "counts": {
+    "PASS": 16,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_RUN": 0
+  }
+}

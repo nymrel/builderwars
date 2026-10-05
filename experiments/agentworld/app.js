@@ -168,22 +168,56 @@
     for (const boundary of aggregate.boundaries) frag.append(el('p', 'subtle', boundary));
     out.replaceChildren(frag);
   }
-  let lastAggregate = null;
+  let lastAggregate = null, ledgerSequence = 0;
+  function clearLedger(text) {
+    lastAggregate = null;
+    $('ledger-out').replaceChildren();
+    $('ledger-status').textContent = text;
+    $('ledger-export').disabled = true;
+  }
+  $('ledger-export').disabled = true;
+  $('ledger-import').addEventListener('change', () => {
+    ledgerSequence++;
+    clearLedger('Replay selection changed. Build hive memory for these files.');
+  });
   $('ledger-build').addEventListener('click', async () => {
+    const buildRequest = ++ledgerSequence;
     pause(); render();
     const files = Array.from($('ledger-import').files || []);
+    clearLedger('No aggregate built for this selection.');
     if (!files.length) { message('Select one or more replay files before building hive memory.', true); return; }
     if (files.length > L.MAX_RUNS) { message(`Hive memory accepts at most ${L.MAX_RUNS} replays.`, true); return; }
+    $('ledger-status').textContent = 'Reading and verifying selected replay files…';
     try {
       const entries = [];
-      for (const file of files) entries.push({ label: file.name, text: await file.text() });
+      for (const file of files) {
+        if (buildRequest !== ledgerSequence) return;
+        if (file.size > E.MAX_BYTES) {
+          entries.push({ label: file.name, error: 'Replay exceeds the 128 KiB limit; file was not read.' });
+          continue;
+        }
+        try {
+          const text = await file.text();
+          if (buildRequest !== ledgerSequence) return;
+          entries.push({ label: file.name, text });
+        } catch {
+          if (buildRequest !== ledgerSequence) return;
+          entries.push({ label: file.name, error: 'Replay file could not be read.' });
+        }
+      }
+      if (buildRequest !== ledgerSequence) return;
       const aggregate = L.tallyRuns(entries);
       lastAggregate = aggregate;
       renderLedger(aggregate);
+      $('ledger-export').disabled = false;
       message(aggregate.totals.runs
         ? `Hive memory built from ${aggregate.totals.runs} verified run${aggregate.totals.runs === 1 ? '' : 's'}. Descriptive only \u2014 not a ranking.`
         : 'No replay passed verification; nothing was aggregated.', !aggregate.totals.runs);
-    } catch (error) { message(error.message, true); }
+    } catch (error) {
+      if (buildRequest !== ledgerSequence) return;
+      clearLedger('Hive memory could not be built for this selection.');
+      message(error.message, true);
+    }
   });
   $('ledger-export').addEventListener('click', () => {
     pause(); render();
