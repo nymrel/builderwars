@@ -1,0 +1,51 @@
+{
+  "baseline_commit": "e6bb900d28af4a28d83cef772d25fe9ed5d2f44f",
+  "scope": "experimental local prototype, no deployment",
+  "node_tests_passed": 19,
+  "in_memory_browser_checks_passed": 21,
+  "not_verified": [
+    "origin navigation",
+    "real reload persistence",
+    "real cross-tab integration",
+    "cross-browser and physical devices",
+    "independent review",
+    "production deployment"
+  ],
+  "files": {
+    "engine.js": {
+      "sha256": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+      "git_blob_sha1": "27b2cb9e49c6332172ff506fbfe1f829a7aa5e61",
+      "bytes": 9281
+    },
+    "app.js": {
+      "sha256": "38fa9fd874b11f3e2e4fa7459fcb6908fe8ceb5d9d6fe9fcad95c6c5d59ac1d9",
+      "git_blob_sha1": "2a6b7d10aaeda34877c130cb25228f6910066549",
+      "bytes": 12950
+    },
+    "index.html": {
+      "sha256": "aa8593ef8f1641dbd59206da432db1584a616fc341382f13cea41e3c5607d864",
+      "git_blob_sha1": "1f1e055fe6af40c71f794b553ba45ffeafcb2708",
+      "bytes": 14866
+    },
+    "test.mjs": {
+      "sha256": "51c9171a253cc54ed8344ad0c398452fde2b806d68823e951d92ecda34d5f89b",
+      "git_blob_sha1": "d210f82f658a37c790d94a7ef1c7a401feca2178",
+      "bytes": 5828
+    },
+    "browser_test.py": {
+      "sha256": "1f8cb75cce566882d31a5fab4a964b04c4f02a4ba5f16e7ca1a6624fd02a0416",
+      "git_blob_sha1": "616e0d1c7e9625f9e7667c8193d2a6a8796026bd",
+      "bytes": 8410
+    },
+    "build_preview.py": {
+      "sha256": "813ada5281746b3e7f8f58594be7bef597b660dcabfb1b43f33d906a01871225",
+      "git_blob_sha1": "1dbda4019c18f345b504c326753466ea205d2948",
+      "bytes": 696
+    },
+    "README.md": {
+      "sha256": "c41b3e97c0396ab956767759ae11e6bb2c750259dbb850e1d1ad1f921a7fa42c",
+      "git_blob_sha1": "cfadccc46bdb4b5dd479a777904e7ce88e9ee768",
+      "bytes": 8513
+    }
+  }
+}
