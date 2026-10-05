@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import './engine.js';
+import './ledger.js';
 const E = globalThis.Agentworld;
+const L = globalThis.AgentworldLedger;
 const cfg = { seed: 20260920, mode: 'cooperative' };
 const clone = (x) => JSON.parse(JSON.stringify(x));
 function play(c = cfg) { let state = E.create(c); const actions = []; while (state.status === 'running') { const a = E.scripted(state); actions.push(a); state = E.step(state, a); } return { state, actions }; }
@@ -87,4 +89,114 @@ test('JSON parser supports escapes and cannot prototype-pollute', () => {
 test('both modes retain identical mechanics and separate mode in manifest', () => {
   const a = play(cfg), b = play({ ...cfg, mode: 'crew-race' }); assert.deepEqual(a.actions, b.actions); assert.deepEqual(a.state.scores, b.state.scores);
   assert.notEqual(E.pack(cfg, []).config.mode, E.pack({ ...cfg, mode: 'crew-race' }, []).config.mode);
+});
+
+test('hive ledger aggregates verified runs and matches engine scores', () => {
+  const entries = [5, 20260920].map((seed) => {
+    let s = E.create({ seed, mode: 'cooperative' }); const actions = [];
+    while (s.status === 'running') { const a = E.scripted(s); actions.push(a); s = E.step(s, a); }
+    return { label: `seed-${seed}`, text: JSON.stringify(E.pack({ seed, mode: 'cooperative' }, actions)) };
+  });
+  const ledger = L.tallyRuns(entries);
+  assert.equal(ledger.totals.runs, 2); assert.equal(ledger.totals.refused, 0);
+  const perActor = {};
+  for (const run of ledger.runs) for (const id of E.ORDER) perActor[id] = (perActor[id] || 0) + run.perActor[id].deliveries;
+  for (const id of E.ORDER) assert.equal(ledger.actors[id].deliveries, perActor[id]);
+  assert.equal(ledger.actors['amber-1'].deliveries + ledger.actors['amber-2'].deliveries, ledger.runs.reduce((n, r) => n + r.amber, 0));
+  assert.ok(ledger.runs.every((r) => /^[0-9a-f]{8}$/.test(r.fingerprint)));
+});
+test('hive ledger is order-independent and refuses tampered or malformed packets with reasons', () => {
+  const run = (seed) => { let s = E.create({ seed, mode: 'crew-race' }); const actions = []; while (s.status === 'running') { const a = E.scripted(s); actions.push(a); s = E.step(s, a); } return { label: `s${seed}`, text: JSON.stringify(E.pack({ seed, mode: 'crew-race' }, actions)) }; };
+  const good = [run(7), run(9)];
+  const tampered = { label: 'tampered', text: JSON.stringify((() => { const p = E.pack({ seed: 5, mode: 'cooperative' }, []); p.finalState.scores.amber = 3; return p; })()) };
+  const malformed = { label: 'malformed', text: '{"seed":1,"seed":2}' };
+  const a = L.tallyRuns([...good, tampered, malformed]);
+  const b = L.tallyRuns([malformed, tampered, ...good]);
+  assert.equal(a.totals.runs, 2); assert.equal(a.totals.refused, 2);
+  assert.equal(JSON.stringify(a), JSON.stringify(b));
+  assert.equal(a.refused.filter((r) => r.label === 'tampered').length, 1);
+  assert.ok(a.refused.every((r) => r.reason && r.reason.length > 0));
+  assert.deepEqual(a.modes['crew-race'], { runs: 2, complete: a.modes['crew-race'].complete, capped: 0, delivered: a.modes['crew-race'].delivered });
+});
+test('hive ledger keeps manual source labels visible and bounds input fail-closed', () => {
+  const s = E.create({ seed: 5, mode: 'cooperative' });
+  const mixed = E.pack({ seed: 5, mode: 'cooperative' }, [{ ...E.scripted(s), source: 'manual' }]);
+  const ledger = L.tallyRuns([{ label: 'mixed', text: JSON.stringify(mixed) }]);
+  assert.equal(ledger.totals.sources.manual, 1); assert.equal(ledger.totals.sources.scripted, 0);
+  assert.throws(() => L.tallyRuns(Array.from({ length: 65 }, (_, i) => ({ label: `r${i}`, text: JSON.stringify(E.pack({ seed: i + 1, mode: 'cooperative' }, [])) }))));
+  assert.equal(L.tallyRuns([]).totals.runs, 0);
+});
+
+test('hive ledger counts full canonical replay content once under renamed and reformatted files', () => {
+  const packet = E.pack(cfg, play().actions);
+  const reordered = { finalState: packet.finalState, actions: packet.actions.map((a) => Object.fromEntries(Object.entries(a).reverse())), config: { mode: cfg.mode, seed: cfg.seed }, schema: packet.schema };
+  const entries = [
+    { label: 'z-copy.json', text: JSON.stringify(packet) },
+    { label: 'a-first.json', text: JSON.stringify(reordered, null, 2) },
+    { label: 'm-copy.json', text: JSON.stringify(packet) }
+  ];
+  const result = L.tallyRuns(entries);
+  assert.equal(result.totals.runs, 1);
+  assert.equal(result.totals.refused, 2);
+  assert.equal(result.totals.actions, packet.actions.length);
+  assert.equal(result.totals.delivered, packet.finalState.scores.amber + packet.finalState.scores.tide);
+  assert.equal(result.runs[0].label, 'a-first.json');
+  assert.deepEqual(result.refused.map((r) => r.label), ['m-copy.json', 'z-copy.json']);
+  assert.ok(result.refused.every((r) => r.reason.includes('Duplicate verified replay') && r.reason.includes('a-first.json')));
+  for (const order of [entries.toReversed(), [entries[1], entries[0], entries[2]]]) {
+    assert.equal(JSON.stringify(result), JSON.stringify(L.tallyRuns(order)));
+  }
+});
+
+test('hive ledger preserves real fingerprint collisions and serializes ties independently of input order', () => {
+  const config = { seed: 1, mode: 'cooperative' };
+  const packets = [0xDACC00, 0x202500].map((mask) => E.pack(config, Array.from({ length: 24 }, (_, turn) => ({
+    turn, actor: E.ORDER[turn % E.ORDER.length], source: ((mask >>> turn) & 1) ? 'manual' : 'scripted', type: 'wait'
+  }))));
+  const content = packets.map(({ config, actions }) => ({ config, actions }));
+  assert.notEqual(E.canonical(content[0]), E.canonical(content[1]));
+  assert.deepEqual(content.map((p) => L.fingerprint(p)), ['f94daf04', 'f94daf04']);
+  const entries = packets.map((p) => ({ label: 'collision.json', text: JSON.stringify(p) }));
+  const result = L.tallyRuns(entries);
+  assert.equal(result.totals.runs, 2);
+  assert.equal(result.totals.refused, 0);
+  assert.equal(result.totals.actions, 48);
+  assert.deepEqual(result.totals.sources, { scripted: 35, manual: 13 });
+  assert.equal(JSON.stringify(result), JSON.stringify(L.tallyRuns(entries.toReversed())));
+  const withDuplicate = [...entries, { label: 'renamed.json', text: JSON.stringify(packets[0], null, 2) }];
+  const deduped = L.tallyRuns(withDuplicate);
+  assert.equal(deduped.totals.runs, 2);
+  assert.equal(deduped.totals.refused, 1);
+  assert.equal(JSON.stringify(deduped), JSON.stringify(L.tallyRuns(withDuplicate.toReversed())));
+});
+
+test('hive ledger serializes refusals, equal labels, and mode summaries in a stable full result', () => {
+  const entries = [
+    { label: 'same', text: '{broken' }, { label: 'same', text: '{"seed":1,"seed":2}' },
+    { label: 'same', error: 'Replay file could not be read.' },
+    { label: 'same', text: JSON.stringify(E.pack({ seed: 5, mode: 'crew-race' }, [])) },
+    { label: 'same', text: JSON.stringify(E.pack({ seed: 5, mode: 'cooperative' }, [])) },
+    { label: 'same', text: JSON.stringify(E.pack({ seed: 5, mode: 'cooperative' }, [])) }
+  ];
+  const serialized = JSON.stringify(L.tallyRuns(entries));
+  for (const order of [entries.toReversed(), [entries[3], entries[1], entries[5], entries[0], entries[4], entries[2]]]) {
+    assert.equal(serialized, JSON.stringify(L.tallyRuns(order)));
+  }
+});
+
+test('hive ledger bounds entries and refusal text without dropping valid imports or any refusal', () => {
+  assert.throws(() => L.tallyRuns(null));
+  const good = { label: 'good', text: JSON.stringify(E.pack(cfg, [])) };
+  const entries = [null, undefined, [], 'bad', { label: 7, text: good.text }, { label: 'bad-text', text: 7 },
+    { label: 'ambiguous', text: good.text, error: 'unreadable' }, { label: 'missing' }, { label: 'bad-error', error: 7 },
+    { label: 'x'.repeat(120), error: 'y'.repeat(200) },
+    { label: 'large', text: ' '.repeat(E.MAX_BYTES + 1) }, good];
+  const result = L.tallyRuns(entries);
+  assert.equal(result.totals.runs, 1);
+  assert.equal(result.totals.refused, entries.length - 1);
+  assert.ok(result.refused.every((r) => r.label.length <= L.MAX_LABEL && r.reason.length > 0 && r.reason.length <= 160));
+  const bound = L.tallyRuns(Array.from({ length: L.MAX_RUNS }, () => good));
+  assert.equal(bound.totals.runs, 1);
+  assert.equal(bound.totals.refused, L.MAX_RUNS - 1);
+  assert.throws(() => L.tallyRuns(Array.from({ length: L.MAX_RUNS + 1 }, () => good)));
 });

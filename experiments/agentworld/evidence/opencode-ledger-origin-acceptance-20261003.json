@@ -1,0 +1,86 @@
+{
+  "schema": "builderwars.agentworld.supplemental-review.v1",
+  "started_at": "2026-10-03T07:48:01.404934+00:00",
+  "scope": "loopback supplemental browser acceptance; NOT deployed/lab-integrated/independently approved",
+  "browser": "chromium",
+  "executable": null,
+  "playwright": "1.58.0",
+  "harness_sha256": "9f0453f52dd4feba5a8ba17d70c512623566b8f4e9915d58d20b627b71995add",
+  "source_files": {
+    "engine.js": {
+      "sha256": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+      "git_blob_sha1": "27b2cb9e49c6332172ff506fbfe1f829a7aa5e61"
+    },
+    "app.js": {
+      "sha256": "11390024f740f6e4f8de17f3ed6771d704566eb7ca2fdc392705dd28045ad540",
+      "git_blob_sha1": "cdc653f5ff5faf8c2191cad82586e1ded44feb90"
+    },
+    "index.html": {
+      "sha256": "32b6b313758cca7f964d56b7b416b92b343613a9c63c50be9a1e351067a0595f",
+      "git_blob_sha1": "5d88cee5944423219c50689f60ec50d803da84e9"
+    }
+  },
+  "checks": [
+    {
+      "name": "pending import refuses intervening turn",
+      "status": "PASS"
+    },
+    {
+      "name": "pending import refuses same-turn reset",
+      "status": "PASS"
+    },
+    {
+      "name": "latest file selection wins: older resolves first",
+      "status": "PASS"
+    },
+    {
+      "name": "newer success survives late older read",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid latest selection does not resurrect older import",
+      "status": "PASS"
+    },
+    {
+      "name": "replacement cancellation preserves run",
+      "status": "PASS"
+    },
+    {
+      "name": "oversized file leaves run unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "manual keyboard action retains useful focus",
+      "status": "PASS"
+    },
+    {
+      "name": "checkpoint reload verified",
+      "status": "PASS"
+    },
+    {
+      "name": "corrupt checkpoint not overwritten",
+      "status": "PASS"
+    },
+    {
+      "name": "real same-origin tabs preserve checkpoint on conflict",
+      "status": "PASS"
+    },
+    {
+      "name": "hive ledger aggregates verified replays and lists refusals",
+      "status": "PASS"
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "status": "PASS",
+  "policy_changes": false,
+  "origin": "http://127.0.0.1:60165/",
+  "browser_version": "145.0.7632.6",
+  "finished_at": "2026-10-03T07:48:05.218553+00:00",
+  "counts": {
+    "PASS": 12,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_RUN": 0
+  }
+}

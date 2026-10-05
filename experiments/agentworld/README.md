@@ -1,6 +1,6 @@
 # BuilderWars Agentworld Lab — Relay Commons v0.1
 
-**Status: merged to `main` as an isolated experimental namespace on 2026-10-03; still not deployed, ranked, hosted, or independently cross-team reviewed.**
+**Status: Relay Commons merged to `main` on 2026-10-05 through [PR #75](https://github.com/nymrel/builderwars/pull/75), merge `9ff2ea338a5e6af687b888bec52541ac9eaf48b1`, after independent source review. Hive memory and its review repairs are tracked in [PR #76](https://github.com/nymrel/builderwars/pull/76). This remains an isolated experiment without a production lab route, hosted rooms, connected providers, or ranking admission.**
 
 ## Product hypothesis
 
@@ -25,7 +25,7 @@ To generate a portable, self-contained HTML preview:
 python build_preview.py
 ```
 
-The preview embeds the exact scripts and adds their SHA-256 hashes to its content-security policy. No CDN, font download, analytics, network call, or external code execution is included. File-viewer support for JavaScript and local storage varies; a normal browser on an authorized local origin is the intended full validation environment.
+The preview embeds the exact engine, ledger, and app scripts in dependency order and adds their SHA-256 hashes to its content-security policy. Use `--output /path/to/preview.html` to choose another output file. No CDN, font download, analytics, network call, or external code execution is included. File-viewer support for JavaScript and local storage varies; a normal browser on an authorized local origin is the intended full validation environment.
 
 ## Rules
 
@@ -47,13 +47,27 @@ Actions require exact fields. A move additionally requires direction; other acti
 
 The replay contract contains the version, initial configuration, accepted actions and claimed final state. Import runs every action from the seed and compares the reconstructed state. The strict JSON parser rejects duplicate keys, unsafe/non-integer numbers, oversized input, excessive nesting, unknown schema fields and unsupported actions. Packets are capped at 128 KiB and 240 actions. This is local replay consistency, **not** a signature, origin proof, independent rerun, hosted-execution receipt or ranking admission. Editing an entire valid replay can still produce another valid local replay.
 
+## Hive memory (`ledger.js`)
+
+The hive-memory panel accepts up to 64 selected files and describes their unique verified replay contents: per-actor delivery/collect/move/wait tallies, crew totals, per-run outcomes (seed, mode, outcome, turns), and mode summaries. Every counted replay passes the strict parser and engine reconstruction; actor deliveries must agree with its reconstructed final scores. Oversized files are refused before their contents are read. Duplicate, unreadable, malformed, or invalid entries are listed with reasons while valid companion files can still count. The 64-entry limit includes refused and duplicate files.
+
+Deduplication compares the complete canonical `{config, actions}` content after verification. Renamed or reformatted copies count once, with the smallest bounded filename chosen deterministically as the representative. FNV-1a fingerprints remain non-cryptographic ordering identifiers; a matching fingerprint alone never establishes equality. Different replay contents with colliding fingerprints remain separate. Accepted rows, refusals, and the complete exported aggregate are deterministic under input reordering.
+
+These counts describe unique replay contents, not independently attested execution events. Separate executions with identical configuration and actions cannot be distinguished by this format. Editing a valid replay or changing a self-declared source label does not prove another execution or another actor's identity.
+
+The JavaScript ledger API accepts an array of `{label, text}` entries or `{label, error}` file-read refusals, with an optional string label. Entries cannot contain both `text` and `error`; replay text must be a string. Labels and refusal reasons are bounded to 80 and 160 characters. An error entry can only become a refusal, never an accepted run.
+
+The aggregate is **descriptive, not a ranking**: it says nothing about which actor, crew, strategy, or operator is better. Source labels remain self-declared. It adds no network calls, storage, or provider surface, and exports as `builderwars.agentworld.hive-ledger.v0.1` JSON.
+
 ## Browser behavior
 
 Watch, pause, single-step and bounded batch controls use scripted policies. Manual controls and JSON actions are recorded separately. Auto-play pauses when the page is hidden. Live rendering preserves in-progress JSON edits; stale actions fail without mutation. Replay import checks the run revision after asynchronous file reading and requires confirmation before replacing a nonempty run.
 
+Hive builds use a separate generation counter. Every build attempt and file-selection change invalidates older pending work, clears the previous aggregate, and disables its export. A superseded file-read success or error cannot replace the newer result. Export is enabled only after the current selection has produced its displayed aggregate, including any refusal list.
+
 Local saving uses a versioned localStorage key. Restoration verifies the replay before adopting it. Unreadable storage is not overwritten automatically. Storage-change events and a pre-write checkpoint comparison disable saving on detected cross-tab conflicts. These are best-effort local safeguards, not atomic multi-client synchronization. Removal is explicit and turns off automatic saving. Export remains available when storage is unavailable.
 
-## Validation from this implementation session
+## Historical prototype validation (2026-09-20/21)
 
 - Node 22.16.0: **19/19 engine tests passed**, including a 100-seed invariant sweep, replay tampering, duplicate-key rejection, bounds, conservation and terminal behavior.
 - Chromium in-memory DOM fixture: **21/21 checks passed**, including 320/390/768/1280 px horizontal-overflow checks, scripted and manual actions, pause, import/export, malformed replay refusal, editor preservation, storage-unavailable behavior, no JavaScript errors, no external requests and readable non-JavaScript rules.
@@ -66,7 +80,21 @@ Local saving uses a versioned localStorage key. Restoration verifies the replay 
 
 Landed onto current `main` (`2361f30`, PR #74) by merge with zero conflicts; engine.js/app.js/index.html byte-identical to the reviewed branch (receipts bind SHA-256). Engine suite 19/19 (`node --test test.mjs`, Node via the reviewer host). First-ever real loopback-origin run of the origin-only checks found two **harness** defects, both fixed in `review_acceptance.py` only: `#proof` is styled `text-transform:uppercase` on a real origin so the rendered-text assertion had to compare case-insensitively, and the cross-tab check's string-argument `wait_for_function` evaluates as page JavaScript, which this experiment's own strict CSP (`script-src 'self'`, no `unsafe-eval`) correctly refuses; it now polls the checkbox from the harness side. After those fixes: real-origin acceptance **11/11 PASS**, controller fixture **8/8 PASS** (`evidence/opencode-*-20261003.json`). The previously blocked-on-policy origin checks (reload persistence, corrupt checkpoint, real same-origin tabs) are now exercised on a loopback origin; screen-reader, physical-device, cross-browser and deployment acceptance remain open.
 
-## Integration and coordination
+This October 3 integration was prepared on the PR branch. The actual merge to repository `main` occurred on October 5, as recorded above. Earlier evidence files remain historical receipts for their recorded source hashes.
+
+## Independent landing review and scoped repair (2026-10-05)
+
+PR #75's reviewed head `90176818e97cdfd321cf91100afa7d21f83a674a` passed 19 engine tests and a fresh 11-check real-origin acceptance run before merge. Its exact-head AgentWars integrity workflow and the subsequent merged-main workflow also passed. That hosted workflow covers existing repository contracts; the experiment's Node and browser suites were run separately.
+
+Independent review of PR #76 identified and repaired duplicate counting, order-dependent refusals and fingerprint ties, unbounded file reads, stale asynchronous builds, and the missing ledger script in portable previews. Regression coverage includes two different valid replays with the same FNV fingerprint, whole-aggregate serialization, pre-read refusal, individual read errors, selection/build supersession, and preview import/export under the actual restrictive CSP. Source receipts now include `ledger.js`; controller fixtures load engine, ledger, and app in dependency order.
+
+Fresh repair validation passed **26/26 Node tests**, **16/16 real-origin checks**, **13/13 controller-fixture checks**, and **17/17 generated-preview checks**. Browser runs used Playwright 1.58.0 with Chromium 153.0.8010.0 and reported no page errors, external requests, or CSP violations; the preview additionally made no subresource requests. The separate receipts are `evidence/astra-hive-node-20261005.txt` and `evidence/astra-hive-{origin,fixture,portable}-acceptance-20261005.json`. The browser receipts bind the tested scripts and harness by SHA-256; the preview receipt also binds its builder and generated HTML. These supplement, rather than replace, the original October 3 evidence.
+
+Use `review_acceptance.py --output <new-directory>` for the real-origin suite, add `--controller-fixture` for the explicitly narrower controller mode, or add `--portable-preview` to build and test the self-contained HTML on a real loopback origin. Each run requires a new output directory and preserves earlier evidence. The preview mode tests the generated document without external script files; it does not establish compatibility with arbitrary file viewers.
+
+Reviews are recorded as source-review comments through the authorized GitHub connection. They are independent of the original implementation authoring work, not claims of a distinct GitHub account or cross-model-family approval. Physical-device, screen-reader, actual-zoom, target-mobile-browser, provider, hosted-execution, and deployment acceptance remain outside this source landing.
+
+## Historical integration and coordination
 
 Baseline inspected: `nymrel/builderwars` main `e6bb900d28af4a28d83cef772d25fe9ed5d2f44f` (PR #65). Root README, `.agent/presence.md`, and the BuilderWars ecosystem/audit issues were read. Root AGENTS.md and CLAUDE.md were not present at that pin.
 
