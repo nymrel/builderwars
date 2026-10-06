@@ -43,6 +43,7 @@ with sync_playwright() as p:
     proof = Path(result.value.path()).read_text()
     assert json.loads(proof.splitlines()[0])["body"]["maxPlies"] == 4
     page.locator("#import-proof").set_input_files({"name": "match.jsonl", "mimeType": "application/x-ndjson", "buffer": proof.encode()})
+    page.locator("#open-recording").click()  # A capped game is still rule-incomplete.
     expect(page.locator("#proof-status")).to_contain_text("reproduced by the matching referee")
     expect(page.locator("#resource-status")).to_contain_text("original token limit unknown")
     with page.expect_download() as again:
