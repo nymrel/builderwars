@@ -1,0 +1,169 @@
+{
+  "schema": "builderwars.match-package.v1",
+  "record": {
+    "schema": "builderwars.exhibition.v1",
+    "id": "launch-ttt-v1-02-0-0",
+    "createdAt": "2026-10-06T00:00:00.000Z",
+    "rules": {
+      "kind": "tictactoe",
+      "name": "Tic-tac-toe",
+      "rows": 3,
+      "cols": 3,
+      "connect": 3,
+      "gravity": false
+    },
+    "agents": [
+      {
+        "name": "Seeded Wildcard",
+        "kind": "bot",
+        "model": "random-v1",
+        "effort": "default",
+        "strategy": ""
+      },
+      {
+        "name": "Tic-tac-toe Oracle",
+        "kind": "bot",
+        "model": "perfect-ttt-v1",
+        "effort": "default",
+        "strategy": ""
+      }
+    ],
+    "events": [
+      {
+        "ply": 1,
+        "seat": 0,
+        "move": "7",
+        "comment": "",
+        "model": "local/random-v1@48150f885f5c146f3283401f426b1ed81560996f603a7403cb7dfdc3a32216da",
+        "label": "b3",
+        "elapsed": 0.004715999999973519,
+        "tokens": null,
+        "cost": 0
+      },
+      {
+        "ply": 2,
+        "seat": 1,
+        "move": "1",
+        "comment": "",
+        "model": "local/perfect-ttt-v1@35dab9d9af2d35cc7a459b319a3796f80644dc6c1825ffe6a1ee5ae7c62fe12b",
+        "label": "b1",
+        "elapsed": 0.022743999999988773,
+        "tokens": null,
+        "cost": 0
+      },
+      {
+        "ply": 3,
+        "seat": 0,
+        "move": "0",
+        "comment": "",
+        "model": "local/random-v1@48150f885f5c146f3283401f426b1ed81560996f603a7403cb7dfdc3a32216da",
+        "label": "a1",
+        "elapsed": 0.0014019999999845822,
+        "tokens": null,
+        "cost": 0
+      },
+      {
+        "ply": 4,
+        "seat": 1,
+        "move": "6",
+        "comment": "",
+        "model": "local/perfect-ttt-v1@35dab9d9af2d35cc7a459b319a3796f80644dc6c1825ffe6a1ee5ae7c62fe12b",
+        "label": "a3",
+        "elapsed": 0.014842000000044209,
+        "tokens": null,
+        "cost": 0
+      },
+      {
+        "ply": 5,
+        "seat": 0,
+        "move": "4",
+        "comment": "",
+        "model": "local/random-v1@48150f885f5c146f3283401f426b1ed81560996f603a7403cb7dfdc3a32216da",
+        "label": "b2",
+        "elapsed": 0.0009009999999989304,
+        "tokens": null,
+        "cost": 0
+      },
+      {
+        "ply": 6,
+        "seat": 1,
+        "move": "8",
+        "comment": "",
+        "model": "local/perfect-ttt-v1@35dab9d9af2d35cc7a459b319a3796f80644dc6c1825ffe6a1ee5ae7c62fe12b",
+        "label": "c3",
+        "elapsed": 0.008283000000005813,
+        "tokens": null,
+        "cost": 0
+      },
+      {
+        "ply": 7,
+        "seat": 0,
+        "move": "2",
+        "comment": "",
+        "model": "local/random-v1@48150f885f5c146f3283401f426b1ed81560996f603a7403cb7dfdc3a32216da",
+        "label": "c1",
+        "elapsed": 0.0007610000000113359,
+        "tokens": null,
+        "cost": 0
+      },
+      {
+        "ply": 8,
+        "seat": 1,
+        "move": "3",
+        "comment": "",
+        "model": "local/perfect-ttt-v1@35dab9d9af2d35cc7a459b319a3796f80644dc6c1825ffe6a1ee5ae7c62fe12b",
+        "label": "a2",
+        "elapsed": 0.004086000000029344,
+        "tokens": null,
+        "cost": 0
+      },
+      {
+        "ply": 9,
+        "seat": 0,
+        "move": "5",
+        "comment": "",
+        "model": "local/random-v1@48150f885f5c146f3283401f426b1ed81560996f603a7403cb7dfdc3a32216da",
+        "label": "c2",
+        "elapsed": 0.000711000000023887,
+        "tokens": null,
+        "cost": 0
+      }
+    ],
+    "status": "Board full"
+  },
+  "declarations": [
+    {
+      "builderId": "builderwars",
+      "agentId": "random-v1",
+      "agentRevision": "48150f885f5c146f3283401f426b1ed81560996f603a7403cb7dfdc3a32216da",
+      "harnessId": "random-v1",
+      "harnessRevision": "0f5dbe7b6d3d7b0fb541dfca34a129120087e96ddcf8044909343d1cf23b8383",
+      "providerId": "bundled-local",
+      "modelRevision": null
+    },
+    {
+      "builderId": "builderwars",
+      "agentId": "perfect-ttt-v1",
+      "agentRevision": "35dab9d9af2d35cc7a459b319a3796f80644dc6c1825ffe6a1ee5ae7c62fe12b",
+      "harnessId": "perfect-ttt-v1",
+      "harnessRevision": "0f5dbe7b6d3d7b0fb541dfca34a129120087e96ddcf8044909343d1cf23b8383",
+      "providerId": "bundled-local",
+      "modelRevision": null
+    }
+  ],
+  "resources": {
+    "moveLimit": 9,
+    "maxTokens": null,
+    "moveLimitKnown": true
+  },
+  "fixture": "standard-initial-position",
+  "seed": null,
+  "verification": {
+    "scope": "legal-moves-only",
+    "verifierVersion": "builderwars-board-js/1",
+    "verifierDigest": "7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539",
+    "identityAttested": false,
+    "modelAttested": false,
+    "resourcesAttested": false
+  }
+}

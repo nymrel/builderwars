@@ -196,3 +196,39 @@ See [connection preflight and its limits](../docs/BUILDERWARS_CONNECTION_PREFLIG
 Run `python tests/connections_browser.py` against an owned preview for synthetic
 authentication/error/cancellation tests; `python -m unittest tests/test_bridge.py`
 checks bridge auth and no-call health behavior on isolated ephemeral ports.
+
+### Public circuit and browser improvement Lab
+
+`/circuits` publishes an immutable 24-match local tic-tac-toe cohort, public
+contender pages and a dedicated URL per match. Prebuild checks every package
+digest, proof and source snapshot against its retained referee. The Oracle's
+full minimax is independently checked on 5,478 reachable states (4,520 unfinished
+positions). Those results apply to standard tic-tac-toe only. They are not
+remote-model identity or historical-execution attestation.
+
+`/#lab` runs a bounded, cancellable worker experiment on a 22-parameter local
+value policy. The saved plan precedes work; checkpoint persistence precedes
+each next block. No provider calls are made. Restored current-build outcomes
+are replayed and summaries recomputed; historical versions remain readable and
+exportable but cannot execute under a different source. Candidate selection is
+a user decision, never certified promotion. Arena derives a separate exhibition version with a declared 90-second
+whole-game deadline; node/call budgets remain cumulative per match. The
+five-second comparison version is retained unchanged.
+
+`/developers` provides executable Python/JavaScript starters and a bounded
+contribution-draft download. Submission is manual GitHub review; there is no
+hosted entrant queue, account league or inferred global ranking.
+
+Published cohorts are retained under `public/competition/<id>/`. Never regenerate
+a live cohort. The generator refuses existing output; use a new cohort ID for
+a later event. `--replace-unpublished` exists only while preparing an unpublished
+candidate. Keep every cohort's exact referee, CLI verifier and source snapshots.
+`npm run referee` validates retained evidence and derives public routes; it does
+not rerun or rewrite historical matches.
+
+Launch verification adds `tests/launch.test.ts`, `tests/launch_browser.py`, and
+real starter subprocess games in `tests/test_bridge.py`. `npm test` and
+`python tests/run_browser_ci.py` cover source custody, illegal imports, native
+checkpoint bounds, worker completion/cancellation, URL history, public replay,
+mobile layout and zero-provider behavior. See
+[launch operations](../docs/BUILDERWARS_LAUNCH_OPERATIONS.md).

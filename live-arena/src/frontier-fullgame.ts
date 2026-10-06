@@ -67,6 +67,7 @@ export type FullgameRow = {
   defenseOpportunities: number; avoidableLosses: number;
   inferenceNodes: number; opponentNodes: number; graderNodes: number;
   milliseconds: number; maxDecisionMilliseconds: number; providerCalls: 0;
+  elapsedByPly?: number[];
 };
 export type FullgameBlock = { schema: typeof FULLGAME_PROTOCOL; seed: number; parent: string; candidate: string; games: FullgameRow[] };
 
@@ -80,23 +81,30 @@ function play(version: Version, opponent: FullgameOpponent, seat: number, openin
   for (const move of opening) { inference.tick(); state = step(move); }
   const row: FullgameRow = { version: version.digest, opponent, seat, opening: [...opening], moves: [], exit: "capped", reason: "Full-game ply cap",
     winner: null, score: null, decisions: 0, assessed: 0, illegal: 0, winOpportunities: 0, missedWins: 0, defenseOpportunities: 0, avoidableLosses: 0,
-    inferenceNodes: 0, opponentNodes: 0, graderNodes: 0, milliseconds: 0, maxDecisionMilliseconds: 0, providerCalls: 0 };
+    inferenceNodes: 0, opponentNodes: 0, graderNodes: 0, milliseconds: 0, maxDecisionMilliseconds: 0, providerCalls: 0,
+    elapsedByPly: opening.map(() => 0) };
   while (!state.over && state.moves.length < maxPlies) {
     signal?.throwIfAborted();
     if (performance.now() >= deadline) throw Error("Full-game block deadline exhausted; no successful sample.");
-    let move: string;
+    let move: string, decisionMilliseconds: number;
     if (state.turn === seat) {
       if (row.decisions >= c.limits.maxCalls) throw Error("Version call allowance exhausted; no complete full-game block.");
       const decisionStarted = performance.now();
       // Exactly the bundled version executor's inference rule, including its fixed RNG.
       move = numericVersionMove(version, state, inference);
-      row.maxDecisionMilliseconds = Math.max(row.maxDecisionMilliseconds, performance.now() - decisionStarted);
+      decisionMilliseconds = performance.now() - decisionStarted;
+      row.maxDecisionMilliseconds = Math.max(row.maxDecisionMilliseconds, decisionMilliseconds);
       const grade = gradeTactic(tacticalChoices(state, grader), move);
       row.decisions++; row.assessed += Number(grade.assessed); row.illegal += Number(!grade.legal);
       row.winOpportunities += Number(grade.winOpportunity); row.missedWins += Number(grade.missedWin);
       row.defenseOpportunities += Number(grade.defenseOpportunity); row.avoidableLosses += Number(grade.avoidableLoss);
       if (!grade.legal) throw Error("Illegal version move; full-game attempt must fail closed.");
-    } else move = fullgameOpponentMove(state, opponent, opposition);
+    } else {
+      const decisionStarted = performance.now();
+      move = fullgameOpponentMove(state, opponent, opposition);
+      decisionMilliseconds = performance.now() - decisionStarted;
+    }
+    row.elapsedByPly!.push(decisionMilliseconds);
     state = step(move);
   }
   row.moves = [...state.moves]; row.inferenceNodes = inference.used; row.opponentNodes = opposition.used; row.graderNodes = grader.used;
