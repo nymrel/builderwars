@@ -38,3 +38,8 @@
 .public-content .mono { overflow-wrap: anywhere; }
 .public-error { border: 1px solid #e88a55; padding: 20px; color: #ffc8a7; line-height: 1.7; }
 @media(max-width:640px) { .public-site .topbar { flex-direction: column; align-items: start; gap: 20px; } .public-content { padding-top: 30px; } .public-grid,.public-match-list,.public-match { grid-template-columns: 1fr; } .public-card { padding: 22px; } .public-stats div { padding: 16px 10px; } .public-stats span { font-size: 9px; line-height: 1.5; } }
+/* Retained server-rendered content remains readable before enhancement loads. */
+.public-content { overflow-wrap: anywhere; }
+.public-site .results-table th:first-child { width: 7%; }
+.public-site .results-table th:nth-child(2) { width: 45%; }
+.public-site .results-table { min-width: 600px; }

@@ -55,5 +55,9 @@ with sync_playwright() as p:
  page.goto(BASE+'/developers');page.locator('[name="builder"]').fill('Test builder');page.locator('[name="agent"]').fill('Test starter');page.locator('[name="version"]').fill('v1');page.locator('[name="source"]').fill('https://github.com/nymrel/builderwars');page.locator('[name="assistance"]').fill('Legal moves; immediate tactics; no model calls')
  with page.expect_download() as download:page.locator('#contribution-form button').click()
  assert download.value.suggested_filename=='builderwars-contribution-draft.json';assert not calls,calls;assert not errors,errors
+ static=browser.new_context(java_script_enabled=False,viewport={'width':320,'height':844});static_page=static.new_page()
+ for path in ['/circuits/launch-ttt-v1','/agents/launch-ttt-v1/perfect-ttt-v1','/matches/launch-ttt-v1-01-0-0']:
+  static_page.goto(BASE+path);expect(static_page.locator('h1')).to_be_visible();assert static_page.evaluate('document.documentElement.scrollWidth<=innerWidth'),path
+ static.close()
  result={'status':'PASS','origin':BASE,'labGames':128,'seedBlocks':16,'incumbentRetained':True,'cancellation':'saved, no automatic restart','publicMatches':24,'publicContenders':3,'providerCalls':0,'browserErrors':errors}
  (OUT/'launch-verification.json').write_text(json.dumps(result,indent=2));print(json.dumps(result));browser.close()
