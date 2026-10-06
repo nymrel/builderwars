@@ -113,8 +113,18 @@ with sync_playwright() as p:
     # A superseded modal must settle before the next prompt installs handlers.
     upload(page, FIXTURES["record"])
     expect(page.locator("#recording-dialog")).to_be_visible()
+    page.evaluate("""() => {
+      window.supersededPromptClosed = false;
+      document.querySelector('#recording-dialog').addEventListener('close', () => {
+        window.supersededPromptClosed = true;
+      }, {once: true});
+    }""")
     upload(page, FIXTURES["exhibition"])
-    page.wait_for_function("() => document.querySelector('#recording-dialog').open && document.querySelector('#import').value !== ''")
+    # The old import's finally clears the shared input after the new File is
+    # captured. Observe the dialog handoff, not that transient input value.
+    page.wait_for_function("() => window.supersededPromptClosed && document.querySelector('#recording-dialog').open")
+    expect(page.locator("#keep-current-match")).to_be_focused()
+    expect(page.locator("#metric-moves")).to_have_text("1")
     # The newer recording, not the older one, is committed.
     page.locator("#open-recording").click()
     expect(page.locator("#metric-moves")).to_have_text("2")
