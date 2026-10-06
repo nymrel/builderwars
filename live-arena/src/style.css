@@ -1356,3 +1356,8 @@ dialog [id$="fields"] {
   #duel[data-duel-phase="playing"] .duel-stage, #duel[data-duel-phase="finished"] .duel-stage, #duel[data-duel-phase="stopped"] .duel-stage { order: -1; }
   .duel-step { padding: 18px; }
 }
+
+#recording-dialog h2 { margin: 0; font-size: 21px; }
+#recording-dialog p { margin: 0; line-height: 1.6; }
+.recording-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.recording-actions button { min-width: 0; white-space: normal; }
