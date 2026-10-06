@@ -150,6 +150,15 @@ cross-tab continuation conflicts. It preserves the move limit. Provider games ar
 replay-only after reload; reconnect those contenders in a new match. Replay URLs
 do not automatically enter the library; use **Save current replay** to retain one.
 
+Opening a replay link, replay/package file, exhibition, proof, or saved match uses
+one validation and replacement flow. Pause first. An unfinished own match remains
+in the arena until you choose **Open recording**; **Keep playing** or Escape leaves
+it intact. The prompt reports whether the existing device-saving policy could
+keep a recovery copy and offers the existing match-package download/share action.
+Saving is never enabled on your behalf. If saving is unavailable, download before
+replacing anything you need to retain. A changed match, settings, newer request,
+or native lifecycle transition invalidates an outstanding import.
+
 Spectator reload attempts the same live host link and shows a saved, explicitly
 non-live position if unavailable. A 5-second heartbeat detects silence after
 15 seconds (browser timer throttling can extend this). If the host restarts their
