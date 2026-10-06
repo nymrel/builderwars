@@ -40,6 +40,7 @@ import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE
 import { connectionDialogMarkup, agentSetupBrief } from "./connection-guide";
 import { EXHIBITION_SCHEMA, readExhibition, exhibitionDescription, type Exhibition } from "./exhibition";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
+import { RecordingTransitions, recordingDialogMarkup, recordingRecoveryMessage, recordingError } from "./recording-transition";
 import { DECLARATION_FIELDS, readDeclaration, readDeclarations, unknownDeclarations, makeMatchPackage, readMatchFile, type MatchDeclarations } from "./match-package";
 import { makeSetup, encodeSetup, decodeSetup, safeReplay, summarizeMatch, resultImage, entrantLabel,
   freeAgents, configuredAgents, type MatchSetup, type MatchSummary } from "./sharing";
@@ -405,6 +406,73 @@ $("join").insertAdjacentHTML(
   '<button id="rejoin-watch" hidden>Reconnect to host</button>',
 );
 
+// One consent surface for every recorded-content entry point.
+document.body.insertAdjacentHTML("beforeend", recordingDialogMarkup);
+const recordingDialog = $<HTMLDialogElement>("recording-dialog");
+let dismissRecordingPrompt = () => {};
+let recordingPromptClosed: Promise<boolean> = Promise.resolve(false);
+async function confirmRecordingReplacement(saved: boolean): Promise<boolean> {
+  const check = importGuard(false);
+  await recordingPromptClosed;
+  check();
+  $("recording-recovery").textContent = recordingRecoveryMessage(saved);
+  $("recording-transfer-status").textContent = "";
+  recordingDialog.returnValue = "keep";
+  const download = $<HTMLButtonElement>("download-current-match");
+  download.textContent = isNativeApp ? "Save / share current match" : "Download current match";
+  download.disabled = false;
+  const downloadCurrent = async () => {
+    download.disabled = true;
+    try {
+      check();
+      const snapshot = makeMatchPackage(record, currentDeclarations, currentLimits);
+      const outcome = await exportJson(`builderwars-${record.id}.match.json`, snapshot, "replay");
+      check();
+      if (download.onclick === downloadCurrent) $("recording-transfer-status").textContent = transferMessage(outcome);
+    } catch (error) {
+      if (download.onclick === downloadCurrent) $("recording-transfer-status").textContent = recordingError("Current match export", error);
+    } finally { if (download.onclick === downloadCurrent) download.disabled = false; }
+  };
+  download.onclick = downloadCurrent;
+  recordingPromptClosed = new Promise(resolve => {
+    const closed = () => {
+      recordingDialog.removeEventListener("close", closed);
+      dismissRecordingPrompt = () => {};
+      download.onclick = null;
+      resolve(recordingDialog.returnValue === "open");
+    };
+    recordingDialog.addEventListener("close", closed);
+    dismissRecordingPrompt = () => {
+      recordingDialog.close("keep");
+    };
+    recordingDialog.showModal();
+  });
+  return recordingPromptClosed;
+}
+const recordingTransitions = new RecordingTransitions({
+  guard: () => importGuard(),
+  unfinished: () => !spectating && savedSource === "own" && record.events.length > 0 && !state.over,
+  save: () => saveCurrent(),
+  confirm: confirmRecordingReplacement,
+  dismissPrompt: () => dismissRecordingPrompt(),
+});
+type Recording = {
+  parsed: ReturnType<typeof replay>;
+  save?: boolean;
+  limits?: MatchLimits | null;
+  declarations?: MatchDeclarations;
+  exhibition?: Exhibition | null;
+};
+async function openRecorded(prepare: () => Recording | Promise<Recording>, requested = () => {}) {
+  const opened = await recordingTransitions.open(async () => {
+    const content = await prepare();
+    // All potentially throwing metadata validation also precedes consent/commit.
+    return { ...content, declarations: readDeclarations(content.declarations ?? unknownDeclarations()) };
+  }, content => openReplay(content.parsed, content.save ?? true, content.limits ?? null, content.declarations, content.exhibition ?? null), requested);
+  if (!opened) notify("Recording dismissed. Your current match is unchanged.");
+  return opened;
+}
+
 function libraryFailure() {
   $("match-library").setAttribute("aria-busy", String(deviceStorage?.status === "saving"));
   $("save-disclosure").textContent =
@@ -493,16 +561,24 @@ function renderLibrary() {
                 renderLibrary();
                 await saving;
                 renderLibrary();
-              } else if (action === "resume") resumeSaved(entry);
-              else {
-                const check = importGuard();
-                const exhibition = entry.exhibition ? await readExhibition(entry.exhibition) : null;
-                check();
-                openReplay(replay(exhibition?.record ?? entry.record), false, entry.resourceSnapshotPresent || entry.moveLimitKnown || entry.maxTokens !== undefined ? validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true) : null, entry.declarations, exhibition);
-                tab("arena");
+              } else if (action === "resume") {
+                const opened = await recordingTransitions.open(() => {
+                  if (!canResume(entry)) throw Error("This match is replay-only.");
+                  const parsed = replay(entry.record);
+                  const limits = validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true);
+                  const declarations = readDeclarations(entry.declarations ?? unknownDeclarations());
+                  return { parsed, limits, declarations };
+                }, content => resumeSaved(entry, content));
+                if (!opened) notify("Recording dismissed. Your current match is unchanged.");
+              } else {
+                const opened = await openRecorded(async () => {
+                  const exhibition = entry.exhibition ? await readExhibition(entry.exhibition) : null;
+                  return { parsed: replay(exhibition?.record ?? entry.record), save: false, limits: entry.resourceSnapshotPresent || entry.moveLimitKnown || entry.maxTokens !== undefined ? validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true) : null, declarations: entry.declarations, exhibition };
+                });
+                if (opened) tab("arena");
               }
             } catch (e) {
-              notify((e as Error).message);
+              notify(recordingError("Saved match", e));
             }
           };
         });
@@ -511,7 +587,7 @@ function renderLibrary() {
     libraryFailure();
   }
 }
-function resumeSaved(entry: SavedMatch) {
+function resumeSaved(entry: SavedMatch, content: { parsed: ReturnType<typeof replay>; limits: MatchLimits; declarations: MatchDeclarations }) {
   if (!canResume(entry))
     throw Error(
       "This match is replay-only. Connected providers must be configured again in a new match.",
@@ -526,11 +602,11 @@ function resumeSaved(entry: SavedMatch) {
   replayPly = null;
   spectating = false;
   savedSource = "own";
-  const parsed = replay(entry.record);
+  const { parsed } = content;
   proofOrigin = "reverified_import";
   record = parsed.record;
-  currentLimits = validateMatchLimits(entry.moveLimit, entry.maxTokens ?? null, entry.moveLimitKnown === true);
-  currentDeclarations = readDeclarations(entry.declarations ?? unknownDeclarations());
+  currentLimits = content.limits;
+  currentDeclarations = content.declarations;
   contenderDeclarations = currentDeclarations;
   $("proof-status").textContent = "Recovered record. Any new proof is a reverified snapshot, not original engine or model provenance.";
   state = parsed.state;
@@ -1583,11 +1659,14 @@ function bumpCreatorDraftRevision(event: Event) {
 }
 $("creator").addEventListener("input", bumpCreatorDraftRevision);
 $("creator").addEventListener("change", bumpCreatorDraftRevision);
-function importGuard() {
-  const ticket = ++fileImportGeneration, generation = runId, id = record.id, plies = record.events.length, watching = spectating;
+function importGuard(newRequest = true) {
+  const ticket = newRequest ? ++fileImportGeneration : fileImportGeneration;
+  const generation = runId, currentRecord = record, currentState = state, plies = record.events.length, watching = spectating, epoch = nativeEpoch;
+  const settings = () => JSON.stringify([agents, currentLimits, currentDeclarations, contenderDeclarations, $<HTMLInputElement>("move-limit").value, $<HTMLInputElement>("max-tokens").value]);
+  const setup = settings();
   if (running || pending) throw Error("Pause the current match before importing.");
   return () => {
-    if (ticket !== fileImportGeneration || generation !== runId || id !== record.id || plies !== record.events.length || watching !== spectating || running || pending)
+    if (ticket !== fileImportGeneration || generation !== runId || currentRecord !== record || currentState !== state || plies !== record.events.length || watching !== spectating || epoch !== nativeEpoch || !nativeActive || running || pending || setup !== settings())
       throw Error("The match changed during import. Import again when paused.");
   };
 }
@@ -1595,25 +1674,20 @@ $<HTMLInputElement>("import-proof").onchange = async (event) => {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
-  const generation = runId;
-  const matchId = record.id;
-  const moveCount = record.events.length;
   try {
-    const check = importGuard();
-    if (running || pending) throw Error("Pause the current match before importing proof.");
-    if (file.size > PROOF_LIMIT) throw Error("Proof exceeds size limit.");
-    const text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
-    const verified = await verifyProof(text, refereeManifest.digest);
-    check();
-    if (generation !== runId || matchId !== record.id || moveCount !== record.events.length || running || pending) throw Error("The match changed during verification. Import again when paused.");
-    if (!proofAdmitted(verified.record.rules.kind)) throw Error("Custom Forge boards are not admitted to portable proof yet. Use the matching offline verifier for their replay formats.");
-    openReplay(verified, false);
-    // Read only after exact referee verification; this does not trust an unverified header.
-    currentLimits = validateMatchLimits(JSON.parse(text.split("\n")[0]).body.maxPlies, null);
-    saveCurrent(); render();
-    $("proof-status").textContent = `${verified.record.status} · ${verified.record.events.length} plies reproduced by the matching referee. Names and models remain unverified declarations.`;
+    let proofStatus = "";
+    const opened = await openRecorded(async () => {
+      if (file.size > PROOF_LIMIT) throw Error("Proof exceeds size limit.");
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+      const verified = await verifyProof(text, refereeManifest.digest);
+      if (!proofAdmitted(verified.record.rules.kind)) throw Error("Custom Forge boards are not admitted to portable proof yet. Use the matching offline verifier for their replay formats.");
+      const limits = validateMatchLimits(JSON.parse(text.split("\n")[0]).body.maxPlies, null);
+      proofStatus = `${verified.record.status} · ${verified.record.events.length} plies reproduced by the matching referee. Names and models remain unverified declarations.`;
+      return { parsed: verified, limits };
+    });
+    if (opened) $("proof-status").textContent = proofStatus;
   } catch (error) {
-    $("proof-status").textContent = (error as Error).message;
+    $("proof-status").textContent = recordingError("Proof import", error);
   } finally {
     input.value = "";
   }
@@ -1661,20 +1735,18 @@ $<HTMLInputElement>("import").onchange = async (e) => {
   const input = e.target as HTMLInputElement;
   if (!input.files?.[0]) return;
   try {
-    const check = importGuard();
-    const raw = await readFile(input);
-    if (raw?.schema === EXHIBITION_SCHEMA) {
-      const exhibition = await readExhibition(raw);
-      check();
-      openReplay(replay(exhibition.record), true, validateMatchLimits(exhibition.limits.maxPliesPerGame, null, true), unknownDeclarations(), exhibition);
-      tab("arena");
-    } else {
+    const opened = await openRecorded(async () => {
+      const raw = await readFile(input);
+      if (raw?.schema === EXHIBITION_SCHEMA) {
+        const exhibition = await readExhibition(raw);
+        return { parsed: replay(exhibition.record), limits: validateMatchLimits(exhibition.limits.maxPliesPerGame, null, true), exhibition };
+      }
       const imported = readMatchFile(raw);
-      check();
-      openReplay(imported.parsed, true, imported.limits, imported.declarations);
-    }
+      return { parsed: imported.parsed, limits: imported.limits, declarations: imported.declarations };
+    });
+    if (opened) tab("arena");
   } catch (e) {
-    notify((e as Error).message);
+    notify(recordingError("Recording import", e));
   } finally { input.value = ""; }
 };
 function forgeMessage(message: string) {
@@ -2039,6 +2111,8 @@ if (deviceStorageFailed) notify("Native saving could not open. Existing device d
 function loadFragment() {
   const hash = location.hash;
   const fragment = new URLSearchParams(hash.slice(1));
+  fileImportGeneration++;
+  dismissRecordingPrompt();
   pendingSetup = null;
   $<HTMLDialogElement>("setup-dialog").close();
   if (fragment.has("duel")) {
@@ -2053,26 +2127,20 @@ function loadFragment() {
   } else if (fragment.has("watch"))
     void join(fragment.get("watch")!).catch((e) => notify(e.message));
   else if (fragment.has("replay"))
-    void decodeReplay(fragment.get("replay")!)
-      .then((parsed) => {
-        if (location.hash !== hash) return;
-        if ((running || pending || (savedSource === "own" && record.events.length > 0 && !state.over)) &&
-            !window.confirm("Open this shared replay instead of your current match? Export first if you need a copy; device storage may be unavailable.")) {
-          history.replaceState(null, "", location.pathname + location.search);
-          notify("Replay dismissed. Your current match is unchanged.");
-          return;
-        }
-        openReplay(parsed, false);
-      })
-      .catch((e) => {
-        if (location.hash === hash) notify(`Replay rejected: ${e.message}`);
-      });
+    void openRecorded(async () => ({ parsed: await decodeReplay(fragment.get("replay")!), save: false }), () => {
+      if (location.hash !== hash) throw Error("This replay link is no longer requested.");
+    }).then(opened => {
+      if (!opened && location.hash === hash) history.replaceState(null, "", location.pathname + location.search);
+    }).catch(error => {
+      if (location.hash === hash) notify(recordingError("Replay link", error));
+    });
 }
 function suspendNative() {
   if (duelUI?.room.view().active) duelUI.room.close("Duel stopped when the app left the foreground.");
   if (!nativeActive) return;
   nativeEpoch++;
   nativeActive = false;
+  dismissRecordingPrompt();
   stop("Paused when app left foreground");
   cancelConnectionProbe();
   agents.forEach(forgetConnectionCheck);
