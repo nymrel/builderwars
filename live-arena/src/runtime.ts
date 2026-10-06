@@ -2,6 +2,11 @@ import manifest from "./referee-manifest";
 type Referee = typeof import("./referee");
 type RefereeGlobal = typeof globalThis & { __builderwarsReferee?: Referee };
 async function load(): Promise<Referee> {
+  if (typeof document === "undefined" && typeof self !== "undefined" && typeof self.postMessage === "function") {
+    // Vite bundles the exact content-addressed referee artifact generated at build time.
+    // Module workers cannot use a DOM script's SRI path or Node's filesystem path.
+    return (await import("./referee-worker")).default;
+  }
   if (typeof document === "undefined") {
     const base = new URL(/* @vite-ignore */ "../public/", import.meta.url);
     return import(/* @vite-ignore */ new URL(manifest.file, base).href);

@@ -116,3 +116,42 @@ class Tests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class StarterCLIIntegration(unittest.TestCase):
+    """The published bridge command runs actual free starter processes, never a provider."""
+    def test_python_and_javascript_starters_through_documented_bridge_cli(self):
+        import subprocess
+        import sys
+        import re
+        root = Path(__file__).resolve().parents[1]
+        lines = [(0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6)]
+        for argv in ([sys.executable,str(root/'starters/starter_agent.py')],['node',str(root/'starters/starter_agent.mjs')]):
+            process = subprocess.Popen([sys.executable,'-u','bridge.py','--provider','custom_agent','--command',json.dumps(argv),'--label','free-starter-integration','--origin','https://builderwars.com','--max-calls','20','--allow-model-requests','--allow-custom-command'],cwd=root,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+            try:
+                startup = ''.join(process.stdout.readline() for _ in range(5))
+                match = re.search(r'connection: ([A-Za-z0-9_-]+)',startup)
+                self.assertIsNotNone(match,'Published CLI must start and issue its local token')
+                token=match.group(1)
+                def request(method,path,body=None,credential=token):
+                    conn=http.client.HTTPConnection('127.0.0.1',8765,timeout=15)
+                    conn.request(method,path,json.dumps(body) if body is not None else None,{'Origin':'https://builderwars.com','Authorization':'Bearer '+credential,'Content-Type':'application/json'})
+                    res=conn.getresponse();result=res.status,json.loads(res.read());conn.close();return result
+                self.assertEqual(request('GET','/health')[1]['remainingCalls'],20)
+                self.assertEqual(request('GET','/health',credential='wrong')[0],401)
+                self.assertEqual(request('GET','/health')[1]['remainingCalls'],20)
+                cells=['']*9; moves=[]
+                for ply in range(9):
+                    legal=[str(i) for i,c in enumerate(cells) if not c]
+                    status,data=request('POST','/move',{'schema':'builderwars.move.v1','game':{'name':'Tic-tac-toe','kind':'tictactoe','rows':3,'cols':3,'connect':3,'gravity':False},'position':cells,'turn':ply%2,'moves':moves,'legalMoves':legal,'strategy':''})
+                    self.assertEqual(status,200,data);self.assertIn(data['move'],legal);self.assertEqual(data['model'],'free-starter-integration')
+                    move=data['move'];moves.append(move);cells[int(move)]='w' if ply%2==0 else 'b'
+                    if any(cells[a] and cells[a]==cells[b]==cells[c] for a,b,c in lines):break
+                self.assertTrue(len(moves)==9 or any(cells[a] and cells[a]==cells[b]==cells[c] for a,b,c in lines))
+                self.assertEqual(request('GET','/health')[1]['remainingCalls'],20-len(moves))
+                status,_=request('POST','/move',{'schema':'builderwars.move.v1','game':{'name':'Tic-tac-toe','kind':'tictactoe'},'position':['']*9,'turn':0,'legalMoves':['invalid']})
+                self.assertEqual(status,502)
+            finally:
+                process.terminate()
+                try:process.wait(timeout=5)
+                except subprocess.TimeoutExpired:process.kill();process.wait(timeout=5)
+                process.stdout.close();process.stderr.close()

@@ -21,7 +21,7 @@ function publicSeat(raw: unknown): PublicSeat {
   exactKeys(raw, ["kind", "model", "effort"]);
   if (!["bot", "human", "openrouter", "harness"].includes(String(raw.kind)) || typeof raw.model !== "string" || raw.model.length > 160 || typeof raw.effort !== "string" || raw.effort.length > 20) throw Error("Invalid shared contender.");
   const { kind, model, effort } = raw as PublicSeat;
-  if (kind === "bot" && (!["tactician", "random"].includes(model) || effort !== "default")) throw Error("Unknown built-in opponent.");
+  if (kind === "bot" && (!["tactician", "random", "perfect-ttt-v1"].includes(model) || effort !== "default")) throw Error("Unknown built-in opponent.");
   if (kind === "human" && (model !== "human" || effort !== "default")) throw Error("Invalid human setup.");
   if (kind === "harness" && (model !== "" || effort !== "default")) throw Error("Harness connections must be configured locally.");
   if (kind === "openrouter" && (!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,159}$/.test(model) || !/^[a-zA-Z0-9_-]{1,20}$/.test(effort))) throw Error("Invalid public model declaration.");
@@ -32,6 +32,7 @@ export function validateSetup(raw: unknown): MatchSetup {
   if (raw.schema !== "builderwars.setup.v1" || !Array.isArray(raw.entrants) || raw.entrants.length !== 2) throw Error("Unsupported setup format.");
   const rules = validateRules(raw.rules);
   if (canonical(rules) !== canonical(raw.rules)) throw Error("Shared rules are not canonical.");
+  if (raw.entrants.some((a: { model?: string }) => a.model === "perfect-ttt-v1") && rules.kind !== "tictactoe") throw Error("The Oracle supports standard tic-tac-toe only.");
   return { schema: raw.schema, rules, moveLimit: integer(raw.moveLimit, 2, 400), maxTokens: integer(raw.maxTokens, 256, 16384), entrants: raw.entrants.map(publicSeat) };
 }
 export function makeSetup(record: RecordData, moveLimit: number, maxTokens: number): MatchSetup {
@@ -73,14 +74,14 @@ export function freeAgents(human = false): Agent[] {
 }
 export function configuredAgents(setup: MatchSetup): Agent[] {
   return validateSetup(setup).entrants.map((a, i) => ({ ...a,
-    name: a.kind === "human" ? `Human ${i + 1}` : a.kind === "bot" ? a.model === "random" ? "Wildcard" : "Tactician" : a.kind === "harness" ? `Connect harness ${i + 1}` : a.model,
+    name: a.kind === "human" ? `Human ${i + 1}` : a.kind === "bot" ? a.model === "random" ? "Wildcard" : a.model === "perfect-ttt-v1" ? "Tic-tac-toe Oracle" : "Tactician" : a.kind === "harness" ? `Connect harness ${i + 1}` : a.model,
     key: "", endpoint: "", strategy: "",
   }));
 }
 const cleanText = (value: string) => value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, " ").trim();
 /** Replay metadata is a declaration, including when its legal moves verify. */
 export function entrantLabel(a: RecordData["agents"][number]) {
-  if (a.kind === "bot") return ["tactician", "random"].includes(a.model)
+  if (a.kind === "bot") return ["tactician", "random", "perfect-ttt-v1"].includes(a.model)
     ? `Declared built-in · ${a.model}` : `Unrecognized bot declaration · ${cleanText(a.model)}`;
   if (a.kind === "human") return "Declared human player";
   return `${a.kind === "harness" ? "Harness" : "OpenRouter"} · ${cleanText(a.model)} · ${cleanText(a.effort)} effort (declared)`;

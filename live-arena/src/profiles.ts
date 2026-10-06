@@ -23,7 +23,7 @@ function entrant(value: unknown): PublicAgent {
   });
   if (!(row.name as string).trim() || !["bot", "human", "openrouter", "harness"].includes(row.kind as string))
     throw Error("Invalid profile name or connection type.");
-  if (row.kind === "bot" && !["tactician", "random"].includes(row.model as string))
+  if (row.kind === "bot" && !["tactician", "random", "perfect-ttt-v1"].includes(row.model as string))
     throw Error("Choose a recognized built-in opponent.");
   if (row.kind === "human" && row.model !== "human") throw Error("Invalid human profile.");
   if (["bot", "human"].includes(row.kind as string) && row.effort !== "default")

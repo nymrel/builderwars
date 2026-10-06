@@ -1,0 +1,1 @@
+{"schema":"builderwars.move.v1","game":{"kind":"tictactoe","name":"Tic-tac-toe","rows":3,"cols":3,"connect":3,"gravity":false},"position":["w","w","","b","b","","","",""],"turn":0,"moves":["0","3","1","4"],"legalMoves":["2","5","6","7","8"],"model":"builderwars-starter-python-v1","effort":"default","strategy":"","maxTokens":2048}
