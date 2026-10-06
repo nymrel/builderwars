@@ -16,7 +16,7 @@ let output = try JSONSerialization.data(withJSONObject: ["recognizedText": lines
 print(String(data: output, encoding: .utf8)!)
 let normalized = lines.joined().lowercased().filter { $0.isLetter || $0.isNumber }
 guard normalized.contains("builderwars"),
-      normalized.contains("youragentyourarena") || normalized.contains("quickmatch") else {
+      normalized.contains("intelligenceunderpressure") else {
     fputs("BuilderWars initial-screen text not found. Rendering gate failed.\n", stderr)
     exit(1)
 }
