@@ -1,0 +1,578 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "mmmu-pro",
+  "sourceUrl": "https://mmmu-benchmark.github.io/leaderboard_data.json",
+  "sourceSha256": "2ec354bc9eab734c1ba6a78f604d2ad7e5581a30257f50ead26523ab630978fb",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "Chance Vision 1.5",
+      "score": 86.9,
+      "detail": "proprietary · author",
+      "date": "2026-07-01",
+      "rank": 1,
+      "sourceRowId": "29"
+    },
+    {
+      "name": "GPT-5.4 Thinking w/ tools",
+      "score": 82.1,
+      "detail": "proprietary · author",
+      "date": "2026-03-05",
+      "rank": 2,
+      "sourceRowId": "7"
+    },
+    {
+      "name": "GPT-5.4 Thinking w/o tools",
+      "score": 81.2,
+      "detail": "proprietary · author",
+      "date": "2026-03-05",
+      "rank": 3,
+      "sourceRowId": "6"
+    },
+    {
+      "name": "Gemini 3.0 Pro",
+      "score": 81.0,
+      "detail": "proprietary · author",
+      "date": "2025-11-18",
+      "rank": 4,
+      "sourceRowId": "25"
+    },
+    {
+      "name": "Gemini 3.1 Pro Thinking (High)",
+      "score": 80.5,
+      "detail": "proprietary · author",
+      "date": "2026-02-19",
+      "rank": 5,
+      "sourceRowId": "11"
+    },
+    {
+      "name": "GPT-5.2 Thinking w/o Python",
+      "score": 80.4,
+      "detail": "proprietary · author",
+      "date": "2025-12-11",
+      "rank": 6,
+      "sourceRowId": "9"
+    },
+    {
+      "name": "Muse Spark Thinking",
+      "score": 80.4,
+      "detail": "proprietary · author",
+      "date": "2026-04-08",
+      "rank": 6,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "GPT-5.2 Thinking w/o tools",
+      "score": 79.5,
+      "detail": "proprietary · author",
+      "date": "2025-12-11",
+      "rank": 8,
+      "sourceRowId": "8"
+    },
+    {
+      "name": "GPT-5.1 Thinking",
+      "score": 79.0,
+      "detail": "proprietary · author",
+      "date": "2025-11-13",
+      "rank": 9,
+      "sourceRowId": "10"
+    },
+    {
+      "name": "GPT-5 w/ thinking",
+      "score": 78.4,
+      "detail": "proprietary · author",
+      "date": "2025-08-07",
+      "rank": 10,
+      "sourceRowId": "17"
+    },
+    {
+      "name": "Claude Opus 4.6 w/ tools",
+      "score": 77.3,
+      "detail": "proprietary · author",
+      "date": "2026-02-05",
+      "rank": 11,
+      "sourceRowId": "3"
+    },
+    {
+      "name": "Gemma 4 31B",
+      "score": 76.9,
+      "detail": "open_source · author",
+      "date": "2026-04-02",
+      "rank": 12,
+      "sourceRowId": "12"
+    },
+    {
+      "name": "o3",
+      "score": 76.4,
+      "detail": "proprietary · author",
+      "date": "2025-04-16",
+      "rank": 13,
+      "sourceRowId": "19"
+    },
+    {
+      "name": "GPT-5.1",
+      "score": 76.0,
+      "detail": "proprietary · author",
+      "date": "2025-11-13",
+      "rank": 14,
+      "sourceRowId": "16"
+    },
+    {
+      "name": "Claude Sonnet 4.6 w/ tools",
+      "score": 75.6,
+      "detail": "proprietary · author",
+      "date": "2026-02-17",
+      "rank": 15,
+      "sourceRowId": "5"
+    },
+    {
+      "name": "Claude Sonnet 4.6 w/o tools",
+      "score": 74.5,
+      "detail": "proprietary · author",
+      "date": "2026-02-17",
+      "rank": 16,
+      "sourceRowId": "4"
+    },
+    {
+      "name": "Claude Opus 4.5",
+      "score": 73.9,
+      "detail": "proprietary · author",
+      "date": "2025-11-24",
+      "rank": 17,
+      "sourceRowId": "21"
+    },
+    {
+      "name": "Claude Opus 4.6 w/o tools",
+      "score": 73.9,
+      "detail": "proprietary · author",
+      "date": "2026-02-05",
+      "rank": 17,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "Gemma 4 26B A4B",
+      "score": 73.8,
+      "detail": "open_source · author",
+      "date": "2026-04-02",
+      "rank": 19,
+      "sourceRowId": "13"
+    },
+    {
+      "name": "dots.vlm1",
+      "score": 70.1,
+      "detail": "open_source · author",
+      "date": "2025-08-05",
+      "rank": 20,
+      "sourceRowId": "30"
+    },
+    {
+      "name": "Claude Sonnet 4.5",
+      "score": 68.9,
+      "detail": "proprietary · author",
+      "date": "2025-09-29",
+      "rank": 21,
+      "sourceRowId": "22"
+    },
+    {
+      "name": "Qwen3-VL 235B-A22B",
+      "score": 68.1,
+      "detail": "open_source · author",
+      "date": "2025-09-22",
+      "rank": 22,
+      "sourceRowId": "31"
+    },
+    {
+      "name": "Gemini 2.5 Pro 05-06",
+      "score": 68.0,
+      "detail": "proprietary · author",
+      "date": "2025-05-06",
+      "rank": 23,
+      "sourceRowId": "26"
+    },
+    {
+      "name": "Seed 1.5-VL Thinking",
+      "score": 67.6,
+      "detail": "proprietary · author",
+      "date": "2025-05-13",
+      "rank": 24,
+      "sourceRowId": "68"
+    },
+    {
+      "name": "Seed 1.6-Thinking",
+      "score": 66.4,
+      "detail": "proprietary · author",
+      "date": "2025-06-25",
+      "rank": 25,
+      "sourceRowId": "66"
+    },
+    {
+      "name": "GLM-4.5V w/ Thinking",
+      "score": 65.2,
+      "detail": "open_source · author",
+      "date": "2025-08-11",
+      "rank": 26,
+      "sourceRowId": "64"
+    },
+    {
+      "name": "Claude Sonnet 4.5 w/o tools",
+      "score": 63.4,
+      "detail": "proprietary · author",
+      "date": "2025-09-29",
+      "rank": 27,
+      "sourceRowId": "23"
+    },
+    {
+      "name": "GPT-5 w/o thinking",
+      "score": 62.7,
+      "detail": "proprietary · author",
+      "date": "2025-08-07",
+      "rank": 28,
+      "sourceRowId": "18"
+    },
+    {
+      "name": "Seed 1.5-VL",
+      "score": 59.9,
+      "detail": "proprietary · author",
+      "date": "2025-05-13",
+      "rank": 29,
+      "sourceRowId": "67"
+    },
+    {
+      "name": "GLM-4.1V w/ Thinking",
+      "score": 57.1,
+      "detail": "open_source · author",
+      "date": "2025-07-01",
+      "rank": 30,
+      "sourceRowId": "65"
+    },
+    {
+      "name": "Skywork-R1V3-38B",
+      "score": 55.4,
+      "detail": "open_source · author",
+      "date": "2025-07-05",
+      "rank": 31,
+      "sourceRowId": "69"
+    },
+    {
+      "name": "Gemma 4 E4B",
+      "score": 52.6,
+      "detail": "open_source · author",
+      "date": "2026-04-02",
+      "rank": 32,
+      "sourceRowId": "14"
+    },
+    {
+      "name": "GPT-4o (0513)",
+      "score": 51.9,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-05-13",
+      "rank": 33,
+      "sourceRowId": "20"
+    },
+    {
+      "name": "Claude 3.5 Sonnet",
+      "score": 51.5,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-06-20",
+      "rank": 34,
+      "sourceRowId": "24"
+    },
+    {
+      "name": "InternVL2.5-78B",
+      "score": 48.6,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 35,
+      "sourceRowId": "52"
+    },
+    {
+      "name": "Gemini 1.5 Pro (0801)",
+      "score": 46.9,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-08-01",
+      "rank": 36,
+      "sourceRowId": "27"
+    },
+    {
+      "name": "Qwen2-VL-72B",
+      "score": 46.2,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-08-29",
+      "rank": 37,
+      "sourceRowId": "48"
+    },
+    {
+      "name": "Qwen2.5-VL 72B",
+      "score": 46.2,
+      "detail": "open_source · author",
+      "date": "2025-02-19",
+      "rank": 37,
+      "sourceRowId": "60"
+    },
+    {
+      "name": "InternVL2.5-38B",
+      "score": 46.0,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 39,
+      "sourceRowId": "53"
+    },
+    {
+      "name": "Gemma 4 E2B",
+      "score": 44.2,
+      "detail": "open_source · author",
+      "date": "2026-04-02",
+      "rank": 40,
+      "sourceRowId": "15"
+    },
+    {
+      "name": "EVLM-KTO",
+      "score": 43.8,
+      "detail": "proprietary · author",
+      "date": "2024-12-13",
+      "rank": 41,
+      "sourceRowId": "61"
+    },
+    {
+      "name": "Gemini 1.5 Pro (0523)",
+      "score": 43.5,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-05-23",
+      "rank": 42,
+      "sourceRowId": "28"
+    },
+    {
+      "name": "MiMo-VL 7B-RL",
+      "score": 43.3,
+      "detail": "open_source · author",
+      "date": "2025-06-04",
+      "rank": 43,
+      "sourceRowId": "63"
+    },
+    {
+      "name": "MiMo-VL 7B-SFT",
+      "score": 42.3,
+      "detail": "open_source · author",
+      "date": "2025-06-04",
+      "rank": 44,
+      "sourceRowId": "62"
+    },
+    {
+      "name": "InternVL2-Llama3-76B",
+      "score": 40.0,
+      "detail": "open_source · Source-listed",
+      "date": "2024-07-04",
+      "rank": 45,
+      "sourceRowId": "35"
+    },
+    {
+      "name": "Llama 3.2 90B",
+      "score": 39.5,
+      "detail": "open_source · author",
+      "date": "2024-09-25",
+      "rank": 46,
+      "sourceRowId": "50"
+    },
+    {
+      "name": "Qwen2.5-VL 7B",
+      "score": 38.3,
+      "detail": "open_source · author",
+      "date": "2025-02-19",
+      "rank": 47,
+      "sourceRowId": "59"
+    },
+    {
+      "name": "GPT-4o mini",
+      "score": 37.6,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-07-18",
+      "rank": 48,
+      "sourceRowId": "36"
+    },
+    {
+      "name": "InternVL2.5-26B",
+      "score": 37.1,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 49,
+      "sourceRowId": "54"
+    },
+    {
+      "name": "InternVL2.5-8B",
+      "score": 34.3,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 50,
+      "sourceRowId": "55"
+    },
+    {
+      "name": "InternVL2-40B",
+      "score": 34.2,
+      "detail": "open_source · Source-listed",
+      "date": "2024-07-04",
+      "rank": 51,
+      "sourceRowId": "37"
+    },
+    {
+      "name": "NVILA",
+      "score": 33.7,
+      "detail": "open_source · author",
+      "date": "2024-11-20",
+      "rank": 52,
+      "sourceRowId": "32"
+    },
+    {
+      "name": "Qwen2.5-VL 3B",
+      "score": 31.6,
+      "detail": "open_source · author",
+      "date": "2025-02-19",
+      "rank": 53,
+      "sourceRowId": "58"
+    },
+    {
+      "name": "LLaVA-OneVision-72B",
+      "score": 31.0,
+      "detail": "open_source · Source-listed",
+      "date": "2024-08-06",
+      "rank": 54,
+      "sourceRowId": "38"
+    },
+    {
+      "name": "InternVL2-8B",
+      "score": 29.0,
+      "detail": "open_source · Source-listed",
+      "date": "2024-07-04",
+      "rank": 55,
+      "sourceRowId": "39"
+    },
+    {
+      "name": "Llama 3.2 11B",
+      "score": 28.4,
+      "detail": "open_source · author",
+      "date": "2024-09-25",
+      "rank": 56,
+      "sourceRowId": "49"
+    },
+    {
+      "name": "MiniCPM-V 2.6",
+      "score": 27.2,
+      "detail": "open_source · Source-listed",
+      "date": "2024-08-06",
+      "rank": 57,
+      "sourceRowId": "40"
+    },
+    {
+      "name": "MAmmoTH-VL-8B",
+      "score": 25.3,
+      "detail": "open_source · author",
+      "date": "2024-12-08",
+      "rank": 58,
+      "sourceRowId": "51"
+    },
+    {
+      "name": "LlaVA-NEXT-72B",
+      "score": 25.1,
+      "detail": "open_source · Source-listed",
+      "date": "2024-01-30",
+      "rank": 59,
+      "sourceRowId": "41"
+    },
+    {
+      "name": "LLaVA-OneVision-7B",
+      "score": 24.1,
+      "detail": "open_source · Source-listed",
+      "date": "2024-08-06",
+      "rank": 60,
+      "sourceRowId": "42"
+    },
+    {
+      "name": "LLaVA-NEXT-34B",
+      "score": 23.8,
+      "detail": "open_source · Source-listed",
+      "date": "2024-01-30",
+      "rank": 61,
+      "sourceRowId": "33"
+    },
+    {
+      "name": "InternVL2.5-2B",
+      "score": 23.7,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 62,
+      "sourceRowId": "56"
+    },
+    {
+      "name": "Idefics3-8B-Llama3",
+      "score": 22.9,
+      "detail": "open_source · Source-listed",
+      "date": "2024-08-22",
+      "rank": 63,
+      "sourceRowId": "34"
+    },
+    {
+      "name": "Phi-3.5-Vision",
+      "score": 19.7,
+      "detail": "open_source · Source-listed",
+      "date": "2024-05-21",
+      "rank": 64,
+      "sourceRowId": "44"
+    },
+    {
+      "name": "MiniCPM-Llama3-V 2.5",
+      "score": 19.6,
+      "detail": "open_source · Source-listed",
+      "date": "2024-05-20",
+      "rank": 65,
+      "sourceRowId": "43"
+    },
+    {
+      "name": "InternVL2.5-1B",
+      "score": 19.4,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 66,
+      "sourceRowId": "57"
+    },
+    {
+      "name": "LLaVA-NeXT-13B",
+      "score": 17.2,
+      "detail": "open_source · Source-listed",
+      "date": "2024-01-30",
+      "rank": 67,
+      "sourceRowId": "46"
+    },
+    {
+      "name": "LLaVA-NeXT-mistral-7B",
+      "score": 17.0,
+      "detail": "open_source · Source-listed",
+      "date": "2024-01-30",
+      "rank": 68,
+      "sourceRowId": "45"
+    },
+    {
+      "name": "LLaVA-NeXT-Vicuna-7B",
+      "score": 16.1,
+      "detail": "open_source · Source-listed",
+      "date": "2024-01-30",
+      "rank": 69,
+      "sourceRowId": "47"
+    },
+    {
+      "name": "Random Choice",
+      "score": 12.6,
+      "detail": "random_frequent · Source-listed",
+      "date": "2023-11-27",
+      "rank": 70,
+      "sourceRowId": "71"
+    },
+    {
+      "name": "Frequent Choice",
+      "score": 12.1,
+      "detail": "random_frequent · Source-listed",
+      "date": "2023-11-27",
+      "rank": 71,
+      "sourceRowId": "70"
+    }
+  ]
+}

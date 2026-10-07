@@ -1,0 +1,882 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "bfcl-v4",
+  "sourceUrl": "https://gorilla.cs.berkeley.edu/data_overall.csv",
+  "sourceSha256": "ede5081a24bc5ac7f9b3b09a52af6bcfcd35aa0f1709239fed979db77a8159a6",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "Claude-Opus-4-5-20251101 (FC)",
+      "score": 77.47,
+      "detail": "Anthropic · Proprietary",
+      "date": null,
+      "rank": 1,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "Claude-Sonnet-4-5-20250929 (FC)",
+      "score": 73.24,
+      "detail": "Anthropic · Proprietary",
+      "date": null,
+      "rank": 2,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "Gemini-3-Pro-Preview (Prompt)",
+      "score": 72.51,
+      "detail": "Google · Proprietary",
+      "date": null,
+      "rank": 3,
+      "sourceRowId": "3"
+    },
+    {
+      "name": "GLM-4.6 (FC thinking)",
+      "score": 72.38,
+      "detail": "Zhipu AI · MIT",
+      "date": null,
+      "rank": 4,
+      "sourceRowId": "4"
+    },
+    {
+      "name": "Grok-4-1-fast-reasoning (FC)",
+      "score": 69.57,
+      "detail": "xAI · Proprietary",
+      "date": null,
+      "rank": 5,
+      "sourceRowId": "5"
+    },
+    {
+      "name": "Claude-Haiku-4-5-20251001 (FC)",
+      "score": 68.7,
+      "detail": "Anthropic · Proprietary",
+      "date": null,
+      "rank": 6,
+      "sourceRowId": "6"
+    },
+    {
+      "name": "Gemini-3-Pro-Preview (FC)",
+      "score": 68.14,
+      "detail": "Google · Proprietary",
+      "date": null,
+      "rank": 7,
+      "sourceRowId": "7"
+    },
+    {
+      "name": "o3-2025-04-16 (Prompt)",
+      "score": 63.05,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 8,
+      "sourceRowId": "8"
+    },
+    {
+      "name": "Grok-4-0709 (Prompt)",
+      "score": 62.97,
+      "detail": "xAI · Proprietary",
+      "date": null,
+      "rank": 9,
+      "sourceRowId": "9"
+    },
+    {
+      "name": "Grok-4-0709 (FC)",
+      "score": 61.38,
+      "detail": "xAI · Proprietary",
+      "date": null,
+      "rank": 10,
+      "sourceRowId": "10"
+    },
+    {
+      "name": "Moonshotai-Kimi-K2-Instruct (FC)",
+      "score": 59.06,
+      "detail": "MoonshotAI · modified-mit",
+      "date": null,
+      "rank": 11,
+      "sourceRowId": "11"
+    },
+    {
+      "name": "Grok-4-1-fast-non-reasoning (FC)",
+      "score": 58.29,
+      "detail": "xAI · Proprietary",
+      "date": null,
+      "rank": 12,
+      "sourceRowId": "12"
+    },
+    {
+      "name": "Command A Reasoning (FC)",
+      "score": 57.06,
+      "detail": "Cohere · CC-BY-NC 4.0 License (w/ Acceptable Use Addendum)",
+      "date": null,
+      "rank": 13,
+      "sourceRowId": "13"
+    },
+    {
+      "name": "DeepSeek-V3.2-Exp (Prompt + Thinking)",
+      "score": 56.73,
+      "detail": "DeepSeek · MIT",
+      "date": null,
+      "rank": 14,
+      "sourceRowId": "14"
+    },
+    {
+      "name": "Gemini-2.5-Flash (FC)",
+      "score": 56.24,
+      "detail": "Google · Proprietary",
+      "date": null,
+      "rank": 15,
+      "sourceRowId": "15"
+    },
+    {
+      "name": "GPT-5.2-2025-12-11 (FC)",
+      "score": 55.87,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 16,
+      "sourceRowId": "16"
+    },
+    {
+      "name": "GPT-5-mini-2025-08-07 (FC)",
+      "score": 55.46,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 17,
+      "sourceRowId": "17"
+    },
+    {
+      "name": "xLAM-2-32b-fc-r (FC)",
+      "score": 54.66,
+      "detail": "Salesforce · cc-by-nc-4.0",
+      "date": null,
+      "rank": 18,
+      "sourceRowId": "18"
+    },
+    {
+      "name": "DeepSeek-V3.2-Exp (FC)",
+      "score": 54.12,
+      "detail": "DeepSeek · MIT",
+      "date": null,
+      "rank": 19,
+      "sourceRowId": "19"
+    },
+    {
+      "name": "GPT-4.1-2025-04-14 (FC)",
+      "score": 53.96,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 20,
+      "sourceRowId": "20"
+    },
+    {
+      "name": "o4-mini-2025-04-16 (FC)",
+      "score": 53.24,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 21,
+      "sourceRowId": "21"
+    },
+    {
+      "name": "xLAM-2-70b-fc-r (FC)",
+      "score": 53.07,
+      "detail": "Salesforce · cc-by-nc-4.0",
+      "date": null,
+      "rank": 22,
+      "sourceRowId": "22"
+    },
+    {
+      "name": "Qwen3-235B-A22B-Instruct-2507 (Prompt)",
+      "score": 52.15,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 23,
+      "sourceRowId": "23"
+    },
+    {
+      "name": "GPT-5-nano-2025-08-07 (FC)",
+      "score": 51.45,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 24,
+      "sourceRowId": "24"
+    },
+    {
+      "name": "Nanbeige4-3B-Thinking-2511 (FC)",
+      "score": 51.4,
+      "detail": "Nanbeige · apache-2.0",
+      "date": null,
+      "rank": 25,
+      "sourceRowId": "25"
+    },
+    {
+      "name": "Gemini-2.5-Flash (Prompt)",
+      "score": 50.9,
+      "detail": "Google · Proprietary",
+      "date": null,
+      "rank": 26,
+      "sourceRowId": "26"
+    },
+    {
+      "name": "GPT-4.1-mini-2025-04-14 (FC)",
+      "score": 50.45,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 27,
+      "sourceRowId": "27"
+    },
+    {
+      "name": "o4-mini-2025-04-16 (Prompt)",
+      "score": 50.26,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 28,
+      "sourceRowId": "28"
+    },
+    {
+      "name": "Qwen3-32B (FC)",
+      "score": 48.71,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 29,
+      "sourceRowId": "29"
+    },
+    {
+      "name": "o3-2025-04-16 (FC)",
+      "score": 48.56,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 30,
+      "sourceRowId": "30"
+    },
+    {
+      "name": "Qwen3-235B-A22B-Instruct-2507 (FC)",
+      "score": 47.99,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 31,
+      "sourceRowId": "31"
+    },
+    {
+      "name": "Nanbeige3.5-Pro-Thinking (FC)",
+      "score": 47.68,
+      "detail": "Nanbeige · apache-2.0",
+      "date": null,
+      "rank": 32,
+      "sourceRowId": "32"
+    },
+    {
+      "name": "Qwen3-32B (Prompt)",
+      "score": 46.78,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 33,
+      "sourceRowId": "33"
+    },
+    {
+      "name": "xLAM-2-8b-fc-r (FC)",
+      "score": 46.68,
+      "detail": "Salesforce · cc-by-nc-4.0",
+      "date": null,
+      "rank": 34,
+      "sourceRowId": "34"
+    },
+    {
+      "name": "Command A (FC)",
+      "score": 46.49,
+      "detail": "Cohere · CC-BY-NC 4.0 License (w/ Acceptable Use Addendum)",
+      "date": null,
+      "rank": 35,
+      "sourceRowId": "35"
+    },
+    {
+      "name": "BitAgent-Bounty-8B",
+      "score": 46.23,
+      "detail": "Bittensor · Apache-2.0",
+      "date": null,
+      "rank": 36,
+      "sourceRowId": "36"
+    },
+    {
+      "name": "Arch-Agent-32B",
+      "score": 45.37,
+      "detail": "katanemo · katanemo-research",
+      "date": null,
+      "rank": 37,
+      "sourceRowId": "37"
+    },
+    {
+      "name": "GPT-5.2-2025-12-11 (Prompt)",
+      "score": 45.27,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 38,
+      "sourceRowId": "38"
+    },
+    {
+      "name": "Qwen3-8B (FC)",
+      "score": 42.57,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 39,
+      "sourceRowId": "39"
+    },
+    {
+      "name": "ToolACE-2-8B (FC)",
+      "score": 42.44,
+      "detail": "Huawei Noah & USTC · Apache-2.0",
+      "date": null,
+      "rank": 40,
+      "sourceRowId": "40"
+    },
+    {
+      "name": "Qwen3-30B-A3B-Instruct-2507 (FC)",
+      "score": 41.39,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 41,
+      "sourceRowId": "41"
+    },
+    {
+      "name": "xLAM-2-3b-fc-r (FC)",
+      "score": 41.22,
+      "detail": "Salesforce · cc-by-nc-4.0",
+      "date": null,
+      "rank": 42,
+      "sourceRowId": "42"
+    },
+    {
+      "name": "Qwen3-14B (FC)",
+      "score": 41.03,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 43,
+      "sourceRowId": "43"
+    },
+    {
+      "name": "Qwen3-8B (Prompt)",
+      "score": 40.43,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 44,
+      "sourceRowId": "44"
+    },
+    {
+      "name": "GPT-4.1-2025-04-14 (Prompt)",
+      "score": 39.38,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 45,
+      "sourceRowId": "45"
+    },
+    {
+      "name": "mistral-large-2411 (FC)",
+      "score": 38.37,
+      "detail": "Mistral AI · Proprietary",
+      "date": null,
+      "rank": 46,
+      "sourceRowId": "46"
+    },
+    {
+      "name": "Qwen3-14B (Prompt)",
+      "score": 37.77,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 47,
+      "sourceRowId": "47"
+    },
+    {
+      "name": "Mistral-Medium-2505",
+      "score": 37.69,
+      "detail": "Mistral AI · Proprietary",
+      "date": null,
+      "rank": 48,
+      "sourceRowId": "48"
+    },
+    {
+      "name": "Mistral-Medium-2505 (FC)",
+      "score": 37.56,
+      "detail": "Mistral AI · Proprietary",
+      "date": null,
+      "rank": 49,
+      "sourceRowId": "49"
+    },
+    {
+      "name": "Llama-4-Maverick-17B-128E-Instruct-FP8 (FC)",
+      "score": 37.29,
+      "detail": "Meta · Meta Llama 4 Community",
+      "date": null,
+      "rank": 50,
+      "sourceRowId": "50"
+    },
+    {
+      "name": "Mistral-small-2506 (FC)",
+      "score": 37.15,
+      "detail": "Mistral AI · Proprietary",
+      "date": null,
+      "rank": 51,
+      "sourceRowId": "51"
+    },
+    {
+      "name": "Gemini-2.5-Flash-Lite (FC)",
+      "score": 36.87,
+      "detail": "Google · Proprietary",
+      "date": null,
+      "rank": 52,
+      "sourceRowId": "52"
+    },
+    {
+      "name": "Qwen3-30B-A3B-Instruct-2507 (Prompt)",
+      "score": 36.7,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 53,
+      "sourceRowId": "53"
+    },
+    {
+      "name": "Qwen3-4B-Instruct-2507 (FC)",
+      "score": 35.68,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 54,
+      "sourceRowId": "54"
+    },
+    {
+      "name": "Qwen3-4B-Instruct-2507 (Prompt)",
+      "score": 35.52,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 55,
+      "sourceRowId": "55"
+    },
+    {
+      "name": "Arch-Agent-3B",
+      "score": 35.36,
+      "detail": "katanemo · katanemo-research",
+      "date": null,
+      "rank": 56,
+      "sourceRowId": "56"
+    },
+    {
+      "name": "Claude-Opus-4-5-20251101 (Prompt)",
+      "score": 33.47,
+      "detail": "Anthropic · Proprietary",
+      "date": null,
+      "rank": 57,
+      "sourceRowId": "57"
+    },
+    {
+      "name": "GPT-4.1-nano-2025-04-14 (FC)",
+      "score": 33.05,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 58,
+      "sourceRowId": "58"
+    },
+    {
+      "name": "Mistral-Small-2506 (Prompt)",
+      "score": 32.38,
+      "detail": "Mistral AI · Proprietary",
+      "date": null,
+      "rank": 59,
+      "sourceRowId": "59"
+    },
+    {
+      "name": "Arch-Agent-1.5B",
+      "score": 32.14,
+      "detail": "katanemo · katanemo-research",
+      "date": null,
+      "rank": 60,
+      "sourceRowId": "60"
+    },
+    {
+      "name": "Command R7B (FC)",
+      "score": 32.07,
+      "detail": "Cohere · cc-by-nc-4.0",
+      "date": null,
+      "rank": 61,
+      "sourceRowId": "61"
+    },
+    {
+      "name": "Llama-3.3-70B-Instruct (FC)",
+      "score": 31.9,
+      "detail": "Meta · Meta Llama 3 Community",
+      "date": null,
+      "rank": 62,
+      "sourceRowId": "62"
+    },
+    {
+      "name": "mistral-large-2411 (Prompt)",
+      "score": 31.84,
+      "detail": "Mistral AI · Proprietary",
+      "date": null,
+      "rank": 63,
+      "sourceRowId": "63"
+    },
+    {
+      "name": "Hammer2.1-7b (FC)",
+      "score": 31.67,
+      "detail": "MadeAgents · cc-by-nc-4.0",
+      "date": null,
+      "rank": 64,
+      "sourceRowId": "64"
+    },
+    {
+      "name": "xLAM-2-1b-fc-r (FC)",
+      "score": 30.44,
+      "detail": "Salesforce · cc-by-nc-4.0",
+      "date": null,
+      "rank": 65,
+      "sourceRowId": "65"
+    },
+    {
+      "name": "Gemma-3-12b-it (Prompt)",
+      "score": 30.43,
+      "detail": "Google · gemma-terms-of-use",
+      "date": null,
+      "rank": 66,
+      "sourceRowId": "66"
+    },
+    {
+      "name": "GPT-4.1-mini-2025-04-14 (Prompt)",
+      "score": 29.73,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 67,
+      "sourceRowId": "67"
+    },
+    {
+      "name": "Hammer2.1-3b (FC)",
+      "score": 29.71,
+      "detail": "MadeAgents · qwen-research",
+      "date": null,
+      "rank": 68,
+      "sourceRowId": "68"
+    },
+    {
+      "name": "Gemma-3-27b-it (Prompt)",
+      "score": 29.47,
+      "detail": "Google · gemma-terms-of-use",
+      "date": null,
+      "rank": 69,
+      "sourceRowId": "69"
+    },
+    {
+      "name": "Phi-4 (Prompt)",
+      "score": 28.79,
+      "detail": "Microsoft · MIT",
+      "date": null,
+      "rank": 70,
+      "sourceRowId": "70"
+    },
+    {
+      "name": "Qwen3-1.7B (FC)",
+      "score": 28.41,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 71,
+      "sourceRowId": "71"
+    },
+    {
+      "name": "Llama-4-Scout-17B-16E-Instruct (FC)",
+      "score": 28.13,
+      "detail": "Meta · Meta Llama 4 Community",
+      "date": null,
+      "rank": 72,
+      "sourceRowId": "72"
+    },
+    {
+      "name": "Gemini-2.5-Flash-Lite (Prompt)",
+      "score": 28.03,
+      "detail": "Google · Proprietary",
+      "date": null,
+      "rank": 73,
+      "sourceRowId": "73"
+    },
+    {
+      "name": "CoALM-70B",
+      "score": 27.99,
+      "detail": "UIUC + Oumi · Meta Llama 3 Community",
+      "date": null,
+      "rank": 74,
+      "sourceRowId": "74"
+    },
+    {
+      "name": "Hammer2.1-1.5b (FC)",
+      "score": 27.88,
+      "detail": "MadeAgents · cc-by-nc-4.0",
+      "date": null,
+      "rank": 75,
+      "sourceRowId": "75"
+    },
+    {
+      "name": "palmyra-x-004 (FC)",
+      "score": 27.87,
+      "detail": "Writer · Proprietary",
+      "date": null,
+      "rank": 76,
+      "sourceRowId": "76"
+    },
+    {
+      "name": "GPT-5-mini-2025-08-07 (Prompt)",
+      "score": 27.83,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 77,
+      "sourceRowId": "77"
+    },
+    {
+      "name": "Open-Mistral-Nemo-2407 (FC)",
+      "score": 27.63,
+      "detail": "Mistral AI · Proprietary",
+      "date": null,
+      "rank": 78,
+      "sourceRowId": "78"
+    },
+    {
+      "name": "GPT-5-nano-2025-08-07 (Prompt)",
+      "score": 27.55,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 79,
+      "sourceRowId": "79"
+    },
+    {
+      "name": "Amazon-Nova-2-Lite-v1:0 (FC)",
+      "score": 27.1,
+      "detail": "Amazon · Proprietary",
+      "date": null,
+      "rank": 80,
+      "sourceRowId": "80"
+    },
+    {
+      "name": "Granite-3.1-8B-Instruct (FC)",
+      "score": 27.1,
+      "detail": "IBM · Apache-2.0",
+      "date": null,
+      "rank": 81,
+      "sourceRowId": "81"
+    },
+    {
+      "name": "Falcon3-10B-Instruct (FC)",
+      "score": 27.01,
+      "detail": "TII UAE · falcon-llm-license",
+      "date": null,
+      "rank": 82,
+      "sourceRowId": "82"
+    },
+    {
+      "name": "Granite-3.2-8B-Instruct (FC)",
+      "score": 26.87,
+      "detail": "IBM · Apache-2.0",
+      "date": null,
+      "rank": 83,
+      "sourceRowId": "83"
+    },
+    {
+      "name": "CoALM-8B",
+      "score": 26.81,
+      "detail": "UIUC + Oumi · Meta Llama 3 Community",
+      "date": null,
+      "rank": 84,
+      "sourceRowId": "84"
+    },
+    {
+      "name": "Llama-3.1-8B-Instruct (Prompt)",
+      "score": 25.83,
+      "detail": "Meta · Meta Llama 3 Community",
+      "date": null,
+      "rank": 85,
+      "sourceRowId": "85"
+    },
+    {
+      "name": "MiniCPM3-4B-FC (FC)",
+      "score": 25.55,
+      "detail": "openbmb · Apache-2.0",
+      "date": null,
+      "rank": 86,
+      "sourceRowId": "86"
+    },
+    {
+      "name": "Claude-Haiku-4-5-20251001 (Prompt)",
+      "score": 25.26,
+      "detail": "Anthropic · Proprietary",
+      "date": null,
+      "rank": 87,
+      "sourceRowId": "87"
+    },
+    {
+      "name": "Amazon-Nova-Pro-v1:0 (FC)",
+      "score": 24.97,
+      "detail": "Amazon · Proprietary",
+      "date": null,
+      "rank": 88,
+      "sourceRowId": "88"
+    },
+    {
+      "name": "Claude-Sonnet-4-5-20250929 (Prompt)",
+      "score": 24.9,
+      "detail": "Anthropic · Proprietary",
+      "date": null,
+      "rank": 89,
+      "sourceRowId": "89"
+    },
+    {
+      "name": "GPT-4.1-nano-2025-04-14 (Prompt)",
+      "score": 24.88,
+      "detail": "OpenAI · Proprietary",
+      "date": null,
+      "rank": 90,
+      "sourceRowId": "90"
+    },
+    {
+      "name": "Falcon3-7B-Instruct (FC)",
+      "score": 24.03,
+      "detail": "TII UAE · falcon-llm-license",
+      "date": null,
+      "rank": 91,
+      "sourceRowId": "91"
+    },
+    {
+      "name": "Qwen3-0.6B (FC)",
+      "score": 23.93,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 92,
+      "sourceRowId": "92"
+    },
+    {
+      "name": "Granite-20b-FunctionCalling (FC)",
+      "score": 23.23,
+      "detail": "IBM · Apache-2.0",
+      "date": null,
+      "rank": 93,
+      "sourceRowId": "93"
+    },
+    {
+      "name": "Qwen3-0.6B (Prompt)",
+      "score": 22.38,
+      "detail": "Qwen · apache-2.0",
+      "date": null,
+      "rank": 94,
+      "sourceRowId": "94"
+    },
+    {
+      "name": "Amazon-Nova-Micro-v1:0 (FC)",
+      "score": 22.29,
+      "detail": "Amazon · Proprietary",
+      "date": null,
+      "rank": 95,
+      "sourceRowId": "95"
+    },
+    {
+      "name": "RZN-T (Prompt)",
+      "score": 22.25,
+      "detail": "Phronetic AI · apache-2.0",
+      "date": null,
+      "rank": 96,
+      "sourceRowId": "96"
+    },
+    {
+      "name": "MiniCPM3-4B (Prompt)",
+      "score": 22.08,
+      "detail": "openbmb · Apache-2.0",
+      "date": null,
+      "rank": 97,
+      "sourceRowId": "97"
+    },
+    {
+      "name": "Llama-3.2-3B-Instruct (FC)",
+      "score": 21.95,
+      "detail": "Meta · Meta Llama 3 Community",
+      "date": null,
+      "rank": 98,
+      "sourceRowId": "98"
+    },
+    {
+      "name": "Bielik-11B-v2.3-Instruct (Prompt)",
+      "score": 21.9,
+      "detail": "SpeakLeash & ACK Cyfronet AGH · Apache 2.0",
+      "date": null,
+      "rank": 99,
+      "sourceRowId": "99"
+    },
+    {
+      "name": "Hammer2.1-0.5b (FC)",
+      "score": 21.22,
+      "detail": "MadeAgents · cc-by-nc-4.0",
+      "date": null,
+      "rank": 100,
+      "sourceRowId": "100"
+    },
+    {
+      "name": "Gemma-3-4b-it (Prompt)",
+      "score": 19.62,
+      "detail": "Google · gemma-terms-of-use",
+      "date": null,
+      "rank": 101,
+      "sourceRowId": "101"
+    },
+    {
+      "name": "Open-Mistral-Nemo-2407 (Prompt)",
+      "score": 19.31,
+      "detail": "Mistral AI · Proprietary",
+      "date": null,
+      "rank": 102,
+      "sourceRowId": "102"
+    },
+    {
+      "name": "Granite-4.0-350m (FC)",
+      "score": 18.98,
+      "detail": "IBM · Apache-2.0",
+      "date": null,
+      "rank": 103,
+      "sourceRowId": "103"
+    },
+    {
+      "name": "Falcon3-3B-Instruct (FC)",
+      "score": 16.25,
+      "detail": "TII UAE · falcon-llm-license",
+      "date": null,
+      "rank": 104,
+      "sourceRowId": "104"
+    },
+    {
+      "name": "Ministral-8B-Instruct-2410 (FC)",
+      "score": 11.1,
+      "detail": "Mistral AI · Mistral AI Research License",
+      "date": null,
+      "rank": 105,
+      "sourceRowId": "105"
+    },
+    {
+      "name": "Falcon3-1B-Instruct (FC)",
+      "score": 11.08,
+      "detail": "TII UAE · falcon-llm-license",
+      "date": null,
+      "rank": 106,
+      "sourceRowId": "106"
+    },
+    {
+      "name": "Llama-3.2-1B-Instruct (FC)",
+      "score": 10.82,
+      "detail": "Meta · Meta Llama 3 Community",
+      "date": null,
+      "rank": 107,
+      "sourceRowId": "107"
+    },
+    {
+      "name": "Llama-3.1-Nemotron-Ultra-253B-v1 (FC)",
+      "score": 10.0,
+      "detail": "NVIDIA · nvidia-open-model-license",
+      "date": null,
+      "rank": 108,
+      "sourceRowId": "108"
+    },
+    {
+      "name": "Gemma-3-1b-it (Prompt)",
+      "score": 7.17,
+      "detail": "Google · gemma-terms-of-use",
+      "date": null,
+      "rank": 109,
+      "sourceRowId": "109"
+    }
+  ]
+}

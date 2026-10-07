@@ -163,6 +163,7 @@ def main():
     parser.add_argument("--provider", choices=["chatgpt_codex", "opencode", "openrouter", "hermes", "custom_agent"], required=True)
     parser.add_argument("--model")
     parser.add_argument("--variant")
+    parser.add_argument("--label", help="Declared display label; does not select or attest a provider model")
     parser.add_argument("--command", help="JSON argv for a customer-owned custom agent")
     parser.add_argument("--allow-model-requests", action="store_true", required=True, help="Authorize model use billed by your own provider")
     parser.add_argument("--allow-custom-command", action="store_true")
@@ -176,11 +177,17 @@ def main():
     if args.provider == "custom_agent" and not args.allow_custom_command:
         parser.error("Custom commands require --allow-custom-command.")
     from entrants.backends import get_provider_backend, acknowledge_customer_local_v1, acknowledge_unsafe_custom_command
-    backend = get_provider_backend(args.provider, model=args.model, variant=args.variant, command=args.command, timeout_s=110,
-        runtime_intent=acknowledge_customer_local_v1(),
-        unsafe_custom_command_intent=acknowledge_unsafe_custom_command() if args.provider == "custom_agent" else None)
+    try:
+        command = json.loads(args.command) if args.command is not None else None
+        if args.label is not None and (not args.label.strip() or len(args.label) > 160):
+            raise ValueError("Use a declared label between 1 and 160 characters")
+        backend = get_provider_backend(args.provider, model=args.model, variant=args.variant, command=command, timeout_s=110,
+            runtime_intent=acknowledge_customer_local_v1(),
+            unsafe_custom_command_intent=acknowledge_unsafe_custom_command() if args.provider == "custom_agent" else None)
+    except (ValueError, TypeError) as error:
+        parser.error(str(error))
     token = secrets.token_urlsafe(32)
-    label = args.model or f"{args.provider}/local-config"
+    label = args.label or args.model or f"{args.provider}/local-config"
     server = BridgeServer(("127.0.0.1", 8765), handler_for(backend, token, args.origin, label, args.max_calls))
     print(f"BuilderWars local bridge: http://127.0.0.1:8765/move\nAllowed site: {args.origin}\nProvider: {label}\nRequest limit: {args.max_calls}")
     print(f"Paste this temporary local token into your site's harness connection: {token}")
