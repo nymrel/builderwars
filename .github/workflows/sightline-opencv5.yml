@@ -1,0 +1,63 @@
+name: Sightline OpenCV 5 integration
+
+on:
+  pull_request:
+    paths:
+      - "evaluations/sightline-opencv-2026/**"
+      - ".github/workflows/sightline-opencv5.yml"
+  push:
+    branches: [main]
+    paths:
+      - "evaluations/sightline-opencv-2026/**"
+      - ".github/workflows/sightline-opencv5.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  opencv5:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install exact OpenCV 5 integration environment
+        run: |
+          python -m pip install \
+            --disable-pip-version-check \
+            --only-binary=:all: \
+            --require-hashes \
+            --requirement evaluations/sightline-opencv-2026/requirements-opencv5-linux-x86_64-py312.txt
+      - name: Verify exact runtime
+        run: |
+          python - <<'PY'
+          import cv2
+          import numpy
+          assert cv2.__version__ == "5.0.0", cv2.__version__
+          assert numpy.__version__ == "2.3.5", numpy.__version__
+          print(f"opencv={cv2.__version__} numpy={numpy.__version__}")
+          PY
+      - name: Run Sightline contract and real-runtime fixtures
+        run: |
+          python -m unittest discover \
+            -s evaluations/sightline-opencv-2026 \
+            -p 'test_*.py'
+          python -m py_compile evaluations/sightline-opencv-2026/*.py
+      - name: Measure task success and fail-closed controls
+        run: |
+          python evaluations/sightline-opencv-2026/evaluate_stage1.py
+      - name: Build synthetic-only demo review bundle
+        run: |
+          python evaluations/sightline-opencv-2026/build_demo_bundle.py \
+            --output-dir "$RUNNER_TEMP/sightline-demo"
+      - name: Build review-only deterministic AWS artifact
+        run: |
+          python evaluations/sightline-opencv-2026/build_aws_artifact.py \
+            --output-dir "$RUNNER_TEMP/sightline-artifact"
+      - name: Verify draft judge-facing packet
+        run: |
+          python evaluations/sightline-opencv-2026/verify_submission_packet.py

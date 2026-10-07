@@ -34,7 +34,37 @@ run details; no decorative motion or new design system.
 - Versions/results remain in the tab unless explicitly downloaded. Import validates
   versions, does not restore credentials, and never starts an operation.
 
-## Verified implementation gates
+## Reconciliation with launched competition and Lab behavior
+
+The October 7 integration merges current main
+`b22c25e07059961811c4d73fd298302983fa35e0` into the existing PR68 history. It
+includes the competition and browser Lab launches in PR79/PR80, the CI runtime
+updates in PR78, and PR81's pause and replay-position status fixes.
+
+The explicit resolutions preserve main's Arena match identity and cumulative Lab
+budgets, local-policy execution, competition routes, retained public match
+artifacts, and pause/replay behavior. Native suspension cancels both local Lab
+work and connected-model development. Prebuild generates both the model-version
+manifest and the public catalogue; the browser runner retains all 19 main
+journeys and adds the model-development journey, with its network guard and four
+packaged-native journeys intact. Connected transport retains output-token bounds
+and rejects oversized reported identities. A Lab policy cannot be frozen or
+dispatched as a connected remote model, even if its display label is changed.
+Model-operation admission also rechecks active duels after asynchronous version
+validation, before a probe can dispatch its first request.
+
+The former PR68 solver upgrade is deliberately excluded from this reconciliation:
+main's `games.ts` and its tests are retained. Changing the existing Tactician
+algorithm would silently change Arena play and the live `tactics-v1` competition
+identity; the launched Oracle already has its own `perfect-ttt-v1` identity. The
+solver commits remain in branch history for a separately versioned change. This
+preserves the referee and Lab source digests and the execution compatibility of
+saved current-build Lab versions. Historical public cohorts are never regenerated.
+
+This resolution does not absorb the independent PR67 or PR77 lanes. Requested
+Fable review, merge, deployment, and production journeys remain separate gates.
+
+## Historical implementation evidence
 
 The following results belong to PR68 head
 `0d1e5b35a7d76f2cbb6ba2f9b50ff6f113622ee6`, not to a later commit or production:

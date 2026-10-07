@@ -4,6 +4,8 @@ import { assertBrowserVersion, connectedVersionConfig, browserVersionTransport, 
 import { createVersion, openVersionSession, type VersionConfig } from "../src/frontier-version";
 import { createGame, RULES, gamePrompt } from "../src/runtime";
 import { type Agent, type Model } from "../src/models";
+import { labBaseline, arenaLabVersion } from "../src/browser-lab-core";
+import { ModelDevelopment } from "../src/model-development";
 import manifest from "../src/model-version-manifest";
 
 const limits = { nodes: 10000, milliseconds: 30000, maxTokens: 256, maxCalls: 2 };
@@ -15,6 +17,19 @@ const response = (model: unknown = "test/resolved", usage: unknown = { total_tok
   model, usage, choices: [{ message: { content: '{"move":"0","comment":"Private provider comment"}' } }],
 });
 const config = (a = agent(), memory = "") => connectedVersionConfig(a, RULES.connect4, "test/resolved", limits, memory);
+
+test("Lab policies cannot become remote model versions or dispatch through the connected transport", async t => {
+  let calls = 0; t.mock.method(globalThis, "fetch", () => { calls++; throw Error("Unexpected network"); });
+  const localVersion = await arenaLabVersion(await labBaseline("connect4"));
+  // Even a remote-looking label and valid endpoint must not erase local custody.
+  const local: Agent = { ...agent(), kind: "harness", endpoint: "https://example.com/move", localVersion };
+  assert.throws(() => config(local), /Local Lab policies/);
+  assert.throws(() => browserVersionTransport(local, []), /Local Lab policies/);
+  const work = new ModelDevelopment();
+  await assert.rejects(work.probe(local, RULES.connect4, [], limits), /Local Lab policies/);
+  assert.equal(work.attempts.length, 0); assert.equal(work.versions.length, 0); assert.equal(work.busy, false);
+  assert.equal(calls, 0);
+});
 
 test("browser config freezes public execution fields without credentials, endpoint or display name", async () => {
   const a = { ...agent(), endpoint: "https://private-endpoint.example/move" }, c = config(a, "Frozen lesson.");

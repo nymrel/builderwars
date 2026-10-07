@@ -52,8 +52,8 @@ export function mountDuel(options: { agent: () => Agent; models: () => Model[]; 
   download: (name: string, value: unknown) => Promise<unknown> }) {
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
   let invite = "", incomingId = "", working = false, wasActive = false;
-  const room = new DuelRoom((state, agent, tokens, signal) => {
-    options.ensure(agent); return decide(state, agent, tokens, signal, options.models());
+  const room: DuelRoom = new DuelRoom((state, agent, tokens, signal) => {
+    options.ensure(agent); return decide(state, agent, tokens, signal, options.models(), undefined, room.view().record?.id);
   }, render);
   function render(view: DuelView = room.view()) {
     const ended = wasActive && !view.active;

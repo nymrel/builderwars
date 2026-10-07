@@ -1,0 +1,120 @@
+{
+  "schema": "builderwars.agentworld.review-record.v1",
+  "date": "2026-09-21",
+  "disposition": "HOLD_DRAFT_FULL_ORIGIN_AND_REVIEW_GATES_OPEN",
+  "base_commit": "e6bb900d28af4a28d83cef772d25fe9ed5d2f44f",
+  "original_pr_head": "3b2cdb926f1cb4937e7563b5f48923b3ce4cae4d",
+  "application_fix_commit": "53ae85dd3352924862807e5120aeefad4fa2644f",
+  "harness_commit": "41e410d855df99cd32175ed25fa92f2bdadd6ef2",
+  "evidence_binding": "Source blob hashes, not a claim that the final documentation commit was executed or independently approved.",
+  "engine_tests": {
+    "node": "v22.16.0",
+    "command": "node --test test.mjs",
+    "original_passed": 19,
+    "candidate_passed": 19,
+    "failures": 0,
+    "test_blob": "d210f82f658a37c790d94a7ef1c7a401feca2178",
+    "original_log_sha256": "af99a5ab4db1c9e9c4a0946d5f341b6499925823553a44f70793dd099eb618b8",
+    "candidate_log_sha256": "d95a66eed75ff0434b6465b5262cfc1e739d9b78e3f756c9fff8496ada41f381"
+  },
+  "original_controller_receipt": {
+    "schema": "builderwars.agentworld.supplemental-review.v1",
+    "started_at": "2026-09-21T15:46:49.889607+00:00",
+    "scope": "controller-only in-memory fixture; NOT index/CSP/origin/storage/cross-tab acceptance",
+    "browser": "chromium",
+    "executable": "/usr/bin/chromium",
+    "playwright": "1.57.0",
+    "harness_sha256": "e14650682694d14540b9c6b57953834fd67e32bab9f897f5efd06c7b31d77f79",
+    "source_files": {
+      "engine.js": {
+        "sha256": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+        "git_blob_sha1": "27b2cb9e49c6332172ff506fbfe1f829a7aa5e61"
+      },
+      "app.js": {
+        "sha256": "38fa9fd874b11f3e2e4fa7459fcb6908fe8ceb5d9d6fe9fcad95c6c5d59ac1d9",
+        "git_blob_sha1": "2a6b7d10aaeda34877c130cb25228f6910066549"
+      }
+    },
+    "checks": [
+      {"name": "pending import refuses intervening turn", "status": "PASS"},
+      {"name": "pending import refuses same-turn reset", "status": "PASS"},
+      {"name": "latest file selection wins: older resolves first", "status": "FAIL", "error": "Superseded import A must not adopt while latest B is pending"},
+      {"name": "newer success survives late older read", "status": "FAIL", "error": "Superseded read must not replace newer success with an error"},
+      {"name": "invalid latest selection does not resurrect older import", "status": "FAIL", "error": "Invalid latest import must not resurrect superseded A"},
+      {"name": "replacement cancellation preserves run", "status": "PASS"},
+      {"name": "oversized file leaves run unchanged", "status": "PASS"},
+      {"name": "manual keyboard action retains useful focus", "status": "FAIL", "error": "Manual action rerender must not drop keyboard focus to body"}
+    ],
+    "page_errors": [],
+    "external_requests": [],
+    "status": "FAIL",
+    "policy_changes": false,
+    "browser_version": "144.0.7559.96",
+    "finished_at": "2026-09-21T15:46:57.083711+00:00",
+    "counts": {"PASS": 4, "FAIL": 4, "BLOCKED": 0, "NOT_RUN": 0}
+  },
+  "candidate_controller_receipt": {
+    "schema": "builderwars.agentworld.supplemental-review.v1",
+    "started_at": "2026-09-21T15:47:28.900739+00:00",
+    "scope": "controller-only in-memory fixture; NOT index/CSP/origin/storage/cross-tab acceptance",
+    "browser": "chromium",
+    "executable": "/usr/bin/chromium",
+    "playwright": "1.57.0",
+    "harness_sha256": "e14650682694d14540b9c6b57953834fd67e32bab9f897f5efd06c7b31d77f79",
+    "source_files": {
+      "engine.js": {
+        "sha256": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+        "git_blob_sha1": "27b2cb9e49c6332172ff506fbfe1f829a7aa5e61"
+      },
+      "app.js": {
+        "sha256": "c98d63ba595b5818bcb287019c62d6d7c4aa79e6c4ffebe59bc7bba69b9c3d1e",
+        "git_blob_sha1": "b93da55c319ae684ccac101ab4bad46a68b9d907"
+      }
+    },
+    "checks": [
+      {"name": "pending import refuses intervening turn", "status": "PASS"},
+      {"name": "pending import refuses same-turn reset", "status": "PASS"},
+      {"name": "latest file selection wins: older resolves first", "status": "PASS"},
+      {"name": "newer success survives late older read", "status": "PASS"},
+      {"name": "invalid latest selection does not resurrect older import", "status": "PASS"},
+      {"name": "replacement cancellation preserves run", "status": "PASS"},
+      {"name": "oversized file leaves run unchanged", "status": "PASS"},
+      {"name": "manual keyboard action retains useful focus", "status": "PASS"}
+    ],
+    "page_errors": [],
+    "external_requests": [],
+    "status": "PASS",
+    "policy_changes": false,
+    "browser_version": "144.0.7559.96",
+    "finished_at": "2026-09-21T15:47:36.290531+00:00",
+    "counts": {"PASS": 8, "FAIL": 0, "BLOCKED": 0, "NOT_RUN": 0}
+  },
+  "origin_environment_preflight": {
+    "scope": "environment preflight only, not Agentworld acceptance",
+    "origin": "http://127.0.0.1:42473/",
+    "browser_version": "144.0.7559.96",
+    "status": "BLOCKED",
+    "error": "Page.goto: net::ERR_BLOCKED_BY_ADMINISTRATOR at http://127.0.0.1:42473/\nCall log:\n  - navigating to \"http://127.0.0.1:42473/\", waiting until \"load\"\n"
+  },
+  "historical_evidence": "Existing source-manifest.json and browser-results.json remain unchanged historical evidence for original head 3b2cdb9. The original 21/21 full-UI in-memory suite was not rerun against the patched application.",
+  "harness_development_note": "A first harness-development run failed partly because wait_for_function was called with a positional argument. It is not product-failure evidence. The two receipts embedded here use the identical corrected harness hash.",
+  "not_verified": [
+    "full index.html/CSP loading on an authorized origin",
+    "actual reload persistence and real cross-tab integration",
+    "full-origin delayed-file race integration",
+    "full UI regression after the application patch",
+    "screen-reader and actual zoom acceptance",
+    "cross-browser and physical devices",
+    "independent review of patched source",
+    "approved AgentWorld direction and current disjoint lab-integration ownership",
+    "lab route integration or deployment"
+  ],
+  "coordination": {
+    "jalen_pc": "Offline; live ping returned no devices available",
+    "studio_knowledge": "Connection failed; no authoritative bus claim asserted",
+    "related_pr": 67,
+    "related_head": "5bd1e015de39d937fece45ddce815bdef7648e5a",
+    "decision": "PR67 proposes an unadopted above-arena history layer. Keep PR66 isolated; Jalen must reconcile naming and direction before live lab integration."
+  },
+  "protected_boundaries": "Only experiments/agentworld changes. No merge, deployment, provider, credentials, CI, game-engine/rules, live-arena, mobile-arena, identity/proof subsystem or historical-receipt changes."
+}

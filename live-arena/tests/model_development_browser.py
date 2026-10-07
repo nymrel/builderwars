@@ -15,7 +15,7 @@ with sync_playwright() as p:
     browser = p.chromium.launch()
     context = browser.new_context(viewport={'width': 390, 'height': 844}, service_workers='block')
     page = context.new_page()
-    errors, traffic, submitted, held = [], [], [], []
+    errors, traffic, submitted, held, peer_routes = [], [], [], [], []
     mode = {'value': 'normal'}
     origin = urlparse(BASE)
     def contain(route):
@@ -29,6 +29,8 @@ with sync_playwright() as p:
                 held.append(route)
                 return
             route.fulfill(json={'move': payload['legalMoves'][0], 'model': 'fixture/resolved', 'tokens': 20, 'outputTokens': 5})
+        elif mode['value'] == 'duel-race' and target.hostname == '0.peerjs.com' and target.path.endswith('/id'):
+            peer_routes.append(route)  # Keep invitation setup active without external signaling.
         elif (target.scheme, target.netloc) == (origin.scheme, origin.netloc):
             route.continue_()
         else:
@@ -54,6 +56,46 @@ with sync_playwright() as p:
         page.locator('#strategy').fill('Baseline strategy')
         page.locator('#agent-form button[type=submit]').click()
         page.locator('nav [data-tab="evals"]').click()
+        # A Duel can become active while the probe awaits version hashing. The
+        # second admission check must reject it before the first model request.
+        mode['value'] = 'duel-race'
+        page.evaluate('''() => {
+          const original = crypto.subtle.digest.bind(crypto.subtle);
+          window.devAuditOriginalDigest = crypto.subtle.digest;
+          window.devAuditWaiting = false;
+          let first = true;
+          crypto.subtle.digest = (...args) => {
+            if (first) {
+              first = false; window.devAuditWaiting = true;
+              return new Promise(resolve => { window.devAuditRelease = () => original(...args).then(resolve); });
+            }
+            return original(...args);
+          };
+        }''')
+        try:
+            page.locator('#dev-consent').check()
+            page.locator('#dev-probe').click()
+            page.wait_for_function('window.devAuditWaiting === true')
+            page.locator('nav [data-tab="duel"]').click()
+            page.locator('#duel-create').click()
+            page.wait_for_function('JSON.parse(document.querySelector("#duel-agent-state").textContent).active === true')
+            page.evaluate('window.devAuditRelease()')
+            expect(page.locator('#dev-status')).to_contain_text('duel')
+            assert not submitted
+            expect(page.locator('#dev-versions')).to_have_value('')
+            expect(page.locator('[data-dev-download]')).to_have_count(0)
+            expect(page.locator('#dev-cancel')).to_be_disabled()
+            assert page.evaluate('JSON.parse(document.querySelector("#duel-agent-state").textContent).active')
+        finally:
+            page.locator('#duel-leave').click()
+            for route in peer_routes:
+                try:
+                    route.abort('blockedbyclient')
+                except Exception:
+                    pass  # Leaving may already have cancelled this request.
+            page.evaluate('() => { crypto.subtle.digest = window.devAuditOriginalDigest; }')
+            mode['value'] = 'normal'
+            page.locator('nav [data-tab="evals"]').click()
         page.locator('#dev-consent').check()
         page.locator('#dev-probe').click()
         expect(page.locator('#dev-status')).to_contain_text('Baseline frozen')
@@ -150,4 +192,4 @@ with sync_playwright() as p:
     finally:
         context.close()
         browser.close()
-print('PASS: consented freeze, exact strategy/memory execution, 4-game compare, no promotion, rollback, cancellation, import recovery and responsive layout')
+print('PASS: duel preflight race rejected, consented freeze, exact strategy/memory execution, 4-game compare, no promotion, rollback, cancellation, import recovery and responsive layout')

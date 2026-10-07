@@ -39,6 +39,7 @@ export function assertBrowserVersion(version: Version): void { assertConfig(vers
 
 export function connectedVersionConfig(agent: Agent, rules: Rules, resolvedModel: string,
   limits: VersionConfig["limits"], memoryContent = ""): VersionConfig {
+  if (agent.localVersion) throw Error("Local Lab policies stay in the Lab; connect a remote model for model development.");
   if (agent.kind !== "openrouter" && agent.kind !== "harness") throw Error("Choose a connected model for a browser version.");
   const config: VersionConfig = {
     rules: structuredClone(rules), referee: refereeManifest.digest,
@@ -52,6 +53,7 @@ export function connectedVersionConfig(agent: Agent, rules: Rules, resolvedModel
 }
 
 export function browserVersionTransport(agent: Agent, models: Model[]): VersionTransport {
+  if (agent.localVersion) throw Error("Local Lab policies stay in the Lab; connect a remote model for model development.");
   // Copy only the supported connection fields; later UI edits cannot redirect a run.
   const connection: Agent = freeze({ name: agent.name, kind: agent.kind, model: agent.model, effort: agent.effort,
     strategy: agent.strategy, endpoint: agent.endpoint, key: agent.key });
