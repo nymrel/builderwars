@@ -1,5 +1,6 @@
 from __future__ import annotations
 import copy, sys, unittest
+from itertools import combinations
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT))
 from experiments.institution_bench.contract import *  # noqa
@@ -33,6 +34,25 @@ class T(unittest.TestCase):
     def test_independent_refs(self):
         x=spec("independent_adjudicator"); x["organization"]["roles"][2]["worker_ref"]="worker:a"
         with self.assertRaises(ContractError): validate_experiment(x)
+    def test_lead_worker_rejects_aliased_worker_refs(self):
+        x=spec("lead_worker"); roles=x["organization"]["roles"]
+        roles[1]["worker_ref"]=roles[0]["worker_ref"]
+        with self.assertRaisesRegex(ContractError,"invalid lead_worker topology"): validate_experiment(x)
+    def test_specialist_team_rejects_aliased_worker_refs(self):
+        x=spec("specialist_team"); roles=x["organization"]["roles"]
+        roles[1]["worker_ref"]=roles[0]["worker_ref"]
+        with self.assertRaisesRegex(ContractError,"invalid specialist_team topology"): validate_experiment(x)
+    def test_optional_roles_require_distinct_worker_refs(self):
+        cases=[("lead_worker",[role("worker2"),role("specialist","specialist")]),
+               ("specialist_team",[role("lead","lead",d=True),role("worker")])]
+        for topology,extra in cases:
+            s=spec(topology); s["organization"]["roles"].extend(extra)
+            self.assertEqual(validate_experiment(s)["organization"]["roles"],s["organization"]["roles"])
+            for i,j in combinations(range(len(s["organization"]["roles"])),2):
+                with self.subTest(topology=topology,aliased_roles=(i,j)):
+                    x=copy.deepcopy(s); roles=x["organization"]["roles"]
+                    roles[j]["worker_ref"]=roles[i]["worker_ref"]
+                    with self.assertRaisesRegex(ContractError,f"invalid {topology} topology"): validate_experiment(x)
     def test_digest_normalization(self):
         a=spec("lead_worker"); b=copy.deepcopy(a); b["organization"]["tool_allowlist"]=["write","read"]; b["organization"]["roles"][0]["tools"]=["write","read"]; b["evidence_policy"]["accepted_evidence_classes"]=["independent_rerun","replay_validated","independent_review"]
         self.assertEqual(experiment_digest(a),experiment_digest(b)); self.assertEqual(organization_digest(a),organization_digest(b))

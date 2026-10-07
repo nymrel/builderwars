@@ -99,12 +99,12 @@ def _topology(name, roles):
     elif name=="lead_worker":
         ok=len(leads)==1 and leads[0]["can_delegate"] and len(workers)>=1 and not judges
     elif name=="independent_adjudicator":
-        ok=not leads and len(judges)==1 and judges[0]["can_adjudicate"] and len(workers)>=2 and len({r["worker_ref"] for r in roles})==len(roles)
+        ok=not leads and len(judges)==1 and judges[0]["can_adjudicate"] and len(workers)>=2
     elif name=="specialist_team":
         ok=not judges and len(specialists)>=2 and len(leads)<=1 and (not leads or leads[0]["can_delegate"])
     else:
         ok=False
-    if not ok:
+    if not ok or len({r["worker_ref"] for r in roles}) != len(roles):
         raise ContractError(f"organization: invalid {name} topology")
 
 def validate_experiment(spec):
