@@ -884,6 +884,20 @@ const glyphs: Record<string, string> = {
   bn: "♞",
   bp: "♟",
 };
+const chessPieceNames: Record<string, string> = {
+  wk: "white king",
+  wq: "white queen",
+  wr: "white rook",
+  wb: "white bishop",
+  wn: "white knight",
+  wp: "white pawn",
+  bk: "black king",
+  bq: "black queen",
+  br: "black rook",
+  bb: "black bishop",
+  bn: "black knight",
+  bp: "black pawn",
+};
 function render() {
   const active = document.activeElement as HTMLElement | null;
   const focusedCell = active?.dataset.cell;
@@ -948,7 +962,10 @@ function render() {
           : p
             ? `<span class="disc ${p.toLowerCase() === "w" ? "white" : "black"}">${p === p.toUpperCase() ? "♛" : ""}</span>`
             : "";
-      return `<button data-cell="${i}" class="cell ${(Math.floor(i / cols) + (i % cols)) % 2 ? "dark" : "light"} ${selected === i ? "selected" : ""} ${highlight ? "last" : ""} ${target ? "target" : ""}" aria-label="${esc(coord)} ${esc(p || "empty")}" aria-disabled="${spectating || pending || state.over || agents[state.turn].kind !== "human"}">${piece}<span class="coord">${coord}</span></button>`;
+      const accessibleName = state.rules.kind === "chess"
+        ? `${coord}, ${p ? chessPieceNames[p] || "occupied" : "empty"}`
+        : `${coord} ${p || "empty"}`;
+      return `<button data-cell="${i}" class="cell ${(Math.floor(i / cols) + (i % cols)) % 2 ? "dark" : "light"} ${selected === i ? "selected" : ""} ${highlight ? "last" : ""} ${target ? "target" : ""}" aria-label="${esc(accessibleName)}" aria-disabled="${spectating || pending || state.over || agents[state.turn].kind !== "human"}">${piece}<span class="coord">${coord}</span></button>`;
     })
     .join("");
   document
