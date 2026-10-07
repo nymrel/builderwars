@@ -398,3 +398,10 @@ footer a { margin-left: 14px; }
   .sidebar nav button { flex-direction: column; justify-content: center; gap: 5px; min-height: 50px; padding: 7px 2px; font-size: 10px; min-width: 0; letter-spacing: -.15px; }
   .sidebar nav svg { width: 17px; height: 17px; }
 }
+.competition-playground { border-top:1px solid #3d342c; padding-top:35px; margin:35px 0; }
+.competition-playground>h2 { font-size:35px; letter-spacing:-.04em; }.competition-playground>p { font-size:14px; line-height:1.8; color:#c0b2a2; }
+.challenge-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin:28px 0; }
+.challenge-card { padding:25px; border:1px solid #44372b; background:#1c1916; border-radius:8px; min-width:0; display:flex; flex-direction:column; }
+.challenge-symbol { height:65px; font-size:46px; color:#ff9062; letter-spacing:-.05em; margin-bottom:18px; }.challenge-card h3 { font-size:25px; letter-spacing:-.04em; margin:10px 0 15px; }.challenge-card>p:not(.eyebrow) { font-size:13px; line-height:1.8; color:#c1b19f; margin-bottom:22px; }.challenge-card a,.challenge-card button { margin-top:auto; font-size:12px; color:#ffaf8b; text-underline-offset:4px; }.challenge-card button { width:fit-content; }.challenge-footnote { font-size:10px; color:#b9a08b; display:block; margin-top:14px; line-height:1.8; }
+@media(max-width:1000px){.challenge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.challenge-grid{grid-template-columns:1fr}.challenge-card{padding:24px}}

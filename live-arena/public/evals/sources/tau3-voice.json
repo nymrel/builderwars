@@ -1,0 +1,34 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "tau3-voice",
+  "sourceUrl": "https://taubench.com/",
+  "sourceSha256": "f41fdaf59f3b89efacd302864c6a02afc6cb60423e94989f2feb15a39838ecfe",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "gpt-live-1",
+      "score": 81.7,
+      "detail": "OpenAI",
+      "date": null,
+      "rank": 1,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "Pine Voice Preview",
+      "score": 75.4,
+      "detail": "Pine AI",
+      "date": null,
+      "rank": 2,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "grok-voice-think-fast-1.0",
+      "score": 67.3,
+      "detail": "xAI",
+      "date": null,
+      "rank": 3,
+      "sourceRowId": "3"
+    }
+  ]
+}

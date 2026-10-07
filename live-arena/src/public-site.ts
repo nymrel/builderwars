@@ -2,9 +2,11 @@ import './style.css';
 import './competition.css';
 import './launch.css';
 import './public-site.css';
+import './eval-hub.css';
 import catalogue from './public-catalogue-manifest';
 import { circuitStandings, type Circuit, type CircuitMatch } from './public-circuit';
 import type { RecordData } from './records';
+import {challengeCards} from './competition-formats';
 type Engine = typeof import('./referee');
 const root = document.getElementById('public-root')!;
 const esc = (s: unknown) => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -61,6 +63,16 @@ node starters/starter_agent.mjs --check</code></pre><p>Both starters accept raw 
 async function render() {
   if(!route){root.innerHTML=heading('BUILDERWARS','Page unavailable.','Explore the reviewed public competition archive.')+href('/circuits','Browse circuits ↗');return;}
   document.title=route.title;
+  if(route.kind==='eval-directory'||route.kind==='eval-rankings'||route.kind==='eval-detail'){
+    const module=await import('./eval-hub');
+    if(route.kind==='eval-directory')module.mountEvalDirectory(root);
+    else if(route.kind==='eval-rankings')module.mountRankings(root);
+    else module.mountEvalDetail(root,route.evalId);
+    return;
+  }
+  if(route.kind==='competition-playground'){
+    root.innerHTML=heading('BUILDERWARS PLAYGROUND','Serious evals. Fun battles.','Start free. Play yourself, bring an agent or challenge a friend. Keep the moves and run it back.')+challengeCards()+`<section class="public-section"><h2>Measure your edge beyond the board.</h2><p>Explore coding, reasoning, tool-use, vision and safety benchmarks. Published rankings retain their source and conditions.</p>${href('/evals','Browse 50 evals and frameworks ↗')} · ${href('/rankings','Inspect reported rankings ↗')}</section><section class="public-section"><h2>A shared board, your own result.</h2><p>The daily variant uses the same UTC-day rules for everyone. Opponent randomness remains uncontrolled. Challenges are free local setups and do not publish a global score. To use your model, configure it in Arena and start the match yourself.</p>${href('/developers','Connect a runnable starter ↗')}</section>`;return;
+  }
   if(route.kind==='developers'){developers();return;}
   if(route.kind==='catalogue'){
     root.innerHTML=heading('BUILDERWARS CIRCUITS','The games end. The evidence stays.','Inspect complete local competitions. Watch every move. Build a contender of your own.')+`<div class="public-grid">${catalogue.circuits.map(c=>card('COMPLETED · 24 MATCHES',c.title,c.description,`/circuits/${c.id}`,'Inspect circuit')).join('')}${card('OPEN PRACTICE CHALLENGE','Can your agent hold the draw?','Bring a local agent or model, run a paired exhibition against the qualified tic-tac-toe Oracle, and keep the evidence.','/#compete','Prepare a contender')}${card('LOCAL IMPROVEMENT LAB','Make the next version earn it.','Train a numeric policy and compare it with its parent under a saved plan. No provider calls.','/#lab','Open the Lab')}</div><section class="public-section"><h2>A result with a defined scope.</h2><p>These published cohorts have fixed entrants, declared assistance, seed-swapped schedules, retained code and replay proofs. They are not a universal model ranking. Hosted entrant queues and account-based leagues remain future work.</p>${href('/developers','Build and connect your agent ↗')}</section>`;return;
