@@ -267,7 +267,7 @@ renderLearning();
 // Interaction: reveal on pause/result, native setup dialog, existing button feedback.
 $("notice").insertAdjacentHTML("beforebegin", `
   <section id="match-result" class="match-result" aria-labelledby="result-title" hidden>
-    <p class="eyebrow">MATCH SNAPSHOT · EXHIBITION</p><h2 id="result-title"></h2>
+    <p class="eyebrow" id="result-label">MATCH SNAPSHOT · EXHIBITION</p><h2 id="result-title"></h2>
     <p id="result-detail"></p><p id="result-evidence" class="muted"></p>
     <div class="result-actions"><button id="runback-free" class="primary">Run it back · free</button><button id="play-yourself">Play it yourself</button><button id="result-image">Download result image</button><button id="copy-caption">Copy result + replay</button><button id="copy-setup">Share this setup</button></div>
     <p class="muted">Images and links contain public names/model labels, not strategies, comments, keys or harness addresses. Attach the downloaded image to your post; a replay link alone has no match-specific social preview.</p>
@@ -286,6 +286,9 @@ function renderResult() {
   $("match-result").hidden = (!record.events.length && !currentExhibition) || running || pending;
   if ((!record.events.length && !currentExhibition) || running || pending) return;
   const summary = matchSummary();
+  $("result-label").textContent = replayPly !== null
+    ? `RECORDED MATCH ${summary.complete ? "RESULT" : "SNAPSHOT"} · EXHIBITION`
+    : "MATCH SNAPSHOT · EXHIBITION";
   $("result-title").textContent = summary.title;
   $("result-detail").textContent = `${summary.record.rules.name} · ${summary.plies} plies · ${summary.reason}. Last move: ${summary.lastMove}. Reported decision time ${(summary.elapsedMs / 1000).toFixed(2)}s; accepted-move cost ${summary.cost === null ? "unknown" : `$${summary.cost.toFixed(4)}`}.`;
   $("result-evidence").textContent = `${summary.evidence}. One match is not a general model ranking.`;
@@ -879,11 +882,17 @@ function render() {
     ? state.winner === null
       ? "Draw"
       : `${record.agents[state.winner].name} wins`
+    : replayPly !== null
+      ? `${record.agents[state.turn].name} to move`
     : running
       ? `${record.agents[state.turn].name} ${agents[state.turn].kind === "human" ? "to move" : "is thinking"}`
-      : record.status;
+      : record.status === "Auto-play paused"
+        ? `Auto-play paused · ${record.agents[state.turn].name} to move`
+        : record.status;
   $("match-dot").classList.toggle("pulsing", running);
-  $("start").textContent = running ? "Ⅱ Pause" : "▶ Start match";
+  $("start").textContent = running ? "Ⅱ Pause auto-play"
+    : !spectating && !state.over && record.status === "Auto-play paused"
+      ? "▶ Resume auto-play" : "▶ Start match";
   $("start").toggleAttribute(
     "disabled",
     spectating || state.over || (pending && !running),
@@ -965,7 +974,7 @@ function interruptSeries(exit: "failed" | "stopped" = "stopped") {
   seriesRemaining = 0;
   renderSeries();
 }
-function stop(message = "Paused", preserveSeries = false) {
+function stop(message = "Auto-play paused", preserveSeries = false) {
   if (!preserveSeries) interruptSeries();
   running = false;
   controller?.abort();
@@ -1025,7 +1034,7 @@ async function commit(
     ply: nextState.moves.length,
     seat,
     label,
-  }], status: nextState.over ? nextState.reason : "Playing" };
+  }], status: nextState.over ? nextState.reason : running ? "Playing" : "Auto-play paused" };
   let saved = true;
   const nativeReview = !!deviceStorage && nextState.over && practiceMatches.has(previous) && supportsLearning(nextState.rules);
   let reviewed = 0;
