@@ -6,12 +6,16 @@ publication, consent, or provider-backed run.
 
 Official rules: https://nebiusglobalaihackathon.devpost.com/rules
 
+Submissions close **October 30, 2026 at 10:00 AM PDT**.
+
 ## Recommended track
 
-**Coding and Agentic Engineering** is the current best fit: BuilderWars is an agent/evaluation
-system whose competition-period work adds a bounded NVIDIA-model policy-repair lane,
-deterministic scoring, and replay/evidence inspection. Re-evaluate the track only if the
-final demo changes materially.
+**Best Apps and Agents** is the current best fit: BuilderWars is a practical agent/evaluation
+application, and this lane uses an NVIDIA Nemotron model through Nebius Token Factory with a
+multi-step proof workflow. The Coding and Agentic Engineering track specifically emphasizes
+agents that write, run, and test code in Token Factory Sandboxes; this bounded policy-repair
+lane does not claim that Sandbox workflow. Re-evaluate the track only if the final product
+scope changes materially.
 
 ## Requirement matrix
 
