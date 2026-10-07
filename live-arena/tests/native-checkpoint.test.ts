@@ -127,3 +127,12 @@ test("queued checkpoint memory is bounded and recovers after pending writes sett
   await store.save({ [key]: "after queue" });
   assert.equal(store.snapshot()[key], "after queue");
 });
+
+test('Lab evidence checkpoints survive reopen and selective deletion, with a 2MB per-key bound', async () => {
+  const disk = new Disk(), store = await NativeCheckpoint.open(disk), lab = 'builderwars.browser-lab.archive.v1';
+  await store.save({ [key]: 'arena', [lab]: 'x'.repeat(350001) });
+  assert.equal((await NativeCheckpoint.open(disk)).snapshot()[lab].length,350001);
+  await assert.rejects(store.save({ [lab]: 'x'.repeat(2000001) }));
+  assert.equal((await NativeCheckpoint.open(disk)).snapshot()[lab].length,350001);
+  await store.save({ [key]: 'arena' });assert.deepEqual((await NativeCheckpoint.open(disk)).snapshot(),{[key]:'arena'});
+});

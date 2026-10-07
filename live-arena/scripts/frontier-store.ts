@@ -6,6 +6,7 @@ import { sha256, refereeManifest, type Rules } from "../src/runtime";
 import { FEATURE_COUNT, FEATURE_VERSION, WorkBudget } from "../src/self-improvement";
 import { STRATEGIC_FEATURE_COUNT, STRATEGIC_FEATURE_VERSION, STRATEGIC_MODEL } from "../src/strategic-value";
 import { createVersion, parseVersion, exact, freeze, integer, isDigest, identityKey, type Version } from "../src/frontier-version";
+import { numericBaseline } from "../src/numeric-baseline";
 import { samplePartitions, exposedGroups, parseBundle, type CaseBundle } from "../src/frontier-cases";
 import { practice, scoreCases, validatePracticeOptions, assertPracticeCandidate, type PracticeOptions } from "../src/frontier-practice";
 import { parseStrategicBundle, strategicExposedGroups, type StrategicBundle } from "../src/strategic-practice";
@@ -51,7 +52,7 @@ async function verifyDigest(raw: any) {
 
 /** Full local execution/learning source binding. A source change requires a new campaign. */
 export async function frontierSource() {
-  const paths = ["../src/frontier-version.ts", "../src/frontier-cases.ts", "../src/frontier-practice.ts", "../src/strength.ts",
+  const paths = ["../src/numeric-baseline.ts", "../src/frontier-version.ts", "../src/frontier-cases.ts", "../src/frontier-practice.ts", "../src/strength.ts",
     "../src/strategic-value.ts", "../src/strategic-practice.ts",
     "../src/self-improvement.ts", "../src/outcome.ts", "../src/runtime.ts", "./self-improve.ts", "./frontier-store.ts", "./frontier.ts", "../package-lock.json"];
   const sources: Record<string, string> = {};
@@ -61,14 +62,7 @@ export async function frontierSource() {
   return sha256(JSON.stringify({ referee: refereeManifest.digest, sources, node: process.version }));
 }
 export async function localBaseline(rules: Rules, kind: "linear-value" | "strategic-value" = "linear-value") {
-  const source = await frontierSource();
-  const strategic = kind === "strategic-value", model = strategic ? STRATEGIC_MODEL : "builderwars/linear-value-v1";
-  return createVersion({ rules, referee: refereeManifest.digest,
-    runtime: { provider: "local", requestedModel: model, resolvedModel: model, evidence: "bundled-code", reasoning: "none" },
-    harness: { kind, source, protocol: strategic ? "builderwars.strategic-value.v1" : "builderwars.linear-value.v1" }, prompt: "", memory: { mode: "none", content: "" },
-    tools: [{ id: strategic ? "two-ply-minimax-value" : "one-ply-value", source, parameters: await sha256(JSON.stringify(strategic ? { depth: 2, features: STRATEGIC_FEATURE_VERSION } : { depth: 1 })) }],
-    sampling: { temperature: null, seed: 0 }, value: { features: strategic ? STRATEGIC_FEATURE_VERSION : FEATURE_VERSION, weights: Array(strategic ? STRATEGIC_FEATURE_COUNT : FEATURE_COUNT).fill(0) },
-    limits: { nodes: 2000000, milliseconds: 300000, maxTokens: 512, maxCalls: 400 } });
+  return numericBaseline(rules, await frontierSource(), kind);
 }
 
 export class FrontierStore {

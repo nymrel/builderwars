@@ -3,7 +3,7 @@ import { MatchLibrary, LIBRARY_PREFIX, LIBRARY_OPT_OUT } from "./library";
 import { PracticeMemory, MEMORY_KEY } from "./learning";
 
 type StoragePort = Pick<Storage, "length" | "key" | "getItem" | "setItem" | "removeItem">;
-const owned = (key: string) => key === LIBRARY_OPT_OUT || key === MEMORY_KEY || key.startsWith(LIBRARY_PREFIX);
+const owned = (key: string) => key === LIBRARY_OPT_OUT || key === MEMORY_KEY || key === "builderwars.browser-lab.archive.v1" || key.startsWith(LIBRARY_PREFIX);
 
 /** Synchronous consumer view, explicitly asynchronous durability. One instance per
  * native process. Never substitute WebView storage after a failed native open. */

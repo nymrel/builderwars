@@ -12,6 +12,8 @@ __pycache__/
 .env*
 public/referee/
 src/referee-manifest.ts
+src/referee-worker.ts
+src/lab-source-manifest.ts
 output/playwright/
 output/self-improvement/
 output/frontier/
@@ -19,3 +21,8 @@ output/frontier-development/
 output/fullgame-development/
 output/chess-engines/
 output/chess-exhibition/
+
+src/public-catalogue-manifest.ts
+public/competition/page-routes.json
+
+output/duels/

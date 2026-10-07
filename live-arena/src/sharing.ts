@@ -21,7 +21,7 @@ function publicSeat(raw: unknown): PublicSeat {
   exactKeys(raw, ["kind", "model", "effort"]);
   if (!["bot", "human", "openrouter", "harness"].includes(String(raw.kind)) || typeof raw.model !== "string" || raw.model.length > 160 || typeof raw.effort !== "string" || raw.effort.length > 20) throw Error("Invalid shared contender.");
   const { kind, model, effort } = raw as PublicSeat;
-  if (kind === "bot" && (!["tactician", "random"].includes(model) || effort !== "default")) throw Error("Unknown built-in opponent.");
+  if (kind === "bot" && (!["tactician", "random", "perfect-ttt-v1"].includes(model) || effort !== "default")) throw Error("Unknown built-in opponent.");
   if (kind === "human" && (model !== "human" || effort !== "default")) throw Error("Invalid human setup.");
   if (kind === "harness" && (model !== "" || effort !== "default")) throw Error("Harness connections must be configured locally.");
   if (kind === "openrouter" && (!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,159}$/.test(model) || !/^[a-zA-Z0-9_-]{1,20}$/.test(effort))) throw Error("Invalid public model declaration.");
@@ -32,6 +32,7 @@ export function validateSetup(raw: unknown): MatchSetup {
   if (raw.schema !== "builderwars.setup.v1" || !Array.isArray(raw.entrants) || raw.entrants.length !== 2) throw Error("Unsupported setup format.");
   const rules = validateRules(raw.rules);
   if (canonical(rules) !== canonical(raw.rules)) throw Error("Shared rules are not canonical.");
+  if (raw.entrants.some((a: { model?: string }) => a.model === "perfect-ttt-v1") && rules.kind !== "tictactoe") throw Error("The Oracle supports standard tic-tac-toe only.");
   return { schema: raw.schema, rules, moveLimit: integer(raw.moveLimit, 2, 400), maxTokens: integer(raw.maxTokens, 256, 16384), entrants: raw.entrants.map(publicSeat) };
 }
 export function makeSetup(record: RecordData, moveLimit: number, maxTokens: number): MatchSetup {
@@ -73,14 +74,14 @@ export function freeAgents(human = false): Agent[] {
 }
 export function configuredAgents(setup: MatchSetup): Agent[] {
   return validateSetup(setup).entrants.map((a, i) => ({ ...a,
-    name: a.kind === "human" ? `Human ${i + 1}` : a.kind === "bot" ? a.model === "random" ? "Wildcard" : "Tactician" : a.kind === "harness" ? `Connect harness ${i + 1}` : a.model,
+    name: a.kind === "human" ? `Human ${i + 1}` : a.kind === "bot" ? a.model === "random" ? "Wildcard" : a.model === "perfect-ttt-v1" ? "Tic-tac-toe Oracle" : "Tactician" : a.kind === "harness" ? `Connect harness ${i + 1}` : a.model,
     key: "", endpoint: "", strategy: "",
   }));
 }
 const cleanText = (value: string) => value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, " ").trim();
 /** Replay metadata is a declaration, including when its legal moves verify. */
 export function entrantLabel(a: RecordData["agents"][number]) {
-  if (a.kind === "bot") return ["tactician", "random"].includes(a.model)
+  if (a.kind === "bot") return ["tactician", "random", "perfect-ttt-v1"].includes(a.model)
     ? `Declared built-in · ${a.model}` : `Unrecognized bot declaration · ${cleanText(a.model)}`;
   if (a.kind === "human") return "Declared human player";
   return `${a.kind === "harness" ? "Harness" : "OpenRouter"} · ${cleanText(a.model)} · ${cleanText(a.effort)} effort (declared)`;
@@ -113,7 +114,7 @@ export async function resultImage(record: RecordData): Promise<Blob> {
   canvas.width = 1200; canvas.height = 675;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw Error("Image export is unavailable in this browser.");
-  const text = (value: string, x: number, y: number, size: number, color = "#f0f3ec", max = 590) => {
+  const text = (value: string, x: number, y: number, size: number, color = "#f1eee8", max = 590) => {
     ctx.font = `${size >= 30 ? 700 : 400} ${size}px system-ui, sans-serif`;
     ctx.fillStyle = color;
     const chars = Array.from(cleanText(value));
@@ -121,48 +122,48 @@ export async function resultImage(record: RecordData): Promise<Blob> {
     while (ctx.measureText(line).width > max && chars.length) { chars.pop(); line = chars.join("") + "…"; }
     ctx.fillText(line, x, y);
   };
-  ctx.fillStyle = "#111513"; ctx.fillRect(0, 0, 1200, 675);
-  text("BuilderWars", 48, 67, 38, "#c8fa75");
-  text("A Nymrel product", 915, 64, 20, "#aeb8b0", 240);
-  text(summary.complete ? "EXHIBITION RESULT" : "UNFINISHED EXHIBITION", 540, 146, 18, "#c8fa75");
+  ctx.fillStyle = "#121212"; ctx.fillRect(0, 0, 1200, 675);
+  text("BuilderWars", 48, 67, 38, "#ff8057");
+  text("A Nymrel product", 915, 64, 20, "#b8b2ab", 240);
+  text(summary.complete ? "EXHIBITION RESULT" : "UNFINISHED EXHIBITION", 540, 146, 18, "#ff8057");
   // Keep the referee outcome and seat visible even when a contender name clips.
   const imageTitle = summary.complete && summary.state.winner !== null
     ? `Winner · Seat ${summary.state.winner + 1}: ${summary.names[summary.state.winner]}`
     : summary.title;
   text(imageTitle, 540, 209, 40);
-  text(summary.record.rules.name, 540, 251, 25, "#d4ddce");
+  text(summary.record.rules.name, 540, 251, 25, "#ddd0c0");
   text(`${summary.names[0]} vs ${summary.names[1]}`, 540, 299, 22);
-  text(`1: ${summary.entrants[0]}`, 540, 329, 17, "#b0bcb4");
-  text(`2: ${summary.entrants[1]}`, 540, 355, 17, "#b0bcb4");
-  text(`${summary.plies} plies · ${summary.reason}`, 540, 393, 21, "#b0bcb4");
-  text(`Reported decision time: ${(summary.elapsedMs / 1000).toFixed(2)}s`, 540, 424, 18, "#b0bcb4");
-  text(`Accepted-move cost: ${summary.cost === null ? "unknown" : `$${summary.cost.toFixed(4)}`}`, 540, 453, 18, "#b0bcb4");
-  text("Rules replayed. Model / execution not attested.", 540, 500, 18, "#c8fa75");
-  text("One match, not a general model ranking.", 540, 529, 18, "#b0bcb4");
+  text(`1: ${summary.entrants[0]}`, 540, 329, 17, "#c0b3a6");
+  text(`2: ${summary.entrants[1]}`, 540, 355, 17, "#c0b3a6");
+  text(`${summary.plies} plies · ${summary.reason}`, 540, 393, 21, "#c0b3a6");
+  text(`Reported decision time: ${(summary.elapsedMs / 1000).toFixed(2)}s`, 540, 424, 18, "#c0b3a6");
+  text(`Accepted-move cost: ${summary.cost === null ? "unknown" : `$${summary.cost.toFixed(4)}`}`, 540, 453, 18, "#c0b3a6");
+  text("Rules replayed. Model / execution not attested.", 540, 500, 18, "#ff8057");
+  text("One match, not a general model ranking.", 540, 529, 18, "#c0b3a6");
   text("Replay it. Challenge it. Build your next contender.", 48, 600, 25);
-  text("builderwars.com", 48, 639, 21, "#c8fa75");
-  text("Share the replay link alongside this image.", 655, 639, 18, "#b0bcb4", 490);
+  text("builderwars.com", 48, 639, 21, "#ff8057");
+  text("Share the replay link alongside this image.", 655, 639, 18, "#c0b3a6", 490);
   const { rows, cols, kind } = summary.state.rules;
   const tile = Math.min(430 / cols, 420 / rows);
   const x0 = 48 + (430 - cols * tile) / 2, y0 = 122 + (420 - rows * tile) / 2;
   const chess: Record<string, string> = { wp: "♙", wn: "♘", wb: "♗", wr: "♖", wq: "♕", wk: "♔", bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚" };
   for (let i = 0; i < rows * cols; i++) {
     const x = x0 + (i % cols) * tile, y = y0 + Math.floor(i / cols) * tile;
-    ctx.fillStyle = (Math.floor(i / cols) + i % cols) % 2 ? "#293c2e" : "#354d3c";
+    ctx.fillStyle = (Math.floor(i / cols) + i % cols) % 2 ? "#65513e" : "#927b61";
     ctx.fillRect(x, y, tile, tile);
     const piece = summary.state.cells[i];
     if (!piece) continue;
     if (kind === "chess") {
       ctx.font = `${tile * 0.75}px "Segoe UI Symbol", serif`;
-      ctx.fillStyle = piece.startsWith("w") ? "#f6f8ee" : "#111513";
+      ctx.fillStyle = piece.startsWith("w") ? "#f6eedf" : "#121212";
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(chess[piece] || piece, x + tile / 2, y + tile / 2);
       ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     } else {
       ctx.beginPath(); ctx.arc(x + tile / 2, y + tile / 2, tile * 0.35, 0, Math.PI * 2);
-      ctx.fillStyle = ["X", "w", "W"].includes(piece) ? "#c8fa75" : "#f3f4df";
+      ctx.fillStyle = ["X", "w", "W"].includes(piece) ? "#ff8057" : "#f3e5cd";
       ctx.fill();
-      if (kind === "checkers" && piece === piece.toUpperCase()) text("K", x + tile * 0.33, y + tile * 0.66, tile * 0.45, "#111513", tile);
+      if (kind === "checkers" && piece === piece.toUpperCase()) text("K", x + tile * 0.33, y + tile * 0.66, tile * 0.45, "#121212", tile);
     }
   }
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(Error("Image export failed. Try downloading the replay instead.")), "image/png"));

@@ -23,7 +23,9 @@ with sync_playwright() as p:
     def with_csp(route):
         response = route.fetch()
         route.fulfill(response=response, headers={**response.headers, "content-security-policy": CSP})
-    context.route(BASE + "/", with_csp)
+    # Owned local previews lack response headers; deployed HTTPS uses its real CSP.
+    if not BASE.startswith("https://"):
+        context.route(BASE + "/", with_csp)
     page.goto(BASE)
     page.locator("#board .cell").first.wait_for()
     engine_script = page.locator("script[integrity]")
