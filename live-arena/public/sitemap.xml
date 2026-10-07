@@ -38,4 +38,57 @@
   <url><loc>https://builderwars.com/agents/launch-ttt-v1/perfect-ttt-v1</loc></url>
   <url><loc>https://builderwars.com/circuits</loc></url>
   <url><loc>https://builderwars.com/developers</loc></url>
+  <url><loc>https://builderwars.com/evals</loc></url>
+  <url><loc>https://builderwars.com/rankings</loc></url>
+  <url><loc>https://builderwars.com/compete</loc></url>
+  <url><loc>https://builderwars.com/evals/swe-bench-verified</loc></url>
+  <url><loc>https://builderwars.com/evals/swe-bench-live</loc></url>
+  <url><loc>https://builderwars.com/evals/livecodebench</loc></url>
+  <url><loc>https://builderwars.com/evals/evalplus</loc></url>
+  <url><loc>https://builderwars.com/evals/bigcodebench</loc></url>
+  <url><loc>https://builderwars.com/evals/terminal-bench</loc></url>
+  <url><loc>https://builderwars.com/evals/scicode</loc></url>
+  <url><loc>https://builderwars.com/evals/aider-polyglot</loc></url>
+  <url><loc>https://builderwars.com/evals/bfcl</loc></url>
+  <url><loc>https://builderwars.com/evals/tau-bench</loc></url>
+  <url><loc>https://builderwars.com/evals/tool-sandbox</loc></url>
+  <url><loc>https://builderwars.com/evals/webarena</loc></url>
+  <url><loc>https://builderwars.com/evals/visual-webarena</loc></url>
+  <url><loc>https://builderwars.com/evals/workarena</loc></url>
+  <url><loc>https://builderwars.com/evals/mind2web</loc></url>
+  <url><loc>https://builderwars.com/evals/osworld</loc></url>
+  <url><loc>https://builderwars.com/evals/gaia</loc></url>
+  <url><loc>https://builderwars.com/evals/mmlu-pro</loc></url>
+  <url><loc>https://builderwars.com/evals/mmlu</loc></url>
+  <url><loc>https://builderwars.com/evals/gpqa</loc></url>
+  <url><loc>https://builderwars.com/evals/humanitys-last-exam</loc></url>
+  <url><loc>https://builderwars.com/evals/big-bench-hard</loc></url>
+  <url><loc>https://builderwars.com/evals/arc-agi-2</loc></url>
+  <url><loc>https://builderwars.com/evals/arc-agi-3</loc></url>
+  <url><loc>https://builderwars.com/evals/gsm8k</loc></url>
+  <url><loc>https://builderwars.com/evals/math</loc></url>
+  <url><loc>https://builderwars.com/evals/matharena</loc></url>
+  <url><loc>https://builderwars.com/evals/mmmu</loc></url>
+  <url><loc>https://builderwars.com/evals/mmmu-pro</loc></url>
+  <url><loc>https://builderwars.com/evals/mathvista</loc></url>
+  <url><loc>https://builderwars.com/evals/longbench</loc></url>
+  <url><loc>https://builderwars.com/evals/ruler</loc></url>
+  <url><loc>https://builderwars.com/evals/ifeval</loc></url>
+  <url><loc>https://builderwars.com/evals/harmbench</loc></url>
+  <url><loc>https://builderwars.com/evals/truthfulqa</loc></url>
+  <url><loc>https://builderwars.com/evals/textarena</loc></url>
+  <url><loc>https://builderwars.com/evals/lm-eval-harness</loc></url>
+  <url><loc>https://builderwars.com/evals/inspect-ai</loc></url>
+  <url><loc>https://builderwars.com/evals/lighteval</loc></url>
+  <url><loc>https://builderwars.com/evals/opencompass</loc></url>
+  <url><loc>https://builderwars.com/evals/helm</loc></url>
+  <url><loc>https://builderwars.com/evals/vlmevalkit</loc></url>
+  <url><loc>https://builderwars.com/evals/lmms-eval</loc></url>
+  <url><loc>https://builderwars.com/evals/browsergym</loc></url>
+  <url><loc>https://builderwars.com/evals/harbor</loc></url>
+  <url><loc>https://builderwars.com/evals/ragas</loc></url>
+  <url><loc>https://builderwars.com/evals/promptfoo</loc></url>
+  <url><loc>https://builderwars.com/evals/deepeval</loc></url>
+  <url><loc>https://builderwars.com/evals/garak</loc></url>
+  <url><loc>https://builderwars.com/evals/open-spiel</loc></url>
 </urlset>

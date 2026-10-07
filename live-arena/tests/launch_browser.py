@@ -20,6 +20,17 @@ with sync_playwright() as p:
  page.screenshot(path=str(OUT/'lab-desktop.png'),full_page=True)
  page.reload();expect(page.locator('#lab-status')).to_contain_text('Saved comparison restored');assert page.locator('#lab-start').is_enabled()
  candidate=run['candidate']['digest'];page.locator(f'[data-lab-select="{candidate}"]').click();expect(page.locator('#lab-status')).to_contain_text('Version selected');page.locator('#lab-rollback').click();expect(page.locator('#lab-status')).to_contain_text('Prior selection restored')
+ # Lab recordings share recovery and consent with files, links and saved results.
+ page.locator('nav [data-tab="arena"]').click();page.locator('[data-game="tictactoe"]').click();page.locator('#step').click()
+ expect(page.locator('#metric-moves')).to_have_text('1');seats=page.locator('#seats').text_content()
+ page.locator('nav [data-tab="lab"]').click();page.locator('[data-lab-replay]').click()
+ expect(page.locator('#recording-dialog')).to_be_visible();expect(page.locator('#recording-recovery')).to_contain_text('Saved in Recent matches')
+ expect(page.locator('#metric-moves')).to_have_text('1');assert page.locator('#seats').text_content()==seats
+ page.locator('#keep-current-match').click();expect(page.locator('#recording-dialog')).not_to_be_visible();expect(page.locator('#lab')).to_be_visible()
+ expect(page.locator('#metric-moves')).to_have_text('1');assert page.locator('#seats').text_content()==seats
+ page.locator('[data-lab-replay]').click();expect(page.locator('#recording-dialog')).to_be_visible();expect(page.locator('#metric-moves')).to_have_text('1')
+ page.locator('#open-recording').click();expect(page.locator('#arena')).to_be_visible();expect(page.locator('#start')).to_be_disabled();assert int(page.locator('#metric-moves').inner_text())>1
+ page.locator('nav [data-tab="lab"]').click()
  page.locator(f'[data-lab-use="{candidate}"]').click();expect(page.locator('#arena')).to_be_visible();expect(page.locator('#metric-moves')).to_have_text('0');page.locator('#step').click();expect(page.locator('#metric-moves')).to_have_text('1');page.locator('#start').click();expect(page.locator('#postgame-review')).to_be_visible(timeout=45000);assert '90 seconds' not in page.locator('#notice').inner_text() or page.locator('#metric-moves').inner_text() != '1'
  page.once('dialog',lambda d:d.accept());page.locator('nav [data-tab="lab"]').click();page.locator('#lab-trials').select_option('64');page.locator('#lab-form summary').click();page.locator('#lab-seed').fill('20261007');page.locator('#lab-start').click();page.wait_for_function("key => JSON.parse(localStorage.getItem(key)||'{}').runs?.at(-1)?.status==='evaluating'",arg=KEY,timeout=60000);page.locator('#lab-cancel').click();expect(page.locator('#lab-status')).to_contain_text('Cancelled');cancelled=page.evaluate('key => JSON.parse(localStorage.getItem(key)).runs.at(-1)',KEY);assert cancelled['status']=='cancelled';page.reload();assert page.locator('#lab-start').is_enabled();assert page.evaluate('key=>JSON.parse(localStorage.getItem(key)).runs.at(-1).status',KEY)=='cancelled'
  with page.expect_download() as download:page.locator('#lab-archive-export').click()

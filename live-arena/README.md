@@ -150,6 +150,15 @@ cross-tab continuation conflicts. It preserves the move limit. Provider games ar
 replay-only after reload; reconnect those contenders in a new match. Replay URLs
 do not automatically enter the library; use **Save current replay** to retain one.
 
+Opening a replay link, replay/package file, exhibition, proof, or saved match uses
+one validation and replacement flow. Pause first. An unfinished own match remains
+in the arena until you choose **Open recording**; **Keep playing** or Escape leaves
+it intact. The prompt reports whether the existing device-saving policy could
+keep a recovery copy and offers the existing match-package download/share action.
+Saving is never enabled on your behalf. If saving is unavailable, download before
+replacing anything you need to retain. A changed match, settings, newer request,
+or native lifecycle transition invalidates an outstanding import.
+
 Spectator reload attempts the same live host link and shows a saved, explicitly
 non-live position if unavailable. A 5-second heartbeat detects silence after
 15 seconds (browser timer throttling can extend this). If the host restarts their
@@ -232,3 +241,24 @@ real starter subprocess games in `tests/test_bridge.py`. `npm test` and
 checkpoint bounds, worker completion/cancellation, URL history, public replay,
 mobile layout and zero-provider behavior. See
 [launch operations](../docs/BUILDERWARS_LAUNCH_OPERATIONS.md).
+
+`/evals` adds a searchable directory of 36 benchmarks and 14 open frameworks,
+with source access, metrics and run instructions. `/rankings` publishes 14 dated
+organizer-reported tracks; versions, splits and system configurations stay
+separate. The retained extracts contain reported scores, not execution evidence.
+Other projects link their official results without inventing numeric standings.
+Eval plans are configuration downloads, not hosted benchmark execution. Native
+shortlists last for the session and use the existing native save/share path.
+
+Refresh operator-reviewed scores with
+`python scripts/refresh-eval-rankings.py --save-sources output/eval-sources`.
+Reproduce offline with `--from-dir output/eval-sources`; original capture metadata
+and source hashes are required. Review every changed protocol, source label and
+extract before release. Builds validate retained hashes without network fetching.
+
+`/compete` and the in-app Compete view offer daily UTC rule variants, Connect Four
+sprints, Nim duels, Oracle challenges and free seat-swapped series, plus Forge,
+friend duels and public replays. Preparation never starts provider inference.
+The daily board fixes rules for a date, not opponent randomness or global rank.
+`tests/eval_hub_browser.py` exercises discovery, source positions, exports,
+cancelled/blocked navigation, responsive pages and an actual four-game series.

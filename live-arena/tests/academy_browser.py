@@ -92,6 +92,21 @@ with sync_playwright() as p:
     assert failed["attempts"][0]["exit"] == "failed"
     assert len(failed["games"]) == 1 and not failed["games"][0]["events"]
     assert "synthetic-academy-sentinel" not in json.dumps(failed)
+    # Readiness snapshots the selected nondefault Tokens/move cap before dispatch.
+    readiness_caps = []
+    page.unroute("https://openrouter.ai/api/v1/chat/completions")
+    def readiness_move(route):
+        body = json.loads(route.request.post_data)
+        readiness_caps.append(body["max_tokens"])
+        route.fulfill(json={"model": "test/model", "choices": [{"message": {"content": '{"move":"illegal"}'}}]})
+    page.route("https://openrouter.ai/api/v1/chat/completions", readiness_move)
+    page.locator("#max-tokens").fill("256")
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#readiness-suite").select_option("tictactoe")
+    page.locator("#academy-readiness").click()
+    page.wait_for_function("() => document.querySelector('#readiness-status').textContent.includes('Check complete')", timeout=30000)
+    assert readiness_caps == [256] * 10
+    assert "10 invalid reply" in page.locator("#readiness-output").inner_text()
     # The Academy explicitly clears configured contenders; no synthetic inference needed.
     page.locator("nav [data-tab=academy]").click()
     page.locator("#academy-variant").click()
@@ -130,4 +145,4 @@ with sync_playwright() as p:
     assert not errors, errors
     context.close()
     browser.close()
-    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "readiness check local built-in", "responsive lessons/evals"]}))
+    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "syntheticReadinessCalls": len(readiness_caps), "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "readiness selected token cap", "readiness check local built-in", "responsive lessons/evals"]}))

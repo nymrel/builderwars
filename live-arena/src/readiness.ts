@@ -122,9 +122,9 @@ export type ReadinessDecider = (
 // The default decider is the same decide() path a real match uses, so readiness
 // exercises the real request/response contract including connection preflight.
 const defaultDecider =
-  (models: Model[], maxTokens: number): ReadinessDecider =>
+  (models: Model[], maxTokens: number, executionId: string): ReadinessDecider =>
   async (state, agent, signal) => {
-    const decision = await decide(state, agent, maxTokens, signal, models, undefined);
+    const decision = await decide(state, agent, maxTokens, signal, models, undefined, executionId);
     return { move: decision.move, model: decision.model || null, elapsed: decision.elapsed };
   };
 
@@ -145,9 +145,20 @@ export function classifyReadinessFailure(error: unknown): {
       detail:
         "The reply was not a schema-valid, legal move object. It was paused, not replaced; no retry was sent.",
     };
+  if (err.message === "Versioned game mismatch.")
+    return {
+      outcome: "connection-error",
+      detail: "The selected Lab contender does not match this readiness suite's game rules.",
+    };
+  if (err.message === "Version call budget exhausted.")
+    return {
+      outcome: "connection-error",
+      detail: "The Lab contender exhausted its bounded execution allowance during this readiness run.",
+    };
   return {
     outcome: "connection-error",
-    detail: err.message.slice(0, 300) || "The request failed before a reply could be validated.",
+    detail:
+      "The request failed before a reply could be validated. Raw provider response text is not retained.",
   };
 }
 
@@ -177,7 +188,13 @@ export async function runReadinessCheck(options: {
   const suite = READINESS_SUITES[suiteId as "tictactoe" | "nim"];
   if (!suite) throw Error("Choose the tic-tac-toe or Nim readiness suite.");
   const timeCapMs = options.timeCapMs ?? 45000;
-  const decider = options.decider ?? defaultDecider(options.models ?? [], options.maxTokens ?? 2048);
+  const maxTokens = options.maxTokens ?? 2048;
+  if (!Number.isInteger(maxTokens) || maxTokens < 256 || maxTokens > 16384)
+    throw Error("Choose readiness max tokens between 256 and 16384.");
+  // Keep one isolated execution identity for the entire suite. This preserves the
+  // Lab contender's whole-run allowance without borrowing an active Arena match.
+  const executionId = `readiness-${crypto.randomUUID()}`;
+  const decider = options.decider ?? defaultDecider(options.models ?? [], maxTokens, executionId);
 
   const positions: ReadinessPositionResult[] = [];
   for (let index = 0; index < suite.sequences.length; index++) {

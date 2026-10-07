@@ -9,6 +9,8 @@ import {
 } from "../src/readiness";
 import { legalMoves } from "../src/runtime";
 import { parseDecision, type Agent } from "../src/models";
+import { agentWorldEventFile } from "../src/agentworld-events";
+import { arenaLabVersion, labBaseline } from "../src/browser-lab-core";
 
 const harnessAgent = (overrides: Partial<Agent> = {}): Agent => ({
   name: "Test Harness",
@@ -156,8 +158,69 @@ test("infrastructure failures are classified separately from invalid replies", a
   });
   assert.equal(receipt.summary.connectionError, 10);
   assert.equal(receipt.summary.invalidReply, 0);
-  for (const position of receipt.positions)
-    assert.match(position.detail, /Harness returned 503/);
+  for (const position of receipt.positions) {
+    assert.match(position.detail, /request failed before a reply could be validated/i);
+    assert.doesNotMatch(position.detail, /503/);
+  }
+});
+
+test("malformed provider response text never reaches readiness or AgentWorld exports", async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls++;
+    return new Response("SECRET-67", {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+  try {
+    const receipt = await runReadinessCheck({
+      agent: harnessAgent(),
+      suiteId: "tictactoe",
+      maxTokens: 256,
+    });
+    assert.equal(calls, 10);
+    assert.equal(receipt.summary.connectionError, 10);
+    const world = await agentWorldEventFile(receipt);
+    const exported = JSON.stringify(receipt) + "\n" + JSON.stringify(world);
+    assert.doesNotMatch(exported, /SECRET-67|Unexpected token/);
+    for (const position of receipt.positions)
+      assert.match(position.detail, /Raw provider response text is not retained/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a matching Lab contender uses one isolated readiness scope without network access", async () => {
+  const localVersion = await arenaLabVersion(await labBaseline("tictactoe"));
+  const agent = harnessAgent({
+    name: "Local Lab readiness",
+    model: [localVersion.config.runtime.resolvedModel, localVersion.digest].join("@"),
+    effort: "none",
+    endpoint: "",
+    key: "",
+    localVersion,
+  });
+  const originalFetch = globalThis.fetch;
+  let networkCalls = 0;
+  globalThis.fetch = (async () => {
+    networkCalls++;
+    throw Error("Unexpected network call.");
+  }) as typeof fetch;
+  try {
+    const receipt = await runReadinessCheck({
+      agent,
+      suiteId: "tictactoe",
+      maxTokens: 256,
+    });
+    assert.equal(networkCalls, 0);
+    assert.equal(receipt.summary.valid, 10);
+    assert.equal(receipt.summary.connectionError, 0);
+    assert.ok(receipt.positions.every((position) => position.reportedModel === agent.model));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("human seats are rejected before any request is built", async () => {

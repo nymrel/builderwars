@@ -1,0 +1,722 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "mbpp-plus",
+  "sourceUrl": "https://evalplus.github.io/results.json",
+  "sourceSha256": "e6837dc3b94f32cb1da0ced012e52edc4a722007b684df5b63da029bbd3b46d2",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "O1 Preview (Sept 2024)",
+      "score": 80.2,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 1,
+      "sourceRowId": "30"
+    },
+    {
+      "name": "O1 Mini (Sept 2024)",
+      "score": 78.8,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 2,
+      "sourceRowId": "31"
+    },
+    {
+      "name": "Qwen2.5-Coder-32B-Instruct",
+      "score": 77.0,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 3,
+      "sourceRowId": "9"
+    },
+    {
+      "name": "DeepSeek-Coder-V2-Instruct",
+      "score": 75.1,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 4,
+      "sourceRowId": "21"
+    },
+    {
+      "name": "Gemini 1.5 Pro 002",
+      "score": 74.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 5,
+      "sourceRowId": "19"
+    },
+    {
+      "name": "Claude Sonnet 3.5 (June 2024)",
+      "score": 74.3,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 6,
+      "sourceRowId": "28"
+    },
+    {
+      "name": "DeepSeek-V2.5 (Nov 2024)",
+      "score": 74.1,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 7,
+      "sourceRowId": "18"
+    },
+    {
+      "name": "claude-3-opus (Mar 2024)",
+      "score": 73.3,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 8,
+      "sourceRowId": "67"
+    },
+    {
+      "name": "GPT-4-Turbo (Nov 2023)",
+      "score": 73.3,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 8,
+      "sourceRowId": "35"
+    },
+    {
+      "name": "DeepSeek-V3 (Nov 2024)",
+      "score": 73.0,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 10,
+      "sourceRowId": "17"
+    },
+    {
+      "name": "GPT 4o (Aug 2024)",
+      "score": 72.2,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 11,
+      "sourceRowId": "32"
+    },
+    {
+      "name": "GPT 4o Mini (July 2024)",
+      "score": 72.2,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 11,
+      "sourceRowId": "33"
+    },
+    {
+      "name": "OpenCoder-8B-Instruct",
+      "score": 71.4,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 13,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "DeepSeek-Coder-33B-instruct",
+      "score": 70.1,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 14,
+      "sourceRowId": "24"
+    },
+    {
+      "name": "GPT-3.5-Turbo (Nov 2023)",
+      "score": 69.7,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 15,
+      "sourceRowId": "34"
+    },
+    {
+      "name": "Artigenz-Coder-DS-6.7B",
+      "score": 69.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 16,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "claude-3-sonnet (Mar 2024)",
+      "score": 69.3,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 17,
+      "sourceRowId": "68"
+    },
+    {
+      "name": "CodeQwen1.5-7B-Chat",
+      "score": 69.0,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 18,
+      "sourceRowId": "11"
+    },
+    {
+      "name": "Llama3-70B-instruct",
+      "score": 69.0,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 18,
+      "sourceRowId": "37"
+    },
+    {
+      "name": "Magicoder-S-DS-6.7B",
+      "score": 69.0,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 18,
+      "sourceRowId": "43"
+    },
+    {
+      "name": "claude-3-haiku (Mar 2024)",
+      "score": 68.8,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 21,
+      "sourceRowId": "66"
+    },
+    {
+      "name": "OpenCodeInterpreter-DS-33B",
+      "score": 68.5,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 22,
+      "sourceRowId": "53"
+    },
+    {
+      "name": "Gemini 1.5 Flash 002",
+      "score": 67.5,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 23,
+      "sourceRowId": "20"
+    },
+    {
+      "name": "WhiteRabbitNeo-33B-v1",
+      "score": 66.9,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 24,
+      "sourceRowId": "60"
+    },
+    {
+      "name": "OpenCodeInterpreter-DS-6.7B",
+      "score": 66.4,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 25,
+      "sourceRowId": "54"
+    },
+    {
+      "name": "DeepSeek-Coder-6.7B-instruct",
+      "score": 65.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 26,
+      "sourceRowId": "26"
+    },
+    {
+      "name": "Grok Beta",
+      "score": 65.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 26,
+      "sourceRowId": "29"
+    },
+    {
+      "name": "starcoder2-15b-instruct-v0.1",
+      "score": 65.1,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 28,
+      "sourceRowId": "59"
+    },
+    {
+      "name": "XwinCoder-34B",
+      "score": 64.8,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 29,
+      "sourceRowId": "64"
+    },
+    {
+      "name": "code-millenials-34B",
+      "score": 64.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 30,
+      "sourceRowId": "69"
+    },
+    {
+      "name": "starchat2-15b-v0.1",
+      "score": 64.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 30,
+      "sourceRowId": "57"
+    },
+    {
+      "name": "speechless-coder-ds-6.7B",
+      "score": 64.4,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 32,
+      "sourceRowId": "83"
+    },
+    {
+      "name": "Mixtral-8x22B-Instruct-v0.1",
+      "score": 64.3,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 33,
+      "sourceRowId": "50"
+    },
+    {
+      "name": "Command-R+",
+      "score": 63.5,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 34,
+      "sourceRowId": "16"
+    },
+    {
+      "name": "WaveCoder-Ultra-6.7B",
+      "score": 63.5,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 34,
+      "sourceRowId": "41"
+    },
+    {
+      "name": "WizardCoder-Python-34B-V1.0",
+      "score": 63.2,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 36,
+      "sourceRowId": "62"
+    },
+    {
+      "name": "speechless-starcoder2-15b",
+      "score": 62.4,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 37,
+      "sourceRowId": "85"
+    },
+    {
+      "name": "DeepSeek-Coder-7B-instruct-v1.5",
+      "score": 62.2,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 38,
+      "sourceRowId": "27"
+    },
+    {
+      "name": "Codestral-22B-v0.1",
+      "score": 61.9,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 39,
+      "sourceRowId": "48"
+    },
+    {
+      "name": "Qwen1.5-72B-Chat",
+      "score": 61.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 40,
+      "sourceRowId": "12"
+    },
+    {
+      "name": "Gemini Pro 1.0",
+      "score": 61.4,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 41,
+      "sourceRowId": "36"
+    },
+    {
+      "name": "speechless-codellama-34B-v2.0",
+      "score": 61.4,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 41,
+      "sourceRowId": "82"
+    },
+    {
+      "name": "CodeQwen1.5-7B",
+      "score": 60.8,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 43,
+      "sourceRowId": "10"
+    },
+    {
+      "name": "Magicoder-S-CL-7B",
+      "score": 60.1,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 44,
+      "sourceRowId": "42"
+    },
+    {
+      "name": "Mistral Large (Mar 2024)",
+      "score": 59.5,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 45,
+      "sourceRowId": "44"
+    },
+    {
+      "name": "dolphin-2.6-mixtral-8x7b",
+      "score": 59.0,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 46,
+      "sourceRowId": "73"
+    },
+    {
+      "name": "DeepSeek-Coder-6.7B-base",
+      "score": 58.7,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 47,
+      "sourceRowId": "25"
+    },
+    {
+      "name": "codegemma-7b-it",
+      "score": 56.9,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 48,
+      "sourceRowId": "72"
+    },
+    {
+      "name": "CodeLlama-34B",
+      "score": 56.3,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 49,
+      "sourceRowId": "7"
+    },
+    {
+      "name": "speechless-starcoder2-7b",
+      "score": 56.3,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 49,
+      "sourceRowId": "86"
+    },
+    {
+      "name": "databricks/dbrx-instruct",
+      "score": 55.8,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 51,
+      "sourceRowId": "47"
+    },
+    {
+      "name": "Llama3.1-8B-instruct",
+      "score": 55.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 52,
+      "sourceRowId": "39"
+    },
+    {
+      "name": "DeepSeek-Coder-1.3B-instruct",
+      "score": 54.8,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 53,
+      "sourceRowId": "23"
+    },
+    {
+      "name": "Llama3-8B-instruct",
+      "score": 54.8,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 53,
+      "sourceRowId": "40"
+    },
+    {
+      "name": "OpenChat-3.5-7B-0106",
+      "score": 54.5,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 55,
+      "sourceRowId": "52"
+    },
+    {
+      "name": "phi-2-2.7B",
+      "score": 54.2,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 56,
+      "sourceRowId": "80"
+    },
+    {
+      "name": "Phi-3-mini-4k-instruct",
+      "score": 54.2,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 56,
+      "sourceRowId": "79"
+    },
+    {
+      "name": "WizardCoder-15B-V1.0",
+      "score": 54.2,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 56,
+      "sourceRowId": "61"
+    },
+    {
+      "name": "CodeLlama-13B",
+      "score": 52.6,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 59,
+      "sourceRowId": "6"
+    },
+    {
+      "name": "codegemma-7b",
+      "score": 52.4,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 60,
+      "sourceRowId": "71"
+    },
+    {
+      "name": "Llama3-8B-base",
+      "score": 51.6,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 61,
+      "sourceRowId": "38"
+    },
+    {
+      "name": "speechless-coding-7B-16k-tora",
+      "score": 50.6,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 62,
+      "sourceRowId": "84"
+    },
+    {
+      "name": "Mixtral-8x7B-Instruct-v0.1",
+      "score": 49.7,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 63,
+      "sourceRowId": "51"
+    },
+    {
+      "name": "WizardCoder-Python-7B-V1.0",
+      "score": 49.5,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 64,
+      "sourceRowId": "63"
+    },
+    {
+      "name": "speechless-code-mistral-7B-v1.0",
+      "score": 48.7,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 65,
+      "sourceRowId": "81"
+    },
+    {
+      "name": "DeepSeek-Coder-1.3B-base",
+      "score": 47.9,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 66,
+      "sourceRowId": "22"
+    },
+    {
+      "name": "CodeT5+-16B",
+      "score": 47.1,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 67,
+      "sourceRowId": "13"
+    },
+    {
+      "name": "CodeLlama-7B",
+      "score": 46.8,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 68,
+      "sourceRowId": "8"
+    },
+    {
+      "name": "codegemma-2b",
+      "score": 46.6,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 69,
+      "sourceRowId": "70"
+    },
+    {
+      "name": "MistralHermes-CodePro-7B-v1",
+      "score": 46.4,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 70,
+      "sourceRowId": "46"
+    },
+    {
+      "name": "StarCoder-15B",
+      "score": 46.1,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 71,
+      "sourceRowId": "58"
+    },
+    {
+      "name": "OpenHermes-2.5-Code-290k-13B",
+      "score": 45.8,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 72,
+      "sourceRowId": "55"
+    },
+    {
+      "name": "stable-code-3B",
+      "score": 45.8,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 72,
+      "sourceRowId": "87"
+    },
+    {
+      "name": "CodeGen-16B",
+      "score": 45.5,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 74,
+      "sourceRowId": "3"
+    },
+    {
+      "name": "gemma-1.1-7b-it",
+      "score": 45.0,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 75,
+      "sourceRowId": "75"
+    },
+    {
+      "name": "gemma-7b",
+      "score": 43.4,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 76,
+      "sourceRowId": "77"
+    },
+    {
+      "name": "CodeGen-6B",
+      "score": 42.9,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 77,
+      "sourceRowId": "5"
+    },
+    {
+      "name": "Mistral-7B",
+      "score": 42.1,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 78,
+      "sourceRowId": "45"
+    },
+    {
+      "name": "CodeT5+-6B",
+      "score": 41.5,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 79,
+      "sourceRowId": "15"
+    },
+    {
+      "name": "xDAN-L1-Chat-RL-v1-7B",
+      "score": 41.3,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 80,
+      "sourceRowId": "88"
+    },
+    {
+      "name": "CodeT5+-2B",
+      "score": 38.1,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 81,
+      "sourceRowId": "14"
+    },
+    {
+      "name": "Mistral-7B-Instruct-v0.2",
+      "score": 37.0,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 82,
+      "sourceRowId": "49"
+    },
+    {
+      "name": "gemma-7b-it",
+      "score": 36.8,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 83,
+      "sourceRowId": "78"
+    },
+    {
+      "name": "SOLAR-10.7B-Instruct-v1.0",
+      "score": 36.2,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 84,
+      "sourceRowId": "56"
+    },
+    {
+      "name": "CodeGen-2B",
+      "score": 36.0,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 85,
+      "sourceRowId": "4"
+    },
+    {
+      "name": "Zephyr β-7B",
+      "score": 34.7,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 86,
+      "sourceRowId": "65"
+    },
+    {
+      "name": "gemma-2b",
+      "score": 34.1,
+      "detail": "Code completion",
+      "date": null,
+      "rank": 87,
+      "sourceRowId": "76"
+    },
+    {
+      "name": "gemma-1.1-2b-it",
+      "score": 23.3,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 88,
+      "sourceRowId": "74"
+    },
+    {
+      "name": "zyte-1B",
+      "score": 7.5,
+      "detail": "Chat prompting",
+      "date": null,
+      "rank": 89,
+      "sourceRowId": "89"
+    }
+  ]
+}
