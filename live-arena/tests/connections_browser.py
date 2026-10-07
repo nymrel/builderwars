@@ -55,7 +55,7 @@ with sync_playwright() as p:
     }
     page.once("dialog", lambda dialog: dialog.accept())
     page.locator("#profile-file").set_input_files({
-        "name": "agent.json", "mime_type": "application/json", "buffer": json.dumps(profile).encode()
+        "name": "agent.json", "mimeType": "application/json", "buffer": json.dumps(profile).encode()
     })
     page.wait_for_function("() => document.querySelector('#dialog-status').textContent.includes('Profile imported')")
     assert page.locator("#model-id").input_value() == "test/model"
