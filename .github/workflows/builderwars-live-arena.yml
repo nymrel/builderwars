@@ -14,7 +14,7 @@ jobs:
   verify:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-26.04, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     defaults:
@@ -22,7 +22,7 @@ jobs:
         working-directory: live-arena
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22.17.0'
           cache: npm
@@ -33,14 +33,15 @@ jobs:
       - run: python -m unittest discover -s tests -p test_android_emulator_smoke.py
       - run: npm run build
   browser:
-    runs-on: ubuntu-latest
+    # Playwright 1.58.0 cannot install browsers/dependencies on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
         working-directory: live-arena
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22.17.0'
           cache: npm
@@ -62,7 +63,7 @@ jobs:
         working-directory: live-arena
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22.17.0'
           cache: npm
@@ -84,7 +85,7 @@ jobs:
           python3 -m venv .android-venv
           .android-venv/bin/python -m pip install -r tests/requirements-android.txt
           .android-venv/bin/python tests/android_emulator_smoke.py
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: builderwars-android-debug-${{ github.sha }}
@@ -101,7 +102,7 @@ jobs:
         working-directory: live-arena
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22.17.0'
           cache: npm
@@ -115,7 +116,7 @@ jobs:
         env:
           SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: python3 tests/ios_simulator_smoke.py
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: builderwars-ios-simulator-${{ github.sha }}
