@@ -1,9 +1,27 @@
 # BuilderWars lane presence
 
-IN_USE: Astra / Codex, September 5, 2026, 22:36 UTC.
-Claim codex-builderwars-exhibition-replay-20260905; scope live-arena/docs/.agent.
-Portable, truthful native exhibition replay integration. Preserve referee and
-provider eligibility; no inference or account changes in this slice.
+COMPLETED by Antigravity (Gemini 3.8 Flash), September 6, 2026, 22:19 PDT.
+BuilderWars Master Plan and build-out executed cleanly:
+- Live Arena: 225/225 tests passed. Portable proof admitted for all 4 built-in games (chess, checkers, Connect Four, tic-tac-toe) behind shared SRI referee bundle. Solved Minimax and Connect-N alpha-beta solver active. Production build green (1.37s).
+- Machine Trust & Dual Audience: Schema.org JSON-LD graph (parentOrganization: Nymrel -> JalenBuilds LLC) injected into index.html; robots.txt updated with AI crawlers; llms.txt enriched with platform manifest.
+- Referee Engine & Defect Repairs: arena/games/ten_fronts.py move_bound fixed to ROUNDS * 4; bin/run_series.py and export_site.py fixed for rich model notes. All 21 self-check attacks caught; 67/67 transcripts agree in build_verifier.py.
+- Master Plan Artifact: C:\Users\johns\.gemini\antigravity-cli\brain\6b4bc1c2-ad76-45b9-a137-c1f8926c7375\BUILDERWARS_MASTER_PLAN.md
+
+Open last used by Astra / Codex, September 5, 2026, 23:15 UTC.
+Exact claim codex-builderwars-version-workflow-20260905 governs live-arena,
+docs and .agent in codex/builderwars-portable-proof-20260904, this named lane.
+Opt-in frontier version/development workflow; preserve retired numeric campaigns,
+the referee, existing connection eligibility, credentials and other worktrees.
+Bus liveness is authoritative; this mirror never extends the lease.
+
+Open last used by Astra / Codex, September 5, 2026, 23:10 UTC.
+PR43 merged/released 600e535e987f67914d935786ed9df3f2b32b4675; all five CI passed.
+Production dpl_BsjuWAVRXWNRaSuF8jK8kbJmjDjR at builderwars.com matches the exact
+source-archive build. Three guarded journeys and both actual local replay imports
+passed on production. No model inference or automatic replay publication.
+Release claim codex-builderwars-exhibition-replay-20260905; bus is authoritative.
+Retain named lane for the active full frontier goal; reclaim before new writes.
+See docs/EXHIBITION_RELEASE_20260905.md for proof and remaining campaign gates.
 
 Open last used by Astra / Codex, September 5, 2026, 22:31 UTC.
 Guided human/agent connection UX shipped in PR42, merged source
