@@ -1859,7 +1859,37 @@ $("export-exhibition").onclick = () => void exportExhibition();
 // Visual thesis: the existing board remains the workspace; evidence is a quiet
 // text inspector. Content: outcome, assistance, identities, then source detail.
 // Interaction: native disclosure, existing replay scrubber and focus feedback.
-$("watch-broadcast").insertAdjacentHTML("beforebegin", '<h2>Recorded exhibitions</h2><p class="muted">Open a frontier exhibition file to replay moves with its engine assistance and source receipts. Importing makes no model requests.</p><button id="import-exhibition">Import exhibition file</button><h2>Live broadcasts</h2>');
+const SAMPLE_WATCH_REPLAY = "/competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.json";
+$("watch-broadcast").insertAdjacentHTML("beforebegin", '<h2>Recorded exhibitions</h2><p class="muted">Open a retained replay or import a frontier exhibition. Recorded playback makes no provider or model requests.</p><button id="watch-sample">Open sample replay · Launch Circuit</button><p id="watch-sample-status" class="muted" role="status" aria-live="polite">Tactician vs Seeded Wildcard · retained public match package · legal replay verification only. Identity and model execution are not attested.</p><button id="import-exhibition">Import exhibition file</button><h2>Live broadcasts</h2>');
+$("watch-sample").onclick = async () => {
+  const button = $<HTMLButtonElement>("watch-sample");
+  const status = $("watch-sample-status");
+  if (button.disabled) return;
+  button.disabled = true;
+  status.textContent = "Opening retained Launch Circuit replay…";
+  try {
+    const opened = await openRecorded(async () => {
+      const response = await fetch(SAMPLE_WATCH_REPLAY, { credentials: "omit", redirect: "error", cache: "no-store", mode: "same-origin" });
+      const raw = JSON.parse(await (await boundedResponse(response, 350000)).text());
+      const imported = readMatchFile(raw);
+      if (imported.parsed.record.id !== "launch-ttt-v1-01-0-0")
+        throw Error("Sample replay identity mismatch.");
+      return { parsed: imported.parsed, limits: imported.limits, declarations: imported.declarations };
+    });
+    if (opened) {
+      tab("arena");
+      revealBoard();
+      notify("Launch Circuit sample replay opened. Every move was reverified locally; declarations are retained, while identity and model execution remain unattested. No provider or model request was made.");
+      status.textContent = "Launch Circuit sample opened through the recorded-replay path. No provider or model request was made.";
+    } else {
+      status.textContent = "Sample replay was not opened; your current match is unchanged.";
+    }
+  } catch (error) {
+    status.textContent = recordingError("Sample replay", error);
+  } finally {
+    button.disabled = false;
+  }
+};
 $("import-exhibition").onclick = () => $<HTMLInputElement>("import").click();
 async function readFile(input: HTMLInputElement) {
   const f = input.files?.[0];
