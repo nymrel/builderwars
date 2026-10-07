@@ -108,6 +108,22 @@ with sync_playwright() as p, ExitStack() as cleanup:
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(BASE)
+    chess_accessible_names = [
+        "a8, black rook", "b8, black knight", "c8, black bishop",
+        "d8, black queen", "e8, black king", "a7, black pawn",
+        "a2, white pawn", "a1, white rook", "b1, white knight",
+        "c1, white bishop", "d1, white queen", "e1, white king",
+        "a6, empty",
+    ]
+    for name in chess_accessible_names:
+        expect(page.get_by_role("button", name=name, exact=True)).to_have_count(1)
+    desktop_page = context.new_page()
+    desktop_page.set_viewport_size({"width": 1280, "height": 900})
+    desktop_page.on("pageerror", lambda e: errors.append(str(e)))
+    desktop_page.goto(BASE)
+    for name in chess_accessible_names:
+        expect(desktop_page.get_by_role("button", name=name, exact=True)).to_have_count(1)
+    desktop_page.close()
     def tab_to(selector):
         target = page.locator(selector)
         for _ in range(160):
