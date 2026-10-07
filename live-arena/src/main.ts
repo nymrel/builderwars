@@ -1560,6 +1560,12 @@ function filterModels() {
       (!q || (m.id + " " + m.name).toLowerCase().includes(q)) &&
       (!free || (m.pricing?.prompt === "0" && m.pricing?.completion === "0")),
   );
+  const filtersActive = Boolean(q || free);
+  $("model-match-status").textContent = filtersActive
+    ? `${available.length} of ${models.length} models match the current filters.`
+    : `${available.length} models available.`;
+  $("model-empty-state").hidden = !filtersActive || available.length !== 0;
+  $("clear-model-filters").hidden = !filtersActive;
   $("model-id").innerHTML = '<option value="" disabled selected>Choose a model…</option>' + available
     .map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`)
     .join("");
@@ -1595,6 +1601,12 @@ function updateEfforts() {
     : "Choose a model.";
 }
 $("refresh-models").onclick = () => void loadModels();
+$("clear-model-filters").onclick = () => {
+  $<HTMLInputElement>("model-search").value = "";
+  $<HTMLInputElement>("free-models").checked = false;
+  filterModels();
+  $<HTMLInputElement>("model-search").focus();
+};
 $<HTMLInputElement>("model-search").oninput = filterModels;
 $<HTMLInputElement>("free-models").onchange = filterModels;
 $<HTMLSelectElement>("model-id").onchange = () => { importedSelection = null; updateEfforts(); };
