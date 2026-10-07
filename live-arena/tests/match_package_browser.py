@@ -26,6 +26,9 @@ with sync_playwright() as p:
 
     def upload(value):
         page.locator("#import").set_input_files({"name": "match.package.json", "mimeType": "application/json", "buffer": json.dumps(value).encode()})
+        page.wait_for_function("() => document.querySelector('#recording-dialog').open || !document.querySelector('#import').value")
+        if page.locator("#recording-dialog").is_visible():
+            page.locator("#open-recording").click()
         # The import handler clears the picker in finally after reading/committing.
         # Reloading immediately can cancel the file read on faster CI runners.
         expect(page.locator("#import")).to_have_value("")

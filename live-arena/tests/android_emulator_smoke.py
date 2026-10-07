@@ -23,12 +23,29 @@ IMAGE = "system-images;android-35;google_apis;x86_64"
 
 def recovery_snapshot(page):
     """Counts only: never export stored prompts, endpoints, keys or record bodies."""
-    return page.evaluate("""async () => {
+    return page.evaluate(r"""async () => {
         const entries = [];
         const fs = window.Capacitor.Plugins.Filesystem;
         const path = 'builderwars-checkpoints-v1';
-        const files = (await fs.readdir({path, directory:'DATA'})).files
-            .filter(f => /^checkpoint-[1-9][0-9]*-[a-f0-9-]{36}\\.json$/.test(f.name))
+        const prefix = "'readdir' failed with: /data/user/0/com.nymrel.builderwars/files/" + path + '/';
+        const temporaryName = /^checkpoint-[1-9][0-9]{0,15}-[a-f0-9-]{36}\.json\.part$/;
+        let inventory;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                inventory = await fs.readdir({path, directory:'DATA'});
+                break;
+            } catch (error) {
+                // Native readdir can stat a .part that checkpoint promotion just renamed.
+                // No sleep; recovery assertions and the no-probe rapid trials stay unchanged.
+                const message = error?.message;
+                const name = typeof message === 'string' && message.startsWith(prefix)
+                    ? message.slice(prefix.length) : '';
+                if (attempt === 2 || error?.code !== 'OS-PLUG-FILE-0013'
+                    || temporaryName.exec(name)?.[0] !== name) throw error;
+            }
+        }
+        const files = inventory.files
+            .filter(f => /^checkpoint-[1-9][0-9]*-[a-f0-9-]{36}\.json$/.test(f.name))
             .sort((a,b) => Number(b.name.split('-')[1]) - Number(a.name.split('-')[1]));
         if (!files.length) throw Error('No committed native checkpoint');
         const envelope = JSON.parse((await fs.readFile({path:path+'/'+files[0].name, directory:'DATA', encoding:'utf8'})).data);
