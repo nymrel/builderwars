@@ -34,6 +34,15 @@ function hash(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+function reversePropertyOrder(value) {
+  if (Array.isArray(value)) return value.map(reversePropertyOrder);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).reverse().map(([key, child]) => [key, reversePropertyOrder(child)]));
+  }
+  return value;
+}
+
 test('exports verified completion, canonical replay identity, quest projection, and one-run ledger', () => {
   const text = replay();
   const evidence = projectWorldEvidence(text);
@@ -64,7 +73,10 @@ test('formatting and property-order copies produce identical evidence', () => {
   const packet = A.pack(config, scripted());
   const compact = JSON.stringify(packet);
   const formatted = JSON.stringify(packet, null, 2);
-  assert.deepEqual(projectWorldEvidence(compact), projectWorldEvidence(formatted));
+  const reordered = JSON.stringify(reversePropertyOrder(packet));
+  const expected = projectWorldEvidence(compact);
+  assert.deepEqual(expected, projectWorldEvidence(formatted));
+  assert.deepEqual(expected, projectWorldEvidence(reordered));
 });
 
 test('rejects tampered claims, duplicate keys, and oversized replay text', () => {
@@ -104,4 +116,11 @@ test('CLI emits verified JSON for bounded input and refuses oversize input witho
   assert.equal(tooLarge.status, 1);
   assert.equal(tooLarge.stdout, '');
   assert.match(tooLarge.stderr, /128 KiB/);
+
+  const invalidUtf8 = spawnSync(process.execPath, [CLI], {
+    input: Buffer.from([0xff]), encoding: 'utf8',
+  });
+  assert.equal(invalidUtf8.status, 1);
+  assert.equal(invalidUtf8.stdout, '');
+  assert.ok(invalidUtf8.stderr.trim());
 });
