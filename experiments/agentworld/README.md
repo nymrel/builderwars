@@ -27,6 +27,16 @@ python build_preview.py
 
 The preview embeds the exact engine, ledger, and app scripts in dependency order and adds their SHA-256 hashes to its content-security policy. Use `--output /path/to/preview.html` to choose another output file. No CDN, font download, analytics, network call, or external code execution is included. File-viewer support for JavaScript and local storage varies; a normal browser on an authorized local origin is the intended full validation environment.
 
+## Consumer quests
+
+The existing page now presents Renay's three cooperative objectives: Find the supplies, Bring help home, and Finish together. Progress is reconstructed from accepted replay events, including on a saved visit's return. An explicit Stop button pauses watching. Capped runs keep earlier milestones and leave the final objective incomplete; crew-comparison runs do not earn cooperative quests. See [the consumer slice and remaining work](CONSUMER_DEMO.md).
+
+Run the added projector checks together with the engine and Hive ledger:
+
+```sh
+node --test test.mjs consumer-quests.test.mjs
+```
+
 ## Rules
 
 The world is an 8 × 8 grid with two crews and four actors. Turns alternate in the frozen order Amber 01, Tide 01, Amber 02, Tide 02. Actors can share cells. Eight supply caches hold sixteen total supplies, with rotationally symmetric placement determined by a nonzero 32-bit seed.
