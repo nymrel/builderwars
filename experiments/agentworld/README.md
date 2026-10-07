@@ -37,6 +37,10 @@ Run the added projector checks together with the engine and Hive ledger:
 node --test test.mjs consumer-quests.test.mjs
 ```
 
+## Shared-world evidence adapter
+
+The [portable evidence adapter](WORLD_EVIDENCE.md) exports a strictly verified recording, replay-derived quests, descriptive ledger and exact source hashes as `builderwars.agentworld.world-evidence.v1`. It is a concrete interface for composing this experience with another world's persistence or memory system. It performs no ingestion, network or model call. Run its checks with `node --test test.mjs consumer-quests.test.mjs world-evidence.test.mjs`.
+
 ## Rules
 
 The world is an 8 × 8 grid with two crews and four actors. Turns alternate in the frozen order Amber 01, Tide 01, Amber 02, Tide 02. Actors can share cells. Eight supply caches hold sixteen total supplies, with rotationally symmetric placement determined by a nonzero 32-bit seed.
