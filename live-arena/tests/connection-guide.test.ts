@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LOCAL_CLIENTS, agentSetupBrief } from "../src/connection-guide";
+import { LOCAL_CLIENTS, agentSetupBrief, connectionDialogMarkup } from "../src/connection-guide";
 import { readProfile } from "../src/profiles";
 
 test("setup briefs use only supported routes and local clients", () => {
@@ -31,4 +31,11 @@ test("arbitrary private text and prototype keys cannot become setup guidance", (
     assert.throws(() => agentSetupBrief("harness", value));
   for (const kind of ["bot", "human", "PRIVATE_KEY_SENTINEL", "__proto__", ""])
     assert.throws(() => agentSetupBrief(kind, "chatgpt_codex"));
+});
+
+
+test("model catalogue markup exposes count, zero-state and reset affordances", () => {
+  assert.match(connectionDialogMarkup, /id="model-match-status" role="status"/);
+  assert.match(connectionDialogMarkup, /id="model-empty-state" role="status"[^>]*hidden/);
+  assert.match(connectionDialogMarkup, /id="clear-model-filters" type="button" hidden>Clear model filters<\/button>/);
 });
