@@ -6,9 +6,18 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "no-referrer" },
-        { "key": "X-Frame-Options", "value": "DENY" },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
         {
           "key": "Permissions-Policy",
           "value": "camera=(), microphone=(), geolocation=()"
@@ -21,7 +30,12 @@
     },
     {
       "source": "/:file*.md",
-      "headers": [{ "key": "Content-Type", "value": "text/markdown; charset=utf-8" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/markdown; charset=utf-8"
+        }
+      ]
     },
     {
       "source": "/assets/(.*)",
@@ -34,16 +48,289 @@
     }
   ],
   "rewrites": [
-    { "source": "/duels", "destination": "/duels.html" },
-    { "source": "/duels/", "destination": "/duels.html" },
-    { "source": "/about", "destination": "/about.html" },
-    { "source": "/about/", "destination": "/about.html" },
-    { "source": "/games", "destination": "/games.html" },
-    { "source": "/games/", "destination": "/games.html" },
-    { "source": "/verify", "destination": "/verify.html" },
-    { "source": "/verify/", "destination": "/verify.html" },
-    { "source": "/guide", "destination": "/guide.html" },
-    { "source": "/guide/", "destination": "/guide.html" },
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    {
+      "source": "/duels",
+      "destination": "/duels.html"
+    },
+    {
+      "source": "/duels/",
+      "destination": "/duels.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/about/",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/games",
+      "destination": "/games.html"
+    },
+    {
+      "source": "/games/",
+      "destination": "/games.html"
+    },
+    {
+      "source": "/verify",
+      "destination": "/verify.html"
+    },
+    {
+      "source": "/verify/",
+      "destination": "/verify.html"
+    },
+    {
+      "source": "/guide",
+      "destination": "/guide.html"
+    },
+    {
+      "source": "/guide/",
+      "destination": "/guide.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-0-0",
+      "destination": "/matches/launch-ttt-v1-01-0-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-0-0/",
+      "destination": "/matches/launch-ttt-v1-01-0-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-0-1",
+      "destination": "/matches/launch-ttt-v1-01-0-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-0-1/",
+      "destination": "/matches/launch-ttt-v1-01-0-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-1-0",
+      "destination": "/matches/launch-ttt-v1-01-1-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-1-0/",
+      "destination": "/matches/launch-ttt-v1-01-1-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-1-1",
+      "destination": "/matches/launch-ttt-v1-01-1-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-1-1/",
+      "destination": "/matches/launch-ttt-v1-01-1-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-2-0",
+      "destination": "/matches/launch-ttt-v1-01-2-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-2-0/",
+      "destination": "/matches/launch-ttt-v1-01-2-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-2-1",
+      "destination": "/matches/launch-ttt-v1-01-2-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-2-1/",
+      "destination": "/matches/launch-ttt-v1-01-2-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-3-0",
+      "destination": "/matches/launch-ttt-v1-01-3-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-3-0/",
+      "destination": "/matches/launch-ttt-v1-01-3-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-3-1",
+      "destination": "/matches/launch-ttt-v1-01-3-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-01-3-1/",
+      "destination": "/matches/launch-ttt-v1-01-3-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-0-0",
+      "destination": "/matches/launch-ttt-v1-02-0-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-0-0/",
+      "destination": "/matches/launch-ttt-v1-02-0-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-0-1",
+      "destination": "/matches/launch-ttt-v1-02-0-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-0-1/",
+      "destination": "/matches/launch-ttt-v1-02-0-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-1-0",
+      "destination": "/matches/launch-ttt-v1-02-1-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-1-0/",
+      "destination": "/matches/launch-ttt-v1-02-1-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-1-1",
+      "destination": "/matches/launch-ttt-v1-02-1-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-1-1/",
+      "destination": "/matches/launch-ttt-v1-02-1-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-2-0",
+      "destination": "/matches/launch-ttt-v1-02-2-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-2-0/",
+      "destination": "/matches/launch-ttt-v1-02-2-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-2-1",
+      "destination": "/matches/launch-ttt-v1-02-2-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-2-1/",
+      "destination": "/matches/launch-ttt-v1-02-2-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-3-0",
+      "destination": "/matches/launch-ttt-v1-02-3-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-3-0/",
+      "destination": "/matches/launch-ttt-v1-02-3-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-3-1",
+      "destination": "/matches/launch-ttt-v1-02-3-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-02-3-1/",
+      "destination": "/matches/launch-ttt-v1-02-3-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-0-0",
+      "destination": "/matches/launch-ttt-v1-12-0-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-0-0/",
+      "destination": "/matches/launch-ttt-v1-12-0-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-0-1",
+      "destination": "/matches/launch-ttt-v1-12-0-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-0-1/",
+      "destination": "/matches/launch-ttt-v1-12-0-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-1-0",
+      "destination": "/matches/launch-ttt-v1-12-1-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-1-0/",
+      "destination": "/matches/launch-ttt-v1-12-1-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-1-1",
+      "destination": "/matches/launch-ttt-v1-12-1-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-1-1/",
+      "destination": "/matches/launch-ttt-v1-12-1-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-2-0",
+      "destination": "/matches/launch-ttt-v1-12-2-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-2-0/",
+      "destination": "/matches/launch-ttt-v1-12-2-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-2-1",
+      "destination": "/matches/launch-ttt-v1-12-2-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-2-1/",
+      "destination": "/matches/launch-ttt-v1-12-2-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-3-0",
+      "destination": "/matches/launch-ttt-v1-12-3-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-3-0/",
+      "destination": "/matches/launch-ttt-v1-12-3-0.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-3-1",
+      "destination": "/matches/launch-ttt-v1-12-3-1.html"
+    },
+    {
+      "source": "/matches/launch-ttt-v1-12-3-1/",
+      "destination": "/matches/launch-ttt-v1-12-3-1.html"
+    },
+    {
+      "source": "/circuits/launch-ttt-v1",
+      "destination": "/circuits/launch-ttt-v1.html"
+    },
+    {
+      "source": "/circuits/launch-ttt-v1/",
+      "destination": "/circuits/launch-ttt-v1.html"
+    },
+    {
+      "source": "/agents/launch-ttt-v1/random-v1",
+      "destination": "/agents/launch-ttt-v1/random-v1.html"
+    },
+    {
+      "source": "/agents/launch-ttt-v1/random-v1/",
+      "destination": "/agents/launch-ttt-v1/random-v1.html"
+    },
+    {
+      "source": "/agents/launch-ttt-v1/tactics-v1",
+      "destination": "/agents/launch-ttt-v1/tactics-v1.html"
+    },
+    {
+      "source": "/agents/launch-ttt-v1/tactics-v1/",
+      "destination": "/agents/launch-ttt-v1/tactics-v1.html"
+    },
+    {
+      "source": "/agents/launch-ttt-v1/perfect-ttt-v1",
+      "destination": "/agents/launch-ttt-v1/perfect-ttt-v1.html"
+    },
+    {
+      "source": "/agents/launch-ttt-v1/perfect-ttt-v1/",
+      "destination": "/agents/launch-ttt-v1/perfect-ttt-v1.html"
+    },
+    {
+      "source": "/circuits",
+      "destination": "/circuits.html"
+    },
+    {
+      "source": "/circuits/",
+      "destination": "/circuits.html"
+    },
+    {
+      "source": "/developers",
+      "destination": "/developers.html"
+    },
+    {
+      "source": "/developers/",
+      "destination": "/developers.html"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

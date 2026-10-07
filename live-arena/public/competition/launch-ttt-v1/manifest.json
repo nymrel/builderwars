@@ -1,0 +1,388 @@
+{
+  "schema": "builderwars.public-circuit.v1",
+  "id": "launch-ttt-v1",
+  "title": "The Launch Circuit",
+  "description": "A complete, replayable standard tic-tac-toe round robin between three declared local baselines. Bring your own contender to the open practice challenge.",
+  "createdAt": "2026-10-06T00:00:00.000Z",
+  "rules": {
+    "kind": "tictactoe",
+    "name": "Tic-tac-toe",
+    "rows": 3,
+    "cols": 3,
+    "connect": 3,
+    "gravity": false
+  },
+  "status": "completed",
+  "referee": {
+    "digest": "7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539",
+    "integrity": "sha256-e3nKACd5R0x2k6LDQ2ocTIibefltfdIk5DmGWfJi5Tk=",
+    "file": "competition/launch-ttt-v1/referee/7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539.mjs",
+    "verifier": "competition/launch-ttt-v1/referee/verify-7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539.mjs"
+  },
+  "source": {
+    "digest": "0f5dbe7b6d3d7b0fb541dfca34a129120087e96ddcf8044909343d1cf23b8383",
+    "files": [
+      {
+        "path": "src/competition-baselines.ts",
+        "digest": "7e5395b2548c2e54a7a063840146d2c7a8446ce63037d0b2de1192411559f530"
+      },
+      {
+        "path": "src/public-circuit.ts",
+        "digest": "1c771617a46d84e324b10f2c5dd1a242f91de244bc62c28b767e9d490a0bccb4"
+      },
+      {
+        "path": "scripts/generate-public-circuit.ts",
+        "digest": "851958fbad70c7fa0dbd1da62e0c94f0a4badbbb1e42e70151ae7fc8f5449ec9"
+      },
+      {
+        "path": "src/self-improvement.ts",
+        "digest": "6e58ca72fe06ab5d053de204ef77f7c86b795ed461871fed4f0d8171871d05e4"
+      },
+      {
+        "path": "package-lock.json",
+        "digest": "41a3ddb0b322cc2edcbe1cf52a455e381c717b312bcae705a53669ca1ab7abe8"
+      }
+    ]
+  },
+  "agents": [
+    {
+      "id": "random-v1",
+      "name": "Seeded Wildcard",
+      "description": "Uniform legal moves from a declared PRNG seed.",
+      "version": "48150f885f5c146f3283401f426b1ed81560996f603a7403cb7dfdc3a32216da",
+      "source": "0f5dbe7b6d3d7b0fb541dfca34a129120087e96ddcf8044909343d1cf23b8383",
+      "assistance": "Authoritative legal-move list; no lookahead",
+      "parameters": "Mulberry32; one random draw per decision"
+    },
+    {
+      "id": "tactics-v1",
+      "name": "Tactician",
+      "description": "The browser's frozen two-ply tactical baseline.",
+      "version": "3442e7f1add5a9c00b52331baa2dbe17002ad005cdc14db5fb5bcf02b7cf90f5",
+      "source": "0f5dbe7b6d3d7b0fb541dfca34a129120087e96ddcf8044909343d1cf23b8383",
+      "assistance": "Legal moves, two-ply search, fixed material/center evaluation",
+      "parameters": "Deterministic canonical tie-break; no learning"
+    },
+    {
+      "id": "perfect-ttt-v1",
+      "name": "Tic-tac-toe Oracle",
+      "description": "Full minimax over standard tic-tac-toe, independently checked on every reachable unfinished position.",
+      "version": "35dab9d9af2d35cc7a459b319a3796f80644dc6c1825ffe6a1ee5ae7c62fe12b",
+      "source": "0f5dbe7b6d3d7b0fb541dfca34a129120087e96ddcf8044909343d1cf23b8383",
+      "assistance": "Legal moves and exhaustive minimax search",
+      "parameters": "Deterministic canonical tie-break; standard tic-tac-toe only"
+    }
+  ],
+  "matches": [
+    {
+      "id": "launch-ttt-v1-01-0-0",
+      "agents": [
+        "random-v1",
+        "tactics-v1"
+      ],
+      "seed": 20261006,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.json",
+      "digest": "c0b166dd1ab20b6e0caf1422b6d29c9f1d60ecd62ca9ba3a74a8a844eac1c912",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.jsonl",
+      "proofDigest": "cbd65dc05eaac9cc39aa586458b4b485d18961be53956175f6257840170394b0"
+    },
+    {
+      "id": "launch-ttt-v1-01-0-1",
+      "agents": [
+        "tactics-v1",
+        "random-v1"
+      ],
+      "seed": 20261006,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-1.json",
+      "digest": "8390c8e05634781136fff2593812e1a906fbb62a2e42fedf1b607e693cc3a89f",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-1.jsonl",
+      "proofDigest": "dd030b07573f996ad0c5cb2eac8c2b640f5360bdf473eea381a274afd56b23bf"
+    },
+    {
+      "id": "launch-ttt-v1-01-1-0",
+      "agents": [
+        "random-v1",
+        "tactics-v1"
+      ],
+      "seed": 817263,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-0.json",
+      "digest": "1356bfce8375385509438ff451f5fe5efa8217d778ddc79169c1a2ce27e6032d",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-0.jsonl",
+      "proofDigest": "aae5fc0d948b96d07b25ace81d40d26204eb342a701fd713be580ca19bb73c1d"
+    },
+    {
+      "id": "launch-ttt-v1-01-1-1",
+      "agents": [
+        "tactics-v1",
+        "random-v1"
+      ],
+      "seed": 817263,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-1.json",
+      "digest": "85c8afeef0a221b215480d24f937ec860ba118ee92f99e63ec061fd6f6fa7225",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-1.jsonl",
+      "proofDigest": "85469cb3503a0bd51cf567ef466211d7102adde7d43cb328f5c29d20c4cfbf0c"
+    },
+    {
+      "id": "launch-ttt-v1-01-2-0",
+      "agents": [
+        "random-v1",
+        "tactics-v1"
+      ],
+      "seed": 341729,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-0.json",
+      "digest": "3b1afd3fac5ba5c064c306d1aa92dbc484bec9fcc3c067150e1de2b4059c6cf3",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-0.jsonl",
+      "proofDigest": "d72f51a20152c3c1b76d1aa63075545a02356814232f6e85ac0b1fdcde123a74"
+    },
+    {
+      "id": "launch-ttt-v1-01-2-1",
+      "agents": [
+        "tactics-v1",
+        "random-v1"
+      ],
+      "seed": 341729,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-1.json",
+      "digest": "3d021cfb392e37892a40366f799bcbc4bae8b00ae47f5f6cef7522ee7c4f1fb8",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-1.jsonl",
+      "proofDigest": "8688574b675cbf3b8a1c17a94199dc610d0f0d93f7083426c270ad041b67306a"
+    },
+    {
+      "id": "launch-ttt-v1-01-3-0",
+      "agents": [
+        "random-v1",
+        "tactics-v1"
+      ],
+      "seed": 991337,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-0.json",
+      "digest": "4bac4a618f110be244fb815da6ef969ba28d6ceaf55ab5dc57b8f572847cfcaf",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-0.jsonl",
+      "proofDigest": "6f645a81f8099f53cce51911338bf785507ee5678b4ad8386d607145ed6cc7d4"
+    },
+    {
+      "id": "launch-ttt-v1-01-3-1",
+      "agents": [
+        "tactics-v1",
+        "random-v1"
+      ],
+      "seed": 991337,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-1.json",
+      "digest": "43ec72a512bd0683704fa69194f8f6b2b81fa4d6cc20f74b308fc7547629034a",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-1.jsonl",
+      "proofDigest": "f6ecf22c811b7279cc55a110e8d1a1895c4ac2f8835e475b52263931644f5cab"
+    },
+    {
+      "id": "launch-ttt-v1-02-0-0",
+      "agents": [
+        "random-v1",
+        "perfect-ttt-v1"
+      ],
+      "seed": 20261006,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-0.json",
+      "digest": "29a4031d3a947d18957b09596329b0197705823ae1919da5675509cd75e7bb02",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-0.jsonl",
+      "proofDigest": "8d8d32f547269f25b23fc9feb2ec15d489ed067f27ab6531b045560546655b42"
+    },
+    {
+      "id": "launch-ttt-v1-02-0-1",
+      "agents": [
+        "perfect-ttt-v1",
+        "random-v1"
+      ],
+      "seed": 20261006,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-1.json",
+      "digest": "2c49d071918e9b05639284ab18fa4652ea1c8773be98149efa6d77137df2f45f",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-1.jsonl",
+      "proofDigest": "ade2e2a77c1353e329d05161e88e717f6a7765dda75baeb09a8038173c1c1206"
+    },
+    {
+      "id": "launch-ttt-v1-02-1-0",
+      "agents": [
+        "random-v1",
+        "perfect-ttt-v1"
+      ],
+      "seed": 817263,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-0.json",
+      "digest": "a9c0707d13e36e246436ec66d9b556a16af05036959db234d820519aac8f44f9",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-0.jsonl",
+      "proofDigest": "ee32872f54a791bf49519a584cefa391797649155ff3dd399301bdd9931852b3"
+    },
+    {
+      "id": "launch-ttt-v1-02-1-1",
+      "agents": [
+        "perfect-ttt-v1",
+        "random-v1"
+      ],
+      "seed": 817263,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-1.json",
+      "digest": "c43beab47f07b6039f5a07d081d1f91919d021dc2e586232648ba3ddc6053f94",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-1.jsonl",
+      "proofDigest": "e98329c63135bc9f8c279e4a31b2ec01b7a5c4c325a65d02992e727b5c0077c4"
+    },
+    {
+      "id": "launch-ttt-v1-02-2-0",
+      "agents": [
+        "random-v1",
+        "perfect-ttt-v1"
+      ],
+      "seed": 341729,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-0.json",
+      "digest": "999935e790d9bacaa6220cc14fd9c1c4dfa767ffa0ca4da397b152d3049d0ada",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-0.jsonl",
+      "proofDigest": "5cd0b9f1667a1d98b76ce348a6ebc1f19dbbd992f755c481d6e8a317f352a504"
+    },
+    {
+      "id": "launch-ttt-v1-02-2-1",
+      "agents": [
+        "perfect-ttt-v1",
+        "random-v1"
+      ],
+      "seed": 341729,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-1.json",
+      "digest": "9b42fde2597581b287c2098e3d37123b8291ddd1cfec9227ed58d1e6926eaba0",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-1.jsonl",
+      "proofDigest": "32fde2813699d9bc648e8b8b6916e10fb0c4dfe8f28da99266ec138b1105c8c4"
+    },
+    {
+      "id": "launch-ttt-v1-02-3-0",
+      "agents": [
+        "random-v1",
+        "perfect-ttt-v1"
+      ],
+      "seed": 991337,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-0.json",
+      "digest": "e3cd55fe8693a498eee88af653073a888454203ab1f617aebac487d294acec90",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-0.jsonl",
+      "proofDigest": "453c650e8ea8b45c3b6f795c319cca86d5be500396beb2e32369ecbe7b2b3694"
+    },
+    {
+      "id": "launch-ttt-v1-02-3-1",
+      "agents": [
+        "perfect-ttt-v1",
+        "random-v1"
+      ],
+      "seed": 991337,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-1.json",
+      "digest": "ad20f5c6199639ffd63c83a22e6ddc076cc55b053e1acd7e98b7a09dd2e09032",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-1.jsonl",
+      "proofDigest": "3c674521f925fa3a5fe0352a0375ead30a430c7b3fbfbb193b1a66c6fe9b1328"
+    },
+    {
+      "id": "launch-ttt-v1-12-0-0",
+      "agents": [
+        "tactics-v1",
+        "perfect-ttt-v1"
+      ],
+      "seed": 20261006,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-0.json",
+      "digest": "3fa85979153073c08df30bbb97175531f683a3f63badc1b10e51d1d9a22462b8",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-0.jsonl",
+      "proofDigest": "98f3aff466f3e031d74f0617c78451d78b89a2c6d55992e2c583796f521ea8de"
+    },
+    {
+      "id": "launch-ttt-v1-12-0-1",
+      "agents": [
+        "perfect-ttt-v1",
+        "tactics-v1"
+      ],
+      "seed": 20261006,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-1.json",
+      "digest": "5dfdbc287650ca8f474d4fea6c7220ff0ce8e7f456c2a9f7d6b0a6e31a587515",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-1.jsonl",
+      "proofDigest": "0f7d3c06c87c22e7a423287035147ab7532b95b7c1f987e16f7bf19edc831081"
+    },
+    {
+      "id": "launch-ttt-v1-12-1-0",
+      "agents": [
+        "tactics-v1",
+        "perfect-ttt-v1"
+      ],
+      "seed": 817263,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-0.json",
+      "digest": "e5e180b4676b22b68d54b8cb0ae4b56b74aa7ed2e9ab44c35235d3d18dea5821",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-0.jsonl",
+      "proofDigest": "7137a9108f15173863b95cab1c9f444c8244b1582dd102709dc3cca76754ae6b"
+    },
+    {
+      "id": "launch-ttt-v1-12-1-1",
+      "agents": [
+        "perfect-ttt-v1",
+        "tactics-v1"
+      ],
+      "seed": 817263,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-1.json",
+      "digest": "2fc7e5d996c9a5bf1447a5e30935f2ae2f652824acd2be59c6cbb0071a156818",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-1.jsonl",
+      "proofDigest": "a3c7384639820514c244bb6fd1e309ba669ac6a6a4f3fdae6f78879a749b0bf0"
+    },
+    {
+      "id": "launch-ttt-v1-12-2-0",
+      "agents": [
+        "tactics-v1",
+        "perfect-ttt-v1"
+      ],
+      "seed": 341729,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-0.json",
+      "digest": "a9c756c0bc589189388b6ea74a3f8f84a81dde0bab7256b501d31c799af5af57",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-0.jsonl",
+      "proofDigest": "7e2e4f422deb3f6a6c54947bbb01634ab75943a50621b8e073aec056bd7707f9"
+    },
+    {
+      "id": "launch-ttt-v1-12-2-1",
+      "agents": [
+        "perfect-ttt-v1",
+        "tactics-v1"
+      ],
+      "seed": 341729,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-1.json",
+      "digest": "d4663bea3839b401a6308142601929b0cbb0c2c50f197e2fe5542a162ceb37b0",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-1.jsonl",
+      "proofDigest": "dd5b34b3b28f2e14e94562bad2708569f7d8d7203242e87ac1636ce923e13d6c"
+    },
+    {
+      "id": "launch-ttt-v1-12-3-0",
+      "agents": [
+        "tactics-v1",
+        "perfect-ttt-v1"
+      ],
+      "seed": 991337,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-0.json",
+      "digest": "c5343f94d3bb9394d343c0f60bbddbbde6a5ecb9f2cd50834db03cc1af434b42",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-0.jsonl",
+      "proofDigest": "9d356c691696dcf9b9abc38d55f1368694ca9556ed2d8c800fc2a4b56389a2c4"
+    },
+    {
+      "id": "launch-ttt-v1-12-3-1",
+      "agents": [
+        "perfect-ttt-v1",
+        "tactics-v1"
+      ],
+      "seed": 991337,
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-1.json",
+      "digest": "cac54ec51a8db8f8794d07918dcecd48455c69fde521aec065f1883437f6518a",
+      "proof": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-1.jsonl",
+      "proofDigest": "ef0601595c611ec1323bf087bc442532c1aa256f14700a27433cb4618959a305"
+    }
+  ],
+  "seeds": [
+    20261006,
+    817263,
+    341729,
+    991337
+  ],
+  "scoring": {
+    "win": 1,
+    "draw": 0.5,
+    "loss": 0,
+    "capped": "void",
+    "failed": "void"
+  },
+  "qualification": {
+    "schema": "builderwars.tictactoe-oracle-qualification.v1",
+    "reachableStates": 5478,
+    "assessedNonterminalStates": 4520,
+    "illegalOrSuboptimalMoves": 0,
+    "initialPositionValue": "draw",
+    "method": "Exhaustive reachable-state comparison against independent bitboard minimax",
+    "scope": "standard tic-tac-toe only"
+  }
+}

@@ -24,9 +24,9 @@ with sync_playwright() as p:
     page.locator("#board .cell").first.wait_for()
 
     # First play is explicit: human play, bot exhibition, or own contender.
-    expect(page.locator("#play-human")).to_have_text("Play against a bot ↗")
+    expect(page.locator("#play-human")).to_have_text("Play yourself ↗")
     expect(page.locator("#quickplay")).to_have_text("Watch bots play")
-    expect(page.locator("#connect-first")).to_have_text("Connect my agent")
+    expect(page.locator("#connect-first")).to_have_text("Enter your agent")
 
     # Human helper is game-specific; Tactician work is offloaded to a Worker.
     page.locator('[data-game="tictactoe"]').click()
