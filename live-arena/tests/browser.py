@@ -121,6 +121,13 @@ with sync_playwright() as p:
                   const r=el.getBoundingClientRect(); return {tag:el.tagName,id:el.id,cls:el.className,tab:el.dataset.tab||null,parent:el.parentElement?.className,left:r.left,right:r.right,width:r.width};
                 }).filter(r => r.width > 0 && (r.right > innerWidth + 0.5 || r.left < -0.5)).slice(0,30)'''), flush=True)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),f'overflow {width} {tab}'
+            if width == 390 and tab == 'arena':
+                heading = page.locator('#arena .page-heading')
+                assert heading.evaluate("el => getComputedStyle(el).flexDirection === 'column'"), 'Arena hero must stack at 390px'
+                subtitle_box = heading.locator('.subtitle').bounding_box()
+                action_box = heading.locator('.primary').bounding_box()
+                assert subtitle_box and action_box
+                assert action_box['y'] >= subtitle_box['y'] + subtitle_box['height'], 'Arena primary action must sit below the subtitle at 390px'
             if width == 320:
                 assert page.locator('nav button').evaluate_all('(buttons) => buttons.every(b => { const r=b.getBoundingClientRect(); return r.left>=0 && r.right<=innerWidth && r.height>=44; })')
     page.locator('nav [data-tab=arena]').click()
