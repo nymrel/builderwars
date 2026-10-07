@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 
@@ -20,7 +20,7 @@ async function loadConfig(): Promise<VercelConfig> {
   return JSON.parse(await readFile(path.join(root, "vercel.json"), "utf8")) as VercelConfig;
 }
 
-async function serveLikeVercel(t: test.TestContext) {
+async function serveLikeVercel(t: TestContext) {
   const config = await loadConfig();
   const rewrites = config.rewrites ?? [];
 
