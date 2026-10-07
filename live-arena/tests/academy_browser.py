@@ -95,6 +95,10 @@ with sync_playwright() as p:
     # Readiness snapshots the selected nondefault Tokens/move cap before dispatch.
     readiness_caps = []
     page.unroute("https://openrouter.ai/api/v1/chat/completions")
+    page.locator("nav [data-tab=arena]").click()
+    settings = page.locator(".match-settings").filter(has=page.locator("#max-tokens"))
+    if not settings.evaluate("el => el.open"):
+        settings.locator("summary").click()
     def readiness_move(route):
         body = json.loads(route.request.post_data)
         readiness_caps.append(body["max_tokens"])
