@@ -4,3 +4,9 @@ __pycache__/
 *.key.pem
 *.unsafe-test-only.key.pem
 output/launch-evidence/
+
+# Local competition/provider secrets and generated live evidence
+.env
+.env.*
+!.env.example
+nebius-live-evidence/
