@@ -128,9 +128,27 @@ with sync_playwright() as p:
     page.locator("nav [data-tab=forge]").click()
     rules = json.loads(contents(share("#export-rules")))
     assert rules["kind"] == "custom"
+    page.locator("nav [data-tab=compete]").click()
+    page.locator('#compete a[href="#forge"]').click()
+    expect(page.locator("#forge")).to_be_visible()
+    page.locator("nav [data-tab=compete]").click()
+    page.locator('#compete a[href="#duel"]').click()
+    expect(page.locator("#duel")).to_be_visible()
     page.locator("nav [data-tab=evals]").click()
     evaluation = json.loads(contents(share("#export-series")))
     assert "matchPackages" in evaluation
+    expect(page.locator('#eval-discovery .eval-card')).to_have_count(50)
+    expect(page.locator('[data-plan-status]')).to_contain_text('lasts for this session')
+    assert page.locator('#eval-discovery a[href="https://builderwars.com/rankings"]').count()==1
+    page.locator('[data-eval-search]').fill('Berkeley')
+    expect(page.locator('#eval-discovery .eval-card')).to_have_count(1)
+    assert page.locator('#eval-discovery .eval-card h2 a').get_attribute('href')=='https://builderwars.com/evals/bfcl'
+    page.locator('[data-shortlist="bfcl"]').click()
+    plan=json.loads(contents(share('[data-plan-export]')))
+    assert plan['evaluations'][0]['id']=='bfcl' and plan['model']['provider'] is None
+    assert page.evaluate("localStorage.getItem('builderwars.eval-shortlist.v1')") is None
+    page.locator('[data-board-eval-scroll]').click()
+    page.wait_for_function("document.activeElement===document.querySelector('#board-evaluation h2')")
     page.locator("nav [data-tab=arena]").click()
 
     # Cancellation removes only its file. Ambiguous native failure retains handoff bytes.

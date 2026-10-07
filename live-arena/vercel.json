@@ -329,6 +329,430 @@
       "destination": "/developers.html"
     },
     {
+      "source": "/evals",
+      "destination": "/evals.html"
+    },
+    {
+      "source": "/evals/",
+      "destination": "/evals.html"
+    },
+    {
+      "source": "/rankings",
+      "destination": "/rankings.html"
+    },
+    {
+      "source": "/rankings/",
+      "destination": "/rankings.html"
+    },
+    {
+      "source": "/compete",
+      "destination": "/compete.html"
+    },
+    {
+      "source": "/compete/",
+      "destination": "/compete.html"
+    },
+    {
+      "source": "/evals/swe-bench-verified",
+      "destination": "/evals/swe-bench-verified.html"
+    },
+    {
+      "source": "/evals/swe-bench-verified/",
+      "destination": "/evals/swe-bench-verified.html"
+    },
+    {
+      "source": "/evals/swe-bench-live",
+      "destination": "/evals/swe-bench-live.html"
+    },
+    {
+      "source": "/evals/swe-bench-live/",
+      "destination": "/evals/swe-bench-live.html"
+    },
+    {
+      "source": "/evals/livecodebench",
+      "destination": "/evals/livecodebench.html"
+    },
+    {
+      "source": "/evals/livecodebench/",
+      "destination": "/evals/livecodebench.html"
+    },
+    {
+      "source": "/evals/evalplus",
+      "destination": "/evals/evalplus.html"
+    },
+    {
+      "source": "/evals/evalplus/",
+      "destination": "/evals/evalplus.html"
+    },
+    {
+      "source": "/evals/bigcodebench",
+      "destination": "/evals/bigcodebench.html"
+    },
+    {
+      "source": "/evals/bigcodebench/",
+      "destination": "/evals/bigcodebench.html"
+    },
+    {
+      "source": "/evals/terminal-bench",
+      "destination": "/evals/terminal-bench.html"
+    },
+    {
+      "source": "/evals/terminal-bench/",
+      "destination": "/evals/terminal-bench.html"
+    },
+    {
+      "source": "/evals/scicode",
+      "destination": "/evals/scicode.html"
+    },
+    {
+      "source": "/evals/scicode/",
+      "destination": "/evals/scicode.html"
+    },
+    {
+      "source": "/evals/aider-polyglot",
+      "destination": "/evals/aider-polyglot.html"
+    },
+    {
+      "source": "/evals/aider-polyglot/",
+      "destination": "/evals/aider-polyglot.html"
+    },
+    {
+      "source": "/evals/bfcl",
+      "destination": "/evals/bfcl.html"
+    },
+    {
+      "source": "/evals/bfcl/",
+      "destination": "/evals/bfcl.html"
+    },
+    {
+      "source": "/evals/tau-bench",
+      "destination": "/evals/tau-bench.html"
+    },
+    {
+      "source": "/evals/tau-bench/",
+      "destination": "/evals/tau-bench.html"
+    },
+    {
+      "source": "/evals/tool-sandbox",
+      "destination": "/evals/tool-sandbox.html"
+    },
+    {
+      "source": "/evals/tool-sandbox/",
+      "destination": "/evals/tool-sandbox.html"
+    },
+    {
+      "source": "/evals/webarena",
+      "destination": "/evals/webarena.html"
+    },
+    {
+      "source": "/evals/webarena/",
+      "destination": "/evals/webarena.html"
+    },
+    {
+      "source": "/evals/visual-webarena",
+      "destination": "/evals/visual-webarena.html"
+    },
+    {
+      "source": "/evals/visual-webarena/",
+      "destination": "/evals/visual-webarena.html"
+    },
+    {
+      "source": "/evals/workarena",
+      "destination": "/evals/workarena.html"
+    },
+    {
+      "source": "/evals/workarena/",
+      "destination": "/evals/workarena.html"
+    },
+    {
+      "source": "/evals/mind2web",
+      "destination": "/evals/mind2web.html"
+    },
+    {
+      "source": "/evals/mind2web/",
+      "destination": "/evals/mind2web.html"
+    },
+    {
+      "source": "/evals/osworld",
+      "destination": "/evals/osworld.html"
+    },
+    {
+      "source": "/evals/osworld/",
+      "destination": "/evals/osworld.html"
+    },
+    {
+      "source": "/evals/gaia",
+      "destination": "/evals/gaia.html"
+    },
+    {
+      "source": "/evals/gaia/",
+      "destination": "/evals/gaia.html"
+    },
+    {
+      "source": "/evals/mmlu-pro",
+      "destination": "/evals/mmlu-pro.html"
+    },
+    {
+      "source": "/evals/mmlu-pro/",
+      "destination": "/evals/mmlu-pro.html"
+    },
+    {
+      "source": "/evals/mmlu",
+      "destination": "/evals/mmlu.html"
+    },
+    {
+      "source": "/evals/mmlu/",
+      "destination": "/evals/mmlu.html"
+    },
+    {
+      "source": "/evals/gpqa",
+      "destination": "/evals/gpqa.html"
+    },
+    {
+      "source": "/evals/gpqa/",
+      "destination": "/evals/gpqa.html"
+    },
+    {
+      "source": "/evals/humanitys-last-exam",
+      "destination": "/evals/humanitys-last-exam.html"
+    },
+    {
+      "source": "/evals/humanitys-last-exam/",
+      "destination": "/evals/humanitys-last-exam.html"
+    },
+    {
+      "source": "/evals/big-bench-hard",
+      "destination": "/evals/big-bench-hard.html"
+    },
+    {
+      "source": "/evals/big-bench-hard/",
+      "destination": "/evals/big-bench-hard.html"
+    },
+    {
+      "source": "/evals/arc-agi-2",
+      "destination": "/evals/arc-agi-2.html"
+    },
+    {
+      "source": "/evals/arc-agi-2/",
+      "destination": "/evals/arc-agi-2.html"
+    },
+    {
+      "source": "/evals/arc-agi-3",
+      "destination": "/evals/arc-agi-3.html"
+    },
+    {
+      "source": "/evals/arc-agi-3/",
+      "destination": "/evals/arc-agi-3.html"
+    },
+    {
+      "source": "/evals/gsm8k",
+      "destination": "/evals/gsm8k.html"
+    },
+    {
+      "source": "/evals/gsm8k/",
+      "destination": "/evals/gsm8k.html"
+    },
+    {
+      "source": "/evals/math",
+      "destination": "/evals/math.html"
+    },
+    {
+      "source": "/evals/math/",
+      "destination": "/evals/math.html"
+    },
+    {
+      "source": "/evals/matharena",
+      "destination": "/evals/matharena.html"
+    },
+    {
+      "source": "/evals/matharena/",
+      "destination": "/evals/matharena.html"
+    },
+    {
+      "source": "/evals/mmmu",
+      "destination": "/evals/mmmu.html"
+    },
+    {
+      "source": "/evals/mmmu/",
+      "destination": "/evals/mmmu.html"
+    },
+    {
+      "source": "/evals/mmmu-pro",
+      "destination": "/evals/mmmu-pro.html"
+    },
+    {
+      "source": "/evals/mmmu-pro/",
+      "destination": "/evals/mmmu-pro.html"
+    },
+    {
+      "source": "/evals/mathvista",
+      "destination": "/evals/mathvista.html"
+    },
+    {
+      "source": "/evals/mathvista/",
+      "destination": "/evals/mathvista.html"
+    },
+    {
+      "source": "/evals/longbench",
+      "destination": "/evals/longbench.html"
+    },
+    {
+      "source": "/evals/longbench/",
+      "destination": "/evals/longbench.html"
+    },
+    {
+      "source": "/evals/ruler",
+      "destination": "/evals/ruler.html"
+    },
+    {
+      "source": "/evals/ruler/",
+      "destination": "/evals/ruler.html"
+    },
+    {
+      "source": "/evals/ifeval",
+      "destination": "/evals/ifeval.html"
+    },
+    {
+      "source": "/evals/ifeval/",
+      "destination": "/evals/ifeval.html"
+    },
+    {
+      "source": "/evals/harmbench",
+      "destination": "/evals/harmbench.html"
+    },
+    {
+      "source": "/evals/harmbench/",
+      "destination": "/evals/harmbench.html"
+    },
+    {
+      "source": "/evals/truthfulqa",
+      "destination": "/evals/truthfulqa.html"
+    },
+    {
+      "source": "/evals/truthfulqa/",
+      "destination": "/evals/truthfulqa.html"
+    },
+    {
+      "source": "/evals/textarena",
+      "destination": "/evals/textarena.html"
+    },
+    {
+      "source": "/evals/textarena/",
+      "destination": "/evals/textarena.html"
+    },
+    {
+      "source": "/evals/lm-eval-harness",
+      "destination": "/evals/lm-eval-harness.html"
+    },
+    {
+      "source": "/evals/lm-eval-harness/",
+      "destination": "/evals/lm-eval-harness.html"
+    },
+    {
+      "source": "/evals/inspect-ai",
+      "destination": "/evals/inspect-ai.html"
+    },
+    {
+      "source": "/evals/inspect-ai/",
+      "destination": "/evals/inspect-ai.html"
+    },
+    {
+      "source": "/evals/lighteval",
+      "destination": "/evals/lighteval.html"
+    },
+    {
+      "source": "/evals/lighteval/",
+      "destination": "/evals/lighteval.html"
+    },
+    {
+      "source": "/evals/opencompass",
+      "destination": "/evals/opencompass.html"
+    },
+    {
+      "source": "/evals/opencompass/",
+      "destination": "/evals/opencompass.html"
+    },
+    {
+      "source": "/evals/helm",
+      "destination": "/evals/helm.html"
+    },
+    {
+      "source": "/evals/helm/",
+      "destination": "/evals/helm.html"
+    },
+    {
+      "source": "/evals/vlmevalkit",
+      "destination": "/evals/vlmevalkit.html"
+    },
+    {
+      "source": "/evals/vlmevalkit/",
+      "destination": "/evals/vlmevalkit.html"
+    },
+    {
+      "source": "/evals/lmms-eval",
+      "destination": "/evals/lmms-eval.html"
+    },
+    {
+      "source": "/evals/lmms-eval/",
+      "destination": "/evals/lmms-eval.html"
+    },
+    {
+      "source": "/evals/browsergym",
+      "destination": "/evals/browsergym.html"
+    },
+    {
+      "source": "/evals/browsergym/",
+      "destination": "/evals/browsergym.html"
+    },
+    {
+      "source": "/evals/harbor",
+      "destination": "/evals/harbor.html"
+    },
+    {
+      "source": "/evals/harbor/",
+      "destination": "/evals/harbor.html"
+    },
+    {
+      "source": "/evals/ragas",
+      "destination": "/evals/ragas.html"
+    },
+    {
+      "source": "/evals/ragas/",
+      "destination": "/evals/ragas.html"
+    },
+    {
+      "source": "/evals/promptfoo",
+      "destination": "/evals/promptfoo.html"
+    },
+    {
+      "source": "/evals/promptfoo/",
+      "destination": "/evals/promptfoo.html"
+    },
+    {
+      "source": "/evals/deepeval",
+      "destination": "/evals/deepeval.html"
+    },
+    {
+      "source": "/evals/deepeval/",
+      "destination": "/evals/deepeval.html"
+    },
+    {
+      "source": "/evals/garak",
+      "destination": "/evals/garak.html"
+    },
+    {
+      "source": "/evals/garak/",
+      "destination": "/evals/garak.html"
+    },
+    {
+      "source": "/evals/open-spiel",
+      "destination": "/evals/open-spiel.html"
+    },
+    {
+      "source": "/evals/open-spiel/",
+      "destination": "/evals/open-spiel.html"
+    },
+    {
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }
