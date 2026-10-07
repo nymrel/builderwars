@@ -1,0 +1,34 @@
+✔ same seed gives identical initial world and full execution (16.373307ms)
+✔ world generator is rotationally symmetric with sixteen supplies (0.375556ms)
+✔ different seeds can produce different worlds (0.266181ms)
+✔ invalid configs fail closed (0.642217ms)
+✔ stale turn, wrong actor, unknown action, direction and fields rejected (0.513253ms)
+✔ invalid action and accepted transition never mutate input (0.616809ms)
+✔ out-of-bounds move and collect without supply rejected (0.453213ms)
+✔ manual actions remain declared manual in replay without identity attestation (1.148741ms)
+✔ all tested runs conserve supplies and stay in bounds at every turn (385.410534ms)
+✔ terminal worlds reject further actions (4.237374ms)
+✔ wait loop hits exact hard cap (3.3519ms)
+✔ export, parse and replay reproduce exact state (15.491178ms)
+✔ modified claimed scores and rules fail replay validation (15.103835ms)
+✔ reordered or removed actions fail replay (23.827437ms)
+✔ replay version, unknown fields and oversized action list refused (0.254844ms)
+✔ duplicate JSON keys, including escaped equivalents, refused (0.282285ms)
+✔ oversized, deep, unsafe-number and malformed JSON refused (0.600635ms)
+✔ JSON parser supports escapes and cannot prototype-pollute (0.157407ms)
+✔ both modes retain identical mechanics and separate mode in manifest (13.226716ms)
+✔ hive ledger aggregates verified runs and matches engine scores (28.109238ms)
+✔ hive ledger is order-independent and refuses tampered or malformed packets with reasons (41.033989ms)
+✔ hive ledger keeps manual source labels visible and bounds input fail-closed (1.037663ms)
+✔ hive ledger counts full canonical replay content once under renamed and reformatted files (56.85845ms)
+✔ hive ledger preserves real fingerprint collisions and serializes ties independently of input order (6.900095ms)
+✔ hive ledger serializes refusals, equal labels, and mode summaries in a stable full result (2.617598ms)
+✔ hive ledger bounds entries and refusal text without dropping valid imports or any refusal (11.78212ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 739.451197

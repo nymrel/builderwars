@@ -1,4 +1,9 @@
 import "./style.css";
+import "./competition.css";
+import "./launch.css";
+import { labMarkup, mountLab } from "./browser-lab";
+import { validateLabVersion, arenaLabVersion } from "./browser-lab-core";
+import { hubIcon, platformHero, competitionMarkup, resultsMarkup, renderHubResults } from "./competition-hub";
 import { duelMarkup, mountDuel } from "./duel-ui";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
@@ -34,7 +39,7 @@ import { READINESS_SUITES, runReadinessCheck, type ReadinessReceipt } from "./re
 import { agentWorldEventFile } from "./agentworld-events";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
-import { PracticeMemory, MEMORY_KEY, supportsLearning, scoreTactics, type MemorySnapshot, type MemoryContext } from "./learning";
+import { PracticeMemory, MEMORY_KEY, supportsLearning, scoreTactics, analyzePractice, type MemorySnapshot, type MemoryContext } from "./learning";
 import { DeviceStorage } from "./device-storage";
 import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } from "./resources";
 import { publicLinkOrigin } from "./public-links";
@@ -56,6 +61,7 @@ import {
   PROOF_LIMIT,
 } from "./runtime";
 
+let handledFragment: string | null = null;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const isNativeApp = Capacitor.isNativePlatform();
@@ -84,7 +90,7 @@ let disposeNative: (() => Promise<void>) | undefined;
 function ensureDeviceReady(agent?: Agent) {
   if (isNativeApp && (!nativeReady || !nativeActive))
     throw Error("Mobile lifecycle protection is not ready. Return to the app or restart it before playing.");
-  if (agent) validateNativeEndpoint(agent.kind, agent.endpoint, isNativeApp);
+  if (agent && !agent.localVersion) validateNativeEndpoint(agent.kind, agent.endpoint, isNativeApp);
 }
 async function exportPublicFile(name: string, blob: Blob, kind: ExportKind) {
   if (isNativeApp) {
@@ -160,6 +166,7 @@ let seriesMemory: MemorySnapshot | undefined;
 let seriesMemoryEnabled = false;
 // Match IDs are designated when created here, never inferred from imported labels.
 const practiceMatches = new WeakSet<RecordData>();
+let postGameCache: { record: RecordData; review: ReturnType<typeof analyzePractice> | null } | null = null;
 const learningReceipts: { recordId: string; ply: number; mode: MemoryContext["mode"]; digest: string; sources: string[] }[] = [];
 let currentLimits: MatchLimits | null = null;
 let contenderDeclarations = unknownDeclarations(), currentDeclarations = unknownDeclarations();
@@ -206,9 +213,10 @@ function freshRecord(): RecordData {
 }
 record = freshRecord();
 document.querySelector("#app")!.innerHTML = `
-<header class="topbar"><a class="wordmark" href="/" aria-label="BuilderWars home"><img src="/mark.svg" alt="" width="30" height="30">BuilderWars<span class="alpha">PLAY ALPHA</span></a><div class="toplinks"><a href="https://github.com/nymrel/builderwars" target="_blank" rel="noopener">Open source ↗</a><button id="connections">Connect models <span>↗</span></button></div></header>
-<div class="shell"><aside class="sidebar"><p class="nav-label">YOUR PLAYGROUND</p><nav aria-label="Main"><button data-tab="arena" class="active"><span>◈</span>Arena</button><button data-tab="duel"><span>⚔</span>Duel a friend</button><button data-tab="forge"><span>⌘</span>Forge</button><button data-tab="evals"><span>▥</span>Evals</button><button data-tab="watch"><span>◉</span>Watch</button><button data-tab="academy"><span>◇</span>Academy</button></nav><div class="sidebar-bottom"><span class="status-dot"></span> Built for builders<p>By <a href="https://nymrel.com">Nymrel ↗</a></p><span class="muted">Agents. Humans. A level board.</span></div></aside>
-<main><section id="arena" class="view"><div class="page-heading"><div><p class="eyebrow">THE NEXT MOVE IS YOURS</p><h1>Your agent. Your arena.</h1><p class="subtitle">Pick a game. Choose your contenders. Watch it unfold.</p></div><div class="result-actions first-play-actions"><button id="play-human" class="primary">Play against a bot <span>↗</span></button><button id="quickplay">Watch bots play</button><button id="duel-first">Duel a friend ⚔</button><button id="connect-first">Connect my agent</button></div></div>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="topbar"><a class="wordmark" href="/" aria-label="BuilderWars home"><img src="/mark.svg" alt="" width="32" height="32">Builder<span>Wars</span><span class="alpha">OPEN ARENA</span></a><div class="toplinks"><a href="/guide">The playbook ↗</a><a href="https://github.com/nymrel/builderwars" target="_blank" rel="noopener">Open source ↗</a><button id="connections">Connect a model <span>↗</span></button></div></header>
+<div class="shell"><aside class="sidebar"><p class="nav-label">THE COMPETITION</p><nav aria-label="Main"><button data-tab="arena" class="active" aria-current="page">${hubIcon("arena")}Arena</button><button data-tab="compete">${hubIcon("compete")}Compete</button><button data-tab="watch">${hubIcon("watch")}Watch</button><button data-tab="results">${hubIcon("results")}Results</button><span class="nav-divider">BUILD YOUR EDGE</span><button data-tab="duel">${hubIcon("duel")}Duel a friend</button><button data-tab="evals">${hubIcon("evals")}Evals</button><button data-tab="forge">${hubIcon("forge")}Forge</button><button data-tab="lab">${hubIcon("model")}Improvement Lab</button><button data-tab="academy">${hubIcon("academy")}Academy</button></nav><div class="sidebar-manifesto"><span>YOUR BUILD.</span><span>YOUR RIVAL.</span><span>YOUR PROOF.</span></div><div class="sidebar-bottom"><span class="status-dot"></span> Open, playable alpha<p>Made by <a href="https://nymrel.com">Nymrel ↗</a></p></div></aside>
+<main id="main-content" tabindex="-1"><section id="arena" class="view">${platformHero}
 <div class="game-tabs" role="group" aria-label="Choose game">${Object.entries(
   RULES,
 )
@@ -217,14 +225,17 @@ document.querySelector("#app")!.innerHTML = `
       `<button data-game="${key}" class="${i === 0 ? "active" : ""}"><span>${["♞", "◉", "▦", "×", "●"][i]}</span>${r.name}</button>`,
   )
   .join("")}<button id="create-game-shortcut">＋ Create game</button></div>
-<div class="arena-layout"><div class="board-column"><div class="match-top"><span><span id="match-dot" class="status-dot"></span><strong id="game-title">Chess</strong> <span id="match-status">Ready to play</span></span><span id="ply">MOVE 00</span></div><div id="board" role="group" aria-label="Game board"></div><div class="board-toolbar"><button id="start" class="primary">▶ Start match</button><button id="step">Step</button><button id="reset">↻ Rematch</button><button id="flip">⇅ Flip</button><button id="share">Share replay ↗</button></div><p id="notice" class="notice" role="status" aria-live="polite">Free built-in opponents are ready. Connect a model whenever you like.</p><div class="telemetry"><div><span>PLIES</span><strong id="metric-moves">0</strong></div><div><span>MEAN LATENCY</span><strong id="metric-latency">—</strong></div><div><span>REPORTED TOKENS</span><strong id="metric-tokens">—</strong></div><div><span>REPORTED COST</span><strong id="metric-cost">$0.0000</strong></div></div><details class="match-settings"><summary>Match settings & move history</summary><div class="settings-row"><label>Move limit<input id="move-limit" type="number" value="80" min="2" max="400"></label><label>Tokens / move<input id="max-tokens" type="number" value="2048" min="256" max="16384" step="256"></label><label>Pace<select id="pace"><option value="500">Watchable</option><option value="100">Fast</option><option value="1200">Slow</option></select></label></div><p class="muted">Model usage is billed by your provider. Effort is requested; provider execution may vary. Results are exhibition evidence, not certified rankings.</p><div id="move-history"></div><button id="export">Download match JSON</button><label class="file-button">Import replay<input id="import" type="file" accept="application/json,.json"></label></details></div>
+<div class="arena-layout"><div class="board-column"><div class="match-top"><span><span id="match-dot" class="status-dot"></span><strong id="game-title">Chess</strong> <span id="match-status">Ready to play</span></span><span id="ply">MOVE 00</span></div><div id="board" role="group" aria-label="Game board"></div><div class="board-toolbar"><button id="start" class="primary">▶ Start match</button><button id="step">Step</button><button id="reset">↻ Rematch</button><button id="flip">⇅ Flip</button><button id="share">Share replay ↗</button></div><p id="notice" class="notice" role="status" aria-live="polite">Free built-in opponents are ready. Connect a model whenever you like.</p><section id="postgame-review" class="postgame-review" hidden aria-labelledby="postgame-title"><h2 id="postgame-title">Your next move.</h2><div id="postgame-feedback"></div><div class="form-actions"><button id="review-rematch" class="primary">Prepare a rematch ↗</button><button id="review-lab">Explore the local policy Lab ↗</button></div></section><div class="telemetry"><div><span>PLIES</span><strong id="metric-moves">0</strong></div><div><span>MEAN LATENCY</span><strong id="metric-latency">—</strong></div><div><span>REPORTED TOKENS</span><strong id="metric-tokens">—</strong></div><div><span>REPORTED COST</span><strong id="metric-cost">$0.0000</strong></div></div><details class="match-settings"><summary>Match settings & move history</summary><div class="settings-row"><label>Move limit<input id="move-limit" type="number" value="80" min="2" max="400"></label><label>Tokens / move<input id="max-tokens" type="number" value="2048" min="256" max="16384" step="256"></label><label>Pace<select id="pace"><option value="500">Watchable</option><option value="100">Fast</option><option value="1200">Slow</option></select></label></div><p class="muted">Model usage is billed by your provider. Effort is requested; provider execution may vary. Results are exhibition evidence, not certified rankings.</p><div id="move-history"></div><button id="export">Download match JSON</button><label class="file-button">Import replay<input id="import" type="file" accept="application/json,.json"></label></details></div>
 <aside class="match-panel"><div class="panel-heading"><h2>The contenders</h2><span>2 SEATS</span></div><div id="seats"></div><div class="panel-heading activity-title"><h2>At the board</h2><span id="feed-count">LIVE MOVES</span></div><div id="feed" class="feed"><div class="empty-feed"><span>⌁</span><p>Every move tells a story.</p><small>Start a match to see decisions, timing, and the position unfold.</small></div></div><button id="go-live" class="broadcast-button">◉ Broadcast this match</button><p id="broadcast-status" class="muted">Share a live board with up to 16 viewers. Keep this tab open.</p></aside></div></section>
 ${duelMarkup}
+${competitionMarkup}
+${resultsMarkup}
+${labMarkup}
 <section id="forge" class="view" hidden><p class="eyebrow">BUILDERWARS FORGE</p><h1>Change the game.</h1><p class="subtitle">Create a connect-in-a-row game. Export its rules, then put your agents to work.</p><form id="creator" class="workspace-form"><label>Game name<input id="creator-name" value="Five in the Foundry" maxlength="48" required></label><div class="settings-row"><label>Rows<input id="creator-rows" type="number" min="3" max="10" value="8" required></label><label>Columns<input id="creator-cols" type="number" min="3" max="10" value="8" required></label><label>In a row to win<input id="creator-connect" type="number" min="3" max="10" value="5" required></label></div><label class="checkbox"><input id="creator-gravity" type="checkbox">Gravity: pieces fall to the bottom</label><div class="form-actions"><button class="primary" type="submit">Create & play ↗</button><button id="export-rules" type="button">Export game</button><label class="file-button">Import game<input id="import-rules" type="file" accept="application/json,.json"></label></div><p id="forge-status" class="muted" role="status" aria-live="polite">Create or import rules here.</p><p class="muted">Game definitions contain rules only. To build a new engine or evaluation adapter, start with the open creator SDK.</p><a href="https://github.com/nymrel/builderwars/tree/main/creator_sdk" target="_blank" rel="noopener">Explore the creator SDK ↗</a></form></section>
 <section id="evals" class="view" hidden><p class="eyebrow">BUILDERWARS EVALS</p><h1>Run it back. Compare.</h1><p class="subtitle">A paired series swaps seats between games to reduce first-player advantage.</p><div class="workspace-form"><p>Uses the current game, contenders, move limit, and token limit from Arena.</p><label>Series length<select id="series-length"><option value="2">2 games · one pair</option><option value="4">4 games · two pairs</option><option value="10">10 games · five pairs</option></select></label><button id="run-series" class="primary">Run evaluation series ↗</button><p class="muted">A series may make up to games × move limit model requests. Built-in opponents are free. Model calls use your own provider account.</p><div id="series-results"><p>No series yet. Set your contenders, then run your first pair.</p></div><button id="export-series">Export evaluation</button></div></section>
 <section id="watch" class="view" hidden><p class="eyebrow">BUILDERWARS WATCH</p><h1>Bring an audience.</h1><p class="subtitle">The board, moves, model labels and timing stream directly from the host’s browser.</p><div class="workspace-form"><button id="watch-broadcast" class="primary">Broadcast my match ↗</button><p id="watch-link">Start broadcasting to create a spectator link.</p><label>Join a broadcast<input id="join-link" placeholder="Paste a BuilderWars watch link"></label><button id="join">Watch match</button><p id="watch-join-status" class="muted" role="status" aria-live="polite">Paste a BuilderWars watch link to join.</p><button id="leave-watch" hidden>Leave spectator mode</button><div class="divider"></div><h2>Ready for your stream</h2><p>Open the clean board view and add it as an OBS browser or window source. Your model keys and connection settings stay outside the broadcast.</p><button id="clean-view">Open stream view ↗</button><p class="muted">Live board sharing uses PeerJS and WebRTC. Viewers receive your IP address as part of the peer connection. Some networks block these connections; replay links work after a match ends. Video publishing to Twitch or YouTube is controlled in your streaming app.</p></div></section>
 <section id="academy" class="view" hidden>${academyMarkup}</section>
-<footer><span>BuilderWars · An open playground by Nymrel</span><span>Play • Create • Replay</span></footer></main></div>
+<footer><span>BuilderWars <span class="footer-byline">/ The open agent competition platform</span></span><span>Build. Battle. Run it back. <a href="https://nymrel.com">By Nymrel ↗</a></span></footer></main></div>
 ${connectionDialogMarkup}`;
 
 function notify(message: string) {
@@ -258,7 +269,7 @@ renderLearning();
 // Interaction: reveal on pause/result, native setup dialog, existing button feedback.
 $("notice").insertAdjacentHTML("beforebegin", `
   <section id="match-result" class="match-result" aria-labelledby="result-title" hidden>
-    <p class="eyebrow">MATCH SNAPSHOT · EXHIBITION</p><h2 id="result-title"></h2>
+    <p class="eyebrow" id="result-label">MATCH SNAPSHOT · EXHIBITION</p><h2 id="result-title"></h2>
     <p id="result-detail"></p><p id="result-evidence" class="muted"></p>
     <div class="result-actions"><button id="runback-free" class="primary">Run it back · free</button><button id="play-yourself">Play it yourself</button><button id="result-image">Download result image</button><button id="copy-caption">Copy result + replay</button><button id="copy-setup">Share this setup</button></div>
     <p class="muted">Images and links contain public names/model labels, not strategies, comments, keys or harness addresses. Attach the downloaded image to your post; a replay link alone has no match-specific social preview.</p>
@@ -277,6 +288,9 @@ function renderResult() {
   $("match-result").hidden = (!record.events.length && !currentExhibition) || running || pending;
   if ((!record.events.length && !currentExhibition) || running || pending) return;
   const summary = matchSummary();
+  $("result-label").textContent = replayPly !== null
+    ? `RECORDED MATCH ${summary.complete ? "RESULT" : "SNAPSHOT"} · EXHIBITION`
+    : "MATCH SNAPSHOT · EXHIBITION";
   $("result-title").textContent = summary.title;
   $("result-detail").textContent = `${summary.record.rules.name} · ${summary.plies} plies · ${summary.reason}. Last move: ${summary.lastMove}. Reported decision time ${(summary.elapsedMs / 1000).toFixed(2)}s; accepted-move cost ${summary.cost === null ? "unknown" : `$${summary.cost.toFixed(4)}`}.`;
   $("result-evidence").textContent = `${summary.evidence}. One match is not a general model ranking.`;
@@ -296,7 +310,7 @@ function applySetup(setup: MatchSetup, mode: "free" | "human" | "configure") {
   broadcastLink = ""; watchId = ""; spectating = false;
   $("leave-watch").hidden = true; $("rejoin-watch").hidden = true; $("stop-broadcast").hidden = true;
   $("watch-link").textContent = "Start broadcasting to create a spectator link.";
-  history.replaceState(null, "", location.pathname + location.search);
+  history.replaceState(null, "", location.pathname + location.search); handledFragment = location.hash;
   rules = { ...setup.rules };
   agents = mode === "configure" ? configuredAgents(setup) : freeAgents(mode === "human");
   contenderDeclarations = unknownDeclarations();
@@ -359,14 +373,9 @@ $("copy-caption").onclick = async () => {
     await copyOrNativeShare(caption, "Result caption and replay link copied. Review before posting; no post has been published.");
   } catch (error) { notify((error as Error).message); }
 };
-// Visual thesis: the board stays dominant in the existing green/lime workspace.
-// Content: play free first; evidence is a secondary, plain-language disclosure.
-// Interaction: native disclosure and existing focus/hover feedback, no ornamental motion.
-$("quickplay").textContent = "Watch bots play";
 $("quickplay").title = "Start a new game with two free built-in opponents. No model calls.";
 $("play-human").title = "Play yourself against the free built-in Tactician.";
 $("connect-first").title = "Configure your own model, harness, or human contender.";
-document.querySelector(".page-heading .subtitle")!.textContent = "Play free with built-in opponents, or connect your own contender.";
 $("notice").insertAdjacentHTML("afterend", `
   <section id="exhibition-evidence" class="exhibition-evidence" aria-labelledby="exhibition-title" hidden>
     <h2 id="exhibition-title">Engine-assisted exhibition</h2>
@@ -408,6 +417,7 @@ $("join").insertAdjacentHTML(
 );
 
 function libraryFailure() {
+  renderHubResults(null);
   $("match-library").setAttribute("aria-busy", String(deviceStorage?.status === "saving"));
   $("save-disclosure").textContent =
     "Device saving is unavailable. Download a match to keep it.";
@@ -455,6 +465,7 @@ function renderLibrary() {
   }
   try {
     const entries = library.list();
+    refreshResults(entries);
     $<HTMLInputElement>("save-matches").checked = library.enabled();
     $("save-disclosure").textContent = library.enabled()
       ? "Played and watched matches save on this device. Manage saving in Recent matches."
@@ -513,6 +524,30 @@ function renderLibrary() {
     libraryFailure();
   }
 }
+function refreshResults(entries = library?.list() ?? null) {
+  renderHubResults(entries, $<HTMLSelectElement>("results-filter").value);
+  document.querySelectorAll<HTMLButtonElement>("[data-result-key]").forEach(button => {
+    button.disabled = running || pending || deviceStorage?.status === "saving";
+  });
+}
+$<HTMLSelectElement>("results-filter").onchange = () => {
+  try { refreshResults(); } catch { renderHubResults(null); }
+};
+$("results-list").onclick = (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button");
+  if (!button || button.disabled) return;
+  if (button.id === "results-go-arena") { tab("arena"); return; }
+  if (!button.dataset.resultKey || running || pending || deviceStorage?.status === "saving") return;
+  const entries = library?.list() ?? [];
+  const index = entries.findIndex(entry => entry.key === button.dataset.resultKey);
+  if (index < 0) { refreshResults(entries); return; }
+  if (savedSource === "own" && record.events.length > 0 && !state.over && record.id !== entries[index].record.id &&
+      !window.confirm("Open this saved replay instead of your unfinished match? Export first if you need a copy; device storage may be unavailable.")) return;
+  // Reuse the existing import path, including exhibition evidence and resource limits.
+  renderLibrary();
+  tab("arena");
+  document.querySelector<HTMLButtonElement>(`[data-saved-replay="${index}"]`)?.click();
+};
 function resumeSaved(entry: SavedMatch) {
   if (!canResume(entry))
     throw Error(
@@ -548,7 +583,7 @@ function resumeSaved(entry: SavedMatch) {
   $("stop-broadcast").hidden = true;
   $("watch-link").textContent =
     "Start broadcasting to create a spectator link.";
-  history.replaceState(null, "", location.pathname + location.search);
+  history.replaceState(null, "", location.pathname + location.search); handledFragment = location.hash;
   selected = -1;
   render();
   renderLibrary();
@@ -670,7 +705,7 @@ function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: Matc
   proofOrigin = "reverified_import";
   $("proof-status").textContent = "Imported replay. Any new proof is a reverified snapshot, not original engine or model provenance.";
   $("rejoin-watch").hidden = true;
-  history.replaceState(null, "", location.pathname + location.search);
+  history.replaceState(null, "", location.pathname + location.search); handledFragment = location.hash;
   seriesRemaining = 0;
   rules = parsed.state.rules;
   state = parsed.state;
@@ -687,7 +722,36 @@ function openReplay(parsed: ReturnType<typeof replay>, save = true, limits: Matc
   $("leave-watch").hidden = false;
   if (save) saveCurrent();
 }
-function tab(name: string) {
+function renderPostgame() {
+  const section = $("postgame-review");
+  if (currentExhibition || (!state.over && postGameCache?.record !== record) || isExhibitionLimit(state)) { section.hidden = true; return; }
+  if (postGameCache?.record !== record) {
+    let review: ReturnType<typeof analyzePractice> | null = null;
+    if (supportsLearning(record.rules)) { try { review = analyzePractice(record); } catch { /* No completed tactical review. */ } }
+    postGameCache = { record, review };
+  }
+  section.hidden = false;
+  const review = postGameCache.review;
+  $("postgame-feedback").innerHTML = review
+    ? review.mistakes.length
+      ? `<p>${review.mistakes.length} immediate tactical mistake${review.mistakes.length === 1 ? "" : "s"} to inspect. These checks cover immediate wins and preventable next-move losses.</p><ul>${review.mistakes.slice(0, 12).map(m => {
+        let before = createGame(record.rules); for (const e of record.events.slice(0, m.ply - 1)) before = applyMove(before, e.move);
+        return `<li><button data-review-ply="${m.ply - 1}">Ply ${m.ply} · ${esc(record.agents[m.seat].name)}: ${m.kind === "missed-win" ? "missed an immediate win" : "allowed a preventable immediate loss"}</button><small>Played ${esc(moveLabel(m.played, before))}. ${m.kind === "missed-win" ? "Winning" : "Safe against immediate loss"} alternatives: ${esc(m.better.map(move => moveLabel(move, before)).join(", "))}.</small></li>`;
+      }).join("")}</ul>`
+      : '<p>No missed immediate wins or preventable one-move losses were found. This checks immediate tactics; it does not establish optimal play.</p>'
+    : '<p>Replay the moves and prepare a rematch. Immediate tactical review is available for supported connect games. The Lab compares local numeric policies.</p>';
+}
+$("postgame-review").addEventListener("click", event => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-review-ply]");
+  if (!button) return;
+  stop("Inspecting completed match"); spectating = true; $("leave-watch").hidden = false;
+  seekReplay(Number(button.dataset.reviewPly)); revealBoard();
+});
+$("review-rematch").onclick = () => { if (spectating) leaveWatch(); else reset(); tab("arena"); revealBoard(); notify("Rematch prepared. Choose Start match when ready."); };
+$("review-lab").onclick = () => tab("lab");
+const ordinaryViews = new Set(["arena", "compete", "results", "watch", "duel", "forge", "evals", "academy", "lab"]);
+function tab(name: string, route = true) {
+  if (!ordinaryViews.has(name)) return;
   if (name !== "duel" && duelUI?.room.view().active) duelUI.room.close("Duel stopped when you left the room. Replay remains in Duel a friend.");
   if (name === "duel") { if (spectating) leaveWatch(); stop("Paused for duel setup"); duelUI?.render(); }
   activeTab = name;
@@ -696,13 +760,30 @@ function tab(name: string) {
     .forEach((v) => (v.hidden = v.id !== name));
   document
     .querySelectorAll("[data-tab]")
-    .forEach((b) =>
-      b.classList.toggle("active", b.getAttribute("data-tab") === name),
-    );
+    .forEach((b) => {
+      const current = b.getAttribute("data-tab") === name;
+      b.classList.toggle("active", current);
+      if (b.closest("nav")) {
+        if (current) b.setAttribute("aria-current", "page");
+        else b.removeAttribute("aria-current");
+      }
+    });
+  if (name === "results") {
+    try { refreshResults(); } catch { renderHubResults(null); }
+  }
+  if (route) {
+    // Invitation/setup/replay payloads retain their own lifecycle while being consumed.
+    const payload = new URLSearchParams(location.hash.slice(1));
+    const keepPayload = (name === "duel" && payload.has("duel")) || (name === "arena" && (payload.has("watch") || payload.has("replay")));
+    if (!keepPayload && location.hash !== `#${name}`) history.pushState(null, "", `${location.pathname}${location.search}#${name}`);
+    handledFragment = location.hash;
+  }
+  const heading = document.querySelector<HTMLElement>(`#${name} h1, #${name} h2`);
+  if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
 }
 document
-  .querySelectorAll<HTMLButtonElement>("[data-tab]")
-  .forEach((b) => (b.onclick = () => tab(b.dataset.tab!)));
+  .querySelectorAll<HTMLButtonElement>("[data-tab], [data-hub-tab]")
+  .forEach((b) => (b.onclick = () => { tab(b.dataset.tab ?? b.dataset.hubTab!); window.scrollTo({ top: 0, behavior: "instant" }); }));
 let duelUI: ReturnType<typeof mountDuel> | undefined;
 let duelAgentOverride: Agent | null = null;
 const currentDuelAgent = () => duelAgentOverride ?? agents[0];
@@ -740,7 +821,7 @@ function render() {
   for (const id of ["go-live", "watch-broadcast"]) $(id).toggleAttribute("disabled", !!currentExhibition);
   document
     .querySelectorAll<HTMLButtonElement>(
-      "[data-saved-replay], [data-saved-resume], [data-saved-delete]",
+      "[data-saved-replay], [data-saved-resume], [data-saved-delete], [data-result-key]",
     )
     .forEach((button) => {
       button.disabled = running || pending || deviceStorage?.status === "saving";
@@ -803,11 +884,17 @@ function render() {
     ? state.winner === null
       ? "Draw"
       : `${record.agents[state.winner].name} wins`
+    : replayPly !== null
+      ? `${record.agents[state.turn].name} to move`
     : running
       ? `${record.agents[state.turn].name} ${agents[state.turn].kind === "human" ? "to move" : "is thinking"}`
-      : record.status;
+      : record.status === "Auto-play paused"
+        ? `Auto-play paused · ${record.agents[state.turn].name} to move`
+        : record.status;
   $("match-dot").classList.toggle("pulsing", running);
-  $("start").textContent = running ? "Ⅱ Pause" : "▶ Start match";
+  $("start").textContent = running ? "Ⅱ Pause auto-play"
+    : !spectating && !state.over && record.status === "Auto-play paused"
+      ? "▶ Resume auto-play" : "▶ Start match";
   $("start").toggleAttribute(
     "disabled",
     spectating || state.over || (pending && !running),
@@ -830,6 +917,7 @@ function render() {
     (id) =>
       ($<HTMLInputElement>(id).disabled = running || pending || spectating),
   );
+  renderPostgame();
   $("resource-status").textContent = currentLimits
     ? `This match: ${limitsLabel(currentLimits)}. Limits stay fixed through pause/resume. Edited fields apply to a new rematch or evaluation. Requested tokens are not a guaranteed provider compute or dollar cap.`
     : spectating ? "Imported replay: original resource limits are unavailable. New setup links or reverified proofs use explicitly selected limits, not historical resource evidence."
@@ -888,7 +976,7 @@ function interruptSeries(exit: "failed" | "stopped" = "stopped") {
   seriesRemaining = 0;
   renderSeries();
 }
-function stop(message = "Paused", preserveSeries = false) {
+function stop(message = "Auto-play paused", preserveSeries = false) {
   if (!preserveSeries) interruptSeries();
   running = false;
   controller?.abort();
@@ -948,7 +1036,7 @@ async function commit(
     ply: nextState.moves.length,
     seat,
     label,
-  }], status: nextState.over ? nextState.reason : "Playing" };
+  }], status: nextState.over ? nextState.reason : running ? "Playing" : "Auto-play paused" };
   let saved = true;
   const nativeReview = !!deviceStorage && nextState.over && practiceMatches.has(previous) && supportsLearning(nextState.rules);
   let reviewed = 0;
@@ -1036,6 +1124,7 @@ async function oneMove() {
       controller.signal,
       models,
       memory,
+      record.id,
     );
     if (id !== runId) return;
     if (memory) {
@@ -1179,12 +1268,19 @@ async function humanClick(i: number) {
   }
 }
 $("start").onclick = () => void play();
+function revealBoard() {
+  const heading = $("game-title");
+  heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
+  $("board").scrollIntoView({ block: "center", behavior: "instant" });
+}
 $("quickplay").onclick = () => {
   if (running || pending || spectating) return;
   agents = freeAgents();
   contenderDeclarations = unknownDeclarations();
   seriesRemaining = 0;
   reset();
+  revealBoard();
   void play();
 };
 $("play-human").onclick = () => {
@@ -1193,9 +1289,27 @@ $("play-human").onclick = () => {
   contenderDeclarations = unknownDeclarations();
   seriesRemaining = 0;
   reset();
+  revealBoard();
   void play();
 };
-$("connect-first").onclick = () => openAgent(0);
+$("connect-first").onclick = () => {
+  openAgent(0);
+  if (!$<HTMLDialogElement>("agent-dialog").open) return;
+  if (agents[0].kind === "bot" || agents[0].kind === "human") {
+    $<HTMLSelectElement>("agent-kind").value = "harness";
+    $("agent-kind").dispatchEvent(new Event("change"));
+  }
+};
+$("prepare-oracle").onclick = () => {
+  if (pending || running || duelUI?.room.view().active) { notify("Pause or finish the current session before preparing a challenge."); return; }
+  if (spectating) leaveWatch();
+  if (!state.over && record.events.length && !confirm("Prepare a new tic-tac-toe challenge? Save your current match first.")) return;
+  rules = { ...RULES.tictactoe };
+  agents[1] = { ...freeAgents()[1], name: "Tic-tac-toe Oracle", model: "perfect-ttt-v1" };
+  contenderDeclarations = unknownDeclarations(); seriesRemaining = 0; reset();
+  $<HTMLSelectElement>("series-length").value = "4";
+  tab("evals"); notify("Four-game Oracle challenge prepared. Configure your first contender in Arena, then run the evaluation yourself.");
+};
 $("step").onclick = async () => {
   if (running || spectating || state.over) return;
   try {
@@ -1348,7 +1462,7 @@ function openAgent(seat: number) {
   $<HTMLInputElement>("agent-name").value = a.name;
   $<HTMLSelectElement>("agent-kind").value = a.kind;
   $<HTMLSelectElement>("bot-model").value =
-    a.model === "random" ? "random" : "tactician";
+    ["random", "perfect-ttt-v1"].includes(a.model) ? a.model : "tactician";
   $<HTMLInputElement>("agent-key").value = a.key;
   $<HTMLInputElement>("harness-url").value = a.endpoint;
   $<HTMLInputElement>("harness-model").value = a.model;
@@ -1394,7 +1508,7 @@ $<HTMLSelectElement>("agent-kind").onchange = () => {
   $<HTMLInputElement>("agent-key").value = "";
   $<HTMLSelectElement>("model-id").value = "";
   const name = $<HTMLInputElement>("agent-name"), kind = $<HTMLSelectElement>("agent-kind").value;
-  if (["Tactician", "Wildcard", "Contender", "My model", "My agent", "Human"].includes(name.value))
+  if (["Tactician", "Wildcard", "Tic-tac-toe Oracle", "Contender", "My model", "My agent", "Human"].includes(name.value))
     name.value = kind === "openrouter" ? "My model" : kind === "harness" ? "My agent" : kind === "human" ? "Human" : $<HTMLSelectElement>("bot-model").value === "random" ? "Wildcard" : "Tactician";
   if (kind === "harness" && ["tactician", "random", "human"].includes($<HTMLInputElement>("harness-model").value))
     $<HTMLInputElement>("harness-model").value = "";
@@ -1666,6 +1780,7 @@ $("export-proof").onclick = async () => {
   }
 };
 if (isNativeApp) {
+  document.querySelectorAll<HTMLAnchorElement>('a[href^="/circuits"], a[href="/developers"]').forEach(a => { a.href = `https://builderwars.com${a.getAttribute("href")}`; });
   for (const [id, label] of Object.entries({ "export": "Save / share replay", "export-package": "Save / share match package", "export-agent": "Save / share profile", "export-proof": "Save / share proof", "download-verifier": "Save / share matching verifier", "export-rules": "Save / share rules", "export-series": "Save / share evaluation", "result-image": "Save / share result image", "copy-caption": "Share caption and replay", "copy-setup": "Share setup" })) $(id).textContent = label;
   let verifierExporting = false;
   $("download-verifier").onclick = async event => {
@@ -1930,7 +2045,7 @@ function prepareAcademy(variant: boolean) {
   broadcast.close(); broadcastLink = ""; watchId = "";
   $("stop-broadcast").hidden = true;
   $("watch-link").textContent = "Start broadcasting to create a spectator link.";
-  history.replaceState(null, "", location.pathname + location.search);
+  history.replaceState(null, "", location.pathname + location.search); handledFragment = location.hash;
   agents = recipe.agents;
   contenderDeclarations = unknownDeclarations();
   rules = recipe.rules;
@@ -2101,7 +2216,7 @@ function leaveWatch() {
   broadcastLink = "";
   $("leave-watch").hidden = true;
   $("rejoin-watch").hidden = true;
-  history.replaceState(null, "", location.pathname);
+  history.replaceState(null, "", location.pathname); handledFragment = location.hash;
   reset();
 }
 $("leave-watch").onclick = () => { leaveWatch(); tab("arena"); };
@@ -2144,9 +2259,16 @@ renderLibrary();
 if (deviceStorageFailed) notify("Native saving could not open. Existing device data was left untouched. You can play and download games, but new games and lessons are not saved on this device.");
 function loadFragment() {
   const hash = location.hash;
+  if (hash === handledFragment) return;
+  handledFragment = hash;
+  if (!hash) { tab("arena", false); return; }
   const fragment = new URLSearchParams(hash.slice(1));
   pendingSetup = null;
   $<HTMLDialogElement>("setup-dialog").close();
+  if (ordinaryViews.has(hash.slice(1))) {
+    tab(hash.slice(1), false);
+    return;
+  }
   if (fragment.has("duel")) {
     duelUI?.invitation(fragment.get("duel")!);
   } else if (fragment.has("setup")) {
@@ -2164,7 +2286,7 @@ function loadFragment() {
         if (location.hash !== hash) return;
         if ((running || pending || (savedSource === "own" && record.events.length > 0 && !state.over)) &&
             !window.confirm("Open this shared replay instead of your current match? Export first if you need a copy; device storage may be unavailable.")) {
-          history.replaceState(null, "", location.pathname + location.search);
+          history.replaceState(null, "", location.pathname + location.search); handledFragment = location.hash;
           notify("Replay dismissed. Your current match is unchanged.");
           return;
         }
@@ -2174,7 +2296,32 @@ function loadFragment() {
         if (location.hash === hash) notify(`Replay rejected: ${e.message}`);
       });
 }
+const localLab = mountLab({
+  storage: () => { try { return isNativeApp ? deviceStorage : localStorage; } catch { return undefined; } },
+  ensure: () => ensureDeviceReady(),
+  export: (name, data) => exportJson(name, data, "evaluation"),
+  use: async raw => {
+    const parent = await validateLabVersion(raw);
+    const version = await arenaLabVersion(parent);
+    ensureDeviceReady();
+    if (running || pending || duelUI?.room.view().active) throw Error("Pause the current match and leave the duel before changing a contender.");
+    if (record.events.length && !state.over && !confirm("Prepare this Lab version instead of your unfinished match? Export the match first if you need it.")) return;
+    if (spectating) leaveWatch();
+    agents[0] = { name: `Local policy r${version.revision}`, kind: "harness", model: `${version.config.runtime.resolvedModel}@${version.digest}`,
+      effort: "none", strategy: "", endpoint: "", key: "", localVersion: version };
+    agents[1] = freeAgents()[0]; contenderDeclarations = unknownDeclarations();
+    contenderDeclarations = readDeclarations([{ ...contenderDeclarations[0], agentId: "browser-local-value", agentRevision: version.digest, harnessId: "one-ply-value", harnessRevision: version.config.harness.source }, contenderDeclarations[1]]);
+    rules = version.config.rules; $<HTMLSelectElement>("pace").value = "500"; reset(); tab("arena"); revealBoard();
+    notify("Arena exhibition prepared from your Lab policy with a new declared version: 250,000 nodes / 90 seconds / 100 decisions per game. The Lab comparison keeps its original 5-second version. Choose Start match; no provider calls.");
+  },
+  replay: snapshot => {
+    if (running || pending) { notify("Pause the current match before opening a Lab replay."); return; }
+    if (record.events.length && !state.over && !confirm("Open the Lab replay instead of your unfinished match? Export first if you need a copy.")) return;
+    openReplay(replay(snapshot), false); tab("arena"); revealBoard();
+  },
+});
 function suspendNative() {
+  localLab.cancel("Local work stopped when the app left the foreground. No experiment restarts automatically.");
   if (duelUI?.room.view().active) duelUI.room.close("Duel stopped when the app left the foreground.");
   if (!nativeActive) return;
   nativeEpoch++;
@@ -2204,3 +2351,4 @@ if (isNativeApp) {
 }
 loadFragment();
 window.addEventListener("hashchange", loadFragment);
+window.addEventListener("popstate", loadFragment);

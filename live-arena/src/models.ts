@@ -1,5 +1,6 @@
 import { botMove, gamePosition, gamePrompt, legalMoves, type GameState } from "./runtime";
 import type { MemoryContext } from "./learning";
+import type { Version } from "./frontier-version";
 export type Agent = {
   name: string;
   kind: "bot" | "human" | "openrouter" | "harness";
@@ -8,6 +9,8 @@ export type Agent = {
   strategy: string;
   endpoint: string;
   key: string;
+  /** Transient, explicit Lab selection. Never imported through public agent profiles. */
+  localVersion?: Version;
 };
 export type PublicAgent = Pick<
   Agent,
@@ -123,6 +126,11 @@ export function validateEndpoint(raw: string): URL {
   return url;
 }
 export function validateConnection(a: Agent, models: Model[]) {
+  if (a.localVersion) {
+    if (a.kind !== "harness" || a.key || a.endpoint || a.model !== `${a.localVersion.config.runtime.resolvedModel}@${a.localVersion.digest}`)
+      throw Error("Local Lab contender custody mismatch.");
+    return;
+  }
   if (a.kind === "openrouter") {
     if (!a.key) throw Error("Add your OpenRouter key in Connections.");
     const model = models.find(m => m.id === a.model);
@@ -149,6 +157,11 @@ export function forgetConnectionCheck(a: Agent) {
 export async function checkConnection(a: Agent, models: Model[], signal: AbortSignal, force = true): Promise<ConnectionCheck> {
   validateConnection(a, models);
   signal.throwIfAborted();
+  if (a.localVersion) {
+    const { validateArenaLabVersion } = await import("./browser-lab-core");
+    await validateArenaLabVersion(a.localVersion);
+    return { checked: true, message: "Local Lab policy ready. No model or network call is needed." };
+  }
   if (force) forgetConnectionCheck(a);
   const identity = connectionIdentity(a), generation = connectionGenerations.get(a) ?? 0;
   const cached = checkedConnections.get(a);
@@ -227,13 +240,15 @@ async function builtinMove(s: GameState, style: string, signal: AbortSignal): Pr
       reject(error);
     }), BUILTIN_SEARCH_TIMEOUT_MS);
     signal.addEventListener("abort", abort, { once: true });
-    worker.onmessage = (event: MessageEvent<{ move?: string; error?: string }>) => finish(() =>
-      event.data.move ? resolve(event.data.move) : reject(Error(event.data.error || "Built-in tactical search failed.")));
+    worker.onmessage = (event: MessageEvent<{ move?: string; error?: string; ready?: boolean }>) => {
+      if (event.data.ready) { worker.postMessage({ state: s, style }); return; }
+      finish(() => event.data.move ? resolve(event.data.move) : reject(Error(event.data.error || "Built-in tactical search failed.")));
+    };
     worker.onerror = () => finish(() => reject(Error("Built-in tactical search failed. The match is paused.")));
-    worker.postMessage({ state: s, style });
   });
 }
 
+const localSessions = new Map<string, Promise<Awaited<ReturnType<typeof import("./frontier-version")["openVersionSession"]>>>>();
 export async function decide(
   s: GameState,
   a: Agent,
@@ -241,9 +256,27 @@ export async function decide(
   signal: AbortSignal,
   models: Model[],
   memory?: MemoryContext,
+  matchId?: string,
 ): Promise<Decision> {
   const started = performance.now(),
     legal = legalMoves(s);
+  if (a.localVersion) {
+    signal.throwIfAborted();
+    const { validateArenaLabVersion } = await import("./browser-lab-core");
+    const { openVersionSession } = await import("./frontier-version");
+    const version = await validateArenaLabVersion(a.localVersion);
+    if (a.kind !== "harness" || a.model !== `${version.config.runtime.resolvedModel}@${version.digest}` || a.endpoint || a.key)
+      throw Error("Local Lab contender custody mismatch.");
+    if (!matchId) throw Error("A local version requires a stable match identifier to enforce its whole-game allowance.");
+    const key = `${matchId}/${s.turn}/${version.digest}`;
+    if (!localSessions.has(key)) {
+      if (localSessions.size >= 100) { const first = localSessions.keys().next().value!; void localSessions.get(first)!.then(session => session.cancel()); localSessions.delete(first); }
+      localSessions.set(key, openVersionSession(version));
+    }
+    const { move } = await (await localSessions.get(key)!).move(s, signal);
+    return { move, comment: `Local numeric policy r${version.revision}; one-ply search.`, elapsed: performance.now() - started,
+      model: a.model, tokens: null, cost: 0 };
+  }
   if (a.kind === "bot") {
     const move = await builtinMove(s, a.model, signal);
     return {
@@ -251,6 +284,7 @@ export async function decide(
       comment:
         a.model === "random"
           ? "Random legal move."
+          : a.model === "perfect-ttt-v1" ? "Exhaustive tic-tac-toe minimax; standard tic-tac-toe only."
           : "Two-ply tactical search in a cancellable worker.",
       elapsed: performance.now() - started,
       model: `builtin/${a.model}`,
