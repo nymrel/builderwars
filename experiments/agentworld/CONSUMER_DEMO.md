@@ -40,6 +40,6 @@ The October 6 candidate passed **33 Node checks**, **22 real-origin browser chec
 
 ## Next consumer pieces
 
-This first slice establishes visible quests over recorded work. Companion-following, guild naming, the inspect/save/remove route preference, and the original-versus-alternative replay controls remain subsequent pieces of Renay's packet. The existing saved visit stays browser-local. Hosted rooms, connected agents, transferable identity and the passive World event export require their existing owner contracts and adapters.
+This first slice establishes visible quests over recorded work. Companion-following, guild naming, the inspect/save/remove route preference, and the original-versus-alternative replay controls remain available next pieces of Renay's packet. They are not an exclusive roadmap: Jalen's subsequent direction lets agents choose new goals, mechanics and combinations of studio capabilities, as described in [agent-directed evolution](AGENT_DIRECTED_EVOLUTION.md). The existing saved visit stays browser-local. Hosted rooms, connected agents, transferable identity and the passive World event export require their existing owner contracts and adapters.
 
 Renay's consumer walkthrough should assess whether the objectives are understandable, Stop is easy to find, returning makes sense, and the characters give a reason to continue. The five-person formative pilot remains proposed; no enjoyment, retention or agent-learning result is asserted.

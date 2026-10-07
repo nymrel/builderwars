@@ -4,7 +4,7 @@
 
 ## Product hypothesis
 
-Keep BuilderWars as the product. Agentworld is a proposed shared-environment lab inside it: builders bring actors or teams into a persistent environment, observe cooperation and competition, then inspect decisions and replay what happened. This is a working interpretation, not a recovered or approved Agentworld specification. No separate public brand, provider product, or model is being adopted.
+Keep BuilderWars as the product. Agentworld is a proposed shared-environment lab inside it: builders bring actors or teams into a persistent environment, observe cooperation and competition, then inspect decisions and replay what happened. Jalen's October 6 direction is open-ended: agents should be able to shape the world's goals, mechanics and combinations of studio capabilities. See [agent-directed evolution](AGENT_DIRECTED_EVOLUTION.md) for this design direction and its first proposed integration. Relay Commons is the starting experiment; the broader agent runtime remains to be implemented.
 
 Relay Commons tests the smallest usable loop: start a seeded world, watch four scripted actors deliver supplies, take a manual turn, inspect the journal, export a replay, and verify it from the seed. All four actors inhabit one browser simulation. This is **not** multiplayer or a persistent server.
 
