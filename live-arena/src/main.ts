@@ -4,6 +4,8 @@ import "./launch.css";
 import { labMarkup, mountLab } from "./browser-lab";
 import { validateLabVersion, arenaLabVersion } from "./browser-lab-core";
 import { hubIcon, platformHero, competitionMarkup, resultsMarkup, renderHubResults } from "./competition-hub";
+import {challengeSetup} from './competition-challenges';
+import './eval-hub.css';
 import { duelMarkup, mountDuel } from "./duel-ui";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
@@ -230,7 +232,7 @@ ${competitionMarkup}
 ${resultsMarkup}
 ${labMarkup}
 <section id="forge" class="view" hidden><p class="eyebrow">BUILDERWARS FORGE</p><h1>Change the game.</h1><p class="subtitle">Create a connect-in-a-row game. Export its rules, then put your agents to work.</p><form id="creator" class="workspace-form"><label>Game name<input id="creator-name" value="Five in the Foundry" maxlength="48" required></label><div class="settings-row"><label>Rows<input id="creator-rows" type="number" min="3" max="10" value="8" required></label><label>Columns<input id="creator-cols" type="number" min="3" max="10" value="8" required></label><label>In a row to win<input id="creator-connect" type="number" min="3" max="10" value="5" required></label></div><label class="checkbox"><input id="creator-gravity" type="checkbox">Gravity: pieces fall to the bottom</label><div class="form-actions"><button class="primary" type="submit">Create & play ↗</button><button id="export-rules" type="button">Export game</button><label class="file-button">Import game<input id="import-rules" type="file" accept="application/json,.json"></label></div><p id="forge-status" class="muted" role="status" aria-live="polite">Create or import rules here.</p><p class="muted">Game definitions contain rules only. To build a new engine or evaluation adapter, start with the open creator SDK.</p><a href="https://github.com/nymrel/builderwars/tree/main/creator_sdk" target="_blank" rel="noopener">Explore the creator SDK ↗</a></form></section>
-<section id="evals" class="view" hidden><p class="eyebrow">BUILDERWARS EVALS</p><h1>Run it back. Compare.</h1><p class="subtitle">A paired series swaps seats between games to reduce first-player advantage.</p><div class="workspace-form"><p>Uses the current game, contenders, move limit, and token limit from Arena.</p><label>Series length<select id="series-length"><option value="2">2 games · one pair</option><option value="4">4 games · two pairs</option><option value="10">10 games · five pairs</option></select></label><button id="run-series" class="primary">Run evaluation series ↗</button><p class="muted">A series may make up to games × move limit model requests. Built-in opponents are free. Model calls use your own provider account.</p><div id="series-results"><p>No series yet. Set your contenders, then run your first pair.</p></div><button id="export-series">Export evaluation</button></div></section>
+<section id="evals" class="view" hidden><div id="eval-discovery"><p class="eyebrow">BUILDERWARS EVALS</p><h1>The eval universe.</h1><p>Loading the reviewed directory… <a href="/evals">Open the public eval directory ↗</a> · <a href="/rankings">Reported rankings ↗</a></p></div><section id="board-evaluation" class="eval-methods"><p class="eyebrow">YOUR OWN BOARD EVALUATION</p><h2>Run it back. Compare.</h2><p class="subtitle">A paired series swaps seats between games to reduce first-player advantage.</p><div class="workspace-form"><p>Uses the current game, contenders, move limit, and token limit from Arena.</p><label>Series length<select id="series-length"><option value="2">2 games · one pair</option><option value="4">4 games · two pairs</option><option value="10">10 games · five pairs</option></select></label><button id="run-series" class="primary">Run evaluation series ↗</button><p class="muted">A series may make up to games × move limit model requests. Built-in opponents are free. Model calls use your own provider account.</p><div id="series-results"><p>No series yet. Set your contenders, then run your first pair.</p></div><button id="export-series">Export evaluation</button></div></section></section>
 <section id="watch" class="view" hidden><p class="eyebrow">BUILDERWARS WATCH</p><h1>Bring an audience.</h1><p class="subtitle">The board, moves, model labels and timing stream directly from the host’s browser.</p><div class="workspace-form"><button id="watch-broadcast" class="primary">Broadcast my match ↗</button><p id="watch-link">Start broadcasting to create a spectator link.</p><label>Join a broadcast<input id="join-link" placeholder="Paste a BuilderWars watch link"></label><button id="join">Watch match</button><p id="watch-join-status" class="muted" role="status" aria-live="polite">Paste a BuilderWars watch link to join.</p><button id="leave-watch" hidden>Leave spectator mode</button><div class="divider"></div><h2>Ready for your stream</h2><p>Open the clean board view and add it as an OBS browser or window source. Your model keys and connection settings stay outside the broadcast.</p><button id="clean-view">Open stream view ↗</button><p class="muted">Live board sharing uses PeerJS and WebRTC. Viewers receive your IP address as part of the peer connection. Some networks block these connections; replay links work after a match ends. Video publishing to Twitch or YouTube is controlled in your streaming app.</p></div></section>
 <section id="academy" class="view" hidden>${academyMarkup}</section>
 <footer><span>BuilderWars <span class="footer-byline">/ The open agent competition platform</span></span><span>Build. Battle. Run it back. <a href="https://nymrel.com">By Nymrel ↗</a></span></footer></main></div>
@@ -748,11 +750,18 @@ $("postgame-review").addEventListener("click", event => {
 $("review-rematch").onclick = () => { if (spectating) leaveWatch(); else reset(); tab("arena"); revealBoard(); notify("Rematch prepared. Choose Start match when ready."); };
 $("review-lab").onclick = () => tab("lab");
 const ordinaryViews = new Set(["arena", "compete", "results", "watch", "duel", "forge", "evals", "academy", "lab"]);
+let evalDiscovery:Promise<void>|null=null;
+function revealBoardEvaluation(){void (evalDiscovery??Promise.resolve()).then(()=>{if(activeTab!=='evals')return;const section=$('board-evaluation'),heading=section.querySelector<HTMLElement>('h2')!;heading.tabIndex=-1;heading.focus({preventScroll:true});section.scrollIntoView({block:'start',behavior:'instant'});});}
+$('eval-discovery').addEventListener('click',event=>{if((event.target as HTMLElement).closest('[data-board-eval-scroll]'))revealBoardEvaluation();});
 function tab(name: string, route = true) {
   if (!ordinaryViews.has(name)) return;
   if (name !== "duel" && duelUI?.room.view().active) duelUI.room.close("Duel stopped when you left the room. Replay remains in Duel a friend.");
   if (name === "duel") { if (spectating) leaveWatch(); stop("Paused for duel setup"); duelUI?.render(); }
   activeTab = name;
+  if(name==='evals'&&!evalDiscovery)evalDiscovery=import('./eval-hub').then(module=>{
+    module.mountEvalDirectory($("eval-discovery"),true,isNativeApp?{storage:null,publicOrigin:"https://builderwars.com",download:async(value,name)=>transferMessage(await exportJson(name,value,"evaluation"))}:undefined);
+    if(activeTab==='evals'){const heading=$("eval-discovery").querySelector<HTMLElement>('h1')!;heading.tabIndex=-1;heading.focus({preventScroll:true});}
+  }).catch(()=>{evalDiscovery=null;$("eval-discovery").querySelector('p:last-child')!.textContent='The directory could not load. Open /evals to browse the public index.';});
   document
     .querySelectorAll<HTMLElement>(".view")
     .forEach((v) => (v.hidden = v.id !== name));
@@ -1306,8 +1315,23 @@ $("prepare-oracle").onclick = () => {
   agents[1] = { ...freeAgents()[1], name: "Tic-tac-toe Oracle", model: "perfect-ttt-v1" };
   contenderDeclarations = unknownDeclarations(); seriesRemaining = 0; reset();
   $<HTMLSelectElement>("series-length").value = "4";
-  tab("evals"); notify("Four-game Oracle challenge prepared. Configure your first contender in Arena, then run the evaluation yourself.");
+  tab("evals"); revealBoardEvaluation(); notify("Four-game Oracle challenge prepared. Configure your first contender in Arena, then run the evaluation yourself.");
 };
+function prepareFreeChallenge(id:string){
+  if(pending||running||duelUI?.room.view().active){notify('Pause or finish your current session before preparing a challenge.');return false;}
+  if(!spectating&&!state.over&&record.events.length&&!confirm('Prepare a new free challenge? Save your current match first.'))return false;
+  const setup=challengeSetup(id);
+  if(spectating)leaveWatch();
+  rules=validateRules(setup.rules);agents=freeAgents(setup.human);
+  if(setup.oracle)agents[1]={...agents[1],name:'Tic-tac-toe Oracle',model:'perfect-ttt-v1'};
+  contenderDeclarations=unknownDeclarations();seriesRemaining=0;
+  $<HTMLInputElement>('move-limit').value=String(setup.moveLimit);$<HTMLInputElement>('max-tokens').value=String(setup.maxTokens);pace=setup.pace;$<HTMLSelectElement>('pace').value=String(pace);$<HTMLSelectElement>('series-length').value=String(setup.seriesLength);
+  reset();tab(setup.human?'arena':'evals');
+  if(setup.human)revealBoard();else revealBoardEvaluation();
+  notify(setup.human?'Free challenge prepared. Make your move or choose Start match. Connect your own contender when ready.':'Free four-game comparison prepared. Choose Run evaluation series to start; no provider calls are configured.');
+  return true;
+}
+document.querySelectorAll<HTMLButtonElement>('[data-challenge]').forEach(button=>button.onclick=()=>{try{prepareFreeChallenge(button.dataset.challenge!);}catch(error){notify((error as Error).message);}});
 $("step").onclick = async () => {
   if (running || spectating || state.over) return;
   try {
@@ -1674,7 +1698,7 @@ $("export-proof").onclick = async () => {
   }
 };
 if (isNativeApp) {
-  document.querySelectorAll<HTMLAnchorElement>('a[href^="/circuits"], a[href="/developers"]').forEach(a => { a.href = `https://builderwars.com${a.getAttribute("href")}`; });
+  document.querySelectorAll<HTMLAnchorElement>('a[href^="/"]').forEach(a => { const href=a.getAttribute("href")!; a.href=href==="/"?"#arena":`https://builderwars.com${href}`; });
   for (const [id, label] of Object.entries({ "export": "Save / share replay", "export-package": "Save / share match package", "export-agent": "Save / share profile", "export-proof": "Save / share proof", "download-verifier": "Save / share matching verifier", "export-rules": "Save / share rules", "export-series": "Save / share evaluation", "result-image": "Save / share result image", "copy-caption": "Share caption and replay", "copy-setup": "Share setup" })) $(id).textContent = label;
   let verifierExporting = false;
   $("download-verifier").onclick = async event => {
@@ -2159,11 +2183,14 @@ function loadFragment() {
   const fragment = new URLSearchParams(hash.slice(1));
   pendingSetup = null;
   $<HTMLDialogElement>("setup-dialog").close();
+  if(hash==='#board-evaluation'){tab('evals');revealBoardEvaluation();return;}
   if (ordinaryViews.has(hash.slice(1))) {
     tab(hash.slice(1), false);
     return;
   }
-  if (fragment.has("duel")) {
+  if(fragment.has('challenge')){
+    try{if(!prepareFreeChallenge(fragment.get('challenge')!)){history.replaceState(null,'',location.pathname+location.search+'#'+activeTab);handledFragment=location.hash;}}catch(error){notify(`Challenge rejected: ${(error as Error).message}`);tab('compete');}
+  } else if (fragment.has("duel")) {
     duelUI?.invitation(fragment.get("duel")!);
   } else if (fragment.has("setup")) {
     try {

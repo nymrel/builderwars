@@ -1,0 +1,1522 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "mmmu-val",
+  "sourceUrl": "https://mmmu-benchmark.github.io/leaderboard_data.json",
+  "sourceSha256": "2ec354bc9eab734c1ba6a78f604d2ad7e5581a30257f50ead26523ab630978fb",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "GPT-5.1",
+      "score": 85.4,
+      "detail": "proprietary · author",
+      "date": "2025-11-13",
+      "rank": 1,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "DreamPRM-1.5 (GPT-5-mini w/ thinking)",
+      "score": 84.6,
+      "detail": "proprietary · author",
+      "date": "2025-09-05",
+      "rank": 2,
+      "sourceRowId": "142"
+    },
+    {
+      "name": "GPT-5 w/ thinking",
+      "score": 84.2,
+      "detail": "proprietary · author",
+      "date": "2025-08-07",
+      "rank": 3,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "Gemini 2.5 Pro Deep-Think",
+      "score": 84.0,
+      "detail": "proprietary · author",
+      "date": "2025-05-20",
+      "rank": 4,
+      "sourceRowId": "21"
+    },
+    {
+      "name": "o3",
+      "score": 82.9,
+      "detail": "proprietary · author",
+      "date": "2025-04-16",
+      "rank": 5,
+      "sourceRowId": "4"
+    },
+    {
+      "name": "o4-mini",
+      "score": 81.6,
+      "detail": "proprietary · author",
+      "date": "2025-04-16",
+      "rank": 6,
+      "sourceRowId": "5"
+    },
+    {
+      "name": "Claude Opus 4.5",
+      "score": 80.7,
+      "detail": "proprietary · author",
+      "date": "2025-11-24",
+      "rank": 7,
+      "sourceRowId": "11"
+    },
+    {
+      "name": "dots.vlm1",
+      "score": 80.1,
+      "detail": "open_source · author",
+      "date": "2025-08-05",
+      "rank": 8,
+      "sourceRowId": "26"
+    },
+    {
+      "name": "Gemini 2.5 Flash 05-20",
+      "score": 79.7,
+      "detail": "proprietary · author",
+      "date": "2025-05-20",
+      "rank": 9,
+      "sourceRowId": "23"
+    },
+    {
+      "name": "Gemini 2.5 Pro 05-06",
+      "score": 79.6,
+      "detail": "proprietary · author",
+      "date": "2025-05-06",
+      "rank": 10,
+      "sourceRowId": "22"
+    },
+    {
+      "name": "Qwen3-VL 235B-A22B",
+      "score": 78.7,
+      "detail": "open_source · author",
+      "date": "2025-09-22",
+      "rank": 11,
+      "sourceRowId": "27"
+    },
+    {
+      "name": "o1",
+      "score": 78.2,
+      "detail": "proprietary · author",
+      "date": "2024-09-12",
+      "rank": 12,
+      "sourceRowId": "6"
+    },
+    {
+      "name": "Grok 3 Beta",
+      "score": 78.0,
+      "detail": "proprietary · author",
+      "date": "2025-02-19",
+      "rank": 13,
+      "sourceRowId": "17"
+    },
+    {
+      "name": "Seed 1.5-VL Thinking",
+      "score": 77.9,
+      "detail": "proprietary · author",
+      "date": "2025-05-13",
+      "rank": 14,
+      "sourceRowId": "154"
+    },
+    {
+      "name": "Claude Sonnet 4.5",
+      "score": 77.8,
+      "detail": "proprietary · author",
+      "date": "2025-09-29",
+      "rank": 15,
+      "sourceRowId": "12"
+    },
+    {
+      "name": "Intern-S1",
+      "score": 77.7,
+      "detail": "open_source · author",
+      "date": "2025-08-04",
+      "rank": 16,
+      "sourceRowId": "31"
+    },
+    {
+      "name": "Claude Opus 4.1",
+      "score": 77.1,
+      "detail": "proprietary · author",
+      "date": "2025-08-05",
+      "rank": 17,
+      "sourceRowId": "10"
+    },
+    {
+      "name": "Claude Opus 4",
+      "score": 76.5,
+      "detail": "proprietary · author",
+      "date": "2025-05-23",
+      "rank": 18,
+      "sourceRowId": "14"
+    },
+    {
+      "name": "Llama 4 Behemoth",
+      "score": 76.1,
+      "detail": "proprietary · author",
+      "date": "2025-04-05",
+      "rank": 19,
+      "sourceRowId": "115"
+    },
+    {
+      "name": "Skywork-R1V3-38B",
+      "score": 76.0,
+      "detail": "open_source · author",
+      "date": "2025-07-05",
+      "rank": 20,
+      "sourceRowId": "174"
+    },
+    {
+      "name": "GLM-4.5V w/ Thinking",
+      "score": 75.4,
+      "detail": "open_source · author",
+      "date": "2025-08-11",
+      "rank": 21,
+      "sourceRowId": "147"
+    },
+    {
+      "name": "Claude 3.7 Sonnet",
+      "score": 75.0,
+      "detail": "proprietary · author",
+      "date": "2025-02-24",
+      "rank": 22,
+      "sourceRowId": "16"
+    },
+    {
+      "name": "Seed 1.6-Thinking",
+      "score": 74.8,
+      "detail": "proprietary · author",
+      "date": "2025-06-25",
+      "rank": 23,
+      "sourceRowId": "152"
+    },
+    {
+      "name": "Claude Sonnet 4",
+      "score": 74.4,
+      "detail": "proprietary · author",
+      "date": "2025-05-23",
+      "rank": 24,
+      "sourceRowId": "13"
+    },
+    {
+      "name": "GPT-5 w/o thinking",
+      "score": 74.4,
+      "detail": "proprietary · author",
+      "date": "2025-08-07",
+      "rank": 24,
+      "sourceRowId": "3"
+    },
+    {
+      "name": "GPT‑4.5",
+      "score": 74.4,
+      "detail": "proprietary · author",
+      "date": "2025-02-28",
+      "rank": 24,
+      "sourceRowId": "7"
+    },
+    {
+      "name": "Seed 1.5-VL",
+      "score": 73.6,
+      "detail": "proprietary · author",
+      "date": "2025-05-13",
+      "rank": 27,
+      "sourceRowId": "153"
+    },
+    {
+      "name": "Skywork-R1V2-38B",
+      "score": 73.6,
+      "detail": "open_source · author",
+      "date": "2025-04-28",
+      "rank": 27,
+      "sourceRowId": "175"
+    },
+    {
+      "name": "Llama 4 Maverick",
+      "score": 73.4,
+      "detail": "open_source · author",
+      "date": "2025-04-05",
+      "rank": 29,
+      "sourceRowId": "116"
+    },
+    {
+      "name": "Gemini 2.0 Pro",
+      "score": 72.7,
+      "detail": "proprietary · author",
+      "date": "2025-02-05",
+      "rank": 30,
+      "sourceRowId": "20"
+    },
+    {
+      "name": "KiQ-v0",
+      "score": 72.6,
+      "detail": "proprietary · Source-listed",
+      "date": "2025-08-31",
+      "rank": 31,
+      "sourceRowId": "36"
+    },
+    {
+      "name": "InternVL3-78B",
+      "score": 72.2,
+      "detail": "open_source · author",
+      "date": "2025-04-11",
+      "rank": 32,
+      "sourceRowId": "163"
+    },
+    {
+      "name": "LLaVA-Critic-R1+",
+      "score": 71.9,
+      "detail": "open_source · author",
+      "date": "2025-08-30",
+      "rank": 33,
+      "sourceRowId": "39"
+    },
+    {
+      "name": "Gemini 2.0 Flash",
+      "score": 71.7,
+      "detail": "proprietary · author",
+      "date": "2025-02-05",
+      "rank": 34,
+      "sourceRowId": "19"
+    },
+    {
+      "name": "GPT-4o (1120)",
+      "score": 70.7,
+      "detail": "proprietary · author",
+      "date": "2024-11-20",
+      "rank": 35,
+      "sourceRowId": "9"
+    },
+    {
+      "name": "MiMo-VL 7B-RL-2508 w/ Thinking",
+      "score": 70.6,
+      "detail": "open_source · author",
+      "date": "2025-08-08",
+      "rank": 36,
+      "sourceRowId": "145"
+    },
+    {
+      "name": "Spark4.0-Turbo",
+      "score": 70.4,
+      "detail": "proprietary · author",
+      "date": "2025-01-22",
+      "rank": 37,
+      "sourceRowId": "156"
+    },
+    {
+      "name": "QVQ-72B-Preview",
+      "score": 70.3,
+      "detail": "open_source · author",
+      "date": "2024-12-25",
+      "rank": 38,
+      "sourceRowId": "126"
+    },
+    {
+      "name": "InternVL2.5-78B",
+      "score": 70.1,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 39,
+      "sourceRowId": "120"
+    },
+    {
+      "name": "InternVL3-38B",
+      "score": 70.1,
+      "detail": "open_source · author",
+      "date": "2025-04-11",
+      "rank": 39,
+      "sourceRowId": "162"
+    },
+    {
+      "name": "LLaVA-Critic-R1",
+      "score": 69.7,
+      "detail": "open_source · author",
+      "date": "2025-08-30",
+      "rank": 41,
+      "sourceRowId": "38"
+    },
+    {
+      "name": "Llama 4 Scout",
+      "score": 69.4,
+      "detail": "open_source · author",
+      "date": "2025-04-05",
+      "rank": 42,
+      "sourceRowId": "117"
+    },
+    {
+      "name": "GPT-4o (0513)",
+      "score": 69.1,
+      "detail": "proprietary · author",
+      "date": "2024-05-13",
+      "rank": 43,
+      "sourceRowId": "8"
+    },
+    {
+      "name": "Skywork-R1V-38B",
+      "score": 69.0,
+      "detail": "open_source · author",
+      "date": "2025-04-28",
+      "rank": 44,
+      "sourceRowId": "176"
+    },
+    {
+      "name": "Claude 3.5 Sonnet",
+      "score": 68.3,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-06-20",
+      "rank": 45,
+      "sourceRowId": "15"
+    },
+    {
+      "name": "Gemini 2.0 Flash-Lite",
+      "score": 68.0,
+      "detail": "proprietary · author",
+      "date": "2025-02-05",
+      "rank": 46,
+      "sourceRowId": "18"
+    },
+    {
+      "name": "GLM-4.1V w/ Thinking",
+      "score": 68.0,
+      "detail": "open_source · author",
+      "date": "2025-07-01",
+      "rank": 46,
+      "sourceRowId": "148"
+    },
+    {
+      "name": "Nova Premier",
+      "score": 68.0,
+      "detail": "proprietary · author",
+      "date": "2025-04-30",
+      "rank": 46,
+      "sourceRowId": "184"
+    },
+    {
+      "name": "InternVL3-14B",
+      "score": 67.1,
+      "detail": "open_source · author",
+      "date": "2025-04-11",
+      "rank": 49,
+      "sourceRowId": "161"
+    },
+    {
+      "name": "MiMo-VL 7B-RL",
+      "score": 66.7,
+      "detail": "open_source · author",
+      "date": "2025-06-04",
+      "rank": 50,
+      "sourceRowId": "144"
+    },
+    {
+      "name": "Gemini 1.5 Pro (0801)",
+      "score": 65.8,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-08-01",
+      "rank": 51,
+      "sourceRowId": "24"
+    },
+    {
+      "name": "Ovis2-34B",
+      "score": 65.6,
+      "detail": "open_source · author",
+      "date": "2025-03-25",
+      "rank": 52,
+      "sourceRowId": "169"
+    },
+    {
+      "name": "Gemma 3-27B",
+      "score": 64.9,
+      "detail": "open_source · author",
+      "date": "2025-03-12",
+      "rank": 53,
+      "sourceRowId": "109"
+    },
+    {
+      "name": "MiMo-VL 7B-SFT",
+      "score": 64.6,
+      "detail": "open_source · author",
+      "date": "2025-06-04",
+      "rank": 54,
+      "sourceRowId": "143"
+    },
+    {
+      "name": "Qwen2-VL-72B",
+      "score": 64.5,
+      "detail": "proprietary · Source-listed",
+      "date": "2024-08-29",
+      "rank": 55,
+      "sourceRowId": "102"
+    },
+    {
+      "name": "Qwen2.5-VL 72B",
+      "score": 64.5,
+      "detail": "open_source · author",
+      "date": "2025-02-19",
+      "rank": 55,
+      "sourceRowId": "129"
+    },
+    {
+      "name": "InternVL2.5-38B",
+      "score": 63.9,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 57,
+      "sourceRowId": "121"
+    },
+    {
+      "name": "MiMo-VL 7B-RL-2508 w/o Thinking",
+      "score": 63.1,
+      "detail": "open_source · author",
+      "date": "2025-08-08",
+      "rank": 58,
+      "sourceRowId": "146"
+    },
+    {
+      "name": "InternVL3-8B",
+      "score": 62.7,
+      "detail": "open_source · author",
+      "date": "2025-04-11",
+      "rank": 59,
+      "sourceRowId": "159"
+    },
+    {
+      "name": "Gemini 1.5 Pro (0523)",
+      "score": 62.2,
+      "detail": "proprietary · author",
+      "date": "2024-05-23",
+      "rank": 60,
+      "sourceRowId": "25"
+    },
+    {
+      "name": "InternVL2-Pro",
+      "score": 62.0,
+      "detail": "proprietary · author",
+      "date": "2024-07-04",
+      "rank": 61,
+      "sourceRowId": "32"
+    },
+    {
+      "name": "Nova Pro",
+      "score": 62.0,
+      "detail": "proprietary · author",
+      "date": "2025-04-30",
+      "rank": 61,
+      "sourceRowId": "185"
+    },
+    {
+      "name": "TeleMM",
+      "score": 61.4,
+      "detail": "proprietary · author",
+      "date": "2024-11-18",
+      "rank": 63,
+      "sourceRowId": "118"
+    },
+    {
+      "name": "Llama 3.2 90B",
+      "score": 60.3,
+      "detail": "open_source · author",
+      "date": "2024-09-25",
+      "rank": 64,
+      "sourceRowId": "114"
+    },
+    {
+      "name": "NVLM-H 1.0 78B",
+      "score": 60.2,
+      "detail": "open_source · author",
+      "date": "2024-09-17",
+      "rank": 65,
+      "sourceRowId": "112"
+    },
+    {
+      "name": "InternVL2.5-26B",
+      "score": 60.0,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 66,
+      "sourceRowId": "122"
+    },
+    {
+      "name": "NVLM-D 1.0 78B",
+      "score": 59.7,
+      "detail": "open_source · author",
+      "date": "2024-09-17",
+      "rank": 67,
+      "sourceRowId": "111"
+    },
+    {
+      "name": "Gemma 3-12B",
+      "score": 59.6,
+      "detail": "open_source · author",
+      "date": "2025-03-12",
+      "rank": 68,
+      "sourceRowId": "108"
+    },
+    {
+      "name": "Ovis2-16B",
+      "score": 59.6,
+      "detail": "open_source · author",
+      "date": "2025-03-25",
+      "rank": 68,
+      "sourceRowId": "168"
+    },
+    {
+      "name": "Claude 3 Opus",
+      "score": 59.4,
+      "detail": "proprietary · author",
+      "date": "2024-03-05",
+      "rank": 70,
+      "sourceRowId": "34"
+    },
+    {
+      "name": "Gemini 1.0 Ultra",
+      "score": 59.4,
+      "detail": "proprietary · author",
+      "date": "2023-12-06",
+      "rank": 70,
+      "sourceRowId": "33"
+    },
+    {
+      "name": "GPT-4o mini",
+      "score": 59.4,
+      "detail": "proprietary · author",
+      "date": "2024-07-18",
+      "rank": 70,
+      "sourceRowId": "90"
+    },
+    {
+      "name": "Ovis2-8B",
+      "score": 59.0,
+      "detail": "open_source · author",
+      "date": "2025-03-25",
+      "rank": 73,
+      "sourceRowId": "167"
+    },
+    {
+      "name": "NVILA",
+      "score": 58.7,
+      "detail": "open_source · author",
+      "date": "2024-11-20",
+      "rank": 74,
+      "sourceRowId": "45"
+    },
+    {
+      "name": "Qwen2.5-VL 7B",
+      "score": 58.6,
+      "detail": "open_source · author",
+      "date": "2025-02-19",
+      "rank": 75,
+      "sourceRowId": "128"
+    },
+    {
+      "name": "InternVL2-Llama3-76B",
+      "score": 58.3,
+      "detail": "open_source · author",
+      "date": "2024-07-04",
+      "rank": 76,
+      "sourceRowId": "89"
+    },
+    {
+      "name": "Qianfan-VL-70B",
+      "score": 58.3,
+      "detail": "open_source · author",
+      "date": "2025-09-16",
+      "rank": 76,
+      "sourceRowId": "30"
+    },
+    {
+      "name": "InternVL3-9B",
+      "score": 57.7,
+      "detail": "open_source · author",
+      "date": "2025-04-11",
+      "rank": 78,
+      "sourceRowId": "160"
+    },
+    {
+      "name": "RBDash V1.2",
+      "score": 57.7,
+      "detail": "open_source · author",
+      "date": "2024-08-21",
+      "rank": 78,
+      "sourceRowId": "103"
+    },
+    {
+      "name": "Kimi-VL-A3B",
+      "score": 57.0,
+      "detail": "open_source · author",
+      "date": "2025-04-10",
+      "rank": 80,
+      "sourceRowId": "110"
+    },
+    {
+      "name": "GPT-4V(ision) (Playground)",
+      "score": 56.8,
+      "detail": "proprietary · Source-listed",
+      "date": "2023-11-27",
+      "rank": 81,
+      "sourceRowId": "35"
+    },
+    {
+      "name": "LLaVA-OneVision-72B",
+      "score": 56.8,
+      "detail": "open_source · author",
+      "date": "2024-08-06",
+      "rank": 81,
+      "sourceRowId": "92"
+    },
+    {
+      "name": "Reka Core",
+      "score": 56.3,
+      "detail": "proprietary · author",
+      "date": "2024-04-23",
+      "rank": 83,
+      "sourceRowId": "37"
+    },
+    {
+      "name": "Gemini 1.5 Flash",
+      "score": 56.1,
+      "detail": "proprietary · author",
+      "date": "2024-05-23",
+      "rank": 84,
+      "sourceRowId": "40"
+    },
+    {
+      "name": "InternVL2.5-8B",
+      "score": 56.0,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 85,
+      "sourceRowId": "123"
+    },
+    {
+      "name": "Eagle2.5-8B",
+      "score": 55.8,
+      "detail": "open_source · author",
+      "date": "2025-04-21",
+      "rank": 86,
+      "sourceRowId": "177"
+    },
+    {
+      "name": "InternVL2-40B",
+      "score": 55.2,
+      "detail": "open_source · author",
+      "date": "2024-07-04",
+      "rank": 87,
+      "sourceRowId": "91"
+    },
+    {
+      "name": "Aria",
+      "score": 54.9,
+      "detail": "open_source · author",
+      "date": "2024-10-10",
+      "rank": 88,
+      "sourceRowId": "155"
+    },
+    {
+      "name": "SenseChat-Vision-0423-Preview",
+      "score": 54.6,
+      "detail": "proprietary · author",
+      "date": "2024-04-23",
+      "rank": 89,
+      "sourceRowId": "41"
+    },
+    {
+      "name": "POINTS1.5",
+      "score": 53.8,
+      "detail": "open_source · author",
+      "date": "2024-12-11",
+      "rank": 90,
+      "sourceRowId": "136"
+    },
+    {
+      "name": "Reka Flash",
+      "score": 53.3,
+      "detail": "proprietary · author",
+      "date": "2024-04-23",
+      "rank": 91,
+      "sourceRowId": "42"
+    },
+    {
+      "name": "Claude 3 Sonnet",
+      "score": 53.1,
+      "detail": "proprietary · author",
+      "date": "2024-03-05",
+      "rank": 92,
+      "sourceRowId": "43"
+    },
+    {
+      "name": "Qwen2.5-VL 3B",
+      "score": 53.1,
+      "detail": "open_source · author",
+      "date": "2025-02-19",
+      "rank": 92,
+      "sourceRowId": "127"
+    },
+    {
+      "name": "EVLM-KTO",
+      "score": 53.0,
+      "detail": "proprietary · author",
+      "date": "2024-12-13",
+      "rank": 94,
+      "sourceRowId": "141"
+    },
+    {
+      "name": "HPT Pro",
+      "score": 52.0,
+      "detail": "proprietary · author",
+      "date": "2024-03-16",
+      "rank": 95,
+      "sourceRowId": "44"
+    },
+    {
+      "name": "InternVL-Chat-V1.2",
+      "score": 51.6,
+      "detail": "open_source · author",
+      "date": "2024-02-22",
+      "rank": 96,
+      "sourceRowId": "46"
+    },
+    {
+      "name": "Qwen-VL-MAX",
+      "score": 51.4,
+      "detail": "proprietary · author",
+      "date": "2024-01-27",
+      "rank": 97,
+      "sourceRowId": "47"
+    },
+    {
+      "name": "Skywork-VL",
+      "score": 51.4,
+      "detail": "proprietary · author",
+      "date": "2024-05-30",
+      "rank": 97,
+      "sourceRowId": "48"
+    },
+    {
+      "name": "InternVL2-8B",
+      "score": 51.2,
+      "detail": "open_source · author",
+      "date": "2024-07-04",
+      "rank": 99,
+      "sourceRowId": "93"
+    },
+    {
+      "name": "DeepSeek-VL2",
+      "score": 51.1,
+      "detail": "open_source · author",
+      "date": "2024-12-13",
+      "rank": 100,
+      "sourceRowId": "149"
+    },
+    {
+      "name": "SpaRE-7B",
+      "score": 51.0,
+      "detail": "open_source · author",
+      "date": "2025-04-29",
+      "rank": 101,
+      "sourceRowId": "187"
+    },
+    {
+      "name": "360VL",
+      "score": 50.8,
+      "detail": "open_source · author",
+      "date": "2024-05-21",
+      "rank": 102,
+      "sourceRowId": "104"
+    },
+    {
+      "name": "MAmmoTH-VL-8B",
+      "score": 50.8,
+      "detail": "open_source · author",
+      "date": "2024-12-08",
+      "rank": 102,
+      "sourceRowId": "119"
+    },
+    {
+      "name": "Llama 3.2 11B",
+      "score": 50.7,
+      "detail": "open_source · author",
+      "date": "2024-09-25",
+      "rank": 104,
+      "sourceRowId": "113"
+    },
+    {
+      "name": "BLIP3-o8B",
+      "score": 50.6,
+      "detail": "open_source · author",
+      "date": "2025-05-16",
+      "rank": 105,
+      "sourceRowId": "179"
+    },
+    {
+      "name": "Claude 3 Haiku",
+      "score": 50.2,
+      "detail": "proprietary · author",
+      "date": "2024-03-05",
+      "rank": 106,
+      "sourceRowId": "50"
+    },
+    {
+      "name": "LlaVA-NEXT-72B",
+      "score": 49.9,
+      "detail": "open_source · author",
+      "date": "2024-01-30",
+      "rank": 107,
+      "sourceRowId": "95"
+    },
+    {
+      "name": "MiniCPM-V 2.6",
+      "score": 49.8,
+      "detail": "open_source · author",
+      "date": "2024-08-06",
+      "rank": 108,
+      "sourceRowId": "94"
+    },
+    {
+      "name": "Ovis1.5-Gemma2-9B",
+      "score": 49.8,
+      "detail": "open_source · author",
+      "date": "2024-06-14",
+      "rank": 108,
+      "sourceRowId": "106"
+    },
+    {
+      "name": "Cambrian-1-34B",
+      "score": 49.7,
+      "detail": "open_source · author",
+      "date": "2024-06-27",
+      "rank": 110,
+      "sourceRowId": "172"
+    },
+    {
+      "name": "Gemma 3-4B",
+      "score": 48.8,
+      "detail": "open_source · author",
+      "date": "2025-03-12",
+      "rank": 111,
+      "sourceRowId": "107"
+    },
+    {
+      "name": "LLaVA-OneVision-7B",
+      "score": 48.8,
+      "detail": "open_source · author",
+      "date": "2024-08-06",
+      "rank": 111,
+      "sourceRowId": "96"
+    },
+    {
+      "name": "InternVL3-2B",
+      "score": 48.6,
+      "detail": "open_source · author",
+      "date": "2025-04-11",
+      "rank": 113,
+      "sourceRowId": "158"
+    },
+    {
+      "name": "Ovis-Clip-Llama3-8B",
+      "score": 48.6,
+      "detail": "open_source · author",
+      "date": "2024-06-14",
+      "rank": 113,
+      "sourceRowId": "105"
+    },
+    {
+      "name": "Adept Fuyu-Heavy",
+      "score": 48.3,
+      "detail": "proprietary · author",
+      "date": "2024-01-31",
+      "rank": 115,
+      "sourceRowId": "52"
+    },
+    {
+      "name": "LLaVA-NEXT-34B",
+      "score": 48.1,
+      "detail": "open_source · author",
+      "date": "2024-01-30",
+      "rank": 116,
+      "sourceRowId": "49"
+    },
+    {
+      "name": "DeepSeek-VL2-Small",
+      "score": 48.0,
+      "detail": "open_source · author",
+      "date": "2024-12-13",
+      "rank": 117,
+      "sourceRowId": "150"
+    },
+    {
+      "name": "Ovis2-4B",
+      "score": 48.0,
+      "detail": "open_source · author",
+      "date": "2025-03-25",
+      "rank": 117,
+      "sourceRowId": "166"
+    },
+    {
+      "name": "Gemini 1.0 Pro",
+      "score": 47.9,
+      "detail": "proprietary · author",
+      "date": "2023-12-06",
+      "rank": 119,
+      "sourceRowId": "53"
+    },
+    {
+      "name": "Aquila-VL-2B",
+      "score": 47.4,
+      "detail": "open_source · author",
+      "date": "2024-10-25",
+      "rank": 120,
+      "sourceRowId": "173"
+    },
+    {
+      "name": "Qianfan-VL-8B",
+      "score": 47.1,
+      "detail": "open_source · author",
+      "date": "2025-09-16",
+      "rank": 121,
+      "sourceRowId": "29"
+    },
+    {
+      "name": "BLIP3-o4B",
+      "score": 46.6,
+      "detail": "open_source · author",
+      "date": "2025-05-16",
+      "rank": 122,
+      "sourceRowId": "178"
+    },
+    {
+      "name": "Idefics3-8B-Llama3",
+      "score": 46.6,
+      "detail": "open_source · author",
+      "date": "2024-08-22",
+      "rank": 122,
+      "sourceRowId": "51"
+    },
+    {
+      "name": "Qianfan-VL-3B",
+      "score": 46.4,
+      "detail": "open_source · author",
+      "date": "2025-09-16",
+      "rank": 124,
+      "sourceRowId": "28"
+    },
+    {
+      "name": "Marco-VL-Plus",
+      "score": 46.2,
+      "detail": "proprietary · author",
+      "date": "2024-03-09",
+      "rank": 125,
+      "sourceRowId": "54"
+    },
+    {
+      "name": "Yi-VL-34B",
+      "score": 45.9,
+      "detail": "open_source · author",
+      "date": "2023-12-31",
+      "rank": 126,
+      "sourceRowId": "55"
+    },
+    {
+      "name": "MiniCPM-Llama3-V 2.5",
+      "score": 45.8,
+      "detail": "open_source · author",
+      "date": "2024-05-20",
+      "rank": 127,
+      "sourceRowId": "97"
+    },
+    {
+      "name": "Ovis2-2B",
+      "score": 45.3,
+      "detail": "open_source · author",
+      "date": "2025-03-25",
+      "rank": 128,
+      "sourceRowId": "165"
+    },
+    {
+      "name": "Qwen-VL-PLUS",
+      "score": 45.2,
+      "detail": "proprietary · author",
+      "date": "2023-12-15",
+      "rank": 129,
+      "sourceRowId": "56"
+    },
+    {
+      "name": "Aya-Vision-32B",
+      "score": 45.11,
+      "detail": "open_source · author",
+      "date": "2025-05-13",
+      "rank": 130,
+      "sourceRowId": "182"
+    },
+    {
+      "name": "Mogao-7B",
+      "score": 44.2,
+      "detail": "open_source · author",
+      "date": "2025-05-08",
+      "rank": 131,
+      "sourceRowId": "183"
+    },
+    {
+      "name": "HPT Air",
+      "score": 44.0,
+      "detail": "open_source · author",
+      "date": "2024-03-16",
+      "rank": 132,
+      "sourceRowId": "57"
+    },
+    {
+      "name": "InternVL2.5-2B",
+      "score": 43.6,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 133,
+      "sourceRowId": "124"
+    },
+    {
+      "name": "InternVL3-1B",
+      "score": 43.4,
+      "detail": "open_source · author",
+      "date": "2025-04-11",
+      "rank": 134,
+      "sourceRowId": "157"
+    },
+    {
+      "name": "Bunny-8B",
+      "score": 43.3,
+      "detail": "open_source · author",
+      "date": "2024-06-25",
+      "rank": 135,
+      "sourceRowId": "58"
+    },
+    {
+      "name": "InternLM-XComposer2-VL",
+      "score": 43.0,
+      "detail": "open_source · author",
+      "date": "2024-01-22",
+      "rank": 136,
+      "sourceRowId": "59"
+    },
+    {
+      "name": "Phi-3.5-Vision",
+      "score": 43.0,
+      "detail": "open_source · author",
+      "date": "2024-05-21",
+      "rank": 136,
+      "sourceRowId": "98"
+    },
+    {
+      "name": "Flash-VL-2B-Dynamic",
+      "score": 42.9,
+      "detail": "open_source · author",
+      "date": "2025-05-16",
+      "rank": 138,
+      "sourceRowId": "180"
+    },
+    {
+      "name": "Reka Edge",
+      "score": 42.8,
+      "detail": "proprietary · author",
+      "date": "2024-04-23",
+      "rank": 139,
+      "sourceRowId": "60"
+    },
+    {
+      "name": "Cambrian-1-8B",
+      "score": 42.7,
+      "detail": "open_source · author",
+      "date": "2024-06-27",
+      "rank": 140,
+      "sourceRowId": "170"
+    },
+    {
+      "name": "HyViLM",
+      "score": 41.8,
+      "detail": "proprietary · author",
+      "date": "2024-12-11",
+      "rank": 141,
+      "sourceRowId": "137"
+    },
+    {
+      "name": "MetaMorph",
+      "score": 41.8,
+      "detail": "proprietary · author",
+      "date": "2024-12-19",
+      "rank": 141,
+      "sourceRowId": "133"
+    },
+    {
+      "name": "Bunny-4B",
+      "score": 41.4,
+      "detail": "open_source · author",
+      "date": "2024-06-25",
+      "rank": 143,
+      "sourceRowId": "61"
+    },
+    {
+      "name": "Marco-VL",
+      "score": 41.2,
+      "detail": "proprietary · author",
+      "date": "2024-01-16",
+      "rank": 144,
+      "sourceRowId": "62"
+    },
+    {
+      "name": "OmniLMM-12B",
+      "score": 41.1,
+      "detail": "open_source · author",
+      "date": "2024-02-07",
+      "rank": 145,
+      "sourceRowId": "63"
+    },
+    {
+      "name": "InternVL2.5-1B",
+      "score": 40.9,
+      "detail": "open_source · author",
+      "date": "2024-12-05",
+      "rank": 146,
+      "sourceRowId": "125"
+    },
+    {
+      "name": "DeepSeek-VL2-Tiny",
+      "score": 40.7,
+      "detail": "open_source · author",
+      "date": "2024-12-13",
+      "rank": 147,
+      "sourceRowId": "151"
+    },
+    {
+      "name": "Cambrian-1-13B",
+      "score": 40.0,
+      "detail": "open_source · author",
+      "date": "2024-06-27",
+      "rank": 148,
+      "sourceRowId": "171"
+    },
+    {
+      "name": "SpaRE-2B",
+      "score": 40.0,
+      "detail": "open_source · author",
+      "date": "2025-04-29",
+      "rank": 148,
+      "sourceRowId": "186"
+    },
+    {
+      "name": "Aya-Vision-8B",
+      "score": 39.9,
+      "detail": "open_source · author",
+      "date": "2025-05-13",
+      "rank": 150,
+      "sourceRowId": "181"
+    },
+    {
+      "name": "InfiMM-Zephyr-7B",
+      "score": 39.4,
+      "detail": "open_source · author",
+      "date": "2024-01-18",
+      "rank": 151,
+      "sourceRowId": "64"
+    },
+    {
+      "name": "InternVL-Chat-V1.1",
+      "score": 39.1,
+      "detail": "open_source · author",
+      "date": "2024-01-24",
+      "rank": 152,
+      "sourceRowId": "66"
+    },
+    {
+      "name": "Yi-VL-6B",
+      "score": 39.1,
+      "detail": "open_source · author",
+      "date": "2024-01-23",
+      "rank": 152,
+      "sourceRowId": "65"
+    },
+    {
+      "name": "Math-LLaVA-13B",
+      "score": 38.3,
+      "detail": "open_source · author",
+      "date": "2024-06-25",
+      "rank": 154,
+      "sourceRowId": "67"
+    },
+    {
+      "name": "Bunny-3B",
+      "score": 38.2,
+      "detail": "open_source · author",
+      "date": "2024-02-13",
+      "rank": 155,
+      "sourceRowId": "68"
+    },
+    {
+      "name": "ILLUME",
+      "score": 38.2,
+      "detail": "proprietary · author",
+      "date": "2024-12-09",
+      "rank": 155,
+      "sourceRowId": "134"
+    },
+    {
+      "name": "LLaVA-UHD v2",
+      "score": 38.2,
+      "detail": "open_source · author",
+      "date": "2024-12-21",
+      "rank": 155,
+      "sourceRowId": "132"
+    },
+    {
+      "name": "SVIT",
+      "score": 38.0,
+      "detail": "open_source · author",
+      "date": "2023-12-26",
+      "rank": 158,
+      "sourceRowId": "69"
+    },
+    {
+      "name": "MiniCPM-V",
+      "score": 37.2,
+      "detail": "open_source · author",
+      "date": "2024-02-01",
+      "rank": 159,
+      "sourceRowId": "70"
+    },
+    {
+      "name": "MiniCPM-V 2.0",
+      "score": 37.1,
+      "detail": "open_source · author",
+      "date": "2024-04-12",
+      "rank": 160,
+      "sourceRowId": "71"
+    },
+    {
+      "name": "LLaVA-1.5-13B",
+      "score": 36.4,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 161,
+      "sourceRowId": "72"
+    },
+    {
+      "name": "Emu2-Chat",
+      "score": 36.3,
+      "detail": "open_source · author",
+      "date": "2023-12-24",
+      "rank": 162,
+      "sourceRowId": "73"
+    },
+    {
+      "name": "LLaVA-NeXT-13B",
+      "score": 36.2,
+      "detail": "open_source · author",
+      "date": "2024-01-30",
+      "rank": 163,
+      "sourceRowId": "100"
+    },
+    {
+      "name": "Ovis2-1B",
+      "score": 36.0,
+      "detail": "open_source · author",
+      "date": "2025-03-25",
+      "rank": 164,
+      "sourceRowId": "164"
+    },
+    {
+      "name": "Qwen-VL-7B-Chat",
+      "score": 35.9,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 165,
+      "sourceRowId": "74"
+    },
+    {
+      "name": "LLaVA-NeXT-Vicuna-7B",
+      "score": 35.8,
+      "detail": "open_source · author",
+      "date": "2024-01-30",
+      "rank": 166,
+      "sourceRowId": "101"
+    },
+    {
+      "name": "InstructBLIP-T5-XXL",
+      "score": 35.7,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 167,
+      "sourceRowId": "75"
+    },
+    {
+      "name": "BLIP-2 FLAN-T5-XXL",
+      "score": 35.4,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 168,
+      "sourceRowId": "76"
+    },
+    {
+      "name": "LLaVA-NeXT-mistral-7B",
+      "score": 35.3,
+      "detail": "open_source · author",
+      "date": "2024-01-30",
+      "rank": 169,
+      "sourceRowId": "99"
+    },
+    {
+      "name": "BLIP-2 FLAN-T5-XL",
+      "score": 34.4,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 170,
+      "sourceRowId": "77"
+    },
+    {
+      "name": "SynerGen-VL",
+      "score": 34.2,
+      "detail": "proprietary · author",
+      "date": "2024-12-12",
+      "rank": 171,
+      "sourceRowId": "139"
+    },
+    {
+      "name": "HoVLE",
+      "score": 33.7,
+      "detail": "open_source · author",
+      "date": "2024-12-18",
+      "rank": 172,
+      "sourceRowId": "130"
+    },
+    {
+      "name": "HoVLE (HD)",
+      "score": 33.2,
+      "detail": "open_source · author",
+      "date": "2024-12-18",
+      "rank": 173,
+      "sourceRowId": "131"
+    },
+    {
+      "name": "InstructBLIP-T5-XL",
+      "score": 32.9,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 174,
+      "sourceRowId": "78"
+    },
+    {
+      "name": "SPHINX",
+      "score": 32.9,
+      "detail": "open_source · author",
+      "date": "2023-12-26",
+      "rank": 174,
+      "sourceRowId": "79"
+    },
+    {
+      "name": "Olympus",
+      "score": 32.8,
+      "detail": "open_source · author",
+      "date": "2024-12-12",
+      "rank": 176,
+      "sourceRowId": "138"
+    },
+    {
+      "name": "mPLUG-OWL2",
+      "score": 32.7,
+      "detail": "open_source · author",
+      "date": "2023-12-04",
+      "rank": 177,
+      "sourceRowId": "80"
+    },
+    {
+      "name": "Gemini Nano2",
+      "score": 32.6,
+      "detail": "proprietary · author",
+      "date": "2023-12-06",
+      "rank": 178,
+      "sourceRowId": "81"
+    },
+    {
+      "name": "Otter",
+      "score": 32.2,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 179,
+      "sourceRowId": "82"
+    },
+    {
+      "name": "CogVLM",
+      "score": 32.1,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 180,
+      "sourceRowId": "83"
+    },
+    {
+      "name": "Emu3",
+      "score": 31.6,
+      "detail": "open_source · author",
+      "date": "2024-09-27",
+      "rank": 181,
+      "sourceRowId": "135"
+    },
+    {
+      "name": "LLaMA-Adapter2-7B",
+      "score": 29.8,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 182,
+      "sourceRowId": "84"
+    },
+    {
+      "name": "OpenFlamingo2-9B",
+      "score": 28.7,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 183,
+      "sourceRowId": "85"
+    },
+    {
+      "name": "Adept Fuyu-8B",
+      "score": 27.9,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 184,
+      "sourceRowId": "86"
+    },
+    {
+      "name": "Show-o",
+      "score": 27.4,
+      "detail": "open_source · author",
+      "date": "2024-08-22",
+      "rank": 185,
+      "sourceRowId": "140"
+    },
+    {
+      "name": "Frequent Choice",
+      "score": 26.8,
+      "detail": "random_frequent · Source-listed",
+      "date": "2023-11-27",
+      "rank": 186,
+      "sourceRowId": "188"
+    },
+    {
+      "name": "MiniGPT4-Vicuna-13B",
+      "score": 26.8,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 186,
+      "sourceRowId": "87"
+    },
+    {
+      "name": "Kosmos2",
+      "score": 24.4,
+      "detail": "open_source · Source-listed",
+      "date": "2023-11-27",
+      "rank": 188,
+      "sourceRowId": "88"
+    },
+    {
+      "name": "Random Choice",
+      "score": 22.1,
+      "detail": "random_frequent · Source-listed",
+      "date": "2023-11-27",
+      "rank": 189,
+      "sourceRowId": "189"
+    }
+  ]
+}

@@ -1,0 +1,2106 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "mmlu-pro",
+  "sourceUrl": "https://huggingface.co/datasets/TIGER-Lab/mmlu_pro_leaderboard_submission/resolve/main/results.csv",
+  "sourceSha256": "3ba62dcde6605128d0bef50042c23bec8bf420943b678c362ef74e0904cf6db8",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "Gemini-3.1-Pro",
+      "score": 91.16,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 1,
+      "sourceRowId": "249"
+    },
+    {
+      "name": "Gemini-3-Pro(11/25)",
+      "score": 90.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 2,
+      "sourceRowId": "229"
+    },
+    {
+      "name": "GPT-o1",
+      "score": 89.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 3,
+      "sourceRowId": "171"
+    },
+    {
+      "name": "Claude-4.6-Opus(Thinking)",
+      "score": 89.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 4,
+      "sourceRowId": "235"
+    },
+    {
+      "name": "Gemini-3-Flash(12/25)",
+      "score": 88.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 5,
+      "sourceRowId": "236"
+    },
+    {
+      "name": "MiniMax-M2.1",
+      "score": 88.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 6,
+      "sourceRowId": "238"
+    },
+    {
+      "name": "Qwen3.5-397B-A17B",
+      "score": 87.8,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 7,
+      "sourceRowId": "227"
+    },
+    {
+      "name": "Seed2.0-Lite",
+      "score": 87.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 8,
+      "sourceRowId": "243"
+    },
+    {
+      "name": "GPT-5.4",
+      "score": 87.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 9,
+      "sourceRowId": "258"
+    },
+    {
+      "name": "Claude-4.5-Sonnet(Thinking)",
+      "score": 87.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 10,
+      "sourceRowId": "234"
+    },
+    {
+      "name": "GPT-5.2",
+      "score": 87.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 10,
+      "sourceRowId": "230"
+    },
+    {
+      "name": "Claude-4-Opus-Thinking",
+      "score": 87.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 12,
+      "sourceRowId": "204"
+    },
+    {
+      "name": "Claude-4.5-Opus(Thinking)",
+      "score": 87.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 12,
+      "sourceRowId": "233"
+    },
+    {
+      "name": "Claude-4.6-Sonnet(Thinking)",
+      "score": 87.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 12,
+      "sourceRowId": "260"
+    },
+    {
+      "name": "Hunyuan-T1",
+      "score": 87.2,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 15,
+      "sourceRowId": "173"
+    },
+    {
+      "name": "GPT-5(high)",
+      "score": 87.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 16,
+      "sourceRowId": "218"
+    },
+    {
+      "name": "K2.5-1T-A32B",
+      "score": 87.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 16,
+      "sourceRowId": "228"
+    },
+    {
+      "name": "Grok-4",
+      "score": 87.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 18,
+      "sourceRowId": "205"
+    },
+    {
+      "name": "Seed-Thinking-v1.5",
+      "score": 87.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 18,
+      "sourceRowId": "198"
+    },
+    {
+      "name": "Seed2.0-Pro",
+      "score": 87.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 18,
+      "sourceRowId": "242"
+    },
+    {
+      "name": "Qwen3.5-122B-A10B",
+      "score": 86.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 21,
+      "sourceRowId": "250"
+    },
+    {
+      "name": "Seed1.6-Base",
+      "score": 86.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 22,
+      "sourceRowId": "221"
+    },
+    {
+      "name": "Seed1.6-Thinking",
+      "score": 86.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 22,
+      "sourceRowId": "220"
+    },
+    {
+      "name": "GPT-5.1",
+      "score": 86.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 24,
+      "sourceRowId": "231"
+    },
+    {
+      "name": "Seed1.6-Ada-Thinking",
+      "score": 86.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 24,
+      "sourceRowId": "208"
+    },
+    {
+      "name": "Gemini-3.1-Flash-Lite-Preview",
+      "score": 86.2,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 26,
+      "sourceRowId": "259"
+    },
+    {
+      "name": "GPT-4.5",
+      "score": 86.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 27,
+      "sourceRowId": "172"
+    },
+    {
+      "name": "Qwen3.5-27B",
+      "score": 86.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 27,
+      "sourceRowId": "251"
+    },
+    {
+      "name": "Gemini-2.5-Pro",
+      "score": 86.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 29,
+      "sourceRowId": "206"
+    },
+    {
+      "name": "GLM-5",
+      "score": 86.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 29,
+      "sourceRowId": "240"
+    },
+    {
+      "name": "Qwen3-Max-Thinking",
+      "score": 85.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 31,
+      "sourceRowId": "232"
+    },
+    {
+      "name": "Qwen3.5-35B-A3B",
+      "score": 85.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 32,
+      "sourceRowId": "252"
+    },
+    {
+      "name": "DeepSeek-V3.2-Thinking",
+      "score": 85.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 33,
+      "sourceRowId": "241"
+    },
+    {
+      "name": "GPT-o3-high",
+      "score": 85.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 33,
+      "sourceRowId": "207"
+    },
+    {
+      "name": "DeepSeek-V3.1-Thinking",
+      "score": 84.8,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 35,
+      "sourceRowId": "225"
+    },
+    {
+      "name": "GLM-4.5",
+      "score": 84.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 36,
+      "sourceRowId": "209"
+    },
+    {
+      "name": "Gemini-2.5-Pro-Exp-03-25",
+      "score": 84.52,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 37,
+      "sourceRowId": "180"
+    },
+    {
+      "name": "Qwen3-235B-A22B-Thinking-2507",
+      "score": 84.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 38,
+      "sourceRowId": "212"
+    },
+    {
+      "name": "Grok-4.1-Fast(Reasoning)",
+      "score": 84.2,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 39,
+      "sourceRowId": "261"
+    },
+    {
+      "name": "Claude-3.7-Sonnet-Thinking",
+      "score": 84.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 40,
+      "sourceRowId": "183"
+    },
+    {
+      "name": "DeepSeek-R1",
+      "score": 84.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 40,
+      "sourceRowId": "148"
+    },
+    {
+      "name": "Claude-4-Sonnet",
+      "score": 83.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 42,
+      "sourceRowId": "200"
+    },
+    {
+      "name": "DeepSeek-V3.1-NonThinking",
+      "score": 83.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 42,
+      "sourceRowId": "224"
+    },
+    {
+      "name": "Seed2.0-Mini",
+      "score": 83.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 44,
+      "sourceRowId": "244"
+    },
+    {
+      "name": "Intern-S1",
+      "score": 83.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 45,
+      "sourceRowId": "202"
+    },
+    {
+      "name": "DeepSeek-R1-0528",
+      "score": 83.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 46,
+      "sourceRowId": "203"
+    },
+    {
+      "name": "GPT-4-mini (high)",
+      "score": 83.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 47,
+      "sourceRowId": "182"
+    },
+    {
+      "name": "Grok-3-mini",
+      "score": 83.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 47,
+      "sourceRowId": "181"
+    },
+    {
+      "name": "Qwen3-235B-A22B-Instruct-2507",
+      "score": 83.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 47,
+      "sourceRowId": "211"
+    },
+    {
+      "name": "Llama4-Behemoth",
+      "score": 82.8,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 50,
+      "sourceRowId": "179"
+    },
+    {
+      "name": "LongCat-Flash-Chat",
+      "score": 82.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 51,
+      "sourceRowId": "226"
+    },
+    {
+      "name": "Seed-OSS-36B-Instruct",
+      "score": 82.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 51,
+      "sourceRowId": "219"
+    },
+    {
+      "name": "Qwen3.5-9B",
+      "score": 82.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 53,
+      "sourceRowId": "257"
+    },
+    {
+      "name": "MiniMax-M2",
+      "score": 82.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 54,
+      "sourceRowId": "237"
+    },
+    {
+      "name": "GPT-4.1",
+      "score": 81.8,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 55,
+      "sourceRowId": "201"
+    },
+    {
+      "name": "GLM-4.5-Air",
+      "score": 81.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 56,
+      "sourceRowId": "210"
+    },
+    {
+      "name": "Deepseek-V3-0324",
+      "score": 81.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 57,
+      "sourceRowId": "176"
+    },
+    {
+      "name": "MiniMax-M1",
+      "score": 81.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 58,
+      "sourceRowId": "197"
+    },
+    {
+      "name": "Kimi-K2-Instruct",
+      "score": 81.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 59,
+      "sourceRowId": "199"
+    },
+    {
+      "name": "Qwen3-30B-A3B-Thinking-2507",
+      "score": 80.9,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 60,
+      "sourceRowId": "214"
+    },
+    {
+      "name": "GPT-oss-120B(high)",
+      "score": 80.8,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 61,
+      "sourceRowId": "217"
+    },
+    {
+      "name": "Llama4-Maverick",
+      "score": 80.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 62,
+      "sourceRowId": "177"
+    },
+    {
+      "name": "GPT-o1-mini",
+      "score": 80.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 63,
+      "sourceRowId": "145"
+    },
+    {
+      "name": "Doubao-1.5-Pro",
+      "score": 80.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 64,
+      "sourceRowId": "149"
+    },
+    {
+      "name": "MiniMax-M2.5",
+      "score": 80.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 64,
+      "sourceRowId": "239"
+    },
+    {
+      "name": "Grok3-Beta",
+      "score": 79.9,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 66,
+      "sourceRowId": "158"
+    },
+    {
+      "name": "GPT-o3-mini",
+      "score": 79.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 67,
+      "sourceRowId": "191"
+    },
+    {
+      "name": "Gemini-2.0-Pro",
+      "score": 79.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 68,
+      "sourceRowId": "155"
+    },
+    {
+      "name": "Qwen3.5-4B",
+      "score": 79.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 68,
+      "sourceRowId": "256"
+    },
+    {
+      "name": "HunyuanTurboS",
+      "score": 79.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 70,
+      "sourceRowId": "162"
+    },
+    {
+      "name": "Grok3-mini-Beta",
+      "score": 78.9,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 71,
+      "sourceRowId": "157"
+    },
+    {
+      "name": "Qwen3-30B-A3B-Thinking",
+      "score": 78.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 72,
+      "sourceRowId": "213"
+    },
+    {
+      "name": "ERNIE-4.5-300B-A47B",
+      "score": 78.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 73,
+      "sourceRowId": "196"
+    },
+    {
+      "name": "Nemotron-3-Nano-30B-A3B(BF16)",
+      "score": 78.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 74,
+      "sourceRowId": "245"
+    },
+    {
+      "name": "Nemotron-3-Nano-30B-A3B(FP8)",
+      "score": 78.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 75,
+      "sourceRowId": "246"
+    },
+    {
+      "name": "Claude-3.5-Sonnet (2024-10-22)",
+      "score": 78.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 76,
+      "sourceRowId": "147"
+    },
+    {
+      "name": "GPT-4o (2024-11-20)",
+      "score": 77.9,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 77,
+      "sourceRowId": "146"
+    },
+    {
+      "name": "Claude-3.5-Sonnet (2024-10-22)",
+      "score": 77.64,
+      "detail": "TIGER-LAb",
+      "date": null,
+      "rank": 78,
+      "sourceRowId": "99"
+    },
+    {
+      "name": "Gemini-2.0-Flash",
+      "score": 77.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 79,
+      "sourceRowId": "154"
+    },
+    {
+      "name": "Gemini-2.0-Flash-exp",
+      "score": 76.24,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 80,
+      "sourceRowId": "127"
+    },
+    {
+      "name": "Claude-3.5-Sonnet (2024-06-20)",
+      "score": 76.12,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 81,
+      "sourceRowId": "57"
+    },
+    {
+      "name": "Qwen2.5-Max",
+      "score": 76.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 82,
+      "sourceRowId": "150"
+    },
+    {
+      "name": "Phi-4-reasoning-plus",
+      "score": 76.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 83,
+      "sourceRowId": "190"
+    },
+    {
+      "name": "Deepseek-V3",
+      "score": 75.87,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 84,
+      "sourceRowId": "136"
+    },
+    {
+      "name": "MiniMax-Text-01",
+      "score": 75.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 85,
+      "sourceRowId": "139"
+    },
+    {
+      "name": "Grok-2",
+      "score": 75.46,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 86,
+      "sourceRowId": "79"
+    },
+    {
+      "name": "Grok-4.1-Fast(Non-Reasoning)",
+      "score": 75.2,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 87,
+      "sourceRowId": "262"
+    },
+    {
+      "name": "GPT-4o (2024-08-06)",
+      "score": 74.68,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 88,
+      "sourceRowId": "83"
+    },
+    {
+      "name": "Llama4-Scout",
+      "score": 74.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 89,
+      "sourceRowId": "178"
+    },
+    {
+      "name": "Phi-4-reasoning",
+      "score": 74.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 89,
+      "sourceRowId": "189"
+    },
+    {
+      "name": "GPT-oss-20B(high)",
+      "score": 73.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 91,
+      "sourceRowId": "216"
+    },
+    {
+      "name": "Llama-3.1-405B-Instruct",
+      "score": 73.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 92,
+      "sourceRowId": "140"
+    },
+    {
+      "name": "GPT-oss-20B(medium)",
+      "score": 73.14,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 93,
+      "sourceRowId": "215"
+    },
+    {
+      "name": "Athene-V2-Chat (0-shot)",
+      "score": 73.11,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 94,
+      "sourceRowId": "120"
+    },
+    {
+      "name": "GPT-4o (2024-05-13)",
+      "score": 72.55,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 95,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "Grok-2-mini",
+      "score": 71.85,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 96,
+      "sourceRowId": "80"
+    },
+    {
+      "name": "Gemini-2.0-Flash-Lite",
+      "score": 71.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 97,
+      "sourceRowId": "153"
+    },
+    {
+      "name": "Qwen2.5-72B",
+      "score": 71.59,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 98,
+      "sourceRowId": "87"
+    },
+    {
+      "name": "ECHO_Ego_v2_14B",
+      "score": 71.24,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 99,
+      "sourceRowId": "192"
+    },
+    {
+      "name": "QwQ-32B-Preview",
+      "score": 70.97,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 100,
+      "sourceRowId": "137"
+    },
+    {
+      "name": "Phi-4",
+      "score": 70.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 101,
+      "sourceRowId": "144"
+    },
+    {
+      "name": "Gemini-1.5-Pro-002",
+      "score": 70.25,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 102,
+      "sourceRowId": "96"
+    },
+    {
+      "name": "Athene-V2-Chat",
+      "score": 70.21,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 103,
+      "sourceRowId": "114"
+    },
+    {
+      "name": "ERNIE-4.5-300B-A47B-Base",
+      "score": 69.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 104,
+      "sourceRowId": "195"
+    },
+    {
+      "name": "Qwen2.5-32B",
+      "score": 69.23,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 105,
+      "sourceRowId": "89"
+    },
+    {
+      "name": "SkyThought-T1",
+      "score": 69.2,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 106,
+      "sourceRowId": "138"
+    },
+    {
+      "name": "QwQ-32B",
+      "score": 69.07,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 107,
+      "sourceRowId": "124"
+    },
+    {
+      "name": "Gemini-1.5-Pro",
+      "score": 69.03,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 108,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "Claude-3-Opus",
+      "score": 68.45,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 109,
+      "sourceRowId": "3"
+    },
+    {
+      "name": "Qwen3-235B-A22B",
+      "score": 68.18,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 110,
+      "sourceRowId": "184"
+    },
+    {
+      "name": "Mistral-Large-Instruct-2411",
+      "score": 67.94,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 111,
+      "sourceRowId": "126"
+    },
+    {
+      "name": "Gemma-3-27B-it",
+      "score": 67.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 112,
+      "sourceRowId": "168"
+    },
+    {
+      "name": "Hunyuan-A13B",
+      "score": 67.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 113,
+      "sourceRowId": "193"
+    },
+    {
+      "name": "Mistral-3.1-Small",
+      "score": 66.8,
+      "detail": "Sefl-Reported",
+      "date": null,
+      "rank": 114,
+      "sourceRowId": "170"
+    },
+    {
+      "name": "General-Reasoner-14B",
+      "score": 66.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 115,
+      "sourceRowId": "188"
+    },
+    {
+      "name": "Mistral-Small-instruct",
+      "score": 66.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 116,
+      "sourceRowId": "152"
+    },
+    {
+      "name": "Llama-3.3-70B-Instruct",
+      "score": 65.92,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 117,
+      "sourceRowId": "125"
+    },
+    {
+      "name": "Mistral-Large-Instruct-2407",
+      "score": 65.91,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 118,
+      "sourceRowId": "117"
+    },
+    {
+      "name": "DeepSeek-Chat-V2_5",
+      "score": 65.83,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 119,
+      "sourceRowId": "84"
+    },
+    {
+      "name": "Nemotron-3-Nano-30B-A3B-Base",
+      "score": 65.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 120,
+      "sourceRowId": "247"
+    },
+    {
+      "name": "Seed-OSS-36B-Base(w/ syn.)",
+      "score": 65.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 120,
+      "sourceRowId": "222"
+    },
+    {
+      "name": "Reka 3",
+      "score": 65.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 122,
+      "sourceRowId": "163"
+    },
+    {
+      "name": "Qwen2-72B-Chat",
+      "score": 64.38,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 123,
+      "sourceRowId": "55"
+    },
+    {
+      "name": "Gemini-1.5-Flash-002",
+      "score": 64.09,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 124,
+      "sourceRowId": "94"
+    },
+    {
+      "name": "magnum-72b-v1",
+      "score": 63.93,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 125,
+      "sourceRowId": "71"
+    },
+    {
+      "name": "GPT-4-Turbo",
+      "score": 63.71,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 126,
+      "sourceRowId": "23"
+    },
+    {
+      "name": "Qwen2.5-14B",
+      "score": 63.69,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 127,
+      "sourceRowId": "88"
+    },
+    {
+      "name": "DeepSeek-Coder-V2-Instruct",
+      "score": 63.63,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 128,
+      "sourceRowId": "58"
+    },
+    {
+      "name": "Higgs-Llama-3-70B",
+      "score": 63.16,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 129,
+      "sourceRowId": "54"
+    },
+    {
+      "name": "GPT-4o-mini",
+      "score": 63.09,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 130,
+      "sourceRowId": "70"
+    },
+    {
+      "name": "azerogpt",
+      "score": 63.07,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 131,
+      "sourceRowId": "156"
+    },
+    {
+      "name": "Llama-3.1-70B-Instruct",
+      "score": 62.84,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 132,
+      "sourceRowId": "78"
+    },
+    {
+      "name": "Llama-3.1-Nemotron-70B-Instruct-HF",
+      "score": 62.78,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 133,
+      "sourceRowId": "97"
+    },
+    {
+      "name": "Yi-Lightning",
+      "score": 62.38,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 134,
+      "sourceRowId": "101"
+    },
+    {
+      "name": "Claude-3-5-Haiku-20241022",
+      "score": 62.12,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 135,
+      "sourceRowId": "115"
+    },
+    {
+      "name": "RRD2.5-9B",
+      "score": 61.84,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 136,
+      "sourceRowId": "93"
+    },
+    {
+      "name": "Qwen3-30B-A3B-Base",
+      "score": 61.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 137,
+      "sourceRowId": "248"
+    },
+    {
+      "name": "Llama-3.1-405B",
+      "score": 61.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 138,
+      "sourceRowId": "141"
+    },
+    {
+      "name": "Gemma-3-12B-it",
+      "score": 60.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 139,
+      "sourceRowId": "167"
+    },
+    {
+      "name": "Nemotron-H-56B-Base",
+      "score": 60.5,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 140,
+      "sourceRowId": "174"
+    },
+    {
+      "name": "Seed-OSS-36B-Base(w/o syn.)",
+      "score": 60.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 141,
+      "sourceRowId": "223"
+    },
+    {
+      "name": "Reflection-Llama-3.1-70B",
+      "score": 60.35,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 142,
+      "sourceRowId": "82"
+    },
+    {
+      "name": "Hunyuan-Large",
+      "score": 60.2,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 143,
+      "sourceRowId": "143"
+    },
+    {
+      "name": "Gemini-1.5-Flash",
+      "score": 59.12,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 144,
+      "sourceRowId": "4"
+    },
+    {
+      "name": "EXAONE-3.5-32B-Instruct",
+      "score": 58.91,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 145,
+      "sourceRowId": "123"
+    },
+    {
+      "name": "General-Reasoner-7B",
+      "score": 58.9,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 146,
+      "sourceRowId": "187"
+    },
+    {
+      "name": "Mimo-7B-RL",
+      "score": 58.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 147,
+      "sourceRowId": "186"
+    },
+    {
+      "name": "Yi-large",
+      "score": 58.09,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 148,
+      "sourceRowId": "22"
+    },
+    {
+      "name": "NewenAI/Phi4-sft",
+      "score": 57.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 149,
+      "sourceRowId": "253"
+    },
+    {
+      "name": "Internlm3-8B-Instruct",
+      "score": 57.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 150,
+      "sourceRowId": "142"
+    },
+    {
+      "name": "Claude-3-Sonnet",
+      "score": 56.8,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 151,
+      "sourceRowId": "6"
+    },
+    {
+      "name": "ERNIE-4.5-21B-A3B-Base",
+      "score": 56.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 152,
+      "sourceRowId": "194"
+    },
+    {
+      "name": "Gemma-2-27B-it",
+      "score": 56.54,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 153,
+      "sourceRowId": "116"
+    },
+    {
+      "name": "Mixtral-8x22B-Instruct-v0.1",
+      "score": 56.33,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 154,
+      "sourceRowId": "118"
+    },
+    {
+      "name": "Llama-3-70B-Instruct",
+      "score": 56.2,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 155,
+      "sourceRowId": "5"
+    },
+    {
+      "name": "Phi3-medium-4k",
+      "score": 55.7,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 156,
+      "sourceRowId": "48"
+    },
+    {
+      "name": "Qwen2.5-Turbo",
+      "score": 55.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 157,
+      "sourceRowId": "85"
+    },
+    {
+      "name": "Qwen2-72B-32k",
+      "score": 55.59,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 158,
+      "sourceRowId": "56"
+    },
+    {
+      "name": "Qwen3.5-2B",
+      "score": 55.3,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 159,
+      "sourceRowId": "255"
+    },
+    {
+      "name": "Deepseek-V2-Chat",
+      "score": 54.81,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 160,
+      "sourceRowId": "7"
+    },
+    {
+      "name": "Mistral-Small-base",
+      "score": 54.4,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 161,
+      "sourceRowId": "151"
+    },
+    {
+      "name": "Phi-4-mini",
+      "score": 52.8,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 162,
+      "sourceRowId": "159"
+    },
+    {
+      "name": "Llama-3-70B",
+      "score": 52.78,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 163,
+      "sourceRowId": "8"
+    },
+    {
+      "name": "Qwen1.5-72B-Chat",
+      "score": 52.64,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 164,
+      "sourceRowId": "28"
+    },
+    {
+      "name": "Llama-3.1-70B",
+      "score": 52.47,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 165,
+      "sourceRowId": "77"
+    },
+    {
+      "name": "Yi-1.5-34B-Chat",
+      "score": 52.29,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 166,
+      "sourceRowId": "11"
+    },
+    {
+      "name": "Gemma-2-9B-it",
+      "score": 52.08,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 167,
+      "sourceRowId": "60"
+    },
+    {
+      "name": "Phi3-medium-128k",
+      "score": 51.91,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 168,
+      "sourceRowId": "47"
+    },
+    {
+      "name": "MAmmoTH2-8x7B-Plus",
+      "score": 50.4,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 169,
+      "sourceRowId": "26"
+    },
+    {
+      "name": "Qwen1.5-110B",
+      "score": 49.93,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 170,
+      "sourceRowId": "29"
+    },
+    {
+      "name": "Jamba-1.5-Large",
+      "score": 49.46,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 171,
+      "sourceRowId": "95"
+    },
+    {
+      "name": "Mistral-Small-Instruct-2409",
+      "score": 48.4,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 172,
+      "sourceRowId": "100"
+    },
+    {
+      "name": "GLM-4-9B-Chat",
+      "score": 48.01,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 173,
+      "sourceRowId": "52"
+    },
+    {
+      "name": "GLM-4-9B",
+      "score": 47.92,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 174,
+      "sourceRowId": "53"
+    },
+    {
+      "name": "Phi-3.5-mini-instruct",
+      "score": 47.87,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 175,
+      "sourceRowId": "81"
+    },
+    {
+      "name": "Qwen2-7B-Instruct",
+      "score": 47.24,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 176,
+      "sourceRowId": "61"
+    },
+    {
+      "name": "Cohere-Aya-Vision",
+      "score": 47.2,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 177,
+      "sourceRowId": "169"
+    },
+    {
+      "name": "EXAONE-3.5-7.8B-Instruct",
+      "score": 46.24,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 178,
+      "sourceRowId": "122"
+    },
+    {
+      "name": "Yi-1.5-9B-Chat",
+      "score": 45.95,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 179,
+      "sourceRowId": "12"
+    },
+    {
+      "name": "Phi3-mini-4k",
+      "score": 45.66,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 180,
+      "sourceRowId": "50"
+    },
+    {
+      "name": "Aya-Expanse-32B",
+      "score": 45.41,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 181,
+      "sourceRowId": "113"
+    },
+    {
+      "name": "Gemma-2-9B",
+      "score": 45.1,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 182,
+      "sourceRowId": "59"
+    },
+    {
+      "name": "Qwen2.5-7B",
+      "score": 45.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 183,
+      "sourceRowId": "90"
+    },
+    {
+      "name": "Mistral-Nemo-Instruct-2407",
+      "score": 44.81,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 184,
+      "sourceRowId": "73"
+    },
+    {
+      "name": "Llama-3.1-8B-Instruct",
+      "score": 44.25,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 185,
+      "sourceRowId": "76"
+    },
+    {
+      "name": "Nemotron-H-8B-Base",
+      "score": 44.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 186,
+      "sourceRowId": "175"
+    },
+    {
+      "name": "Phi3-mini-128k",
+      "score": 43.86,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 187,
+      "sourceRowId": "49"
+    },
+    {
+      "name": "Qwen2.5-3B",
+      "score": 43.73,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 188,
+      "sourceRowId": "86"
+    },
+    {
+      "name": "Gemma-3-4B-it",
+      "score": 43.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 189,
+      "sourceRowId": "166"
+    },
+    {
+      "name": "MAmmoTH2-8B-Plus",
+      "score": 43.35,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 190,
+      "sourceRowId": "25"
+    },
+    {
+      "name": "Mixtral-8x7B-Instruct-v0.1",
+      "score": 43.27,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 191,
+      "sourceRowId": "14"
+    },
+    {
+      "name": "Yi-34B",
+      "score": 43.03,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 192,
+      "sourceRowId": "34"
+    },
+    {
+      "name": "Claude-3-Haiku-20240307",
+      "score": 42.29,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 193,
+      "sourceRowId": "119"
+    },
+    {
+      "name": "Mathstral-7B-v0.1",
+      "score": 42.0,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 194,
+      "sourceRowId": "69"
+    },
+    {
+      "name": "Mimo-7B-base",
+      "score": 41.9,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 195,
+      "sourceRowId": "185"
+    },
+    {
+      "name": "DeepSeek-Coder-V2-Lite-Instruct",
+      "score": 41.57,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 196,
+      "sourceRowId": "68"
+    },
+    {
+      "name": "Granite-3.1-8B-Instruct",
+      "score": 41.03,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 197,
+      "sourceRowId": "135"
+    },
+    {
+      "name": "Mixtral-8x7B-v0.1",
+      "score": 41.03,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 197,
+      "sourceRowId": "15"
+    },
+    {
+      "name": "Llama-3-8B-Instruct",
+      "score": 40.98,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 199,
+      "sourceRowId": "9"
+    },
+    {
+      "name": "MAmmoTH2-7B-Plus",
+      "score": 40.85,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 200,
+      "sourceRowId": "24"
+    },
+    {
+      "name": "Qwen2-7B",
+      "score": 40.73,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 201,
+      "sourceRowId": "62"
+    },
+    {
+      "name": "Mistral-Nemo-Base-2407",
+      "score": 39.77,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 202,
+      "sourceRowId": "74"
+    },
+    {
+      "name": "WizardLM-2-8x22B",
+      "score": 39.24,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 203,
+      "sourceRowId": "72"
+    },
+    {
+      "name": "EXAONE-3.5-2.4B-Instruct",
+      "score": 39.1,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 204,
+      "sourceRowId": "121"
+    },
+    {
+      "name": "Yi-1.5-6B-Chat",
+      "score": 38.23,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 205,
+      "sourceRowId": "13"
+    },
+    {
+      "name": "Qwen1.5-14B-Chat",
+      "score": 38.02,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 206,
+      "sourceRowId": "17"
+    },
+    {
+      "name": "Ministral-8B-Instruct-2410",
+      "score": 37.93,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 207,
+      "sourceRowId": "98"
+    },
+    {
+      "name": "c4ai-command-r-v01",
+      "score": 37.9,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 208,
+      "sourceRowId": "20"
+    },
+    {
+      "name": "Staring-7B",
+      "score": 37.9,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 208,
+      "sourceRowId": "43"
+    },
+    {
+      "name": "Llama-2-70B",
+      "score": 37.53,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 210,
+      "sourceRowId": "35"
+    },
+    {
+      "name": "OpenChat-3.5-8B",
+      "score": 37.24,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 211,
+      "sourceRowId": "39"
+    },
+    {
+      "name": "InternMath-20B-Plus",
+      "score": 37.1,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 212,
+      "sourceRowId": "45"
+    },
+    {
+      "name": "LLaDA",
+      "score": 37.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 213,
+      "sourceRowId": "160"
+    },
+    {
+      "name": "LLaDA",
+      "score": 37.0,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 213,
+      "sourceRowId": "161"
+    },
+    {
+      "name": "Llama3-Smaug-8B",
+      "score": 36.93,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 215,
+      "sourceRowId": "46"
+    },
+    {
+      "name": "Llama-3.1-8B",
+      "score": 36.6,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 216,
+      "sourceRowId": "75"
+    },
+    {
+      "name": "Llama-3-8B",
+      "score": 35.36,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 217,
+      "sourceRowId": "10"
+    },
+    {
+      "name": "DeepseekMath-7B-Instruct",
+      "score": 35.3,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 218,
+      "sourceRowId": "38"
+    },
+    {
+      "name": "DeepSeek-Coder-V2-Lite-Base",
+      "score": 34.37,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 219,
+      "sourceRowId": "67"
+    },
+    {
+      "name": "Aya-Expanse-8B",
+      "score": 33.74,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 220,
+      "sourceRowId": "112"
+    },
+    {
+      "name": "Gemma-7B",
+      "score": 33.73,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 221,
+      "sourceRowId": "27"
+    },
+    {
+      "name": "InternMath-7B-Plus",
+      "score": 33.5,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 222,
+      "sourceRowId": "44"
+    },
+    {
+      "name": "Granite-3.1-8B-Base",
+      "score": 33.08,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 223,
+      "sourceRowId": "134"
+    },
+    {
+      "name": "Zephyr-7B-Beta",
+      "score": 32.97,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 224,
+      "sourceRowId": "41"
+    },
+    {
+      "name": "Qwen2.5-1.5B",
+      "score": 32.1,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 225,
+      "sourceRowId": "91"
+    },
+    {
+      "name": "Granite-3.1-2B-Instruct",
+      "score": 31.97,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 226,
+      "sourceRowId": "131"
+    },
+    {
+      "name": "Granite-3.0-8B-Base",
+      "score": 31.03,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 227,
+      "sourceRowId": "108"
+    },
+    {
+      "name": "Mistral-7B-v0.1",
+      "score": 30.88,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 228,
+      "sourceRowId": "31"
+    },
+    {
+      "name": "Mistral-7B-Instruct-v0.2",
+      "score": 30.84,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 229,
+      "sourceRowId": "30"
+    },
+    {
+      "name": "Mistral-7B-v0.2",
+      "score": 30.43,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 230,
+      "sourceRowId": "32"
+    },
+    {
+      "name": "Qwen3.5-0.8B",
+      "score": 29.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 231,
+      "sourceRowId": "254"
+    },
+    {
+      "name": "Qwen1.5-7B-Chat",
+      "score": 29.06,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 232,
+      "sourceRowId": "16"
+    },
+    {
+      "name": "Yi-6B-Chat",
+      "score": 28.84,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 233,
+      "sourceRowId": "21"
+    },
+    {
+      "name": "Neo-7B-Instruct",
+      "score": 28.74,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 234,
+      "sourceRowId": "51"
+    },
+    {
+      "name": "Yi-6B",
+      "score": 26.51,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 235,
+      "sourceRowId": "36"
+    },
+    {
+      "name": "Neo-7B",
+      "score": 25.85,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 236,
+      "sourceRowId": "42"
+    },
+    {
+      "name": "Mistral-7B-Instruct-v0.1",
+      "score": 25.75,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 237,
+      "sourceRowId": "33"
+    },
+    {
+      "name": "Granite-3.1-3B-A800M-Instruct",
+      "score": 25.42,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 238,
+      "sourceRowId": "133"
+    },
+    {
+      "name": "Llama-2-13B",
+      "score": 25.34,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 239,
+      "sourceRowId": "18"
+    },
+    {
+      "name": "Granite-3.1-2B-Base",
+      "score": 23.89,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 240,
+      "sourceRowId": "130"
+    },
+    {
+      "name": "Llemma-7B",
+      "score": 23.45,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 241,
+      "sourceRowId": "37"
+    },
+    {
+      "name": "Qwen2-1.5B-Instruct",
+      "score": 22.62,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 242,
+      "sourceRowId": "63"
+    },
+    {
+      "name": "Qwen2-1.5B",
+      "score": 22.56,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 243,
+      "sourceRowId": "64"
+    },
+    {
+      "name": "Llama-3.2-3B",
+      "score": 22.17,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 244,
+      "sourceRowId": "105"
+    },
+    {
+      "name": "Granite-3.0-2B-Base",
+      "score": 21.72,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 245,
+      "sourceRowId": "107"
+    },
+    {
+      "name": "Granite-3.1-3B-A800M-Base",
+      "score": 20.39,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 246,
+      "sourceRowId": "132"
+    },
+    {
+      "name": "Llama-2-7B",
+      "score": 20.32,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 247,
+      "sourceRowId": "19"
+    },
+    {
+      "name": "SmolLM2-1.7B",
+      "score": 18.31,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 248,
+      "sourceRowId": "109"
+    },
+    {
+      "name": "Qwen2-0.5B-Instruct",
+      "score": 15.93,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 249,
+      "sourceRowId": "65"
+    },
+    {
+      "name": "Gemma-2B",
+      "score": 15.85,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 250,
+      "sourceRowId": "40"
+    },
+    {
+      "name": "Gemma-2-2B-it",
+      "score": 15.6,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 251,
+      "sourceRowId": "164"
+    },
+    {
+      "name": "Qwen2-0.5B",
+      "score": 14.97,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 252,
+      "sourceRowId": "66"
+    },
+    {
+      "name": "Qwen2.5-0.5B",
+      "score": 14.92,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 253,
+      "sourceRowId": "92"
+    },
+    {
+      "name": "Gemma-3-1B-it",
+      "score": 14.7,
+      "detail": "Self-Reported",
+      "date": null,
+      "rank": 254,
+      "sourceRowId": "165"
+    },
+    {
+      "name": "Granite-3.1-1B-A400M-Instruct",
+      "score": 13.27,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 255,
+      "sourceRowId": "129"
+    },
+    {
+      "name": "Granite-3.1-1B-A400M-Base",
+      "score": 12.34,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 256,
+      "sourceRowId": "128"
+    },
+    {
+      "name": "Llama-3.2-1B",
+      "score": 11.95,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 257,
+      "sourceRowId": "104"
+    },
+    {
+      "name": "SmolLM-1.7B",
+      "score": 11.93,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 258,
+      "sourceRowId": "106"
+    },
+    {
+      "name": "SmolLM2-360M",
+      "score": 11.38,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 259,
+      "sourceRowId": "110"
+    },
+    {
+      "name": "SmolLM-135M",
+      "score": 11.22,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 260,
+      "sourceRowId": "102"
+    },
+    {
+      "name": "SmolLM-360M",
+      "score": 10.95,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 261,
+      "sourceRowId": "103"
+    },
+    {
+      "name": "SmolLM2-135M",
+      "score": 10.85,
+      "detail": "TIGER-Lab",
+      "date": null,
+      "rank": 262,
+      "sourceRowId": "111"
+    }
+  ]
+}
