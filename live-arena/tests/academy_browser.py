@@ -124,7 +124,7 @@ with sync_playwright() as p:
     page.locator("#readiness-agent").select_option(index=0)
     page.locator("#readiness-suite").select_option("tictactoe")
     page.locator("#academy-readiness").click()
-    page.wait_for_function("() => document.querySelector('#readiness-status').textContent.includes('Check complete')", timeout=30000)
+    page.wait_for_function("() => document.querySelector('#readiness-output').textContent.includes('10/10 valid')", timeout=30000)
     assert "10/10 valid" in page.locator("#readiness-output").inner_text()
     assert not provider_calls
     with page.expect_download() as result:
