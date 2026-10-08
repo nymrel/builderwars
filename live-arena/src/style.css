@@ -1173,16 +1173,21 @@ dialog [id$="fields"] {
     gap: 16px;
   }
 }
+@media (max-width: 430px) {
+  .page-heading {
+    flex-direction: column;
+  }
+  .page-heading .subtitle {
+    max-width: none;
+  }
+  .page-heading .primary {
+    margin-top: 2px;
+  }
+}
 @media (max-width: 359px) {
   nav {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-  .page-heading {
-    flex-direction: column;
-  }
-  .page-heading .primary {
-    margin-top: 2px;
   }
   .topbar {
     padding: 0 11px;
