@@ -163,10 +163,34 @@ with sync_playwright() as p:
 
     # Forge validation failures stay in Forge and render next to the controls.
     page.locator('nav [data-tab="forge"]').click()
-    page.locator("#creator-name").fill("")
+    downloads = []
+    page.on("download", lambda download: downloads.append(download.suggested_filename))
+    forge_url = page.url
+    expect(page.locator("#forge-status")).to_have_attribute("role", "status")
+    expect(page.locator("#forge-status")).to_have_attribute("aria-live", "polite")
+    for name in ("", "   ", "x" * 49):
+        # Programmatic assignment also exercises values beyond HTML maxlength.
+        page.locator("#creator-name").evaluate("(el, name) => el.value = name", name)
+        for action in ("export", "create"):
+            if action == "export":
+                page.locator("#export-rules").click()
+            else:
+                # Exercise the submit handler independently of native required validation.
+                page.locator("#creator").evaluate("el => el.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true}))")
+            expect(page.locator("#forge-status")).to_have_text("Game name must contain 1–48 characters and cannot be blank.")
+            assert page.locator("#forge").is_visible()
+            assert page.url == forge_url
+            assert not downloads
+    page.locator("#creator-name").fill("Valid game")
+    page.locator("#creator-connect").fill("9")
     page.locator("#export-rules").click()
-    assert page.locator("#forge").is_visible()
-    expect(page.locator("#forge-status")).not_to_have_text("Create or import rules here.")
+    expect(page.locator("#forge-status")).to_have_text("Use a 3–10 square board and a valid connect length.")
+    assert page.url == forge_url and not downloads
+    page.locator("#creator-connect").fill("5")
+    with page.expect_download() as exported:
+        page.locator("#export-rules").click()
+    assert json.loads(Path(exported.value.path()).read_text())["name"] == "Valid game"
+    expect(page.locator("#forge-status")).to_have_text("Game rules downloaded.")
     check_pause(browser, errors)
     check_replay_positions(browser, errors)
     assert not errors, errors
