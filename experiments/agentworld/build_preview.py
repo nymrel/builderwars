@@ -7,7 +7,7 @@ parser.add_argument('--output', type=Path, default=ROOT/'BuilderWars-Agentworld-
 args=parser.parse_args()
 html=(ROOT/'index.html').read_text()
 hashes=[]
-for filename in ['engine.js','ledger.js','app.js']:
+for filename in ['engine.js','ledger.js','consumer-quests.js','app.js']:
     script=(ROOT/filename).read_text()
     digest=base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
     hashes.append(f"'sha256-{digest}'")
