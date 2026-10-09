@@ -14,7 +14,11 @@ with sync_playwright() as p:
     errors, moves, probes = [], [], []
     page.on("pageerror", lambda e: errors.append(str(e)))
     status = [200]
-    page.route("https://openrouter.ai/api/v1/models", lambda r: r.fulfill(json={"data": [{"id": "test/model", "name": "Synthetic", "reasoning": {"supported_efforts": ["high"]}}]}))
+    page.route("https://openrouter.ai/api/v1/models", lambda r: r.fulfill(json={"data": [
+        {"id": "test/model", "name": "Synthetic Paid", "pricing": {"prompt": "0.000001", "completion": "0.000002"}, "reasoning": {"supported_efforts": ["low", "high"]}},
+        {"id": "test/free", "name": "Synthetic Free", "pricing": {"prompt": "0", "completion": "0"}, "reasoning": {"supported_efforts": ["medium"]}},
+        {"id": "other/model", "name": "Other Paid", "pricing": {"prompt": "0.000003", "completion": "0.000004"}}
+    ]}))
     def key_info(route):
         probes.append(route.request.method)
         route.fulfill(status=status[0], json={"data": {"is_free_tier": True, "label": "PRIVATE_ACCOUNT_SENTINEL", "creator_user_id": "PRIVATE_ACCOUNT_SENTINEL"}})
@@ -25,7 +29,46 @@ with sync_playwright() as p:
     page.locator("#connections").click()
     page.locator("#agent-kind").select_option("openrouter")
     page.locator('#model-id option[value="test/model"]').wait_for(state="attached")
-    page.locator("#model-id").select_option("test/model")
+    assert page.locator("#catalog-status").inner_text().startswith("3 models from OpenRouter.")
+    assert page.locator("#model-match-status").inner_text() == "3 models available."
+    page.locator("#model-search").fill("Synthetic")
+    assert page.locator("#model-match-status").inner_text() == "2 of 3 models match the current filters."
+    page.locator("#free-models").check()
+    assert page.locator("#model-match-status").inner_text() == "1 of 3 models match the current filters."
+    assert page.locator('#model-id option[value="test/free"]').count() == 1
+    page.locator("#model-search").fill("no-such-model")
+    assert page.locator("#model-match-status").inner_text() == "0 of 3 models match the current filters."
+    assert page.locator("#model-empty-state").is_visible()
+    assert "No models match the current filters" in page.locator("#model-empty-state").inner_text()
+    assert page.locator("#clear-model-filters").is_visible()
+    assert page.locator("#catalog-status").inner_text().startswith("3 models from OpenRouter.")
+    page.locator("#clear-model-filters").click()
+    assert page.locator("#model-search").input_value() == ""
+    assert not page.locator("#free-models").is_checked()
+    assert page.locator("#model-match-status").inner_text() == "3 models available."
+    assert page.locator("#model-empty-state").is_hidden()
+    assert page.locator("#clear-model-filters").is_hidden()
+
+    profile = {
+        "schema": "builderwars.agent-profile.v1",
+        "agent": {"name": "Imported synthetic", "kind": "openrouter", "model": "test/model", "effort": "high", "strategy": ""}
+    }
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.locator("#profile-file").set_input_files({
+        "name": "agent.json", "mimeType": "application/json", "buffer": json.dumps(profile).encode()
+    })
+    page.wait_for_function("() => document.querySelector('#dialog-status').textContent.includes('Profile imported')")
+    assert page.locator("#model-id").input_value() == "test/model"
+    assert page.locator("#effort").input_value() == "high"
+    assert "$1.00 input / $2.00 output" in page.locator("#model-price").inner_text()
+    page.locator("#model-search").fill("still-no-match")
+    assert page.locator("#model-match-status").inner_text() == "0 of 3 models match the current filters."
+    assert page.locator("#model-id").input_value() == "test/model"
+    assert page.locator("#effort").input_value() == "high"
+    assert "$1.00 input / $2.00 output" in page.locator("#model-price").inner_text()
+    page.locator("#clear-model-filters").click()
+    assert page.locator("#model-id").input_value() == "test/model"
+    assert page.locator("#effort").input_value() == "high"
     page.locator("#agent-key").fill("synthetic-connection-sentinel")
     page.locator("#check-connection").click()
     page.wait_for_function("() => document.querySelector('#dialog-status').textContent.includes('API key recognized')")
