@@ -751,10 +751,6 @@
     {
       "source": "/evals/open-spiel/",
       "destination": "/evals/open-spiel.html"
-    },
-    {
-      "source": "/((?!assets/).*)",
-      "destination": "/index.html"
     }
   ]
 }
