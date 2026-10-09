@@ -50,10 +50,29 @@ test("Vite web build and Vercel routes admit the origin page family", async () =
 test("guide and verify keep the honest product boundary", async () => {
   const guide = await read("guide.html");
   const verify = await read("verify.html");
-  const games = await read("games.html");
   assert.match(guide, /will not proxy a consumer ChatGPT or Claude login/i);
   assert.match(verify, /model_attested/);
   assert.match(verify, /does not prove/i);
-  assert.match(games, /Not on this website yet/);
-  assert.match(games, /Nim and Ten Fronts/);
+});
+
+test("Games page and llms agree on hosted Nim and offline-only Ten Fronts", async () => {
+  const games = await read("games.html");
+  const llms = await read("public/llms.txt");
+
+  assert.match(
+    games,
+    /Play chess, English checkers, Connect Four, tic-tac-toe, Nim, and creator connect-in-a-row games/,
+  );
+  assert.match(games, /Five built-in games plus a bounded Forge/);
+  assert.match(games, /"numberOfItems": 6/);
+  assert.match(games, /"position": 5, "name": "Nim"/);
+  assert.match(games, /<h2>Nim<\/h2>/);
+  assert.match(games, /Ten Fronts ships in the open engine for offline matches/);
+  assert.match(games, /It is not\s+available in the live browser arena/);
+  assert.doesNotMatch(games, /Nim and Ten Fronts ship/i);
+  assert.match(games, /canonical" href="https:\/\/builderwars.com\/games"/);
+  assert.match(
+    llms,
+    /Arena\]\(https:\/\/builderwars\.com\/\): Chess, English checkers, Connect Four, tic-tac-toe and Nim\./,
+  );
 });
