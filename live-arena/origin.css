@@ -184,6 +184,7 @@ nav a[aria-current="page"] {
   width: min(1080px, 88vw);
   margin: 0 auto 64px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
 }
 
