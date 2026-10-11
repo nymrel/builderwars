@@ -1,0 +1,136 @@
+{
+  "schema": "builderwars.agentworld.supplemental-review.v1",
+  "started_at": "2026-10-07T04:46:56.917130+00:00",
+  "scope": "loopback supplemental browser acceptance; NOT deployed/lab-integrated/independently approved",
+  "browser": "chromium",
+  "executable": null,
+  "playwright": "1.58.0",
+  "harness_sha256": "ca3a806940a29651dc1be450a15e5c2aa0c274df9ce3b889c5c3b2ac90d5602c",
+  "source_files": {
+    "engine.js": {
+      "sha256": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+      "git_blob_sha1": "27b2cb9e49c6332172ff506fbfe1f829a7aa5e61"
+    },
+    "ledger.js": {
+      "sha256": "b4510a22117674e39b62c3e91370151dd1adb2a412a8a1ff3086ff26e01c8498",
+      "git_blob_sha1": "4726ebf618bd49e19315b68fd4da7c32d0616330"
+    },
+    "consumer-quests.js": {
+      "sha256": "1aae2a0434d1ae932950013d8a0db31500a8d18930931845a25981a0470a8f9f",
+      "git_blob_sha1": "c96a26403f5204ce85841ab11b36bd9039ce1a43"
+    },
+    "app.js": {
+      "sha256": "af5c78bebd52bece243ad2c384c1d8b4f25090a1351d65f052d0db6241a5ea62",
+      "git_blob_sha1": "cb99343176d3f58fad69b1e03a9314a9670ba128"
+    },
+    "index.html": {
+      "sha256": "53248cc7b9a594e399db664ce24fa85d878ebf3080646d2097f624adfe12beb6",
+      "git_blob_sha1": "0f244b4637896a16a3d35a7b2a2ea87f321f7007"
+    }
+  },
+  "checks": [
+    {
+      "name": "pending import refuses intervening turn",
+      "status": "PASS"
+    },
+    {
+      "name": "pending import refuses same-turn reset",
+      "status": "PASS"
+    },
+    {
+      "name": "latest file selection wins: older resolves first",
+      "status": "PASS"
+    },
+    {
+      "name": "newer success survives late older read",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid latest selection does not resurrect older import",
+      "status": "PASS"
+    },
+    {
+      "name": "replacement cancellation preserves run",
+      "status": "PASS"
+    },
+    {
+      "name": "oversized file leaves run unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "manual keyboard action retains useful focus",
+      "status": "PASS"
+    },
+    {
+      "name": "hive ledger deduplicates verified contents and exports refusals",
+      "status": "PASS"
+    },
+    {
+      "name": "hive file bounds prevent reads and preserve per-file refusals",
+      "status": "PASS"
+    },
+    {
+      "name": "hive input change cancels pending build without exporting stale results",
+      "status": "PASS"
+    },
+    {
+      "name": "hive newer build survives older read error",
+      "status": "PASS"
+    },
+    {
+      "name": "hive newer selection survives older success with matching export",
+      "status": "PASS"
+    },
+    {
+      "name": "quest milestones derive from verified prefixes and repeated imports",
+      "status": "PASS"
+    },
+    {
+      "name": "capped visit preserves earlier quests without completing the final quest",
+      "status": "PASS"
+    },
+    {
+      "name": "crew comparison does not earn cooperative quests",
+      "status": "PASS"
+    },
+    {
+      "name": "keyboard Stop preserves progress and halts automatic turns",
+      "status": "PASS"
+    },
+    {
+      "name": "checkpoint reload verified",
+      "status": "PASS"
+    },
+    {
+      "name": "corrupt checkpoint not overwritten",
+      "status": "PASS"
+    },
+    {
+      "name": "real same-origin tabs preserve checkpoint on conflict",
+      "status": "PASS"
+    },
+    {
+      "name": "return restores verified quest progress with watching paused",
+      "status": "PASS"
+    },
+    {
+      "name": "quest cards fit phone and desktop widths",
+      "status": "PASS"
+    }
+  ],
+  "page_errors": [],
+  "external_requests": [],
+  "csp_violations": [],
+  "preview_subresource_requests": [],
+  "status": "PASS",
+  "policy_changes": false,
+  "origin": "http://127.0.0.1:52795/",
+  "browser_version": "145.0.7632.6",
+  "finished_at": "2026-10-07T04:47:06.748264+00:00",
+  "counts": {
+    "PASS": 22,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_RUN": 0
+  }
+}

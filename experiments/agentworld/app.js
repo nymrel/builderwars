@@ -4,6 +4,7 @@
   const KEY = 'builderwars.agentworld.experimental.v1';
   let cfg = { seed: 20260920, mode: 'cooperative' }, state = E.create(cfg), actions = [];
   let revision = 0, importSequence = 0;
+  let questRevision = -1, questProjection = null;
   let timer = null, dirtyEditor = false, autosave = true, lastStored = null, storageConflict = false;
   const names = { 'amber-1': 'Amber 01', 'amber-2': 'Amber 02', 'tide-1': 'Tide 01', 'tide-2': 'Tide 02' };
   const codes = { 'amber-1': 'A1', 'amber-2': 'A2', 'tide-1': 'T1', 'tide-2': 'T2' };
@@ -24,6 +25,7 @@
     } catch { $('save-status').textContent = 'Storage unavailable. This run is in memory only; export to keep it.'; }
   }
   function render() {
+    renderQuests();
     $('turn').textContent = `${state.turn} / ${E.LIMIT}`;
     const delivered = state.scores.amber + state.scores.tide;
     $('delivered').textContent = `${delivered} / 16`; $('remaining').textContent = E.remaining(state);
@@ -60,6 +62,30 @@
     $('legal-json').textContent = JSON.stringify(E.legal(state, 'manual'), null, 2);
     if (!dirtyEditor && document.activeElement !== $('action-json')) sample();
   }
+  function renderQuests() {
+    if (questRevision !== revision) {
+      questProjection = globalThis.AgentworldQuests.project(JSON.stringify({ schema: E.REPLAY, config: cfg, actions, finalState: state }));
+      questRevision = revision;
+    }
+    const quests = questProjection.quests;
+    const completed = quests.filter((quest) => quest.complete).length;
+    const next = quests.findIndex((quest) => quest.applicable && !quest.complete);
+    const summary = cfg.mode !== 'cooperative' ? 'Choose Cooperate for shared quests.'
+      : state.status === 'capped' ? `${completed} / 3 quests complete · action limit reached`
+      : `${completed} / 3 quests complete`;
+    if ($('quest-status').textContent !== summary) $('quest-status').textContent = summary;
+    const descriptions = ['Collect the first supply anywhere in this visit.', 'Bring at least one supply home with each crew.', 'Bring all 16 supplies home together.'];
+    $('quests').replaceChildren(...quests.map((quest, index) => {
+      const row = el('li', `quest${quest.complete ? ' complete' : quest.applicable && index === next && state.status !== 'capped' ? ' current' : ''}`);
+      const progress = !quest.applicable ? 'Cooperative mode only' : quest.complete ? `Complete · turn ${quest.completedAtTurn}` : state.status === 'capped' ? 'Incomplete · action limit reached' : index === next ? 'Next objective' : 'Still ahead';
+      row.append(el('span', 'quest-number', String(index + 1)), el('h3', '', quest.title), el('p', '', descriptions[index]), el('strong', 'quest-state', progress));
+      return row;
+    }));
+    $('quest-outcome').textContent = cfg.mode !== 'cooperative' ? 'Crew comparison keeps its own result. Shared quests apply to a cooperative visit.'
+      : state.status === 'complete' ? `Both crews finished: Amber ${state.scores.amber}, Tide ${state.scores.tide}, in ${state.turn} accepted turns. Your recording keeps the journey.`
+      : state.status === 'capped' ? `${E.remaining(state)} supplies are still undelivered. Earlier milestones remain; Finish together is incomplete. Export this recording to keep the attempt.`
+      : 'Progress follows the accepted actions in this recording. Opening it again restores the same milestones.';
+  }
   function sample() { $('action-json').value = state.status === 'running' ? JSON.stringify({ ...E.scripted(state), source: 'manual' }, null, 2) : ''; dirtyEditor = false; }
   function accept(action) {
     try {
@@ -80,6 +106,7 @@
     $('play').textContent = 'Pause crews'; render(); message('Running scripted actors. No AI provider is connected.');
   });
   $('step').addEventListener('click', () => { pause(); accept(E.scripted(state)); });
+  $('stop').addEventListener('click', () => { pause(); render(); message('Stopped watching. Your visit stays here; nothing advances until you choose another action.'); });
   $('batch').addEventListener('click', () => { pause(); for (let i = 0; i < 16 && state.status === 'running'; i++) if (!accept(E.scripted(state))) break; });
   $('new').addEventListener('click', () => {
     pause(); render();
