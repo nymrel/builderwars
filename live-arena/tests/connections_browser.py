@@ -91,6 +91,15 @@ with sync_playwright() as p:
     assert page.locator("#model-id").input_value() == "retired/model"
     assert page.locator("#effort").input_value() == "high"
     assert page.locator("#model-price").inner_text() == "Choose a model."
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.locator("#profile-file").set_input_files({
+        "name": "agent.json", "mimeType": "application/json", "buffer": json.dumps(profile).encode()
+    })
+    page.wait_for_function("() => document.querySelector('#model-id').value === 'test/model'")
+    page.wait_for_function("() => document.querySelector('#dialog-status').textContent.includes('Profile imported')")
+    assert page.locator("#model-id").input_value() == "test/model"
+    assert page.locator("#effort").input_value() == "high"
+    assert "$1.00 input / $2.00 output" in page.locator("#model-price").inner_text()
     page.locator("#agent-key").fill("synthetic-connection-sentinel")
     page.locator("#check-connection").click()
     page.wait_for_function("() => document.querySelector('#dialog-status').textContent.includes('API key recognized')")
