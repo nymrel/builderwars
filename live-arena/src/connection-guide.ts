@@ -47,6 +47,8 @@ export const connectionDialogMarkup = `<dialog id="agent-dialog" aria-labelledby
   <div id="model-fields" hidden>
     <h3>2. Choose your model</h3><p class="muted">Use your OpenRouter inference key. ChatGPT, Claude and other chat subscriptions are not OpenRouter credit.</p>
     <div class="settings-row"><label>Find a model<input id="model-search" placeholder="Try a provider or model name" autocomplete="off"></label><label class="checkbox"><input id="free-models" type="checkbox">Free routes only</label></div>
+    <div class="connection-tools"><p id="model-match-status" role="status" class="muted"></p><button id="clear-model-filters" type="button" hidden>Clear model filters</button></div>
+    <p id="model-empty-state" role="status" class="muted" hidden>No models match the current filters. Clear the filters to see the full catalog.</p>
     <label>Model<select id="model-id"><option value="" disabled selected>Choose a model…</option></select></label>
     <p id="catalog-status" class="muted"></p><p id="model-price" class="muted"></p>
     <div class="connection-tools"><a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">Get an OpenRouter key ↗</a><button id="refresh-models" type="button">Refresh catalog</button></div>
