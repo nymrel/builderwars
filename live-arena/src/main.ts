@@ -1589,7 +1589,11 @@ function filterModels() {
   if (available.some((m) => m.id === prior))
     $<HTMLSelectElement>("model-id").value = prior;
   else if (importedSelection) {
-    const option = new Option(`${prior} · not in current catalog`, prior);
+    const catalogued = models.find((m) => m.id === prior);
+    const label = catalogued
+      ? `${catalogued.name} · selected, hidden by current filters`
+      : `${prior} · not in current catalog`;
+    const option = new Option(label, prior);
     $<HTMLSelectElement>("model-id").add(option);
     $<HTMLSelectElement>("model-id").value = prior;
   }

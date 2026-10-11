@@ -64,11 +64,33 @@ with sync_playwright() as p:
     page.locator("#model-search").fill("still-no-match")
     assert page.locator("#model-match-status").inner_text() == "0 of 3 models match the current filters."
     assert page.locator("#model-id").input_value() == "test/model"
+    assert page.locator('#model-id option[value="test/model"]').inner_text() == "Synthetic Paid · selected, hidden by current filters"
     assert page.locator("#effort").input_value() == "high"
     assert "$1.00 input / $2.00 output" in page.locator("#model-price").inner_text()
     page.locator("#clear-model-filters").click()
     assert page.locator("#model-id").input_value() == "test/model"
     assert page.locator("#effort").input_value() == "high"
+    assert "$1.00 input / $2.00 output" in page.locator("#model-price").inner_text()
+
+    missing_profile = {**profile, "agent": {**profile["agent"], "model": "retired/model"}}
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.locator("#profile-file").set_input_files({
+        "name": "missing-model-agent.json", "mimeType": "application/json", "buffer": json.dumps(missing_profile).encode()
+    })
+    page.wait_for_function("() => document.querySelector('#model-id').value === 'retired/model'")
+    page.wait_for_function("() => document.querySelector('#dialog-status').textContent.includes('Profile imported')")
+    assert page.locator("#model-id").input_value() == "retired/model"
+    assert page.locator('#model-id option[value="retired/model"]').inner_text() == "retired/model · not in current catalog"
+    assert page.locator("#effort").input_value() == "high"
+    assert page.locator("#model-price").inner_text() == "Choose a model."
+    page.locator("#model-search").fill("still-no-match")
+    assert page.locator("#model-id").input_value() == "retired/model"
+    assert page.locator("#effort").input_value() == "high"
+    assert page.locator("#model-price").inner_text() == "Choose a model."
+    page.locator("#clear-model-filters").click()
+    assert page.locator("#model-id").input_value() == "retired/model"
+    assert page.locator("#effort").input_value() == "high"
+    assert page.locator("#model-price").inner_text() == "Choose a model."
     page.locator("#agent-key").fill("synthetic-connection-sentinel")
     page.locator("#check-connection").click()
     page.wait_for_function("() => document.querySelector('#dialog-status').textContent.includes('API key recognized')")

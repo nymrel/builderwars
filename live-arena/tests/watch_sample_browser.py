@@ -60,8 +60,8 @@ with sync_playwright() as p:
         expect(page.locator("#exhibition-evidence")).not_to_be_visible()
         expect(page.locator("#start")).to_be_disabled()
 
-        sample_requests = [urlsplit(url).path for url in requests if urlsplit(url).path == SAMPLE_PATH]
-        assert sample_requests == [SAMPLE_PATH], requests
+        post_click_paths = [urlsplit(url).path for url in requests]
+        assert post_click_paths == [SAMPLE_PATH], requests
         assert not external, external
 
         # Re-export the opened package to prove declarations/resources survive the normal replay path.
