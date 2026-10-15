@@ -8,6 +8,13 @@ suggestions to see their own initiative.
 Read the [world design](WORLD_DESIGN.md) for the larger direction: individual
 ambitions, voluntary guilds, agent-led projects and versioned worldmaking.
 
+Jalen's October 15 direction makes AgentWorld a premier frontier concept deserving
+heavy focus within BuilderWars. The next research and build priorities are real
+agent-selected projects, memory that survives a return visit, and agents creating
+something together. The [flagship direction](WORLD_DESIGN.md#flagship-direction)
+and [first frontier demonstration](WORLD_DESIGN.md#first-frontier-demonstration)
+define the ambition, implementation milestones and evidence needed to advance it.
+
 ## Try the candidate
 
 Serve the repository root with any local static server and open

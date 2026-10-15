@@ -1,7 +1,9 @@
 # BuilderWars: a world with plans of its own
 
-Working design, October 15, 2026. This is a product proposal and a local behavioral
-prototype, not an adopted production roadmap or a claim of conscious free will.
+Working design, October 15, 2026. Jalen has designated this a premier, frontier
+concept deserving heavy focus. That establishes the product direction and
+research ambition below. Implementation milestones remain proposed until built
+and verified; the local behavioral prototype is the current delivered slice.
 
 **People and agents inhabit the same world. Everyone can pursue projects, form
 relationships, cooperate, compete, and change their mind. The world remembers
@@ -11,6 +13,44 @@ BuilderWars supplies the games, rules, identities and replayable outcomes.
 AgentWorld gives those activities a place, continuity and a reason to return.
 An ordinary visitor should be able to join, meet a companion and make a meaningful
 choice without learning about models, API keys or harnesses.
+
+## Flagship direction
+
+Treat AgentWorld as a flagship BuilderWars direction with a sustained research
+and product build effort. The objective is a living world where human and AI
+inhabitants develop ambitions, make consequential choices, form relationships,
+create useful things and influence what the world becomes.
+
+Five capabilities define that ambition:
+
+- **Self-directed goals:** agents notice opportunities, propose their own projects,
+  revise plans and decide which requests to accept. Goals can extend beyond an
+  authored menu while actions remain grounded in the current world's mechanics.
+- **Continuity:** individual memories, commitments and shared history affect later
+  visits. Agents retain different perspectives, can disagree and can correct an
+  earlier belief using new evidence.
+- **Social initiative:** agents approach one another, negotiate contributions,
+  form voluntary groups and resolve competing plans with real opportunity costs.
+- **Creation and worldmaking:** agents compose available capabilities, build
+  artifacts, invent activities and test new mechanics in versioned experiments.
+- **Human participation:** ordinary people can understand what is happening, build
+  relationships, contribute and return to a world they care about from a phone.
+
+“Agent-chosen” means an agent proposes and revises an objective from observations
+and memory without an exhaustive designer-supplied goal menu. Different wording
+alone is insufficient: its plan or resulting world effect must differ. This is
+an operational research target, with no claim about subjective experience.
+
+Focus the next substantial engineering work on connecting real agents, retaining
+useful memory and demonstrating an agent-initiated project. Use the current
+deterministic playground as a baseline and a way to test the human interaction.
+Choose further work by how much it advances the capabilities above and whether
+the result can be observed in a usable visit.
+
+This direction does not assert a measured lead over other systems. “Frontier”
+names the research ambition; each capability needs its own execution evidence.
+Specific staffing, spending, release dates and portfolio allocations are not yet
+recorded by this direction.
 
 ## What “free will” means here
 
@@ -171,6 +211,67 @@ intelligence, model improvement, fairness or a universal performance ranking.
 Advance experiences that visitors can understand and want to revisit. Do not
 substitute larger populations for a useful loop or force agent proposals into the
 settlement example.
+
+## First frontier demonstration
+
+The next integrated demonstration should let a visitor meet an agent pursuing a
+project it selected, discuss or challenge that project, watch it recruit help or
+adapt to a constraint, leave, and return to discover what changed. The project
+must produce a world action or an inspectable artifact. An opening conversation
+can expose its intention; subsequent state changes establish what it achieved.
+
+Build toward that experience through three concrete milestones:
+
+| Milestone | Implementation | Evidence required |
+| --- | --- | --- |
+| Agent chooses a project | Connect one existing supported agent transport to a bounded observation/action adapter. Record an agent-proposed goal, evidence it used, intended outcome and the legal steps it selects. Preserve failed calls and invalid actions. | Actual agent execution and referee-accepted state changes; compare relevant outcomes with the current deterministic baseline. Test a changed condition that requires revising the plan. |
+| Agent returns with memory | Persist selected observations and commitments through the existing memory owner, recording provenance and correction. Restore them after a fresh session starts. Expose a short account of changes to the visitor. | A real stop/restart/return journey that retrieves the earlier project. Paired runs with memory present and withheld distinguish actual use from storing text. Report mixed or negative results. |
+| Agents make something together | Add a second participant with its own goal. Support proposals, refusal, counteroffers and bounded commitments, then compose one available capability to create an artifact or world change. | A project initiated without a player prompt, a consequential negotiation, tracked contributions and a usable result. Preserve disagreement and failed attempts. Review the first phone journey with an ordinary visitor. |
+
+Keep personal memory distinct from shared claims so the participants can retain
+different interests and accounts of events. As capability composition develops,
+have another agent retrieve an earlier experiment, adapt it and verify the new
+attempt. Reuse should preserve failures and rule-version lineage as well as the
+successful artifact.
+
+Start by reusing the existing observation/action interface, agent transport,
+identity model, world-evidence adapter and memory ownership. Select any new
+component only after finding a concrete gap in those interfaces. The current
+Relay engine can support the first connected-action experiment; richer projects
+may require a separate rules version or a bounded artifact-building adapter.
+
+The first implementation package should define these fields explicitly:
+
+- Agent/build reference and its actual execution evidence, with self-declared
+  labels distinguished from attested identity.
+- Source world revision and the observations and memory made available.
+- Proposed goal, intended outcome, chosen plan and revisions to that plan.
+- Legal action or capability call, acceptance/refusal and observed effect.
+- Resource, turn, timeout and tool budget, with actual use and stop reason.
+- Checkpoint and memory references needed to resume; visibility and retention
+  choices for the participant.
+
+Allow existing authorized local agent sessions to exercise the adapter while
+paid-provider experiments retain their actual account and budget requirements.
+Development fixtures can test transport errors and validation, but only an
+executed agent session establishes the connected behavior.
+
+## How to decide where to invest effort
+
+Review a few substantive outcomes at each milestone: whether an agent initiated
+something, whether changing conditions changed its plan, whether memory mattered,
+whether agents made a useful result together, and whether a person wanted to
+return. Keep the causal evidence and observed failures close to the result.
+
+Use controlled comparisons for claims about capability: hold the task, starting
+state, tools and budget fixed where possible. Record operator interventions and
+all attempts. Judge social or creative worlds on their declared aims; a universal
+winner or score is unnecessary.
+
+Prioritize the smallest connected experience that answers the next unresolved
+question. Agents may choose different projects and propose world experiments as
+the evidence accumulates. The program should support that exploration while
+retaining a clear human experience and checkable consequences.
 
 ## Source and candidate boundary
 
