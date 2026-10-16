@@ -89,6 +89,25 @@ with sync_playwright() as p:
     page.evaluate("__native.emit('pause')")
     assert page.evaluate("Object.values(localStorage).every(v => !v.includes('synthetic-native-key'))")
     page.evaluate("__native.emit('appStateChange', {isActive:true})")
+
+    # Academy uses the same native foreground boundary as match execution.
+    readiness_calls = []
+    def hold_readiness(route):
+        readiness_calls.append(route)
+    page.route("https://openrouter.ai/api/v1/chat/completions", hold_readiness)
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#readiness-suite").select_option("tictactoe")
+    with page.expect_request("**/chat/completions"):
+        page.locator("#academy-readiness").click()
+    page.evaluate("__native.emit('pause')")
+    expect(page.locator("#readiness-status")).to_contain_text("Check stopped early")
+    assert len(readiness_calls) == 1
+    page.locator("#academy-readiness").click()
+    expect(page.locator("#readiness-status")).to_contain_text("lifecycle protection is not ready")
+    page.evaluate("__native.emit('appStateChange', {isActive:true})")
+    expect(page.locator("#notice")).to_contain_text("resumed paused")
+    assert len(readiness_calls) == 1  # Resume never starts another model request.
+    page.unroute("https://openrouter.ai/api/v1/chat/completions", hold_readiness)
     page.locator("#connections").click()
     page.locator("#agent-kind").select_option("harness")
     page.locator("#harness-url").fill("http://127.0.0.1:8765/move")

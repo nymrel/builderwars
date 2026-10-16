@@ -199,5 +199,30 @@ with sync_playwright() as p:
     web.locator("#import-proof").set_input_files(proof_path)
     expect(web.locator("#proof-status")).to_contain_text("7 plies reproduced")
     assert not errors, errors
+
+    # Exercise the actual Academy buttons through Capacitor's native dispatch.
+    readiness_context = browser.new_context(viewport={"width": 390, "height": 844})
+    readiness_context.add_init_script(BRIDGE)
+    readiness_page = readiness_context.new_page()
+    readiness_downloads = []
+    readiness_page.on("download", lambda value: readiness_downloads.append(value))
+    readiness_page.on("pageerror", lambda value: errors.append(str(value)))
+    readiness_page.goto(BASE)
+    readiness_page.wait_for_function("() => __files.ready")
+    readiness_page.locator("nav [data-tab=academy]").click()
+    readiness_page.locator("#academy-readiness").click()
+    expect(readiness_page.locator("#readiness-status")).to_contain_text("Check complete")
+    for selector in ("#readiness-output button:not(#readiness-world)", "#readiness-world"):
+        share_count = readiness_page.evaluate("__files.shares.length")
+        readiness_page.locator(selector).click()
+        readiness_page.wait_for_function("count => __files.shares.length > count", arg=share_count)
+        expect(readiness_page.locator("#notice")).to_contain_text("Share sheet closed")
+        expect(readiness_page.locator("#notice")).to_contain_text("not confirmed")
+        handoff = readiness_page.evaluate("__files.shares.at(-1)")
+        name = handoff["files"][0].removeprefix("file:///cache/")
+        payload = base64.b64decode(readiness_page.evaluate("name => __files.cache.get(name)", name))
+        json.loads(payload)  # Both native handoffs retain valid JSON bytes.
+    assert not readiness_downloads, "Academy native exports must use the native share sheet"
+    assert not errors, errors
     browser.close()
 print("PASS: synthetic native profile/replay/package/proof/verifier/PNG/rules/eval/text sharing, failure/concurrency, clean web import. Not OS share-sheet or physical-device acceptance.")

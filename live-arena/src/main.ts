@@ -37,6 +37,8 @@ import {
 import { Broadcast } from "./broadcast";
 import { keyboardCell } from "./board-keyboard";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
+import { READINESS_SUITES, runReadinessCheck, type ReadinessReceipt } from "./readiness";
+import { agentWorldEventFile } from "./agentworld-events";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
 import { PracticeMemory, MEMORY_KEY, supportsLearning, scoreTactics, analyzePractice, type MemorySnapshot, type MemoryContext } from "./learning";
@@ -1450,6 +1452,126 @@ $<HTMLSelectElement>("pace").onchange = (e) => {
 };
 $("connections").onclick = () => openAgent(0);
 $("learn-connect").onclick = () => openAgent(0);
+function readinessStatus(message: string) {
+  $("readiness-status").textContent = message;
+}
+const escapeReadiness = (value: string) =>
+  value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
+function refreshReadinessTargets() {
+  const select = $<HTMLSelectElement>("readiness-agent");
+  const previous = select.value;
+  select.innerHTML = "";
+  agents.forEach((agent, index) => {
+    if (agent.kind === "human") return;
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${agent.name} · ${agent.kind === "bot" ? "built-in" : agent.kind === "openrouter" ? "OpenRouter" : "harness"}${agent.model ? ` · ${agent.model.slice(0, 48)}` : ""}`;
+    select.append(option);
+  });
+  if (!select.options.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No contender configured — connect one first";
+    select.append(option);
+  }
+  if ([...select.options].some((option) => option.value === previous)) select.value = previous;
+}
+let readinessController: AbortController | null = null;
+$("readiness-stop").onclick = () => readinessController?.abort();
+$("academy-readiness").onclick = async () => {
+  refreshReadinessTargets();
+  const select = $<HTMLSelectElement>("readiness-agent");
+  const button = $<HTMLButtonElement>("academy-readiness");
+  if (readinessController) {
+    readinessStatus("A readiness check is already running. Stop it before starting another.");
+    return;
+  }
+  if (pending || running || spectating) {
+    readinessStatus("Pause the current match or leave spectator mode before running a readiness check.");
+    return;
+  }
+  const agentIndex = Number(select.value);
+  if (select.value === "" || Number.isNaN(agentIndex) || !agents[agentIndex] || agents[agentIndex].kind === "human") {
+    readinessStatus("Connect a contender first — a readiness check questions an agent or built-in, not a human seat.");
+    return;
+  }
+  const suiteId = $<HTMLSelectElement>("readiness-suite").value;
+  let maxTokens: number;
+  try {
+    ensureDeviceReady();
+    maxTokens = numberInput("max-tokens", 256, 16384);
+  } catch (error) {
+    readinessStatus((error as Error).message);
+    return;
+  }
+  const controller = new AbortController();
+  readinessController = controller;
+  button.disabled = true;
+  $("readiness-stop").hidden = false;
+  $("readiness-output").innerHTML = "";
+  try {
+    const receipt: ReadinessReceipt = await runReadinessCheck({
+      agent: agents[agentIndex],
+      suiteId,
+      models,
+      maxTokens,
+      signal: controller.signal,
+      onPosition: (result, index, total) =>
+        readinessStatus(`Position ${index + 1}/${total} · ${result.id} · ${result.outcome}.`),
+    });
+    const cards = receipt.positions
+      .map(
+        (position) =>
+          `<div class="telemetry readiness-card"><div><span>${escapeReadiness(position.id)}</span><strong>${position.outcome}</strong></div><div><span>REPLY</span><strong>${escapeReadiness(position.replyMove ?? "—")}</strong></div><div><span>LATENCY</span><strong>${position.latencyMs === null ? "—" : `${position.latencyMs} ms`}</strong></div><div><span>DETAIL</span><strong>${escapeReadiness(position.detail)}</strong></div></div>`,
+      )
+      .join("");
+    const summary = `Readiness: ${receipt.summary.valid}/${receipt.summary.positions} valid · ${receipt.summary.invalidReply} invalid reply · ${receipt.summary.timeout} timeout · ${receipt.summary.connectionError} connection error${receipt.summary.skipped ? ` · ${receipt.summary.skipped} skipped` : ""}.`;
+    const container = $("readiness-output");
+    container.innerHTML = `<p class="subtitle">${escapeReadiness(summary)} Protocol readiness only — no ranking.</p>${cards}`;
+    const download = document.createElement("button");
+    download.textContent = "Download readiness receipt";
+    download.onclick = async () => {
+      try {
+        await exportJson(
+          `readiness-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
+          receipt,
+          "replay",
+        );
+      } catch (error) {
+        notify((error as Error).message);
+      }
+    };
+    container.append(download);
+    const worldEvent = document.createElement("button");
+    worldEvent.id = "readiness-world";
+    worldEvent.textContent = "Download AgentWorld event";
+    worldEvent.onclick = async () => {
+      try {
+        const file = await agentWorldEventFile(receipt);
+        await exportJson(
+          `agentworld-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
+          file,
+          "replay",
+        );
+      } catch (error) {
+        notify((error as Error).message);
+      }
+    };
+    container.append(worldEvent);
+    readinessStatus(
+      receipt.summary.skipped
+        ? "Check stopped early. The partial receipt marks every position that did not run as skipped."
+        : `Check complete over the ${receipt.suite.game} suite. One suite is practice evidence, not a leaderboard.`,
+    );
+  } catch (error) {
+    readinessStatus((error as Error).message);
+  } finally {
+    readinessController = null;
+    button.disabled = false;
+    $("readiness-stop").hidden = true;
+  }
+};
+refreshReadinessTargets();
 $("create-game-shortcut").onclick = () => tab("forge");
 function openAgent(seat: number) {
   if (duelUI?.room.view().active && (duelUI.room.view().ready || duelUI.room.view().seat === 0))
@@ -1893,6 +2015,7 @@ $("export-exhibition").onclick = () => void exportExhibition();
 // text inspector. Content: outcome, assistance, identities, then source detail.
 // Interaction: native disclosure, existing replay scrubber and focus feedback.
 const SAMPLE_WATCH_REPLAY = "/competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.json";
+const SAMPLE_WATCH_REFEREE_DIGEST = "7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539";
 $("watch-broadcast").insertAdjacentHTML("beforebegin", '<h2>Recorded exhibitions</h2><p class="muted">Open a retained replay or import a frontier exhibition. Recorded playback makes no provider or model requests.</p><button id="watch-sample">Open sample replay · Launch Circuit</button><p id="watch-sample-status" class="muted" role="status" aria-live="polite">Tactician vs Seeded Wildcard · retained public match package · legal replay verification only. Identity and model execution are not attested.</p><button id="import-exhibition">Import exhibition file</button><h2>Live broadcasts</h2>');
 $("watch-sample").onclick = async () => {
   const button = $<HTMLButtonElement>("watch-sample");
@@ -1904,7 +2027,9 @@ $("watch-sample").onclick = async () => {
     const opened = await openRecorded(async () => {
       const response = await fetch(SAMPLE_WATCH_REPLAY, { credentials: "omit", redirect: "error", cache: "no-store", mode: "same-origin" });
       const raw = JSON.parse(await (await boundedResponse(response, 350000)).text());
-      const imported = readMatchFile(raw);
+      // This immutable launch-circuit package was produced by an earlier referee.
+      // Reverify its legal moves against the current engine before opening it.
+      const imported = readMatchFile(raw, { reverifyOlderRefereeDigest: SAMPLE_WATCH_REFEREE_DIGEST });
       if (imported.parsed.record.id !== "launch-ttt-v1-01-0-0")
         throw Error("Sample replay identity mismatch.");
       return { parsed: imported.parsed, limits: imported.limits, declarations: imported.declarations };
@@ -2380,6 +2505,7 @@ const localLab = mountLab({
   },
 });
 function suspendNative() {
+  readinessController?.abort();
   localLab.cancel("Local work stopped when the app left the foreground. No experiment restarts automatically.");
   if (duelUI?.room.view().active) duelUI.room.close("Duel stopped when the app left the foreground.");
   if (!nativeActive) return;

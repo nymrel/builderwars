@@ -43,6 +43,26 @@ test("known resource caps cannot contradict recorded plies", () => {
   assert.throws(() => readMatchFile({ ...pkg, resources: matchLimits(2, null, false) }), /exceeds declared/);
   assert.throws(() => makeMatchPackage(game, unknownDeclarations(), matchLimits(2, null, false)), /exceeds declared/);
 });
+test("older referee packages require an explicit current-engine replay", () => {
+  const pkg = makeMatchPackage(record(), unknownDeclarations(), null);
+  const oldRefereeDigest = "7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539";
+  const older = { ...pkg, verification: { ...pkg.verification, verifierDigest: oldRefereeDigest } };
+  assert.throws(() => readMatchFile(older), /Unsupported verifier/);
+  const imported = readMatchFile(older, { reverifyOlderRefereeDigest: oldRefereeDigest });
+  assert.equal(imported.parsed.record.events.length, 1);
+  assert.deepEqual(imported.declarations, pkg.declarations);
+  assert.throws(() => readMatchFile({ ...older, record: { ...older.record, events: [{ ...older.record.events[0], move: "99" }] } }, { reverifyOlderRefereeDigest: oldRefereeDigest }), /illegal move/i);
+  assert.throws(() => readMatchFile({ ...older, verification: { ...older.verification, verifierVersion: "unknown" } }, { reverifyOlderRefereeDigest: oldRefereeDigest }), /Unsupported verifier/);
+  for (const verifierDigest of ["0".repeat(64), oldRefereeDigest.toUpperCase(), oldRefereeDigest.slice(1)])
+    assert.throws(() => readMatchFile({ ...older, verification: { ...older.verification, verifierDigest } }, { reverifyOlderRefereeDigest: oldRefereeDigest }), /Unsupported verifier/);
+  for (const verification of [
+    { ...older.verification, scope: "full-execution" },
+    { ...older.verification, identityAttested: true },
+    { ...older.verification, modelAttested: true },
+    { ...older.verification, resourcesAttested: true },
+  ])
+    assert.throws(() => readMatchFile({ ...older, verification }, { reverifyOlderRefereeDigest: oldRefereeDigest }), /Unsupported verifier/);
+});
 test("package metadata cannot elevate execution claims, introduce secrets or bypass replay", () => {
   const pkg = makeMatchPackage(record(), unknownDeclarations(), null);
   for (const raw of [null, [], {}, { ...pkg, schema: "future" }, { ...pkg, key: "secret" },
