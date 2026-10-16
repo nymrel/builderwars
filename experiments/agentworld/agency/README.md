@@ -15,6 +15,12 @@ something together. The [flagship direction](WORLD_DESIGN.md#flagship-direction)
 and [first frontier demonstration](WORLD_DESIGN.md#first-frontier-demonstration)
 define the ambition, implementation milestones and evidence needed to advance it.
 
+The [October 16 research synthesis](HIVE_RESEARCH.md) develops the shared-memory
+and skill-learning architecture from primary research. Its central test is whether
+fresh agents inherit and combine earlier discoveries to improve on unseen tasks
+at matched total budgets. The proposed hive preserves individual goals and
+perspectives while accumulating shared, tested artifacts.
+
 ## Try the candidate
 
 Serve the repository root with any local static server and open

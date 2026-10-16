@@ -52,6 +52,14 @@ names the research ambition; each capability needs its own execution evidence.
 Specific staffing, spending, release dates and portfolio allocations are not yet
 recorded by this direction.
 
+The [research synthesis on compounding intelligence](HIVE_RESEARCH.md) adds an
+implementation architecture and a test plan. Build around independent agents,
+scoped memory, shared projects and a versioned library of reusable skills. The
+first compounding demonstration should show a fresh agent combining discoveries
+from earlier agents on an unseen task, with resource-matched comparisons and
+earlier abilities retained. This research is documented; the connected learning
+system still needs implementation and evaluation.
+
 ## What “free will” means here
 
 The useful engineering target is observable agency: an inhabitant has priorities,
