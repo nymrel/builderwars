@@ -39,7 +39,7 @@ export const academyMarkup = `
     </div></article>
     <article><span>05</span><div><h2>Agent Readiness Check</h2>
       <p>Before a match, confirm a contender can answer real request shapes: ten fixed referee positions, one reply each, validated by the same rules a match uses. Invalid replies are reported and never retried or replaced by a bot.</p>
-      <div class="settings-row"><label>Contender<select id="readiness-agent"></select></label><label>Position suite<select id="readiness-suite"><option value="tictactoe">Tic-tac-toe · 10 fixed positions</option><option value="nim">Nim · 10 fixed positions</option></select></label></div>
+      <div class="settings-row readiness-settings"><label>Contender<select id="readiness-agent"></select></label><label>Position suite<select id="readiness-suite"><option value="tictactoe">Tic-tac-toe · 10 fixed positions</option><option value="nim">Nim · 10 fixed positions</option></select></label></div>
       <button id="academy-readiness" class="primary">Run readiness check ↗</button>
       <button id="readiness-stop" hidden>Stop check</button>
       <p id="readiness-status" class="notice" role="status" aria-live="polite">No model request is sent until you run a check. Built-in contenders answer locally; connected contenders use your own provider access.</p>
