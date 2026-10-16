@@ -11,6 +11,7 @@ import { legalMoves } from "../src/runtime";
 import { parseDecision, type Agent } from "../src/models";
 import { agentWorldEventFile } from "../src/agentworld-events";
 import { arenaLabVersion, labBaseline } from "../src/browser-lab-core";
+import { FileTransfer, transferMessage, type NativeFilePort } from "../src/file-transfer";
 
 const harnessAgent = (overrides: Partial<Agent> = {}): Agent => ({
   name: "Test Harness",
@@ -106,6 +107,53 @@ test("a healthy contender passes every position with a credential-free receipt",
     assert.equal(position.reportedModel, "stub/valid");
     assert.ok(receipt.notes.some((note) => note.includes("no ranking")));
   }
+});
+
+test("readiness artifacts use bounded native file sharing and keep untrusted fields as data", async () => {
+  const name = '<img src=x onerror="alert(1)">';
+  const receipt = await runReadinessCheck({
+    agent: harnessAgent({ name, strategy: "private strategy text" }),
+    suiteId: "tictactoe",
+    decider: validDecider,
+  });
+  const world = await agentWorldEventFile(receipt);
+  const writes: { name: string; data: string }[] = [];
+  const shares: { files?: string[]; text?: string }[] = [];
+  const port: NativeFilePort = {
+    list: async () => [],
+    write: async (fileName, data) => {
+      writes.push({ name: fileName, data });
+      return `file:///cache/${fileName}`;
+    },
+    remove: async () => {},
+    share: async (value) => {
+      shares.push(value);
+      return "sheet-closed";
+    },
+  };
+  const transfer = new FileTransfer({
+    native: async () => port,
+    webDownload: () => assert.fail("Native readiness export used a browser download"),
+    now: () => 1788580000000,
+    id: () => "11111111-1111-4111-8111-111111111111",
+  });
+
+  assert.equal(
+    await transfer.export("readiness-tictactoe.json", new Blob([JSON.stringify(receipt)]), "replay"),
+    "sheet-closed",
+  );
+  assert.equal(
+    await transfer.export("agentworld-tictactoe.json", new Blob([JSON.stringify(world)]), "replay"),
+    "sheet-closed",
+  );
+
+  assert.equal(writes.length, 2);
+  assert.equal(shares.length, 2);
+  const exported = writes.map(({ data }) => Buffer.from(data, "base64").toString("utf8"));
+  assert.equal(JSON.parse(exported[0]).contender.name, name);
+  assert.equal(JSON.parse(JSON.parse(exported[1]).preview.data_json).receipt.contender.name, name);
+  assert.doesNotMatch(exported.join("\n"), /SECRET-KEY|harness\.example|localVersion/);
+  assert.match(transferMessage("sheet-closed"), /not confirmed/);
 });
 
 test("the receipt summary always accounts for every position", async () => {

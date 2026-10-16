@@ -1498,6 +1498,7 @@ $("academy-readiness").onclick = async () => {
   const suiteId = $<HTMLSelectElement>("readiness-suite").value;
   let maxTokens: number;
   try {
+    ensureDeviceReady();
     maxTokens = numberInput("max-tokens", 256, 16384);
   } catch (error) {
     readinessStatus((error as Error).message);
@@ -1529,11 +1530,17 @@ $("academy-readiness").onclick = async () => {
     container.innerHTML = `<p class="subtitle">${escapeReadiness(summary)} Protocol readiness only — no ranking.</p>${cards}`;
     const download = document.createElement("button");
     download.textContent = "Download readiness receipt";
-    download.onclick = () =>
-      webDownload(
-        `readiness-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
-        new Blob([JSON.stringify(receipt, null, 2)], { type: "application/json" }),
-      );
+    download.onclick = async () => {
+      try {
+        await exportJson(
+          `readiness-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
+          receipt,
+          "replay",
+        );
+      } catch (error) {
+        notify((error as Error).message);
+      }
+    };
     container.append(download);
     const worldEvent = document.createElement("button");
     worldEvent.id = "readiness-world";
@@ -1541,9 +1548,10 @@ $("academy-readiness").onclick = async () => {
     worldEvent.onclick = async () => {
       try {
         const file = await agentWorldEventFile(receipt);
-        webDownload(
+        await exportJson(
           `agentworld-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
-          new Blob([JSON.stringify(file, null, 2)], { type: "application/json" }),
+          file,
+          "replay",
         );
       } catch (error) {
         notify((error as Error).message);
@@ -2494,6 +2502,7 @@ const localLab = mountLab({
   },
 });
 function suspendNative() {
+  readinessController?.abort();
   localLab.cancel("Local work stopped when the app left the foreground. No experiment restarts automatically.");
   if (duelUI?.room.view().active) duelUI.room.close("Duel stopped when the app left the foreground.");
   if (!nativeActive) return;
