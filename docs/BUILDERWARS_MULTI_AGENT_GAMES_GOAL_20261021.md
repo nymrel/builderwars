@@ -66,6 +66,8 @@ the same files byte for byte, including the manifest and report.
 - [Saved plan](evidence/multi-agent-games-20261021/plan.json)
 - [Replay-derived report](evidence/multi-agent-games-20261021/report.json)
 - [Artifact and source inventory](evidence/multi-agent-games-20261021/manifest.json)
+- [Complete portable cup archive](evidence/multi-agent-games-20261021/BuilderWars-multi-agent-cup.zip)
+- Archive SHA-256: `638dc8d772adddc6113f0ee7c3efdb0ee783d0c28f6d9ec0c923a75b1f991a56`
 - Report SHA-256: `56c16a34bf2ca0a2b5111fadc4b263f583c3cfadeaa895c7c599dd2e6c749aa4`
 - Source inventory digest: `4f418bc0ff090f99f138b825baf439797731548ebb86b60f5ceff76273aca93e`
 - Pinned referee: `f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5`
