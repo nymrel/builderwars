@@ -6,6 +6,13 @@ keys, centralized account database, paid credits, fabricated audience or ranking
 
 ## Local self-improvement lab
 
+For a multi-agent competition, `npm run compete -- --out output/competitions/my-cup` runs a
+free, reproducible 36-match cup among three declared local policies across
+tic-tac-toe, Connect Four and Nim. Both seats, fixed seeds, per-game standings and
+portable match evidence are retained. `npm run compete -- --verify output/competitions/my-cup`
+rechecks the complete cup. See [configuration and evidence](../docs/BUILDERWARS_LOCAL_COMPETITIONS.md)
+for 3–8 entrants and the distinction between local baselines and model execution.
+
 `npm run improve -- --game tictactoe` runs bounded, outcome-trained local policy
 development. It saves immutable candidates, paired evaluation evidence and a
 retained/promoted local champion. It makes no provider calls and does not change
