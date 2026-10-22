@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from urllib.error import HTTPError
 from urllib.parse import quote, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -131,6 +132,47 @@ def verify_files(origin, app, receipt):
             entry.update(status="FAIL", error=str(error))
         receipt["routes"].append(entry)
     assert all(x["status"] == "PASS" for x in receipt["files"] + receipt["routes"]), "Public file or route verification failed"
+
+
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        return None
+
+
+def verify_aliases(app, receipt):
+    """Fixed existing aliases only; never widens browser or app-file origin admission."""
+    expected = (app / "dist/index.html").read_bytes()
+    receipt["aliases"] = []
+    for host in ("www.builderwars.com", "builderswars.com", "www.builderswars.com"):
+        entry = {"origin": "https://" + host}
+        receipt["aliases"].append(entry)
+        try:
+            request = Request(entry["origin"] + "/", headers={"Accept-Encoding": "identity", "Cache-Control": "no-cache"})
+            try:
+                with build_opener(NoRedirect()).open(request, timeout=30) as response:
+                    raise ValueError(f"Expected initial 308, received {response.status}")
+            except HTTPError as response:
+                try:
+                    entry.update(initialStatus=response.code, location=response.headers.get("Location"))
+                    assert response.code == 308, "Alias must return an initial permanent 308 redirect"
+                    assert entry["location"] in ("https://builderwars.com", "https://builderwars.com/"), "Alias destination differs from exact canonical root"
+                finally:
+                    response.close()
+            # Follow only the validated canonical destination with a same-origin handler.
+            body, _, final = fetch("https://builderwars.com", "/")
+            evidence = content_evidence(body, expected, "https://builderwars.com", "index.html")
+            entry.update(status="PASS", finalStatus=200, finalUrl=final, **evidence)
+        except Exception as error:
+            entry.update(status="FAIL", error=str(error))
+    direct = {"origin": "https://builderwars.vercel.app"}
+    receipt["aliases"].append(direct)
+    try:
+        body, _, final = fetch(direct["origin"], "/")
+        evidence = content_evidence(body, expected, direct["origin"], "index.html")
+        direct.update(status="PASS", finalStatus=200, finalUrl=final, **evidence)
+    except Exception as error:
+        direct.update(status="FAIL", error=str(error))
+    assert all(entry["status"] == "PASS" for entry in receipt["aliases"]), "Existing alias verification failed"
 
 
 def browser_journeys(origin, app, out, receipt, executable_path=None):
@@ -277,6 +319,8 @@ def main():
         assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=app, text=True).strip() == SOURCE
         assert subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], cwd=app, text=True).strip() == SOURCE_TREE
         verify_files(origin, app, receipt)
+        if origin == "https://builderwars.com":
+            verify_aliases(app, receipt)
         browser_journeys(origin, app, out, receipt)
         receipt.update(status="PASS", actualProviderCalls=0)
     except Exception as error:
