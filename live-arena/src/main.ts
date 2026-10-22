@@ -1893,6 +1893,7 @@ $("export-exhibition").onclick = () => void exportExhibition();
 // text inspector. Content: outcome, assistance, identities, then source detail.
 // Interaction: native disclosure, existing replay scrubber and focus feedback.
 const SAMPLE_WATCH_REPLAY = "/competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.json";
+const SAMPLE_WATCH_REFEREE_DIGEST = "7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539";
 $("watch-broadcast").insertAdjacentHTML("beforebegin", '<h2>Recorded exhibitions</h2><p class="muted">Open a retained replay or import a frontier exhibition. Recorded playback makes no provider or model requests.</p><button id="watch-sample">Open sample replay · Launch Circuit</button><p id="watch-sample-status" class="muted" role="status" aria-live="polite">Tactician vs Seeded Wildcard · retained public match package · legal replay verification only. Identity and model execution are not attested.</p><button id="import-exhibition">Import exhibition file</button><h2>Live broadcasts</h2>');
 $("watch-sample").onclick = async () => {
   const button = $<HTMLButtonElement>("watch-sample");
@@ -1904,7 +1905,9 @@ $("watch-sample").onclick = async () => {
     const opened = await openRecorded(async () => {
       const response = await fetch(SAMPLE_WATCH_REPLAY, { credentials: "omit", redirect: "error", cache: "no-store", mode: "same-origin" });
       const raw = JSON.parse(await (await boundedResponse(response, 350000)).text());
-      const imported = readMatchFile(raw);
+      // This immutable launch-circuit package was produced by an earlier referee.
+      // Reverify its legal moves against the current engine before opening it.
+      const imported = readMatchFile(raw, { reverifyOlderRefereeDigest: SAMPLE_WATCH_REFEREE_DIGEST });
       if (imported.parsed.record.id !== "launch-ttt-v1-01-0-0")
         throw Error("Sample replay identity mismatch.");
       return { parsed: imported.parsed, limits: imported.limits, declarations: imported.declarations };
