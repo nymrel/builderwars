@@ -17,6 +17,10 @@ policy decisions and recomputes standings. It creates no new archive and calls
 no provider. On Windows PowerShell use `npm.cmd`
 when forwarding arguments.
 
+Archive paths must use physical directories rather than symbolic links. If your
+system exposes a temporary directory through a symlink, use its resolved physical
+path. The command rejects linked path ancestors before creating an output there.
+
 ## Choose games and entrants
 
 Pass `--plan my-cup.json` together with `--out`. A plan has this exact shape:

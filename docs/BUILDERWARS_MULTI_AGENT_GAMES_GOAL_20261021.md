@@ -1,5 +1,8 @@
 # Multi-agent games and competitions
 
+[October 22 Astra collaboration and refreshed evidence](ASTRA_MULTI_AGENT_COMPETITIONS_20261022.md)
+continues this original goal and retains its execution history.
+
 ## Goal
 
 Enable 3–8 declared local agents to compete in a reproducible multi-game round
