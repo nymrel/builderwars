@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      TARGET_URL: https://builderwars-632bfkr0w-jalens-projects-0ade4450.vercel.app
+      TARGET_URL: https://builderwars.com
       APP_ROOT: ${{ github.workspace }}/app/live-arena
       RECEIPT_DIR: ${{ github.workspace }}/public-live-evidence
       VERIFIER_COMMIT: ${{ github.sha }}
