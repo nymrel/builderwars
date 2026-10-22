@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "compete": "tsx scripts/run-local-competition.ts",
+    "precompete": "npm run referee",
     "export:exhibition": "tsx scripts/export-exhibition.ts",
     "preexport:exhibition": "npm run referee",
     "frontier": "tsx scripts/frontier.ts",

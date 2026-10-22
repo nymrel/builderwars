@@ -19,7 +19,7 @@ with sync_playwright() as p:
     def contain(route):
         target = urlsplit(route.request.url)
         if (target.scheme, target.netloc) == (origin.scheme, origin.netloc):
-            requests.append(route.request.url)
+            requests.append((route.request.url, route.request.method, route.request.resource_type))
             route.continue_()
         else:
             external.append(route.request.url)
@@ -60,8 +60,15 @@ with sync_playwright() as p:
         expect(page.locator("#exhibition-evidence")).not_to_be_visible()
         expect(page.locator("#start")).to_be_disabled()
 
-        post_click_paths = [urlsplit(url).path for url in requests]
-        assert post_click_paths == [SAMPLE_PATH], requests
+        # Chromium may retrieve the favicon again after the replay's history change.
+        # Application requests remain exactly one same-origin retained replay fetch.
+        application_paths = [urlsplit(url).path for url, _, kind in requests if kind in ("fetch", "xhr")]
+        assert application_paths == [SAMPLE_PATH], requests
+        same_origin = f"{origin.scheme}://{origin.netloc}"
+        assert all(method == "GET" and (
+            (url == same_origin + SAMPLE_PATH and kind in ("fetch", "xhr")) or
+            (url == same_origin + "/mark.svg" and kind in ("image", "other"))
+        ) for url, method, kind in requests), requests
         assert not external, external
 
         # Re-export the opened package to prove declarations/resources survive the normal replay path.
@@ -88,7 +95,7 @@ with sync_playwright() as p:
             "sample": "launch-ttt-v1-01-0-0",
             "acceptedPlies": 8,
             "actualProviderCalls": 0,
-            "network": "same-origin retained replay only",
+            "network": "one same-origin retained replay fetch; browser icon only otherwise",
             "provenance": "match declarations/resources retained; identity/model execution unattested",
         }))
     finally:
