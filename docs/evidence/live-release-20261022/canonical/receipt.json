@@ -1,0 +1,2276 @@
+{
+  "schema": "builderwars.live-verification.v1",
+  "status": "PASS",
+  "source": "1745c0a0cc8aaa31aaf8f67edc7765f32de6b547",
+  "sourceTree": "ed6656541535881578bb51164d44a475197eb5cd",
+  "verifierCommit": "3e6f2b4114a29320b81018c805b0f0b9f66db5a7",
+  "verifierSha256": "45b7bb58a1e8ce510a8ccdca6504bfb8fa8c332f8673ef3a711142b7eda90821",
+  "startedAt": "2026-10-22T02:55:58.111122+00:00",
+  "scope": "Actual HTTPS bytes and local browser journeys; no provider, identity or physical-device attestation.",
+  "origin": "https://builderwars.com",
+  "files": [
+    {
+      "path": "about.html",
+      "expectedSha256": "86891f75a83da897ff195a623f402ba0c74cd91ec5493157d1158fee003553ae",
+      "finalUrl": "https://builderwars.com/about.html",
+      "actualSha256": "86891f75a83da897ff195a623f402ba0c74cd91ec5493157d1158fee003553ae",
+      "bytes": 6548,
+      "applicationSha256": "86891f75a83da897ff195a623f402ba0c74cd91ec5493157d1158fee003553ae",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "agent-setup.md",
+      "expectedSha256": "30d877d23169fddc79fc643d77951cd8ce61c5c222bd27c03a6f0a932a3ad6e9",
+      "finalUrl": "https://builderwars.com/agent-setup.md",
+      "actualSha256": "30d877d23169fddc79fc643d77951cd8ce61c5c222bd27c03a6f0a932a3ad6e9",
+      "bytes": 7526,
+      "applicationSha256": "30d877d23169fddc79fc643d77951cd8ce61c5c222bd27c03a6f0a932a3ad6e9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "agents/launch-ttt-v1/perfect-ttt-v1.html",
+      "expectedSha256": "005f6dc8a5e43c0eca765ef56f4a15f399d2007864ea760b0173f4a07a57fa56",
+      "finalUrl": "https://builderwars.com/agents/launch-ttt-v1/perfect-ttt-v1.html",
+      "actualSha256": "005f6dc8a5e43c0eca765ef56f4a15f399d2007864ea760b0173f4a07a57fa56",
+      "bytes": 2656,
+      "applicationSha256": "005f6dc8a5e43c0eca765ef56f4a15f399d2007864ea760b0173f4a07a57fa56",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "agents/launch-ttt-v1/random-v1.html",
+      "expectedSha256": "0859c3c45ce5f8dc1432c07e41c456c81566a3eb8caf3b920ee2993f83d9739d",
+      "finalUrl": "https://builderwars.com/agents/launch-ttt-v1/random-v1.html",
+      "actualSha256": "0859c3c45ce5f8dc1432c07e41c456c81566a3eb8caf3b920ee2993f83d9739d",
+      "bytes": 2474,
+      "applicationSha256": "0859c3c45ce5f8dc1432c07e41c456c81566a3eb8caf3b920ee2993f83d9739d",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "agents/launch-ttt-v1/tactics-v1.html",
+      "expectedSha256": "2bc0d7790e02e01f3d8ee7d0abe467783d6fe902d9b6fb8fb225ec342ce1db33",
+      "finalUrl": "https://builderwars.com/agents/launch-ttt-v1/tactics-v1.html",
+      "actualSha256": "2bc0d7790e02e01f3d8ee7d0abe467783d6fe902d9b6fb8fb225ec342ce1db33",
+      "bytes": 2490,
+      "applicationSha256": "2bc0d7790e02e01f3d8ee7d0abe467783d6fe902d9b6fb8fb225ec342ce1db33",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "archive.html",
+      "expectedSha256": "7246808ec992f7cf006fd537124ec6b3414fd1e6e5f0f26f005aa31956c0c702",
+      "finalUrl": "https://builderwars.com/archive.html",
+      "actualSha256": "7246808ec992f7cf006fd537124ec6b3414fd1e6e5f0f26f005aa31956c0c702",
+      "bytes": 2083,
+      "applicationSha256": "7246808ec992f7cf006fd537124ec6b3414fd1e6e5f0f26f005aa31956c0c702",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/archive-B4Z3CIGa.js",
+      "expectedSha256": "9ac70e71b76c2781fd1a868e437187ae572ff3a414f3d1b8c038ab3afd40a39f",
+      "finalUrl": "https://builderwars.com/assets/archive-B4Z3CIGa.js",
+      "actualSha256": "9ac70e71b76c2781fd1a868e437187ae572ff3a414f3d1b8c038ab3afd40a39f",
+      "bytes": 38769,
+      "applicationSha256": "9ac70e71b76c2781fd1a868e437187ae572ff3a414f3d1b8c038ab3afd40a39f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/archive-DsOoBDuZ.css",
+      "expectedSha256": "de165cf687ad25725249ac3c083c5fc74c984f87e012c250eccc0c305177e8ab",
+      "finalUrl": "https://builderwars.com/assets/archive-DsOoBDuZ.css",
+      "actualSha256": "de165cf687ad25725249ac3c083c5fc74c984f87e012c250eccc0c305177e8ab",
+      "bytes": 3751,
+      "applicationSha256": "de165cf687ad25725249ac3c083c5fc74c984f87e012c250eccc0c305177e8ab",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/bot-worker-xVXWTWJ0.js",
+      "expectedSha256": "6094c3ee55ac31d8494ce0afdfba76c0274de527b97d96dc827594e74a9401c5",
+      "finalUrl": "https://builderwars.com/assets/bot-worker-xVXWTWJ0.js",
+      "actualSha256": "6094c3ee55ac31d8494ce0afdfba76c0274de527b97d96dc827594e74a9401c5",
+      "bytes": 2109,
+      "applicationSha256": "6094c3ee55ac31d8494ce0afdfba76c0274de527b97d96dc827594e74a9401c5",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/browser-lab-worker-BUc1jvva.js",
+      "expectedSha256": "0f97088aa8d648225ed80ae086b8a6dfbdcd834a5b550971e053adab3f36146d",
+      "finalUrl": "https://builderwars.com/assets/browser-lab-worker-BUc1jvva.js",
+      "actualSha256": "0f97088aa8d648225ed80ae086b8a6dfbdcd834a5b550971e053adab3f36146d",
+      "bytes": 35872,
+      "applicationSha256": "0f97088aa8d648225ed80ae086b8a6dfbdcd834a5b550971e053adab3f36146d",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/competition-formats-5fsQvDaK.js",
+      "expectedSha256": "841c01665ee52f8950913bc7c801fd4683de78b106b03d47685c7eaf495a5d36",
+      "finalUrl": "https://builderwars.com/assets/competition-formats-5fsQvDaK.js",
+      "actualSha256": "841c01665ee52f8950913bc7c801fd4683de78b106b03d47685c7eaf495a5d36",
+      "bytes": 3600,
+      "applicationSha256": "841c01665ee52f8950913bc7c801fd4683de78b106b03d47685c7eaf495a5d36",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/competition-formats-Cl_27i1_.css",
+      "expectedSha256": "09b98c79f693af05b9ab81486850b0185403b9c5f3a5f39acb1b728d83de8c66",
+      "finalUrl": "https://builderwars.com/assets/competition-formats-Cl_27i1_.css",
+      "actualSha256": "09b98c79f693af05b9ab81486850b0185403b9c5f3a5f39acb1b728d83de8c66",
+      "bytes": 56009,
+      "applicationSha256": "09b98c79f693af05b9ab81486850b0185403b9c5f3a5f39acb1b728d83de8c66",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/eval-hub-BkhGG7kC.js",
+      "expectedSha256": "7f123420842c54874f19e943ef3681a8672af8809f39b3d9f8e6cf3368808fe4",
+      "finalUrl": "https://builderwars.com/assets/eval-hub-BkhGG7kC.js",
+      "actualSha256": "7f123420842c54874f19e943ef3681a8672af8809f39b3d9f8e6cf3368808fe4",
+      "bytes": 203070,
+      "applicationSha256": "7f123420842c54874f19e943ef3681a8672af8809f39b3d9f8e6cf3368808fe4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/file-transfer-YoYp8-RL.js",
+      "expectedSha256": "eafe9f56b30877990e6c62600cba4924ab070ae18f64fb1b97f9a7e3a8050d0d",
+      "finalUrl": "https://builderwars.com/assets/file-transfer-YoYp8-RL.js",
+      "actualSha256": "eafe9f56b30877990e6c62600cba4924ab070ae18f64fb1b97f9a7e3a8050d0d",
+      "bytes": 3638,
+      "applicationSha256": "eafe9f56b30877990e6c62600cba4924ab070ae18f64fb1b97f9a7e3a8050d0d",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/file-transfer-native-RVbHllOH.js",
+      "expectedSha256": "dcf8a63cffb56d4fc7d8326999089821cd57e9f168a92a11c67ccfc05e277164",
+      "finalUrl": "https://builderwars.com/assets/file-transfer-native-RVbHllOH.js",
+      "actualSha256": "dcf8a63cffb56d4fc7d8326999089821cd57e9f168a92a11c67ccfc05e277164",
+      "bytes": 1299,
+      "applicationSha256": "dcf8a63cffb56d4fc7d8326999089821cd57e9f168a92a11c67ccfc05e277164",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/index-BS3xtQn5.js",
+      "expectedSha256": "c2e42414a2f58969f9d076f033189101a8d8859ad90efb98c4fe7039779872c5",
+      "finalUrl": "https://builderwars.com/assets/index-BS3xtQn5.js",
+      "actualSha256": "c2e42414a2f58969f9d076f033189101a8d8859ad90efb98c4fe7039779872c5",
+      "bytes": 8140,
+      "applicationSha256": "c2e42414a2f58969f9d076f033189101a8d8859ad90efb98c4fe7039779872c5",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/index-CtKG6aqd.js",
+      "expectedSha256": "7cf149bb3f9b6b584fc883de712b074ca927266e7bd554a6f415276d8c605baa",
+      "finalUrl": "https://builderwars.com/assets/index-CtKG6aqd.js",
+      "actualSha256": "7cf149bb3f9b6b584fc883de712b074ca927266e7bd554a6f415276d8c605baa",
+      "bytes": 1377,
+      "applicationSha256": "7cf149bb3f9b6b584fc883de712b074ca927266e7bd554a6f415276d8c605baa",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/main-Bm0bagXk.js",
+      "expectedSha256": "406c4b6447d974f07866b216fdd3d47634c16f940ce39efd921de1b73ce61ec7",
+      "finalUrl": "https://builderwars.com/assets/main-Bm0bagXk.js",
+      "actualSha256": "406c4b6447d974f07866b216fdd3d47634c16f940ce39efd921de1b73ce61ec7",
+      "bytes": 322913,
+      "applicationSha256": "406c4b6447d974f07866b216fdd3d47634c16f940ce39efd921de1b73ce61ec7",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/native-checkpoint-BJlZc42t.js",
+      "expectedSha256": "32bd4c444185ee1ba462c817607959e2789823fd11610ffaec3371d3d0b85cd5",
+      "finalUrl": "https://builderwars.com/assets/native-checkpoint-BJlZc42t.js",
+      "actualSha256": "32bd4c444185ee1ba462c817607959e2789823fd11610ffaec3371d3d0b85cd5",
+      "bytes": 3925,
+      "applicationSha256": "32bd4c444185ee1ba462c817607959e2789823fd11610ffaec3371d3d0b85cd5",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/native-checkpoint-port-DnGNBy13.js",
+      "expectedSha256": "183b0032cb49ef30c5524fb3dbf77b94babde9e7bd48aade9523311928e82fea",
+      "finalUrl": "https://builderwars.com/assets/native-checkpoint-port-DnGNBy13.js",
+      "actualSha256": "183b0032cb49ef30c5524fb3dbf77b94babde9e7bd48aade9523311928e82fea",
+      "bytes": 971,
+      "applicationSha256": "183b0032cb49ef30c5524fb3dbf77b94babde9e7bd48aade9523311928e82fea",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/origin-EwYuhrf5.css",
+      "expectedSha256": "ffc6b378275042d37384b1bfb884c7d07c2aa3afcc6ec0ca2c4f7ee675331a28",
+      "finalUrl": "https://builderwars.com/assets/origin-EwYuhrf5.css",
+      "actualSha256": "ffc6b378275042d37384b1bfb884c7d07c2aa3afcc6ec0ca2c4f7ee675331a28",
+      "bytes": 3766,
+      "applicationSha256": "ffc6b378275042d37384b1bfb884c7d07c2aa3afcc6ec0ca2c4f7ee675331a28",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/preload-helper-BXl3LOEh.js",
+      "expectedSha256": "d887044e7c17fd90344fc4f74f53cac686584daf2a458ab2136d36f1946e9ab6",
+      "finalUrl": "https://builderwars.com/assets/preload-helper-BXl3LOEh.js",
+      "actualSha256": "d887044e7c17fd90344fc4f74f53cac686584daf2a458ab2136d36f1946e9ab6",
+      "bytes": 1110,
+      "applicationSha256": "d887044e7c17fd90344fc4f74f53cac686584daf2a458ab2136d36f1946e9ab6",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/referee-worker-06fsZ5m3.js",
+      "expectedSha256": "e9bc60687b171a30ceec5b762906c58f8c122755918f7ff9703e083fb1b39662",
+      "finalUrl": "https://builderwars.com/assets/referee-worker-06fsZ5m3.js",
+      "actualSha256": "e9bc60687b171a30ceec5b762906c58f8c122755918f7ff9703e083fb1b39662",
+      "bytes": 51471,
+      "applicationSha256": "e9bc60687b171a30ceec5b762906c58f8c122755918f7ff9703e083fb1b39662",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/referee-worker-DtiPKmPR.js",
+      "expectedSha256": "95499511c619f1db5a6833de9c10341c24d81e7cf37c68512a5d391b0a23d48f",
+      "finalUrl": "https://builderwars.com/assets/referee-worker-DtiPKmPR.js",
+      "actualSha256": "95499511c619f1db5a6833de9c10341c24d81e7cf37c68512a5d391b0a23d48f",
+      "bytes": 51410,
+      "applicationSha256": "95499511c619f1db5a6833de9c10341c24d81e7cf37c68512a5d391b0a23d48f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/web-BlVNlPSd.js",
+      "expectedSha256": "5bdce73fe679a6d89d5cdc84ca1287f57b0f3f11502c676d20d7d0617f698ad2",
+      "finalUrl": "https://builderwars.com/assets/web-BlVNlPSd.js",
+      "actualSha256": "5bdce73fe679a6d89d5cdc84ca1287f57b0f3f11502c676d20d7d0617f698ad2",
+      "bytes": 361,
+      "applicationSha256": "5bdce73fe679a6d89d5cdc84ca1287f57b0f3f11502c676d20d7d0617f698ad2",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/web-DqsmTvR_.js",
+      "expectedSha256": "234a87800357c52b59352e15237b0fb29bd22f4a1bf6ff65f276c0c7a22ad848",
+      "finalUrl": "https://builderwars.com/assets/web-DqsmTvR_.js",
+      "actualSha256": "234a87800357c52b59352e15237b0fb29bd22f4a1bf6ff65f276c0c7a22ad848",
+      "bytes": 8742,
+      "applicationSha256": "234a87800357c52b59352e15237b0fb29bd22f4a1bf6ff65f276c0c7a22ad848",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "assets/web-uKxl-Dte.js",
+      "expectedSha256": "64895ae2912577996ade67a4f9946ca10496b6364c00ec45e2d7629e233a1537",
+      "finalUrl": "https://builderwars.com/assets/web-uKxl-Dte.js",
+      "actualSha256": "64895ae2912577996ade67a4f9946ca10496b6364c00ec45e2d7629e233a1537",
+      "bytes": 842,
+      "applicationSha256": "64895ae2912577996ade67a4f9946ca10496b6364c00ec45e2d7629e233a1537",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "builderwars-agent-workflow.json",
+      "expectedSha256": "7e3b5e0d7bee6c443ff9bc4dc48f25bc9080184c3feda52acebe798383bf4806",
+      "finalUrl": "https://builderwars.com/builderwars-agent-workflow.json",
+      "actualSha256": "7e3b5e0d7bee6c443ff9bc4dc48f25bc9080184c3feda52acebe798383bf4806",
+      "bytes": 4470,
+      "applicationSha256": "7e3b5e0d7bee6c443ff9bc4dc48f25bc9080184c3feda52acebe798383bf4806",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "circuits/launch-ttt-v1.html",
+      "expectedSha256": "762e2dbf08acaa00df92654350132303e3da44014e234a32f5bb5b66c33b8fb7",
+      "finalUrl": "https://builderwars.com/circuits/launch-ttt-v1.html",
+      "actualSha256": "762e2dbf08acaa00df92654350132303e3da44014e234a32f5bb5b66c33b8fb7",
+      "bytes": 5519,
+      "applicationSha256": "762e2dbf08acaa00df92654350132303e3da44014e234a32f5bb5b66c33b8fb7",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "circuits.html",
+      "expectedSha256": "67670793854ecc425ad80c3c4b9470d5105170fb34dfeffc0ccb6c8bd1f900e9",
+      "finalUrl": "https://builderwars.com/circuits.html",
+      "actualSha256": "67670793854ecc425ad80c3c4b9470d5105170fb34dfeffc0ccb6c8bd1f900e9",
+      "bytes": 2513,
+      "applicationSha256": "67670793854ecc425ad80c3c4b9470d5105170fb34dfeffc0ccb6c8bd1f900e9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "compete.html",
+      "expectedSha256": "ac0c393035cd400b3599a3d4d5299cfb1fc7e5da87c1a45f232b49cda9e9c829",
+      "finalUrl": "https://builderwars.com/compete.html",
+      "actualSha256": "ac0c393035cd400b3599a3d4d5299cfb1fc7e5da87c1a45f232b49cda9e9c829",
+      "bytes": 3018,
+      "applicationSha256": "ac0c393035cd400b3599a3d4d5299cfb1fc7e5da87c1a45f232b49cda9e9c829",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/manifest.json",
+      "expectedSha256": "93506e42b0c1e6dd069ce6942dc21619f15004477259c7db982b881283f26b6e",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/manifest.json",
+      "actualSha256": "93506e42b0c1e6dd069ce6942dc21619f15004477259c7db982b881283f26b6e",
+      "bytes": 15074,
+      "applicationSha256": "93506e42b0c1e6dd069ce6942dc21619f15004477259c7db982b881283f26b6e",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.json",
+      "expectedSha256": "c0b166dd1ab20b6e0caf1422b6d29c9f1d60ecd62ca9ba3a74a8a844eac1c912",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.json",
+      "actualSha256": "c0b166dd1ab20b6e0caf1422b6d29c9f1d60ecd62ca9ba3a74a8a844eac1c912",
+      "bytes": 4342,
+      "applicationSha256": "c0b166dd1ab20b6e0caf1422b6d29c9f1d60ecd62ca9ba3a74a8a844eac1c912",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.jsonl",
+      "expectedSha256": "cbd65dc05eaac9cc39aa586458b4b485d18961be53956175f6257840170394b0",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-0.jsonl",
+      "actualSha256": "cbd65dc05eaac9cc39aa586458b4b485d18961be53956175f6257840170394b0",
+      "bytes": 6322,
+      "applicationSha256": "cbd65dc05eaac9cc39aa586458b4b485d18961be53956175f6257840170394b0",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-1.json",
+      "expectedSha256": "8390c8e05634781136fff2593812e1a906fbb62a2e42fedf1b607e693cc3a89f",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-1.json",
+      "actualSha256": "8390c8e05634781136fff2593812e1a906fbb62a2e42fedf1b607e693cc3a89f",
+      "bytes": 4651,
+      "applicationSha256": "8390c8e05634781136fff2593812e1a906fbb62a2e42fedf1b607e693cc3a89f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-1.jsonl",
+      "expectedSha256": "dd030b07573f996ad0c5cb2eac8c2b640f5360bdf473eea381a274afd56b23bf",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-0-1.jsonl",
+      "actualSha256": "dd030b07573f996ad0c5cb2eac8c2b640f5360bdf473eea381a274afd56b23bf",
+      "bytes": 6957,
+      "applicationSha256": "dd030b07573f996ad0c5cb2eac8c2b640f5360bdf473eea381a274afd56b23bf",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-0.json",
+      "expectedSha256": "1356bfce8375385509438ff451f5fe5efa8217d778ddc79169c1a2ce27e6032d",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-0.json",
+      "actualSha256": "1356bfce8375385509438ff451f5fe5efa8217d778ddc79169c1a2ce27e6032d",
+      "bytes": 3735,
+      "applicationSha256": "1356bfce8375385509438ff451f5fe5efa8217d778ddc79169c1a2ce27e6032d",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-0.jsonl",
+      "expectedSha256": "aae5fc0d948b96d07b25ace81d40d26204eb342a701fd713be580ca19bb73c1d",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-0.jsonl",
+      "actualSha256": "aae5fc0d948b96d07b25ace81d40d26204eb342a701fd713be580ca19bb73c1d",
+      "bytes": 5069,
+      "applicationSha256": "aae5fc0d948b96d07b25ace81d40d26204eb342a701fd713be580ca19bb73c1d",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-1.json",
+      "expectedSha256": "85c8afeef0a221b215480d24f937ec860ba118ee92f99e63ec061fd6f6fa7225",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-1.json",
+      "actualSha256": "85c8afeef0a221b215480d24f937ec860ba118ee92f99e63ec061fd6f6fa7225",
+      "bytes": 3429,
+      "applicationSha256": "85c8afeef0a221b215480d24f937ec860ba118ee92f99e63ec061fd6f6fa7225",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-1.jsonl",
+      "expectedSha256": "85469cb3503a0bd51cf567ef466211d7102adde7d43cb328f5c29d20c4cfbf0c",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-1-1.jsonl",
+      "actualSha256": "85469cb3503a0bd51cf567ef466211d7102adde7d43cb328f5c29d20c4cfbf0c",
+      "bytes": 4440,
+      "applicationSha256": "85469cb3503a0bd51cf567ef466211d7102adde7d43cb328f5c29d20c4cfbf0c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-0.json",
+      "expectedSha256": "3b1afd3fac5ba5c064c306d1aa92dbc484bec9fcc3c067150e1de2b4059c6cf3",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-0.json",
+      "actualSha256": "3b1afd3fac5ba5c064c306d1aa92dbc484bec9fcc3c067150e1de2b4059c6cf3",
+      "bytes": 4650,
+      "applicationSha256": "3b1afd3fac5ba5c064c306d1aa92dbc484bec9fcc3c067150e1de2b4059c6cf3",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-0.jsonl",
+      "expectedSha256": "d72f51a20152c3c1b76d1aa63075545a02356814232f6e85ac0b1fdcde123a74",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-0.jsonl",
+      "actualSha256": "d72f51a20152c3c1b76d1aa63075545a02356814232f6e85ac0b1fdcde123a74",
+      "bytes": 6956,
+      "applicationSha256": "d72f51a20152c3c1b76d1aa63075545a02356814232f6e85ac0b1fdcde123a74",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-1.json",
+      "expectedSha256": "3d021cfb392e37892a40366f799bcbc4bae8b00ae47f5f6cef7522ee7c4f1fb8",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-1.json",
+      "actualSha256": "3d021cfb392e37892a40366f799bcbc4bae8b00ae47f5f6cef7522ee7c4f1fb8",
+      "bytes": 4041,
+      "applicationSha256": "3d021cfb392e37892a40366f799bcbc4bae8b00ae47f5f6cef7522ee7c4f1fb8",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-1.jsonl",
+      "expectedSha256": "8688574b675cbf3b8a1c17a94199dc610d0f0d93f7083426c270ad041b67306a",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-2-1.jsonl",
+      "actualSha256": "8688574b675cbf3b8a1c17a94199dc610d0f0d93f7083426c270ad041b67306a",
+      "bytes": 5698,
+      "applicationSha256": "8688574b675cbf3b8a1c17a94199dc610d0f0d93f7083426c270ad041b67306a",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-0.json",
+      "expectedSha256": "4bac4a618f110be244fb815da6ef969ba28d6ceaf55ab5dc57b8f572847cfcaf",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-0.json",
+      "actualSha256": "4bac4a618f110be244fb815da6ef969ba28d6ceaf55ab5dc57b8f572847cfcaf",
+      "bytes": 4345,
+      "applicationSha256": "4bac4a618f110be244fb815da6ef969ba28d6ceaf55ab5dc57b8f572847cfcaf",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-0.jsonl",
+      "expectedSha256": "6f645a81f8099f53cce51911338bf785507ee5678b4ad8386d607145ed6cc7d4",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-0.jsonl",
+      "actualSha256": "6f645a81f8099f53cce51911338bf785507ee5678b4ad8386d607145ed6cc7d4",
+      "bytes": 6325,
+      "applicationSha256": "6f645a81f8099f53cce51911338bf785507ee5678b4ad8386d607145ed6cc7d4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-1.json",
+      "expectedSha256": "43ec72a512bd0683704fa69194f8f6b2b81fa4d6cc20f74b308fc7547629034a",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-1.json",
+      "actualSha256": "43ec72a512bd0683704fa69194f8f6b2b81fa4d6cc20f74b308fc7547629034a",
+      "bytes": 3430,
+      "applicationSha256": "43ec72a512bd0683704fa69194f8f6b2b81fa4d6cc20f74b308fc7547629034a",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-1.jsonl",
+      "expectedSha256": "f6ecf22c811b7279cc55a110e8d1a1895c4ac2f8835e475b52263931644f5cab",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-01-3-1.jsonl",
+      "actualSha256": "f6ecf22c811b7279cc55a110e8d1a1895c4ac2f8835e475b52263931644f5cab",
+      "bytes": 4441,
+      "applicationSha256": "f6ecf22c811b7279cc55a110e8d1a1895c4ac2f8835e475b52263931644f5cab",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-0.json",
+      "expectedSha256": "29a4031d3a947d18957b09596329b0197705823ae1919da5675509cd75e7bb02",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-0.json",
+      "actualSha256": "29a4031d3a947d18957b09596329b0197705823ae1919da5675509cd75e7bb02",
+      "bytes": 4691,
+      "applicationSha256": "29a4031d3a947d18957b09596329b0197705823ae1919da5675509cd75e7bb02",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-0.jsonl",
+      "expectedSha256": "8d8d32f547269f25b23fc9feb2ec15d489ed067f27ab6531b045560546655b42",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-0.jsonl",
+      "actualSha256": "8d8d32f547269f25b23fc9feb2ec15d489ed067f27ab6531b045560546655b42",
+      "bytes": 6989,
+      "applicationSha256": "8d8d32f547269f25b23fc9feb2ec15d489ed067f27ab6531b045560546655b42",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-1.json",
+      "expectedSha256": "2c49d071918e9b05639284ab18fa4652ea1c8773be98149efa6d77137df2f45f",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-1.json",
+      "actualSha256": "2c49d071918e9b05639284ab18fa4652ea1c8773be98149efa6d77137df2f45f",
+      "bytes": 4082,
+      "applicationSha256": "2c49d071918e9b05639284ab18fa4652ea1c8773be98149efa6d77137df2f45f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-1.jsonl",
+      "expectedSha256": "ade2e2a77c1353e329d05161e88e717f6a7765dda75baeb09a8038173c1c1206",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-0-1.jsonl",
+      "actualSha256": "ade2e2a77c1353e329d05161e88e717f6a7765dda75baeb09a8038173c1c1206",
+      "bytes": 5731,
+      "applicationSha256": "ade2e2a77c1353e329d05161e88e717f6a7765dda75baeb09a8038173c1c1206",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-0.json",
+      "expectedSha256": "a9c0707d13e36e246436ec66d9b556a16af05036959db234d820519aac8f44f9",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-0.json",
+      "actualSha256": "a9c0707d13e36e246436ec66d9b556a16af05036959db234d820519aac8f44f9",
+      "bytes": 3769,
+      "applicationSha256": "a9c0707d13e36e246436ec66d9b556a16af05036959db234d820519aac8f44f9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-0.jsonl",
+      "expectedSha256": "ee32872f54a791bf49519a584cefa391797649155ff3dd399301bdd9931852b3",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-0.jsonl",
+      "actualSha256": "ee32872f54a791bf49519a584cefa391797649155ff3dd399301bdd9931852b3",
+      "bytes": 5095,
+      "applicationSha256": "ee32872f54a791bf49519a584cefa391797649155ff3dd399301bdd9931852b3",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-1.json",
+      "expectedSha256": "c43beab47f07b6039f5a07d081d1f91919d021dc2e586232648ba3ddc6053f94",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-1.json",
+      "actualSha256": "c43beab47f07b6039f5a07d081d1f91919d021dc2e586232648ba3ddc6053f94",
+      "bytes": 4077,
+      "applicationSha256": "c43beab47f07b6039f5a07d081d1f91919d021dc2e586232648ba3ddc6053f94",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-1.jsonl",
+      "expectedSha256": "e98329c63135bc9f8c279e4a31b2ec01b7a5c4c325a65d02992e727b5c0077c4",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-1-1.jsonl",
+      "actualSha256": "e98329c63135bc9f8c279e4a31b2ec01b7a5c4c325a65d02992e727b5c0077c4",
+      "bytes": 5726,
+      "applicationSha256": "e98329c63135bc9f8c279e4a31b2ec01b7a5c4c325a65d02992e727b5c0077c4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-0.json",
+      "expectedSha256": "999935e790d9bacaa6220cc14fd9c1c4dfa767ffa0ca4da397b152d3049d0ada",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-0.json",
+      "actualSha256": "999935e790d9bacaa6220cc14fd9c1c4dfa767ffa0ca4da397b152d3049d0ada",
+      "bytes": 4385,
+      "applicationSha256": "999935e790d9bacaa6220cc14fd9c1c4dfa767ffa0ca4da397b152d3049d0ada",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-0.jsonl",
+      "expectedSha256": "5cd0b9f1667a1d98b76ce348a6ebc1f19dbbd992f755c481d6e8a317f352a504",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-0.jsonl",
+      "actualSha256": "5cd0b9f1667a1d98b76ce348a6ebc1f19dbbd992f755c481d6e8a317f352a504",
+      "bytes": 6357,
+      "applicationSha256": "5cd0b9f1667a1d98b76ce348a6ebc1f19dbbd992f755c481d6e8a317f352a504",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-1.json",
+      "expectedSha256": "9b42fde2597581b287c2098e3d37123b8291ddd1cfec9227ed58d1e6926eaba0",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-1.json",
+      "actualSha256": "9b42fde2597581b287c2098e3d37123b8291ddd1cfec9227ed58d1e6926eaba0",
+      "bytes": 3465,
+      "applicationSha256": "9b42fde2597581b287c2098e3d37123b8291ddd1cfec9227ed58d1e6926eaba0",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-1.jsonl",
+      "expectedSha256": "32fde2813699d9bc648e8b8b6916e10fb0c4dfe8f28da99266ec138b1105c8c4",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-2-1.jsonl",
+      "actualSha256": "32fde2813699d9bc648e8b8b6916e10fb0c4dfe8f28da99266ec138b1105c8c4",
+      "bytes": 4468,
+      "applicationSha256": "32fde2813699d9bc648e8b8b6916e10fb0c4dfe8f28da99266ec138b1105c8c4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-0.json",
+      "expectedSha256": "e3cd55fe8693a498eee88af653073a888454203ab1f617aebac487d294acec90",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-0.json",
+      "actualSha256": "e3cd55fe8693a498eee88af653073a888454203ab1f617aebac487d294acec90",
+      "bytes": 4385,
+      "applicationSha256": "e3cd55fe8693a498eee88af653073a888454203ab1f617aebac487d294acec90",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-0.jsonl",
+      "expectedSha256": "453c650e8ea8b45c3b6f795c319cca86d5be500396beb2e32369ecbe7b2b3694",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-0.jsonl",
+      "actualSha256": "453c650e8ea8b45c3b6f795c319cca86d5be500396beb2e32369ecbe7b2b3694",
+      "bytes": 6357,
+      "applicationSha256": "453c650e8ea8b45c3b6f795c319cca86d5be500396beb2e32369ecbe7b2b3694",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-1.json",
+      "expectedSha256": "ad20f5c6199639ffd63c83a22e6ddc076cc55b053e1acd7e98b7a09dd2e09032",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-1.json",
+      "actualSha256": "ad20f5c6199639ffd63c83a22e6ddc076cc55b053e1acd7e98b7a09dd2e09032",
+      "bytes": 3465,
+      "applicationSha256": "ad20f5c6199639ffd63c83a22e6ddc076cc55b053e1acd7e98b7a09dd2e09032",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-1.jsonl",
+      "expectedSha256": "3c674521f925fa3a5fe0352a0375ead30a430c7b3fbfbb193b1a66c6fe9b1328",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-02-3-1.jsonl",
+      "actualSha256": "3c674521f925fa3a5fe0352a0375ead30a430c7b3fbfbb193b1a66c6fe9b1328",
+      "bytes": 4468,
+      "applicationSha256": "3c674521f925fa3a5fe0352a0375ead30a430c7b3fbfbb193b1a66c6fe9b1328",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-0.json",
+      "expectedSha256": "3fa85979153073c08df30bbb97175531f683a3f63badc1b10e51d1d9a22462b8",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-0.json",
+      "actualSha256": "3fa85979153073c08df30bbb97175531f683a3f63badc1b10e51d1d9a22462b8",
+      "bytes": 4383,
+      "applicationSha256": "3fa85979153073c08df30bbb97175531f683a3f63badc1b10e51d1d9a22462b8",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-0.jsonl",
+      "expectedSha256": "98f3aff466f3e031d74f0617c78451d78b89a2c6d55992e2c583796f521ea8de",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-0.jsonl",
+      "actualSha256": "98f3aff466f3e031d74f0617c78451d78b89a2c6d55992e2c583796f521ea8de",
+      "bytes": 6353,
+      "applicationSha256": "98f3aff466f3e031d74f0617c78451d78b89a2c6d55992e2c583796f521ea8de",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-1.json",
+      "expectedSha256": "5dfdbc287650ca8f474d4fea6c7220ff0ce8e7f456c2a9f7d6b0a6e31a587515",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-1.json",
+      "actualSha256": "5dfdbc287650ca8f474d4fea6c7220ff0ce8e7f456c2a9f7d6b0a6e31a587515",
+      "bytes": 4076,
+      "applicationSha256": "5dfdbc287650ca8f474d4fea6c7220ff0ce8e7f456c2a9f7d6b0a6e31a587515",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-1.jsonl",
+      "expectedSha256": "0f7d3c06c87c22e7a423287035147ab7532b95b7c1f987e16f7bf19edc831081",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-0-1.jsonl",
+      "actualSha256": "0f7d3c06c87c22e7a423287035147ab7532b95b7c1f987e16f7bf19edc831081",
+      "bytes": 5723,
+      "applicationSha256": "0f7d3c06c87c22e7a423287035147ab7532b95b7c1f987e16f7bf19edc831081",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-0.json",
+      "expectedSha256": "e5e180b4676b22b68d54b8cb0ae4b56b74aa7ed2e9ab44c35235d3d18dea5821",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-0.json",
+      "actualSha256": "e5e180b4676b22b68d54b8cb0ae4b56b74aa7ed2e9ab44c35235d3d18dea5821",
+      "bytes": 4381,
+      "applicationSha256": "e5e180b4676b22b68d54b8cb0ae4b56b74aa7ed2e9ab44c35235d3d18dea5821",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-0.jsonl",
+      "expectedSha256": "7137a9108f15173863b95cab1c9f444c8244b1582dd102709dc3cca76754ae6b",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-0.jsonl",
+      "actualSha256": "7137a9108f15173863b95cab1c9f444c8244b1582dd102709dc3cca76754ae6b",
+      "bytes": 6351,
+      "applicationSha256": "7137a9108f15173863b95cab1c9f444c8244b1582dd102709dc3cca76754ae6b",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-1.json",
+      "expectedSha256": "2fc7e5d996c9a5bf1447a5e30935f2ae2f652824acd2be59c6cbb0071a156818",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-1.json",
+      "actualSha256": "2fc7e5d996c9a5bf1447a5e30935f2ae2f652824acd2be59c6cbb0071a156818",
+      "bytes": 4075,
+      "applicationSha256": "2fc7e5d996c9a5bf1447a5e30935f2ae2f652824acd2be59c6cbb0071a156818",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-1.jsonl",
+      "expectedSha256": "a3c7384639820514c244bb6fd1e309ba669ac6a6a4f3fdae6f78879a749b0bf0",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-1-1.jsonl",
+      "actualSha256": "a3c7384639820514c244bb6fd1e309ba669ac6a6a4f3fdae6f78879a749b0bf0",
+      "bytes": 5722,
+      "applicationSha256": "a3c7384639820514c244bb6fd1e309ba669ac6a6a4f3fdae6f78879a749b0bf0",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-0.json",
+      "expectedSha256": "a9c756c0bc589189388b6ea74a3f8f84a81dde0bab7256b501d31c799af5af57",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-0.json",
+      "actualSha256": "a9c756c0bc589189388b6ea74a3f8f84a81dde0bab7256b501d31c799af5af57",
+      "bytes": 4381,
+      "applicationSha256": "a9c756c0bc589189388b6ea74a3f8f84a81dde0bab7256b501d31c799af5af57",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-0.jsonl",
+      "expectedSha256": "7e2e4f422deb3f6a6c54947bbb01634ab75943a50621b8e073aec056bd7707f9",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-0.jsonl",
+      "actualSha256": "7e2e4f422deb3f6a6c54947bbb01634ab75943a50621b8e073aec056bd7707f9",
+      "bytes": 6351,
+      "applicationSha256": "7e2e4f422deb3f6a6c54947bbb01634ab75943a50621b8e073aec056bd7707f9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-1.json",
+      "expectedSha256": "d4663bea3839b401a6308142601929b0cbb0c2c50f197e2fe5542a162ceb37b0",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-1.json",
+      "actualSha256": "d4663bea3839b401a6308142601929b0cbb0c2c50f197e2fe5542a162ceb37b0",
+      "bytes": 4076,
+      "applicationSha256": "d4663bea3839b401a6308142601929b0cbb0c2c50f197e2fe5542a162ceb37b0",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-1.jsonl",
+      "expectedSha256": "dd5b34b3b28f2e14e94562bad2708569f7d8d7203242e87ac1636ce923e13d6c",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-2-1.jsonl",
+      "actualSha256": "dd5b34b3b28f2e14e94562bad2708569f7d8d7203242e87ac1636ce923e13d6c",
+      "bytes": 5723,
+      "applicationSha256": "dd5b34b3b28f2e14e94562bad2708569f7d8d7203242e87ac1636ce923e13d6c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-0.json",
+      "expectedSha256": "c5343f94d3bb9394d343c0f60bbddbbde6a5ecb9f2cd50834db03cc1af434b42",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-0.json",
+      "actualSha256": "c5343f94d3bb9394d343c0f60bbddbbde6a5ecb9f2cd50834db03cc1af434b42",
+      "bytes": 4380,
+      "applicationSha256": "c5343f94d3bb9394d343c0f60bbddbbde6a5ecb9f2cd50834db03cc1af434b42",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-0.jsonl",
+      "expectedSha256": "9d356c691696dcf9b9abc38d55f1368694ca9556ed2d8c800fc2a4b56389a2c4",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-0.jsonl",
+      "actualSha256": "9d356c691696dcf9b9abc38d55f1368694ca9556ed2d8c800fc2a4b56389a2c4",
+      "bytes": 6350,
+      "applicationSha256": "9d356c691696dcf9b9abc38d55f1368694ca9556ed2d8c800fc2a4b56389a2c4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-1.json",
+      "expectedSha256": "cac54ec51a8db8f8794d07918dcecd48455c69fde521aec065f1883437f6518a",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-1.json",
+      "actualSha256": "cac54ec51a8db8f8794d07918dcecd48455c69fde521aec065f1883437f6518a",
+      "bytes": 4075,
+      "applicationSha256": "cac54ec51a8db8f8794d07918dcecd48455c69fde521aec065f1883437f6518a",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-1.jsonl",
+      "expectedSha256": "ef0601595c611ec1323bf087bc442532c1aa256f14700a27433cb4618959a305",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/matches/launch-ttt-v1-12-3-1.jsonl",
+      "actualSha256": "ef0601595c611ec1323bf087bc442532c1aa256f14700a27433cb4618959a305",
+      "bytes": 5722,
+      "applicationSha256": "ef0601595c611ec1323bf087bc442532c1aa256f14700a27433cb4618959a305",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/receipt.json",
+      "expectedSha256": "249cb6f21e11e1bcc934ba664daa210551e6dbd1cc2f7f56bf0363cee1392623",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/receipt.json",
+      "actualSha256": "249cb6f21e11e1bcc934ba664daa210551e6dbd1cc2f7f56bf0363cee1392623",
+      "bytes": 2769,
+      "applicationSha256": "249cb6f21e11e1bcc934ba664daa210551e6dbd1cc2f7f56bf0363cee1392623",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/referee/7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539.mjs",
+      "expectedSha256": "7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/referee/7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539.mjs",
+      "actualSha256": "7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539",
+      "bytes": 111878,
+      "applicationSha256": "7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/referee/verify-7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539.mjs",
+      "expectedSha256": "2f532c3ead2683b3bcb857b55a2bae062869dfb2fc6683e218521bdb2ee9d212",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/referee/verify-7b79ca002779474c7693a2c3436a1c4c889b79f96d7dd224e4398659f262e539.mjs",
+      "actualSha256": "2f532c3ead2683b3bcb857b55a2bae062869dfb2fc6683e218521bdb2ee9d212",
+      "bytes": 150900,
+      "applicationSha256": "2f532c3ead2683b3bcb857b55a2bae062869dfb2fc6683e218521bdb2ee9d212",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/source/package-lock.json",
+      "expectedSha256": "41a3ddb0b322cc2edcbe1cf52a455e381c717b312bcae705a53669ca1ab7abe8",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/source/package-lock.json",
+      "actualSha256": "41a3ddb0b322cc2edcbe1cf52a455e381c717b312bcae705a53669ca1ab7abe8",
+      "bytes": 81648,
+      "applicationSha256": "41a3ddb0b322cc2edcbe1cf52a455e381c717b312bcae705a53669ca1ab7abe8",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/source/scripts--generate-public-circuit.ts",
+      "expectedSha256": "851958fbad70c7fa0dbd1da62e0c94f0a4badbbb1e42e70151ae7fc8f5449ec9",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/source/scripts--generate-public-circuit.ts",
+      "actualSha256": "851958fbad70c7fa0dbd1da62e0c94f0a4badbbb1e42e70151ae7fc8f5449ec9",
+      "bytes": 7426,
+      "applicationSha256": "851958fbad70c7fa0dbd1da62e0c94f0a4badbbb1e42e70151ae7fc8f5449ec9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/source/src--competition-baselines.ts",
+      "expectedSha256": "7e5395b2548c2e54a7a063840146d2c7a8446ce63037d0b2de1192411559f530",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/source/src--competition-baselines.ts",
+      "actualSha256": "7e5395b2548c2e54a7a063840146d2c7a8446ce63037d0b2de1192411559f530",
+      "bytes": 4051,
+      "applicationSha256": "7e5395b2548c2e54a7a063840146d2c7a8446ce63037d0b2de1192411559f530",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/source/src--public-circuit.ts",
+      "expectedSha256": "1c771617a46d84e324b10f2c5dd1a242f91de244bc62c28b767e9d490a0bccb4",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/source/src--public-circuit.ts",
+      "actualSha256": "1c771617a46d84e324b10f2c5dd1a242f91de244bc62c28b767e9d490a0bccb4",
+      "bytes": 3789,
+      "applicationSha256": "1c771617a46d84e324b10f2c5dd1a242f91de244bc62c28b767e9d490a0bccb4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/launch-ttt-v1/source/src--self-improvement.ts",
+      "expectedSha256": "6e58ca72fe06ab5d053de204ef77f7c86b795ed461871fed4f0d8171871d05e4",
+      "finalUrl": "https://builderwars.com/competition/launch-ttt-v1/source/src--self-improvement.ts",
+      "actualSha256": "6e58ca72fe06ab5d053de204ef77f7c86b795ed461871fed4f0d8171871d05e4",
+      "bytes": 16093,
+      "applicationSha256": "6e58ca72fe06ab5d053de204ef77f7c86b795ed461871fed4f0d8171871d05e4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "competition/page-routes.json",
+      "expectedSha256": "8ba757a28e8a0fb41741c5bd8a17e96d4eead0d8ce3f445ff9b7e214771fa4f8",
+      "finalUrl": "https://builderwars.com/competition/page-routes.json",
+      "actualSha256": "8ba757a28e8a0fb41741c5bd8a17e96d4eead0d8ce3f445ff9b7e214771fa4f8",
+      "bytes": 120083,
+      "applicationSha256": "8ba757a28e8a0fb41741c5bd8a17e96d4eead0d8ce3f445ff9b7e214771fa4f8",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "developers.html",
+      "expectedSha256": "d5d2ac40182a3a078f8cea703c3632fcd6b65bfefa8289a24a18be7f651919b7",
+      "finalUrl": "https://builderwars.com/developers.html",
+      "actualSha256": "d5d2ac40182a3a078f8cea703c3632fcd6b65bfefa8289a24a18be7f651919b7",
+      "bytes": 2649,
+      "applicationSha256": "d5d2ac40182a3a078f8cea703c3632fcd6b65bfefa8289a24a18be7f651919b7",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "duel-agent.md",
+      "expectedSha256": "bf74115557438dc84ce525739d9d1ccbdc5fde532c1e0b0d4ab717f7471390ea",
+      "finalUrl": "https://builderwars.com/duel-agent.md",
+      "actualSha256": "bf74115557438dc84ce525739d9d1ccbdc5fde532c1e0b0d4ab717f7471390ea",
+      "bytes": 9562,
+      "applicationSha256": "bf74115557438dc84ce525739d9d1ccbdc5fde532c1e0b0d4ab717f7471390ea",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "duels.html",
+      "expectedSha256": "52224bb435d9d57defb47bdbd2039cb40d628f8b2050e32c9771372b84739244",
+      "finalUrl": "https://builderwars.com/duels.html",
+      "actualSha256": "52224bb435d9d57defb47bdbd2039cb40d628f8b2050e32c9771372b84739244",
+      "bytes": 6001,
+      "applicationSha256": "52224bb435d9d57defb47bdbd2039cb40d628f8b2050e32c9771372b84739244",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/aider-polyglot.html",
+      "expectedSha256": "31871e2377c7360db0963d1c658770831a69ad9f0cccddb5300376ab48b6c7fb",
+      "finalUrl": "https://builderwars.com/evals/aider-polyglot.html",
+      "actualSha256": "31871e2377c7360db0963d1c658770831a69ad9f0cccddb5300376ab48b6c7fb",
+      "bytes": 2928,
+      "applicationSha256": "31871e2377c7360db0963d1c658770831a69ad9f0cccddb5300376ab48b6c7fb",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/arc-agi-2.html",
+      "expectedSha256": "b965869cbd5619b29eeb29449d07747ca631b3049d11f1f5930e7fd86d72dba6",
+      "finalUrl": "https://builderwars.com/evals/arc-agi-2.html",
+      "actualSha256": "b965869cbd5619b29eeb29449d07747ca631b3049d11f1f5930e7fd86d72dba6",
+      "bytes": 2975,
+      "applicationSha256": "b965869cbd5619b29eeb29449d07747ca631b3049d11f1f5930e7fd86d72dba6",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/arc-agi-3.html",
+      "expectedSha256": "008f51897beac86af78aaad8dc180d5f2583bbda21ab176f0edd8774cd22a1dd",
+      "finalUrl": "https://builderwars.com/evals/arc-agi-3.html",
+      "actualSha256": "008f51897beac86af78aaad8dc180d5f2583bbda21ab176f0edd8774cd22a1dd",
+      "bytes": 2855,
+      "applicationSha256": "008f51897beac86af78aaad8dc180d5f2583bbda21ab176f0edd8774cd22a1dd",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/bfcl.html",
+      "expectedSha256": "0afcb1fbe35dc7b89017a1068c12eb7360b762d3f68226387f8a631ee73350b4",
+      "finalUrl": "https://builderwars.com/evals/bfcl.html",
+      "actualSha256": "0afcb1fbe35dc7b89017a1068c12eb7360b762d3f68226387f8a631ee73350b4",
+      "bytes": 3030,
+      "applicationSha256": "0afcb1fbe35dc7b89017a1068c12eb7360b762d3f68226387f8a631ee73350b4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/big-bench-hard.html",
+      "expectedSha256": "50b4abb45c5d286ed50649bf65746d3d5b0b0af63a4899c0580220ecf3ff5b36",
+      "finalUrl": "https://builderwars.com/evals/big-bench-hard.html",
+      "actualSha256": "50b4abb45c5d286ed50649bf65746d3d5b0b0af63a4899c0580220ecf3ff5b36",
+      "bytes": 2849,
+      "applicationSha256": "50b4abb45c5d286ed50649bf65746d3d5b0b0af63a4899c0580220ecf3ff5b36",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/bigcodebench.html",
+      "expectedSha256": "b6f0c8c415ec35ff4b409b1d4b219e3e92fcbd6b7e5c5b6d040d9d279f868dca",
+      "finalUrl": "https://builderwars.com/evals/bigcodebench.html",
+      "actualSha256": "b6f0c8c415ec35ff4b409b1d4b219e3e92fcbd6b7e5c5b6d040d9d279f868dca",
+      "bytes": 2963,
+      "applicationSha256": "b6f0c8c415ec35ff4b409b1d4b219e3e92fcbd6b7e5c5b6d040d9d279f868dca",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/browsergym.html",
+      "expectedSha256": "6ddfb4113d60982fef5be7b0aa375bec4f39ce82d279612da00969fb3fff89c5",
+      "finalUrl": "https://builderwars.com/evals/browsergym.html",
+      "actualSha256": "6ddfb4113d60982fef5be7b0aa375bec4f39ce82d279612da00969fb3fff89c5",
+      "bytes": 2848,
+      "applicationSha256": "6ddfb4113d60982fef5be7b0aa375bec4f39ce82d279612da00969fb3fff89c5",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/catalogue.json",
+      "expectedSha256": "215f7fa949639ed2b6f81eba42bbc6878d4c9ee0d00ebe9c538861ef478b5fa7",
+      "finalUrl": "https://builderwars.com/evals/catalogue.json",
+      "actualSha256": "215f7fa949639ed2b6f81eba42bbc6878d4c9ee0d00ebe9c538861ef478b5fa7",
+      "bytes": 30701,
+      "applicationSha256": "215f7fa949639ed2b6f81eba42bbc6878d4c9ee0d00ebe9c538861ef478b5fa7",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/deepeval.html",
+      "expectedSha256": "9063e9b83c0a5662af2cdd3e5e1e58248005c173262b31dedb5c202b86e88570",
+      "finalUrl": "https://builderwars.com/evals/deepeval.html",
+      "actualSha256": "9063e9b83c0a5662af2cdd3e5e1e58248005c173262b31dedb5c202b86e88570",
+      "bytes": 2844,
+      "applicationSha256": "9063e9b83c0a5662af2cdd3e5e1e58248005c173262b31dedb5c202b86e88570",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/evalplus.html",
+      "expectedSha256": "0912a82e734b6b4729aab951dd262e91d7a0c24b27a7b58ea6c0b10a98c92e1e",
+      "finalUrl": "https://builderwars.com/evals/evalplus.html",
+      "actualSha256": "0912a82e734b6b4729aab951dd262e91d7a0c24b27a7b58ea6c0b10a98c92e1e",
+      "bytes": 3033,
+      "applicationSha256": "0912a82e734b6b4729aab951dd262e91d7a0c24b27a7b58ea6c0b10a98c92e1e",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/gaia.html",
+      "expectedSha256": "e3ced948d2e1af1f5e2dd870f41d54d611aec5422ef04512fce6530fd5b5f972",
+      "finalUrl": "https://builderwars.com/evals/gaia.html",
+      "actualSha256": "e3ced948d2e1af1f5e2dd870f41d54d611aec5422ef04512fce6530fd5b5f972",
+      "bytes": 2957,
+      "applicationSha256": "e3ced948d2e1af1f5e2dd870f41d54d611aec5422ef04512fce6530fd5b5f972",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/garak.html",
+      "expectedSha256": "12311411429f2048e7d324f067e24e2ce9de78bc858e5a3a180eb94cd6aa53e1",
+      "finalUrl": "https://builderwars.com/evals/garak.html",
+      "actualSha256": "12311411429f2048e7d324f067e24e2ce9de78bc858e5a3a180eb94cd6aa53e1",
+      "bytes": 2802,
+      "applicationSha256": "12311411429f2048e7d324f067e24e2ce9de78bc858e5a3a180eb94cd6aa53e1",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/gpqa.html",
+      "expectedSha256": "0157e85d8adf8950a51512a5a8acd4bb7d8e3bffb13b578d061c229d5a433d26",
+      "finalUrl": "https://builderwars.com/evals/gpqa.html",
+      "actualSha256": "0157e85d8adf8950a51512a5a8acd4bb7d8e3bffb13b578d061c229d5a433d26",
+      "bytes": 2772,
+      "applicationSha256": "0157e85d8adf8950a51512a5a8acd4bb7d8e3bffb13b578d061c229d5a433d26",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/gsm8k.html",
+      "expectedSha256": "262cfee8d3eaa1da177b8112694e691f0916f5d292a9d9a78019a2e9400b2aea",
+      "finalUrl": "https://builderwars.com/evals/gsm8k.html",
+      "actualSha256": "262cfee8d3eaa1da177b8112694e691f0916f5d292a9d9a78019a2e9400b2aea",
+      "bytes": 2779,
+      "applicationSha256": "262cfee8d3eaa1da177b8112694e691f0916f5d292a9d9a78019a2e9400b2aea",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/harbor.html",
+      "expectedSha256": "d59177d1fad62d17d513993c39c5f9453972f26b382171dad76652c80d78d0f5",
+      "finalUrl": "https://builderwars.com/evals/harbor.html",
+      "actualSha256": "d59177d1fad62d17d513993c39c5f9453972f26b382171dad76652c80d78d0f5",
+      "bytes": 2892,
+      "applicationSha256": "d59177d1fad62d17d513993c39c5f9453972f26b382171dad76652c80d78d0f5",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/harmbench.html",
+      "expectedSha256": "2364361784a268b8a9c2cbec753d6eb09fa7ebcfe7c61ef9ec3af7f9e2d44698",
+      "finalUrl": "https://builderwars.com/evals/harmbench.html",
+      "actualSha256": "2364361784a268b8a9c2cbec753d6eb09fa7ebcfe7c61ef9ec3af7f9e2d44698",
+      "bytes": 2946,
+      "applicationSha256": "2364361784a268b8a9c2cbec753d6eb09fa7ebcfe7c61ef9ec3af7f9e2d44698",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/helm.html",
+      "expectedSha256": "a26b05ede6b5e101eace3c144b9852dec12ebfe2e3bdaa9506d234822925ad3b",
+      "finalUrl": "https://builderwars.com/evals/helm.html",
+      "actualSha256": "a26b05ede6b5e101eace3c144b9852dec12ebfe2e3bdaa9506d234822925ad3b",
+      "bytes": 2930,
+      "applicationSha256": "a26b05ede6b5e101eace3c144b9852dec12ebfe2e3bdaa9506d234822925ad3b",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/humanitys-last-exam.html",
+      "expectedSha256": "5294f62c63fc5905cef86f0ea693068645a06e4c2593a30e826f7c556172a07f",
+      "finalUrl": "https://builderwars.com/evals/humanitys-last-exam.html",
+      "actualSha256": "5294f62c63fc5905cef86f0ea693068645a06e4c2593a30e826f7c556172a07f",
+      "bytes": 3029,
+      "applicationSha256": "5294f62c63fc5905cef86f0ea693068645a06e4c2593a30e826f7c556172a07f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/ifeval.html",
+      "expectedSha256": "b5e59400ecf3ddb7e3edeac0aaeaa01e3b192977a3a9fbad555b0afdc7df5328",
+      "finalUrl": "https://builderwars.com/evals/ifeval.html",
+      "actualSha256": "b5e59400ecf3ddb7e3edeac0aaeaa01e3b192977a3a9fbad555b0afdc7df5328",
+      "bytes": 2945,
+      "applicationSha256": "b5e59400ecf3ddb7e3edeac0aaeaa01e3b192977a3a9fbad555b0afdc7df5328",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/inspect-ai.html",
+      "expectedSha256": "3096638210de9a656ab14ba353c7df17f0c86651f223f3aa27030d4d5a0001e8",
+      "finalUrl": "https://builderwars.com/evals/inspect-ai.html",
+      "actualSha256": "3096638210de9a656ab14ba353c7df17f0c86651f223f3aa27030d4d5a0001e8",
+      "bytes": 2914,
+      "applicationSha256": "3096638210de9a656ab14ba353c7df17f0c86651f223f3aa27030d4d5a0001e8",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/lighteval.html",
+      "expectedSha256": "f28053b96cf9b31d65cc51e318106b3357413a59fb5f8ec8d9285e9f567fe66c",
+      "finalUrl": "https://builderwars.com/evals/lighteval.html",
+      "actualSha256": "f28053b96cf9b31d65cc51e318106b3357413a59fb5f8ec8d9285e9f567fe66c",
+      "bytes": 2839,
+      "applicationSha256": "f28053b96cf9b31d65cc51e318106b3357413a59fb5f8ec8d9285e9f567fe66c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/livecodebench.html",
+      "expectedSha256": "705ede5e1c65eee46a5c4e5664e7adb7a78f8f82788c283164ab792d36323f3a",
+      "finalUrl": "https://builderwars.com/evals/livecodebench.html",
+      "actualSha256": "705ede5e1c65eee46a5c4e5664e7adb7a78f8f82788c283164ab792d36323f3a",
+      "bytes": 2988,
+      "applicationSha256": "705ede5e1c65eee46a5c4e5664e7adb7a78f8f82788c283164ab792d36323f3a",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/lm-eval-harness.html",
+      "expectedSha256": "592f7fa99c5faa21b0591f183d90db5fa15597a9239c8836e8a21ae5976f1bb2",
+      "finalUrl": "https://builderwars.com/evals/lm-eval-harness.html",
+      "actualSha256": "592f7fa99c5faa21b0591f183d90db5fa15597a9239c8836e8a21ae5976f1bb2",
+      "bytes": 2935,
+      "applicationSha256": "592f7fa99c5faa21b0591f183d90db5fa15597a9239c8836e8a21ae5976f1bb2",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/lmms-eval.html",
+      "expectedSha256": "c0d3bae316c275765be4c8ec2b6227134fce154168e49d840651183fa4680330",
+      "finalUrl": "https://builderwars.com/evals/lmms-eval.html",
+      "actualSha256": "c0d3bae316c275765be4c8ec2b6227134fce154168e49d840651183fa4680330",
+      "bytes": 2821,
+      "applicationSha256": "c0d3bae316c275765be4c8ec2b6227134fce154168e49d840651183fa4680330",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/longbench.html",
+      "expectedSha256": "3dfb3684150a3f7a0ee05649416b8882f78c5a7119e4f9dc5ecc4029393c2ea9",
+      "finalUrl": "https://builderwars.com/evals/longbench.html",
+      "actualSha256": "3dfb3684150a3f7a0ee05649416b8882f78c5a7119e4f9dc5ecc4029393c2ea9",
+      "bytes": 2884,
+      "applicationSha256": "3dfb3684150a3f7a0ee05649416b8882f78c5a7119e4f9dc5ecc4029393c2ea9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/math.html",
+      "expectedSha256": "a3b533c5ed896e6180b63d13a64f6785035e80c332303d1299639fa74106ce7e",
+      "finalUrl": "https://builderwars.com/evals/math.html",
+      "actualSha256": "a3b533c5ed896e6180b63d13a64f6785035e80c332303d1299639fa74106ce7e",
+      "bytes": 2757,
+      "applicationSha256": "a3b533c5ed896e6180b63d13a64f6785035e80c332303d1299639fa74106ce7e",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/matharena.html",
+      "expectedSha256": "e5a017eaea4ce656b2d4697b5234a93b03218d6175e044a49a137abdc4f53d1f",
+      "finalUrl": "https://builderwars.com/evals/matharena.html",
+      "actualSha256": "e5a017eaea4ce656b2d4697b5234a93b03218d6175e044a49a137abdc4f53d1f",
+      "bytes": 2910,
+      "applicationSha256": "e5a017eaea4ce656b2d4697b5234a93b03218d6175e044a49a137abdc4f53d1f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/mathvista.html",
+      "expectedSha256": "376476ebc8673ee57f17ada29708ae2055d794bee574e4cc32412ae34b17b11f",
+      "finalUrl": "https://builderwars.com/evals/mathvista.html",
+      "actualSha256": "376476ebc8673ee57f17ada29708ae2055d794bee574e4cc32412ae34b17b11f",
+      "bytes": 2828,
+      "applicationSha256": "376476ebc8673ee57f17ada29708ae2055d794bee574e4cc32412ae34b17b11f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/mind2web.html",
+      "expectedSha256": "9a366ba2caf9fd26a07c99e8f19e4aef60d953fbdfc8fe77467fa7f22ce3d53d",
+      "finalUrl": "https://builderwars.com/evals/mind2web.html",
+      "actualSha256": "9a366ba2caf9fd26a07c99e8f19e4aef60d953fbdfc8fe77467fa7f22ce3d53d",
+      "bytes": 2908,
+      "applicationSha256": "9a366ba2caf9fd26a07c99e8f19e4aef60d953fbdfc8fe77467fa7f22ce3d53d",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/mmlu-pro.html",
+      "expectedSha256": "c22f12430fb8d7e68919b74269c738bbfab25b2386df5c62349d7774d7efe7e0",
+      "finalUrl": "https://builderwars.com/evals/mmlu-pro.html",
+      "actualSha256": "c22f12430fb8d7e68919b74269c738bbfab25b2386df5c62349d7774d7efe7e0",
+      "bytes": 2986,
+      "applicationSha256": "c22f12430fb8d7e68919b74269c738bbfab25b2386df5c62349d7774d7efe7e0",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/mmlu.html",
+      "expectedSha256": "af4fad48dc8403eecd011d145bae5f6f072fc837b017cc82b12f7cbe0472152f",
+      "finalUrl": "https://builderwars.com/evals/mmlu.html",
+      "actualSha256": "af4fad48dc8403eecd011d145bae5f6f072fc837b017cc82b12f7cbe0472152f",
+      "bytes": 2767,
+      "applicationSha256": "af4fad48dc8403eecd011d145bae5f6f072fc837b017cc82b12f7cbe0472152f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/mmmu-pro.html",
+      "expectedSha256": "b409c1fb564f41535f33a935889fd2d5e3a89f4779cbe8cd56cc666b013247ad",
+      "finalUrl": "https://builderwars.com/evals/mmmu-pro.html",
+      "actualSha256": "b409c1fb564f41535f33a935889fd2d5e3a89f4779cbe8cd56cc666b013247ad",
+      "bytes": 2928,
+      "applicationSha256": "b409c1fb564f41535f33a935889fd2d5e3a89f4779cbe8cd56cc666b013247ad",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/mmmu.html",
+      "expectedSha256": "ee77f0ba4e00d84bc42c2456e6354fdb85d9d1d52d230fd62396aa1f6d886c21",
+      "finalUrl": "https://builderwars.com/evals/mmmu.html",
+      "actualSha256": "ee77f0ba4e00d84bc42c2456e6354fdb85d9d1d52d230fd62396aa1f6d886c21",
+      "bytes": 2882,
+      "applicationSha256": "ee77f0ba4e00d84bc42c2456e6354fdb85d9d1d52d230fd62396aa1f6d886c21",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/open-spiel.html",
+      "expectedSha256": "68e6ae77e48bc1f4caa6bd397ab5ca2c16a2706f0bfa28a3e42d14a511f2614e",
+      "finalUrl": "https://builderwars.com/evals/open-spiel.html",
+      "actualSha256": "68e6ae77e48bc1f4caa6bd397ab5ca2c16a2706f0bfa28a3e42d14a511f2614e",
+      "bytes": 2889,
+      "applicationSha256": "68e6ae77e48bc1f4caa6bd397ab5ca2c16a2706f0bfa28a3e42d14a511f2614e",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/opencompass.html",
+      "expectedSha256": "7789e74701aa9e8e8baf2d012b106a9ee5eafab92104c4f24df0642fc18ab7c3",
+      "finalUrl": "https://builderwars.com/evals/opencompass.html",
+      "actualSha256": "7789e74701aa9e8e8baf2d012b106a9ee5eafab92104c4f24df0642fc18ab7c3",
+      "bytes": 2905,
+      "applicationSha256": "7789e74701aa9e8e8baf2d012b106a9ee5eafab92104c4f24df0642fc18ab7c3",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/osworld.html",
+      "expectedSha256": "589f139ca87cf2fc0c60fba8b33410cc4096d032584117c0bb11f0d63d2de1dd",
+      "finalUrl": "https://builderwars.com/evals/osworld.html",
+      "actualSha256": "589f139ca87cf2fc0c60fba8b33410cc4096d032584117c0bb11f0d63d2de1dd",
+      "bytes": 2877,
+      "applicationSha256": "589f139ca87cf2fc0c60fba8b33410cc4096d032584117c0bb11f0d63d2de1dd",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/promptfoo.html",
+      "expectedSha256": "a20fd35bc979fb5fefef4f36c2f5950061567464a053fce919115278e4416568",
+      "finalUrl": "https://builderwars.com/evals/promptfoo.html",
+      "actualSha256": "a20fd35bc979fb5fefef4f36c2f5950061567464a053fce919115278e4416568",
+      "bytes": 2903,
+      "applicationSha256": "a20fd35bc979fb5fefef4f36c2f5950061567464a053fce919115278e4416568",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/ragas.html",
+      "expectedSha256": "699bb39d3f6e46f6b11e47f7d7f88be49041dde7180b49a8abbef651f76e416e",
+      "finalUrl": "https://builderwars.com/evals/ragas.html",
+      "actualSha256": "699bb39d3f6e46f6b11e47f7d7f88be49041dde7180b49a8abbef651f76e416e",
+      "bytes": 2854,
+      "applicationSha256": "699bb39d3f6e46f6b11e47f7d7f88be49041dde7180b49a8abbef651f76e416e",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/rankings.json",
+      "expectedSha256": "e94255d38fbe7976c010103fbf6166708eb5ba90bf867671e387ad68a666d7ae",
+      "finalUrl": "https://builderwars.com/evals/rankings.json",
+      "actualSha256": "e94255d38fbe7976c010103fbf6166708eb5ba90bf867671e387ad68a666d7ae",
+      "bytes": 266624,
+      "applicationSha256": "e94255d38fbe7976c010103fbf6166708eb5ba90bf867671e387ad68a666d7ae",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/ruler.html",
+      "expectedSha256": "40bb53b99188596a4fb0c18bb2a9885013e3a6deb15839911740257791e148e7",
+      "finalUrl": "https://builderwars.com/evals/ruler.html",
+      "actualSha256": "40bb53b99188596a4fb0c18bb2a9885013e3a6deb15839911740257791e148e7",
+      "bytes": 2791,
+      "applicationSha256": "40bb53b99188596a4fb0c18bb2a9885013e3a6deb15839911740257791e148e7",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/scicode.html",
+      "expectedSha256": "1000815a0d48a0f6f61325884550fc7ca083dc7fa88fa6416ed2a0bb1e0b255c",
+      "finalUrl": "https://builderwars.com/evals/scicode.html",
+      "actualSha256": "1000815a0d48a0f6f61325884550fc7ca083dc7fa88fa6416ed2a0bb1e0b255c",
+      "bytes": 2915,
+      "applicationSha256": "1000815a0d48a0f6f61325884550fc7ca083dc7fa88fa6416ed2a0bb1e0b255c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/bfcl-v4.json",
+      "expectedSha256": "f1c1c2ba2b1be1efbe427e6a1be044ec1fb1776bf4644c2850b748e68e9da1b6",
+      "finalUrl": "https://builderwars.com/evals/sources/bfcl-v4.json",
+      "actualSha256": "f1c1c2ba2b1be1efbe427e6a1be044ec1fb1776bf4644c2850b748e68e9da1b6",
+      "bytes": 20566,
+      "applicationSha256": "f1c1c2ba2b1be1efbe427e6a1be044ec1fb1776bf4644c2850b748e68e9da1b6",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/hle.json",
+      "expectedSha256": "7c4a4ae29b9d7d1256fd45755796a26c67ace45eeb020a5c3c34bfa39549f1a3",
+      "finalUrl": "https://builderwars.com/evals/sources/hle.json",
+      "actualSha256": "7c4a4ae29b9d7d1256fd45755796a26c67ace45eeb020a5c3c34bfa39549f1a3",
+      "bytes": 2197,
+      "applicationSha256": "7c4a4ae29b9d7d1256fd45755796a26c67ace45eeb020a5c3c34bfa39549f1a3",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/humaneval-plus.json",
+      "expectedSha256": "c98aea34bdd56627ab1dcf6126218c65174beddea14a38f0fd9e890187ee7ad9",
+      "finalUrl": "https://builderwars.com/evals/sources/humaneval-plus.json",
+      "actualSha256": "c98aea34bdd56627ab1dcf6126218c65174beddea14a38f0fd9e890187ee7ad9",
+      "bytes": 21482,
+      "applicationSha256": "c98aea34bdd56627ab1dcf6126218c65174beddea14a38f0fd9e890187ee7ad9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/livecodebench.json",
+      "expectedSha256": "58b6955878108d85413581b4f49f68f450834aa54090fa7ba936fb76418c710c",
+      "finalUrl": "https://builderwars.com/evals/sources/livecodebench.json",
+      "actualSha256": "58b6955878108d85413581b4f49f68f450834aa54090fa7ba936fb76418c710c",
+      "bytes": 6852,
+      "applicationSha256": "58b6955878108d85413581b4f49f68f450834aa54090fa7ba936fb76418c710c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/matharena-expected.json",
+      "expectedSha256": "e339567d9a377841c7d5605c74fadc60b3844edf7eca1322bc52ead30a4fa909",
+      "finalUrl": "https://builderwars.com/evals/sources/matharena-expected.json",
+      "actualSha256": "e339567d9a377841c7d5605c74fadc60b3844edf7eca1322bc52ead30a4fa909",
+      "bytes": 1387,
+      "applicationSha256": "e339567d9a377841c7d5605c74fadc60b3844edf7eca1322bc52ead30a4fa909",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/mbpp-plus.json",
+      "expectedSha256": "6282400784ed0621a89100d32851a87d39609abda5d9a0c8185cc53c39398173",
+      "finalUrl": "https://builderwars.com/evals/sources/mbpp-plus.json",
+      "actualSha256": "6282400784ed0621a89100d32851a87d39609abda5d9a0c8185cc53c39398173",
+      "bytes": 15466,
+      "applicationSha256": "6282400784ed0621a89100d32851a87d39609abda5d9a0c8185cc53c39398173",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/mmlu-pro.json",
+      "expectedSha256": "61ca21dd1b43549bdfe1e5d115cf929a9ddd52d65dfe205138f4c71d32a8e1c9",
+      "finalUrl": "https://builderwars.com/evals/sources/mmlu-pro.json",
+      "actualSha256": "61ca21dd1b43549bdfe1e5d115cf929a9ddd52d65dfe205138f4c71d32a8e1c9",
+      "bytes": 43654,
+      "applicationSha256": "61ca21dd1b43549bdfe1e5d115cf929a9ddd52d65dfe205138f4c71d32a8e1c9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/mmmu-pro.json",
+      "expectedSha256": "7d993f4912b0e0ef7f01f9dab9d3278b51d02b1d4256b8128e5be8e69318dad8",
+      "finalUrl": "https://builderwars.com/evals/sources/mmmu-pro.json",
+      "actualSha256": "7d993f4912b0e0ef7f01f9dab9d3278b51d02b1d4256b8128e5be8e69318dad8",
+      "bytes": 13409,
+      "applicationSha256": "7d993f4912b0e0ef7f01f9dab9d3278b51d02b1d4256b8128e5be8e69318dad8",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/mmmu-val.json",
+      "expectedSha256": "1682b0c33b960de6cb665e9135bdec596f3f06f8d076bab990e3dda496b3983f",
+      "finalUrl": "https://builderwars.com/evals/sources/mmmu-val.json",
+      "actualSha256": "1682b0c33b960de6cb665e9135bdec596f3f06f8d076bab990e3dda496b3983f",
+      "bytes": 34386,
+      "applicationSha256": "1682b0c33b960de6cb665e9135bdec596f3f06f8d076bab990e3dda496b3983f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/swe-mini.json",
+      "expectedSha256": "6a9a1939612cddea81e69e2a2e779da558c914d22d626ebe91fd8981d0a7e51d",
+      "finalUrl": "https://builderwars.com/evals/sources/swe-mini.json",
+      "actualSha256": "6a9a1939612cddea81e69e2a2e779da558c914d22d626ebe91fd8981d0a7e51d",
+      "bytes": 14007,
+      "applicationSha256": "6a9a1939612cddea81e69e2a2e779da558c914d22d626ebe91fd8981d0a7e51d",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/swe-verified.json",
+      "expectedSha256": "4291058942beef610563d19fad34b388e4a90e4c53c7b12d7ba85ee74d48cab8",
+      "finalUrl": "https://builderwars.com/evals/sources/swe-verified.json",
+      "actualSha256": "4291058942beef610563d19fad34b388e4a90e4c53c7b12d7ba85ee74d48cab8",
+      "bytes": 47786,
+      "applicationSha256": "4291058942beef610563d19fad34b388e4a90e4c53c7b12d7ba85ee74d48cab8",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/tau2-text.json",
+      "expectedSha256": "1f47f66ef3b4975b3c52d710a395ca397b1213d6cbb217a6ed41821036c4a6fa",
+      "finalUrl": "https://builderwars.com/evals/sources/tau2-text.json",
+      "actualSha256": "1f47f66ef3b4975b3c52d710a395ca397b1213d6cbb217a6ed41821036c4a6fa",
+      "bytes": 831,
+      "applicationSha256": "1f47f66ef3b4975b3c52d710a395ca397b1213d6cbb217a6ed41821036c4a6fa",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/tau3-banking.json",
+      "expectedSha256": "6e5757d94d7c04dfcb2068cf84aaee527ba79fb94c039ac93d75f6ba14763574",
+      "finalUrl": "https://builderwars.com/evals/sources/tau3-banking.json",
+      "actualSha256": "6e5757d94d7c04dfcb2068cf84aaee527ba79fb94c039ac93d75f6ba14763574",
+      "bytes": 809,
+      "applicationSha256": "6e5757d94d7c04dfcb2068cf84aaee527ba79fb94c039ac93d75f6ba14763574",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/sources/tau3-voice.json",
+      "expectedSha256": "c3edddaaa58ca675cb79fd7e4fde000ce7cda676c357cd2299f0c86c3ff3b6e6",
+      "finalUrl": "https://builderwars.com/evals/sources/tau3-voice.json",
+      "actualSha256": "c3edddaaa58ca675cb79fd7e4fde000ce7cda676c357cd2299f0c86c3ff3b6e6",
+      "bytes": 827,
+      "applicationSha256": "c3edddaaa58ca675cb79fd7e4fde000ce7cda676c357cd2299f0c86c3ff3b6e6",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/swe-bench-live.html",
+      "expectedSha256": "2a796325a198df650ca752fb107e6de3a388fda39b88476cbad3e29933aa5d86",
+      "finalUrl": "https://builderwars.com/evals/swe-bench-live.html",
+      "actualSha256": "2a796325a198df650ca752fb107e6de3a388fda39b88476cbad3e29933aa5d86",
+      "bytes": 2967,
+      "applicationSha256": "2a796325a198df650ca752fb107e6de3a388fda39b88476cbad3e29933aa5d86",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/swe-bench-verified.html",
+      "expectedSha256": "a1c250aff579c20a66fc517742786a0e602b3e8861b1b6d6dc4977c7f1e2c279",
+      "finalUrl": "https://builderwars.com/evals/swe-bench-verified.html",
+      "actualSha256": "a1c250aff579c20a66fc517742786a0e602b3e8861b1b6d6dc4977c7f1e2c279",
+      "bytes": 3085,
+      "applicationSha256": "a1c250aff579c20a66fc517742786a0e602b3e8861b1b6d6dc4977c7f1e2c279",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/tau-bench.html",
+      "expectedSha256": "715b13773a4537555c0d8370b927b51e31009ed5dbe6b3db7fdeb9c75a4d8607",
+      "finalUrl": "https://builderwars.com/evals/tau-bench.html",
+      "actualSha256": "715b13773a4537555c0d8370b927b51e31009ed5dbe6b3db7fdeb9c75a4d8607",
+      "bytes": 3210,
+      "applicationSha256": "715b13773a4537555c0d8370b927b51e31009ed5dbe6b3db7fdeb9c75a4d8607",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/terminal-bench.html",
+      "expectedSha256": "c6983b43aafd2010ec2a10f1750e78807d47a9b266726a62799792af59429333",
+      "finalUrl": "https://builderwars.com/evals/terminal-bench.html",
+      "actualSha256": "c6983b43aafd2010ec2a10f1750e78807d47a9b266726a62799792af59429333",
+      "bytes": 2899,
+      "applicationSha256": "c6983b43aafd2010ec2a10f1750e78807d47a9b266726a62799792af59429333",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/textarena.html",
+      "expectedSha256": "140ad6da9c30b5b37a9121184fb4273ad2b74b9ec801da9e1f15530f3173bcdd",
+      "finalUrl": "https://builderwars.com/evals/textarena.html",
+      "actualSha256": "140ad6da9c30b5b37a9121184fb4273ad2b74b9ec801da9e1f15530f3173bcdd",
+      "bytes": 2943,
+      "applicationSha256": "140ad6da9c30b5b37a9121184fb4273ad2b74b9ec801da9e1f15530f3173bcdd",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/tool-sandbox.html",
+      "expectedSha256": "72f3027761132eddc03021d97c61b997f49589d1cf5f350f0cac09d5ebe73792",
+      "finalUrl": "https://builderwars.com/evals/tool-sandbox.html",
+      "actualSha256": "72f3027761132eddc03021d97c61b997f49589d1cf5f350f0cac09d5ebe73792",
+      "bytes": 2884,
+      "applicationSha256": "72f3027761132eddc03021d97c61b997f49589d1cf5f350f0cac09d5ebe73792",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/truthfulqa.html",
+      "expectedSha256": "d49c9ccfc4d517383e1c4fdd73d652a78b5203359d48b3722aa51ecb4f45d9ea",
+      "finalUrl": "https://builderwars.com/evals/truthfulqa.html",
+      "actualSha256": "d49c9ccfc4d517383e1c4fdd73d652a78b5203359d48b3722aa51ecb4f45d9ea",
+      "bytes": 2800,
+      "applicationSha256": "d49c9ccfc4d517383e1c4fdd73d652a78b5203359d48b3722aa51ecb4f45d9ea",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/visual-webarena.html",
+      "expectedSha256": "19e9192f905c94d725aa68725b8746320b9d3426172414dd36eeb5a2d8941add",
+      "finalUrl": "https://builderwars.com/evals/visual-webarena.html",
+      "actualSha256": "19e9192f905c94d725aa68725b8746320b9d3426172414dd36eeb5a2d8941add",
+      "bytes": 2884,
+      "applicationSha256": "19e9192f905c94d725aa68725b8746320b9d3426172414dd36eeb5a2d8941add",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/vlmevalkit.html",
+      "expectedSha256": "ff994552a89034a4e82d5ae1799b66af8a4fedeb38f8cab05598cc52fba3dffa",
+      "finalUrl": "https://builderwars.com/evals/vlmevalkit.html",
+      "actualSha256": "ff994552a89034a4e82d5ae1799b66af8a4fedeb38f8cab05598cc52fba3dffa",
+      "bytes": 2822,
+      "applicationSha256": "ff994552a89034a4e82d5ae1799b66af8a4fedeb38f8cab05598cc52fba3dffa",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/webarena.html",
+      "expectedSha256": "76d5c001e2fa7c5f4383c38350856ba987e51d2766f16312b66ffe4979e15f50",
+      "finalUrl": "https://builderwars.com/evals/webarena.html",
+      "actualSha256": "76d5c001e2fa7c5f4383c38350856ba987e51d2766f16312b66ffe4979e15f50",
+      "bytes": 2855,
+      "applicationSha256": "76d5c001e2fa7c5f4383c38350856ba987e51d2766f16312b66ffe4979e15f50",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals/workarena.html",
+      "expectedSha256": "d65b1f84732113e4c4dffb36cf4b3109d4a46eb7b33388d7c23af06b19d022d1",
+      "finalUrl": "https://builderwars.com/evals/workarena.html",
+      "actualSha256": "d65b1f84732113e4c4dffb36cf4b3109d4a46eb7b33388d7c23af06b19d022d1",
+      "bytes": 2902,
+      "applicationSha256": "d65b1f84732113e4c4dffb36cf4b3109d4a46eb7b33388d7c23af06b19d022d1",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "evals.html",
+      "expectedSha256": "a30e6c53e25001c1269b69f54859d31c0c7346625127a80ba10576e33a8e1c08",
+      "finalUrl": "https://builderwars.com/evals.html",
+      "actualSha256": "a30e6c53e25001c1269b69f54859d31c0c7346625127a80ba10576e33a8e1c08",
+      "bytes": 20492,
+      "applicationSha256": "a30e6c53e25001c1269b69f54859d31c0c7346625127a80ba10576e33a8e1c08",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "fonts/OFL.txt",
+      "expectedSha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943",
+      "finalUrl": "https://builderwars.com/fonts/OFL.txt",
+      "actualSha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943",
+      "bytes": 4401,
+      "applicationSha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "fonts/space-grotesk-400.ttf",
+      "expectedSha256": "ec926d5065eaca49a48f96e312bbae0bbc5733c24215cf5dfabbdccee926fef7",
+      "finalUrl": "https://builderwars.com/fonts/space-grotesk-400.ttf",
+      "actualSha256": "ec926d5065eaca49a48f96e312bbae0bbc5733c24215cf5dfabbdccee926fef7",
+      "bytes": 69360,
+      "applicationSha256": "ec926d5065eaca49a48f96e312bbae0bbc5733c24215cf5dfabbdccee926fef7",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "fonts/space-grotesk-500.ttf",
+      "expectedSha256": "3e699ead1876244fa392243054ddefe7cf631b488438828a8a100731a22ab995",
+      "finalUrl": "https://builderwars.com/fonts/space-grotesk-500.ttf",
+      "actualSha256": "3e699ead1876244fa392243054ddefe7cf631b488438828a8a100731a22ab995",
+      "bytes": 69416,
+      "applicationSha256": "3e699ead1876244fa392243054ddefe7cf631b488438828a8a100731a22ab995",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "fonts/space-grotesk-700.ttf",
+      "expectedSha256": "3e756954468ff1cb302dae0414262e72f76a67d87bef3fa1f3226cd0fb9b2d85",
+      "finalUrl": "https://builderwars.com/fonts/space-grotesk-700.ttf",
+      "actualSha256": "3e756954468ff1cb302dae0414262e72f76a67d87bef3fa1f3226cd0fb9b2d85",
+      "bytes": 69308,
+      "applicationSha256": "3e756954468ff1cb302dae0414262e72f76a67d87bef3fa1f3226cd0fb9b2d85",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "games.html",
+      "expectedSha256": "7dc03f4c17a2abb29622b2911b30f332b9a3fee78515fd80e3fa99414a9fca98",
+      "finalUrl": "https://builderwars.com/games.html",
+      "actualSha256": "7dc03f4c17a2abb29622b2911b30f332b9a3fee78515fd80e3fa99414a9fca98",
+      "bytes": 5382,
+      "applicationSha256": "7dc03f4c17a2abb29622b2911b30f332b9a3fee78515fd80e3fa99414a9fca98",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "guide.html",
+      "expectedSha256": "b2ae6d7745fbee376c4a258c5405fa9c52063c9716ceedb023ca5633892d55a5",
+      "finalUrl": "https://builderwars.com/guide.html",
+      "actualSha256": "b2ae6d7745fbee376c4a258c5405fa9c52063c9716ceedb023ca5633892d55a5",
+      "bytes": 5391,
+      "applicationSha256": "b2ae6d7745fbee376c4a258c5405fa9c52063c9716ceedb023ca5633892d55a5",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "index.html",
+      "expectedSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "finalUrl": "https://builderwars.com/index.html",
+      "actualSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "bytes": 4452,
+      "applicationSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "llms.txt",
+      "expectedSha256": "555669c30f62f3faa3209f509a0ff3cfa52270e118bad1702407060e14faad87",
+      "finalUrl": "https://builderwars.com/llms.txt",
+      "actualSha256": "555669c30f62f3faa3209f509a0ff3cfa52270e118bad1702407060e14faad87",
+      "bytes": 2476,
+      "applicationSha256": "555669c30f62f3faa3209f509a0ff3cfa52270e118bad1702407060e14faad87",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "mark.svg",
+      "expectedSha256": "33b1a464ed5db774402bad805831e03691865a29447007b6750355357b8171b4",
+      "finalUrl": "https://builderwars.com/mark.svg",
+      "actualSha256": "33b1a464ed5db774402bad805831e03691865a29447007b6750355357b8171b4",
+      "bytes": 286,
+      "applicationSha256": "33b1a464ed5db774402bad805831e03691865a29447007b6750355357b8171b4",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-01-0-0.html",
+      "expectedSha256": "3403dd9ccbbd1dc88dfd50377a1e050af4231acf2a5e9fcee12d9fea11e2fb09",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-0-0.html",
+      "actualSha256": "3403dd9ccbbd1dc88dfd50377a1e050af4231acf2a5e9fcee12d9fea11e2fb09",
+      "bytes": 2553,
+      "applicationSha256": "3403dd9ccbbd1dc88dfd50377a1e050af4231acf2a5e9fcee12d9fea11e2fb09",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-01-0-1.html",
+      "expectedSha256": "e3a84f662d861b8b3d43e32474f48166eeaec01e386fb34405e8de70e28b63fd",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-0-1.html",
+      "actualSha256": "e3a84f662d861b8b3d43e32474f48166eeaec01e386fb34405e8de70e28b63fd",
+      "bytes": 2523,
+      "applicationSha256": "e3a84f662d861b8b3d43e32474f48166eeaec01e386fb34405e8de70e28b63fd",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-01-1-0.html",
+      "expectedSha256": "b527e597d54a76aedee93f1dc94b94241620d04ea7b1fc29f2229693488c317c",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-1-0.html",
+      "actualSha256": "b527e597d54a76aedee93f1dc94b94241620d04ea7b1fc29f2229693488c317c",
+      "bytes": 2553,
+      "applicationSha256": "b527e597d54a76aedee93f1dc94b94241620d04ea7b1fc29f2229693488c317c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-01-1-1.html",
+      "expectedSha256": "c08658a91d632cee6a1f06c471cb1393cc3d42878d43a0b48c8bfae4c9a6e5e6",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-1-1.html",
+      "actualSha256": "c08658a91d632cee6a1f06c471cb1393cc3d42878d43a0b48c8bfae4c9a6e5e6",
+      "bytes": 2553,
+      "applicationSha256": "c08658a91d632cee6a1f06c471cb1393cc3d42878d43a0b48c8bfae4c9a6e5e6",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-01-2-0.html",
+      "expectedSha256": "20e15a2cafe62e280e16bf1d150b086e2fe0f399b3796df698aa9ed5e3d4e23b",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-2-0.html",
+      "actualSha256": "20e15a2cafe62e280e16bf1d150b086e2fe0f399b3796df698aa9ed5e3d4e23b",
+      "bytes": 2523,
+      "applicationSha256": "20e15a2cafe62e280e16bf1d150b086e2fe0f399b3796df698aa9ed5e3d4e23b",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-01-2-1.html",
+      "expectedSha256": "a8ada13558efb754e9c5bda461a543197a6ec88ef16be272b1791beb1a7773a8",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-2-1.html",
+      "actualSha256": "a8ada13558efb754e9c5bda461a543197a6ec88ef16be272b1791beb1a7773a8",
+      "bytes": 2553,
+      "applicationSha256": "a8ada13558efb754e9c5bda461a543197a6ec88ef16be272b1791beb1a7773a8",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-01-3-0.html",
+      "expectedSha256": "92513045e6a0b558b0c2b9fd3bd17b52f1b520a9a1e6974978460f2f53058cce",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-3-0.html",
+      "actualSha256": "92513045e6a0b558b0c2b9fd3bd17b52f1b520a9a1e6974978460f2f53058cce",
+      "bytes": 2553,
+      "applicationSha256": "92513045e6a0b558b0c2b9fd3bd17b52f1b520a9a1e6974978460f2f53058cce",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-01-3-1.html",
+      "expectedSha256": "33af5dbbb83b303718a801fd38a66a938ea05e5a2368b74c8bb017f12f0bccea",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-3-1.html",
+      "actualSha256": "33af5dbbb83b303718a801fd38a66a938ea05e5a2368b74c8bb017f12f0bccea",
+      "bytes": 2553,
+      "applicationSha256": "33af5dbbb83b303718a801fd38a66a938ea05e5a2368b74c8bb017f12f0bccea",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-02-0-0.html",
+      "expectedSha256": "a77d072034556dcb92cb1a82dffbce43ca61b36bbc184dd28f4e6a774170e7c9",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-02-0-0.html",
+      "actualSha256": "a77d072034556dcb92cb1a82dffbce43ca61b36bbc184dd28f4e6a774170e7c9",
+      "bytes": 2550,
+      "applicationSha256": "a77d072034556dcb92cb1a82dffbce43ca61b36bbc184dd28f4e6a774170e7c9",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-02-0-1.html",
+      "expectedSha256": "ab2c5ac3ddbb4f88ff77c921c12378c1876a94ca0b041a9339fa9fd5101bbee2",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-02-0-1.html",
+      "actualSha256": "ab2c5ac3ddbb4f88ff77c921c12378c1876a94ca0b041a9339fa9fd5101bbee2",
+      "bytes": 2607,
+      "applicationSha256": "ab2c5ac3ddbb4f88ff77c921c12378c1876a94ca0b041a9339fa9fd5101bbee2",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-02-1-0.html",
+      "expectedSha256": "6491ea0084256085f2157b92e755acb56b3a735ebf80c58fb5b851a2ee15ea52",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-02-1-0.html",
+      "actualSha256": "6491ea0084256085f2157b92e755acb56b3a735ebf80c58fb5b851a2ee15ea52",
+      "bytes": 2607,
+      "applicationSha256": "6491ea0084256085f2157b92e755acb56b3a735ebf80c58fb5b851a2ee15ea52",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-02-1-1.html",
+      "expectedSha256": "65cbdd7fa50bd007e1c5a5fe2839e0ef25d831fef15e997151f51dc89cfaed00",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-02-1-1.html",
+      "actualSha256": "65cbdd7fa50bd007e1c5a5fe2839e0ef25d831fef15e997151f51dc89cfaed00",
+      "bytes": 2607,
+      "applicationSha256": "65cbdd7fa50bd007e1c5a5fe2839e0ef25d831fef15e997151f51dc89cfaed00",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-02-2-0.html",
+      "expectedSha256": "a6784e881f892d96d28b3defbd74ea81791feb37482b770a6239e6b8e775a9f3",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-02-2-0.html",
+      "actualSha256": "a6784e881f892d96d28b3defbd74ea81791feb37482b770a6239e6b8e775a9f3",
+      "bytes": 2607,
+      "applicationSha256": "a6784e881f892d96d28b3defbd74ea81791feb37482b770a6239e6b8e775a9f3",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-02-2-1.html",
+      "expectedSha256": "ba92582b4c1ad2c85195ce646590823913fb5096f0427ac3e9828306e0ea2751",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-02-2-1.html",
+      "actualSha256": "ba92582b4c1ad2c85195ce646590823913fb5096f0427ac3e9828306e0ea2751",
+      "bytes": 2607,
+      "applicationSha256": "ba92582b4c1ad2c85195ce646590823913fb5096f0427ac3e9828306e0ea2751",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-02-3-0.html",
+      "expectedSha256": "2d2207f05530f9834d16c4e7547c596e2d3346d7c13eaa96f28fc02730f1b73f",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-02-3-0.html",
+      "actualSha256": "2d2207f05530f9834d16c4e7547c596e2d3346d7c13eaa96f28fc02730f1b73f",
+      "bytes": 2607,
+      "applicationSha256": "2d2207f05530f9834d16c4e7547c596e2d3346d7c13eaa96f28fc02730f1b73f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-02-3-1.html",
+      "expectedSha256": "80541d67899e82bec910677272851a3d5a1240c98d38e45f77b6983217c44513",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-02-3-1.html",
+      "actualSha256": "80541d67899e82bec910677272851a3d5a1240c98d38e45f77b6983217c44513",
+      "bytes": 2607,
+      "applicationSha256": "80541d67899e82bec910677272851a3d5a1240c98d38e45f77b6983217c44513",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-12-0-0.html",
+      "expectedSha256": "16d380233962ac314daca6d43ae09dd509594f9111ba56b585523d36127a47e1",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-12-0-0.html",
+      "actualSha256": "16d380233962ac314daca6d43ae09dd509594f9111ba56b585523d36127a47e1",
+      "bytes": 2589,
+      "applicationSha256": "16d380233962ac314daca6d43ae09dd509594f9111ba56b585523d36127a47e1",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-12-0-1.html",
+      "expectedSha256": "4eb840b56b0bf235c459a07b63b327f34c3d9ae60f699875ef58ef2b384f068f",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-12-0-1.html",
+      "actualSha256": "4eb840b56b0bf235c459a07b63b327f34c3d9ae60f699875ef58ef2b384f068f",
+      "bytes": 2589,
+      "applicationSha256": "4eb840b56b0bf235c459a07b63b327f34c3d9ae60f699875ef58ef2b384f068f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-12-1-0.html",
+      "expectedSha256": "594cb81e1b7559a1856cfb3ee9e7b0f041d7cfbbfd8072f7d6485a7ca1c7317c",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-12-1-0.html",
+      "actualSha256": "594cb81e1b7559a1856cfb3ee9e7b0f041d7cfbbfd8072f7d6485a7ca1c7317c",
+      "bytes": 2589,
+      "applicationSha256": "594cb81e1b7559a1856cfb3ee9e7b0f041d7cfbbfd8072f7d6485a7ca1c7317c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-12-1-1.html",
+      "expectedSha256": "04c2174e63ae71da20f2f9551e3620a19c76fdae3dc3240b9e919539d331faed",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-12-1-1.html",
+      "actualSha256": "04c2174e63ae71da20f2f9551e3620a19c76fdae3dc3240b9e919539d331faed",
+      "bytes": 2589,
+      "applicationSha256": "04c2174e63ae71da20f2f9551e3620a19c76fdae3dc3240b9e919539d331faed",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-12-2-0.html",
+      "expectedSha256": "ed4af41866a94d37a2e8b7afa10f25a579fcfe68cd1a3e992482fbca0651d68b",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-12-2-0.html",
+      "actualSha256": "ed4af41866a94d37a2e8b7afa10f25a579fcfe68cd1a3e992482fbca0651d68b",
+      "bytes": 2589,
+      "applicationSha256": "ed4af41866a94d37a2e8b7afa10f25a579fcfe68cd1a3e992482fbca0651d68b",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-12-2-1.html",
+      "expectedSha256": "86d74652a8ea540532362babf7c1e0475d0b0bd37d4e47f303278ba3af886a89",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-12-2-1.html",
+      "actualSha256": "86d74652a8ea540532362babf7c1e0475d0b0bd37d4e47f303278ba3af886a89",
+      "bytes": 2589,
+      "applicationSha256": "86d74652a8ea540532362babf7c1e0475d0b0bd37d4e47f303278ba3af886a89",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-12-3-0.html",
+      "expectedSha256": "2653bc29fd7f304e1fc58bf4413a3f16e339f728fef62c3ad124314f16afb640",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-12-3-0.html",
+      "actualSha256": "2653bc29fd7f304e1fc58bf4413a3f16e339f728fef62c3ad124314f16afb640",
+      "bytes": 2589,
+      "applicationSha256": "2653bc29fd7f304e1fc58bf4413a3f16e339f728fef62c3ad124314f16afb640",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "matches/launch-ttt-v1-12-3-1.html",
+      "expectedSha256": "73a7f0403ad9ac33c35af5b27b9ac8f6f4e7a576083fbcbebc846e87b80d79ec",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-12-3-1.html",
+      "actualSha256": "73a7f0403ad9ac33c35af5b27b9ac8f6f4e7a576083fbcbebc846e87b80d79ec",
+      "bytes": 2589,
+      "applicationSha256": "73a7f0403ad9ac33c35af5b27b9ac8f6f4e7a576083fbcbebc846e87b80d79ec",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "og-image.png",
+      "expectedSha256": "8d6bf2dd42edad5cd2cabdb40fd8e6b8f7afed7d601b6f660f6ca7a07487d16f",
+      "finalUrl": "https://builderwars.com/og-image.png",
+      "actualSha256": "8d6bf2dd42edad5cd2cabdb40fd8e6b8f7afed7d601b6f660f6ca7a07487d16f",
+      "bytes": 54491,
+      "applicationSha256": "8d6bf2dd42edad5cd2cabdb40fd8e6b8f7afed7d601b6f660f6ca7a07487d16f",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "rankings.html",
+      "expectedSha256": "d9595ade6c8428d2a2fe3140c6fa3f25302df230c877b3c746b37f798e214ef2",
+      "finalUrl": "https://builderwars.com/rankings.html",
+      "actualSha256": "d9595ade6c8428d2a2fe3140c6fa3f25302df230c877b3c746b37f798e214ef2",
+      "bytes": 21673,
+      "applicationSha256": "d9595ade6c8428d2a2fe3140c6fa3f25302df230c877b3c746b37f798e214ef2",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "referee/f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5.mjs",
+      "expectedSha256": "f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5",
+      "finalUrl": "https://builderwars.com/referee/f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5.mjs",
+      "actualSha256": "f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5",
+      "bytes": 111996,
+      "applicationSha256": "f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "referee/verify-f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5.mjs",
+      "expectedSha256": "a2b7da8615c6e901ad9f4befb24031d4ca79fb7f74f390e01dfd9c52536b688b",
+      "finalUrl": "https://builderwars.com/referee/verify-f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5.mjs",
+      "actualSha256": "a2b7da8615c6e901ad9f4befb24031d4ca79fb7f74f390e01dfd9c52536b688b",
+      "bytes": 151056,
+      "applicationSha256": "a2b7da8615c6e901ad9f4befb24031d4ca79fb7f74f390e01dfd9c52536b688b",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "robots.txt",
+      "expectedSha256": "68515fedf5d8c57aacbc1000d1505ffbfe28c00f056aaba103992914cfa9a749",
+      "finalUrl": "https://builderwars.com/robots.txt",
+      "actualSha256": "68515fedf5d8c57aacbc1000d1505ffbfe28c00f056aaba103992914cfa9a749",
+      "bytes": 68,
+      "applicationSha256": "68515fedf5d8c57aacbc1000d1505ffbfe28c00f056aaba103992914cfa9a749",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "sitemap.xml",
+      "expectedSha256": "76ae1bfcbc07dd7fd62b9f5a90423de108f47a9e050fc94c769a05dec5aa5f5c",
+      "finalUrl": "https://builderwars.com/sitemap.xml",
+      "actualSha256": "76ae1bfcbc07dd7fd62b9f5a90423de108f47a9e050fc94c769a05dec5aa5f5c",
+      "bytes": 6201,
+      "applicationSha256": "76ae1bfcbc07dd7fd62b9f5a90423de108f47a9e050fc94c769a05dec5aa5f5c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "starters/move-request.json",
+      "expectedSha256": "ad00f182c6a59cb5c1ef03d65b6310e14a603ed290815ff9a4064bbabc53ab1c",
+      "finalUrl": "https://builderwars.com/starters/move-request.json",
+      "actualSha256": "ad00f182c6a59cb5c1ef03d65b6310e14a603ed290815ff9a4064bbabc53ab1c",
+      "bytes": 332,
+      "applicationSha256": "ad00f182c6a59cb5c1ef03d65b6310e14a603ed290815ff9a4064bbabc53ab1c",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "starters/starter_agent.mjs",
+      "expectedSha256": "465d8d651cfe047c3ddf23708498c8edf13a7416d8759348b8550cc7257586d3",
+      "finalUrl": "https://builderwars.com/starters/starter_agent.mjs",
+      "actualSha256": "465d8d651cfe047c3ddf23708498c8edf13a7416d8759348b8550cc7257586d3",
+      "bytes": 2805,
+      "applicationSha256": "465d8d651cfe047c3ddf23708498c8edf13a7416d8759348b8550cc7257586d3",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "starters/starter_agent.py",
+      "expectedSha256": "d7089cf851cb7b9e40fc1fc63b9b1dc8228b4fa112961314fd5aaff1e9780c0d",
+      "finalUrl": "https://builderwars.com/starters/starter_agent.py",
+      "actualSha256": "d7089cf851cb7b9e40fc1fc63b9b1dc8228b4fa112961314fd5aaff1e9780c0d",
+      "bytes": 3433,
+      "applicationSha256": "d7089cf851cb7b9e40fc1fc63b9b1dc8228b4fa112961314fd5aaff1e9780c0d",
+      "rawByteParity": true,
+      "status": "PASS"
+    },
+    {
+      "path": "verify.html",
+      "expectedSha256": "92336f08a3ad667b038f5c1a7f115f973a3effb94305a35a58611f7c3c2163c3",
+      "finalUrl": "https://builderwars.com/verify.html",
+      "actualSha256": "92336f08a3ad667b038f5c1a7f115f973a3effb94305a35a58611f7c3c2163c3",
+      "bytes": 4861,
+      "applicationSha256": "92336f08a3ad667b038f5c1a7f115f973a3effb94305a35a58611f7c3c2163c3",
+      "rawByteParity": true,
+      "status": "PASS"
+    }
+  ],
+  "buildInventorySha256": "40d53272f042c9706c13e85346f45a3ede134f58107520d0de3fd03433896527",
+  "routes": [
+    {
+      "path": "/",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/",
+      "finalUrl": "https://builderwars.com/",
+      "actualSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "bytes": 4452,
+      "applicationSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "rawByteParity": true
+    },
+    {
+      "path": "/about",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/about",
+      "finalUrl": "https://builderwars.com/about",
+      "actualSha256": "86891f75a83da897ff195a623f402ba0c74cd91ec5493157d1158fee003553ae",
+      "bytes": 6548,
+      "applicationSha256": "86891f75a83da897ff195a623f402ba0c74cd91ec5493157d1158fee003553ae",
+      "rawByteParity": true
+    },
+    {
+      "path": "/games",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/games",
+      "finalUrl": "https://builderwars.com/games",
+      "actualSha256": "7dc03f4c17a2abb29622b2911b30f332b9a3fee78515fd80e3fa99414a9fca98",
+      "bytes": 5382,
+      "applicationSha256": "7dc03f4c17a2abb29622b2911b30f332b9a3fee78515fd80e3fa99414a9fca98",
+      "rawByteParity": true
+    },
+    {
+      "path": "/verify",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/verify",
+      "finalUrl": "https://builderwars.com/verify",
+      "actualSha256": "92336f08a3ad667b038f5c1a7f115f973a3effb94305a35a58611f7c3c2163c3",
+      "bytes": 4861,
+      "applicationSha256": "92336f08a3ad667b038f5c1a7f115f973a3effb94305a35a58611f7c3c2163c3",
+      "rawByteParity": true
+    },
+    {
+      "path": "/guide",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/guide",
+      "finalUrl": "https://builderwars.com/guide",
+      "actualSha256": "b2ae6d7745fbee376c4a258c5405fa9c52063c9716ceedb023ca5633892d55a5",
+      "bytes": 5391,
+      "applicationSha256": "b2ae6d7745fbee376c4a258c5405fa9c52063c9716ceedb023ca5633892d55a5",
+      "rawByteParity": true
+    },
+    {
+      "path": "/developers",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/developers",
+      "finalUrl": "https://builderwars.com/developers",
+      "actualSha256": "d5d2ac40182a3a078f8cea703c3632fcd6b65bfefa8289a24a18be7f651919b7",
+      "bytes": 2649,
+      "applicationSha256": "d5d2ac40182a3a078f8cea703c3632fcd6b65bfefa8289a24a18be7f651919b7",
+      "rawByteParity": true
+    },
+    {
+      "path": "/circuits",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/circuits",
+      "finalUrl": "https://builderwars.com/circuits",
+      "actualSha256": "67670793854ecc425ad80c3c4b9470d5105170fb34dfeffc0ccb6c8bd1f900e9",
+      "bytes": 2513,
+      "applicationSha256": "67670793854ecc425ad80c3c4b9470d5105170fb34dfeffc0ccb6c8bd1f900e9",
+      "rawByteParity": true
+    },
+    {
+      "path": "/circuits/launch-ttt-v1",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/circuits/launch-ttt-v1",
+      "finalUrl": "https://builderwars.com/circuits/launch-ttt-v1",
+      "actualSha256": "762e2dbf08acaa00df92654350132303e3da44014e234a32f5bb5b66c33b8fb7",
+      "bytes": 5519,
+      "applicationSha256": "762e2dbf08acaa00df92654350132303e3da44014e234a32f5bb5b66c33b8fb7",
+      "rawByteParity": true
+    },
+    {
+      "path": "/matches/launch-ttt-v1-01-0-0",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/matches/launch-ttt-v1-01-0-0",
+      "finalUrl": "https://builderwars.com/matches/launch-ttt-v1-01-0-0",
+      "actualSha256": "3403dd9ccbbd1dc88dfd50377a1e050af4231acf2a5e9fcee12d9fea11e2fb09",
+      "bytes": 2553,
+      "applicationSha256": "3403dd9ccbbd1dc88dfd50377a1e050af4231acf2a5e9fcee12d9fea11e2fb09",
+      "rawByteParity": true
+    },
+    {
+      "path": "/agents/launch-ttt-v1/perfect-ttt-v1",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/agents/launch-ttt-v1/perfect-ttt-v1",
+      "finalUrl": "https://builderwars.com/agents/launch-ttt-v1/perfect-ttt-v1",
+      "actualSha256": "005f6dc8a5e43c0eca765ef56f4a15f399d2007864ea760b0173f4a07a57fa56",
+      "bytes": 2656,
+      "applicationSha256": "005f6dc8a5e43c0eca765ef56f4a15f399d2007864ea760b0173f4a07a57fa56",
+      "rawByteParity": true
+    },
+    {
+      "path": "/evals",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/evals",
+      "finalUrl": "https://builderwars.com/evals",
+      "actualSha256": "a30e6c53e25001c1269b69f54859d31c0c7346625127a80ba10576e33a8e1c08",
+      "bytes": 20492,
+      "applicationSha256": "a30e6c53e25001c1269b69f54859d31c0c7346625127a80ba10576e33a8e1c08",
+      "rawByteParity": true
+    },
+    {
+      "path": "/rankings",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/rankings",
+      "finalUrl": "https://builderwars.com/rankings",
+      "actualSha256": "d9595ade6c8428d2a2fe3140c6fa3f25302df230c877b3c746b37f798e214ef2",
+      "bytes": 21673,
+      "applicationSha256": "d9595ade6c8428d2a2fe3140c6fa3f25302df230c877b3c746b37f798e214ef2",
+      "rawByteParity": true
+    },
+    {
+      "path": "/compete",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/compete",
+      "finalUrl": "https://builderwars.com/compete",
+      "actualSha256": "ac0c393035cd400b3599a3d4d5299cfb1fc7e5da87c1a45f232b49cda9e9c829",
+      "bytes": 3018,
+      "applicationSha256": "ac0c393035cd400b3599a3d4d5299cfb1fc7e5da87c1a45f232b49cda9e9c829",
+      "rawByteParity": true
+    },
+    {
+      "path": "/duels",
+      "status": "PASS",
+      "canonical": "https://builderwars.com/duels",
+      "finalUrl": "https://builderwars.com/duels",
+      "actualSha256": "52224bb435d9d57defb47bdbd2039cb40d628f8b2050e32c9771372b84739244",
+      "bytes": 6001,
+      "applicationSha256": "52224bb435d9d57defb47bdbd2039cb40d628f8b2050e32c9771372b84739244",
+      "rawByteParity": true
+    }
+  ],
+  "aliases": [
+    {
+      "origin": "https://www.builderwars.com",
+      "initialStatus": 308,
+      "location": "https://builderwars.com/",
+      "status": "PASS",
+      "finalStatus": 200,
+      "finalUrl": "https://builderwars.com/",
+      "actualSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "bytes": 4452,
+      "applicationSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "rawByteParity": true
+    },
+    {
+      "origin": "https://builderswars.com",
+      "initialStatus": 308,
+      "location": "https://builderwars.com/",
+      "status": "PASS",
+      "finalStatus": 200,
+      "finalUrl": "https://builderwars.com/",
+      "actualSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "bytes": 4452,
+      "applicationSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "rawByteParity": true
+    },
+    {
+      "origin": "https://www.builderswars.com",
+      "initialStatus": 308,
+      "location": "https://builderwars.com/",
+      "status": "PASS",
+      "finalStatus": 200,
+      "finalUrl": "https://builderwars.com/",
+      "actualSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "bytes": 4452,
+      "applicationSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "rawByteParity": true
+    },
+    {
+      "origin": "https://builderwars.vercel.app",
+      "status": "PASS",
+      "finalStatus": 200,
+      "finalUrl": "https://builderwars.vercel.app/",
+      "actualSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "bytes": 4452,
+      "applicationSha256": "c056ffc3fb6cc6e594aa45ee7bc1b6b7bf08e40a32193940dc9952630b62cd46",
+      "rawByteParity": true
+    }
+  ],
+  "browser": [
+    {
+      "width": 390,
+      "status": "PASS",
+      "blockedRequests": [],
+      "pageErrors": [],
+      "watch": {
+        "plies": 8,
+        "currentReferee": "f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5",
+        "exportPreserved": true,
+        "scrubber": "PASS"
+      },
+      "freePlay": {
+        "completed": true,
+        "postGameReview": true
+      },
+      "lab": {
+        "completedGames": 128,
+        "seedBlocks": 16,
+        "workerExecuted": true,
+        "savedRestored": true,
+        "cancelledRestored": true
+      },
+      "actualProviderCalls": 0
+    },
+    {
+      "width": 1280,
+      "status": "PASS",
+      "blockedRequests": [],
+      "pageErrors": [],
+      "watch": {
+        "plies": 8,
+        "currentReferee": "f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5",
+        "exportPreserved": true,
+        "scrubber": "PASS"
+      },
+      "freePlay": {
+        "completed": true,
+        "postGameReview": true
+      },
+      "lab": {
+        "completedGames": 128,
+        "seedBlocks": 16,
+        "workerExecuted": true,
+        "savedRestored": true,
+        "cancelledRestored": true
+      },
+      "actualProviderCalls": 0
+    }
+  ],
+  "actualProviderCalls": 0,
+  "finishedAt": "2026-10-22T02:56:21.429574+00:00"
+}
