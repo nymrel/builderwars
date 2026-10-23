@@ -92,6 +92,25 @@ with sync_playwright() as p:
     assert failed["attempts"][0]["exit"] == "failed"
     assert len(failed["games"]) == 1 and not failed["games"][0]["events"]
     assert "synthetic-academy-sentinel" not in json.dumps(failed)
+    # Readiness snapshots the selected nondefault Tokens/move cap before dispatch.
+    readiness_caps = []
+    page.unroute("https://openrouter.ai/api/v1/chat/completions")
+    page.locator("nav [data-tab=arena]").click()
+    settings = page.locator(".match-settings").filter(has=page.locator("#max-tokens"))
+    if not settings.evaluate("el => el.open"):
+        settings.locator("summary").click()
+    def readiness_move(route):
+        body = json.loads(route.request.post_data)
+        readiness_caps.append(body["max_tokens"])
+        route.fulfill(json={"model": "test/model", "choices": [{"message": {"content": '{"move":"illegal"}'}}]})
+    page.route("https://openrouter.ai/api/v1/chat/completions", readiness_move)
+    page.locator("#max-tokens").fill("256")
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#readiness-suite").select_option("tictactoe")
+    page.locator("#academy-readiness").click()
+    page.wait_for_function("() => document.querySelector('#readiness-status').textContent.includes('Check complete')", timeout=30000)
+    assert readiness_caps == [256] * 10
+    assert "10 invalid reply" in page.locator("#readiness-output").inner_text()
     # The Academy explicitly clears configured contenders; no synthetic inference needed.
     page.locator("nav [data-tab=academy]").click()
     page.locator("#academy-variant").click()
@@ -100,6 +119,28 @@ with sync_playwright() as p:
     page.locator("#connections").click()
     assert page.locator("#agent-key").input_value() == ""
     page.locator("#close-dialog").click()
+    # Agent Readiness Check over the free built-in contender: local workers only, no network.
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#readiness-agent").select_option(index=0)
+    page.locator("#readiness-suite").select_option("tictactoe")
+    page.locator("#academy-readiness").click()
+    page.wait_for_function("() => document.querySelector('#readiness-output').textContent.includes('10/10 valid')", timeout=30000)
+    assert "10/10 valid" in page.locator("#readiness-output").inner_text()
+    assert not provider_calls
+    with page.expect_download() as result:
+        page.get_by_role("button", name="Download readiness receipt").click()
+    readiness = json.loads(Path(result.value.path()).read_text())
+    assert readiness["schema"] == "builderwars.readiness.receipt.v1"
+    assert readiness["summary"]["valid"] == 10 and readiness["summary"]["positions"] == 10
+    assert readiness["summary"]["invalidReply"] == 0 and readiness["summary"]["skipped"] == 0
+    assert "key" not in json.dumps(readiness) and "endpoint" not in json.dumps(readiness)
+    with page.expect_download() as result:
+        page.get_by_role("button", name="Download AgentWorld event").click()
+    world = json.loads(Path(result.value.path()).read_text())
+    assert world["schema"] == "builderwars.agentworld.world-event.v1"
+    assert world["status"] == "export_only_not_ingested"
+    assert world["preview"]["idempotency_key"].startswith("builderwars-readiness-")
+    assert "SECRET" not in json.dumps(world)
     for width in [320, 390, 768, 1440]:
         page.set_viewport_size({"width": width, "height": 900})
         for section in ["academy", "forge", "evals"]:
@@ -108,4 +149,4 @@ with sync_playwright() as p:
     assert not errors, errors
     context.close()
     browser.close()
-    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "responsive lessons/evals"]}))
+    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "syntheticReadinessCalls": len(readiness_caps), "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "readiness selected token cap", "readiness check local built-in", "responsive lessons/evals"]}))
