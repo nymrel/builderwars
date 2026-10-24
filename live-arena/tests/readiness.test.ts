@@ -325,6 +325,70 @@ test("onPosition reports progress incrementally with bounds", async () => {
   assert.ok(seen.every((entry) => entry.total === 10));
 });
 
+test("a legal successful reply after Stop is discarded", async () => {
+  const external = new AbortController();
+  let calls = 0;
+  const receipt = await runReadinessCheck({
+    agent: harnessAgent(), suiteId: "tictactoe", signal: external.signal,
+    decider: async state => {
+      calls++;
+      external.abort();
+      return { move: legalMoves(state)[0], model: "late", elapsed: 1 };
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal(receipt.summary.valid, 0);
+  assert.equal(receipt.summary.skipped, 10);
+  assert.ok(receipt.positions.every(position => position.replyMove === null));
+});
+
+test("a legal reply beyond the monotonic deadline is not accepted before the timer fires", async t => {
+  let now = 0;
+  t.mock.method(performance, "now", () => now);
+  const receipt = await runReadinessCheck({
+    agent: harnessAgent(), suiteId: "tictactoe", timeCapMs: 10,
+    decider: async state => {
+      now += 11;
+      return { move: legalMoves(state)[0], model: "late", elapsed: 1 };
+    },
+  });
+  assert.equal(receipt.summary.valid, 0);
+  assert.equal(receipt.summary.timeout, 10);
+  assert.ok(receipt.positions.every(position => position.replyMove === null));
+});
+
+test("Stop settles even if the pending decider ignores abort", { timeout: 1000 }, async () => {
+  const external = new AbortController();
+  let calls = 0;
+  const receipt = await runReadinessCheck({
+    agent: harnessAgent(), suiteId: "tictactoe", timeCapMs: 1, signal: external.signal,
+    decider: async () => {
+      calls++;
+      external.abort();
+      return new Promise(() => {});
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal(receipt.summary.skipped, 10);
+  assert.equal(receipt.summary.valid, 0);
+});
+
+test("the time cap settles an abort-ignoring decider without retaining late success", { timeout: 1000 }, async () => {
+  const replies: Array<() => void> = [];
+  const receipt = await runReadinessCheck({
+    agent: harnessAgent(), suiteId: "tictactoe", timeCapMs: 1,
+    decider: state => new Promise(resolve => replies.push(() => resolve({
+      move: legalMoves(state)[0], model: "late", elapsed: 1,
+    }))),
+  });
+  assert.equal(replies.length, 10);
+  assert.equal(receipt.summary.timeout, 10);
+  replies.forEach(resolve => resolve());
+  await Promise.resolve();
+  assert.equal(receipt.summary.valid, 0);
+  assert.ok(receipt.positions.every(position => position.replyMove === null));
+});
+
 test("failure classification maps each playtest failure family to one class", () => {
   const timeout = new DOMException("timed out", "TimeoutError");
   assert.equal(classifyReadinessFailure(timeout).outcome, "timeout");

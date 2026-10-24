@@ -2,7 +2,7 @@
 import json
 import os
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 BASE = os.environ.get("BUILDERWARS_TEST_URL", "http://127.0.0.1:5178").rstrip("/")
 OUT = Path(__file__).parents[1] / "output" / "playwright"
@@ -107,10 +107,80 @@ with sync_playwright() as p:
     page.locator("#max-tokens").fill("256")
     page.locator("nav [data-tab=academy]").click()
     page.locator("#readiness-suite").select_option("tictactoe")
+    # Replacing the selected built-in with a provider must be visible, but not
+    # silently approved by a Run click or subsequent navigation/rerender.
+    assert page.locator("#readiness-agent").input_value() == ""
+    assert "OpenRouter" in page.locator('#readiness-agent option[value="0"]').inner_text()
+    page.locator("#academy-readiness").click()
+    expect(page.locator("#readiness-status")).to_contain_text("Choose a current contender")
+    assert not readiness_caps
+    page.locator("nav [data-tab=arena]").click()
+    page.locator("nav [data-tab=academy]").click()
+    assert page.locator("#readiness-agent").input_value() == ""
+    page.locator("#readiness-agent").select_option("0")
     page.locator("#academy-readiness").click()
     page.wait_for_function("() => document.querySelector('#readiness-status').textContent.includes('Check complete')", timeout=30000)
     assert readiness_caps == [256] * 10
     assert "10 invalid reply" in page.locator("#readiness-output").inner_text()
+    # Hold one synthetic readiness response. Other execution entry points must
+    # not start a second provider request or mutate the evaluation series.
+    page.unroute("https://openrouter.ai/api/v1/chat/completions")
+    held = []
+    page.route("https://openrouter.ai/api/v1/chat/completions", lambda route: held.append(route))
+    with page.expect_request("https://openrouter.ai/api/v1/chat/completions"):
+        page.locator("#academy-readiness").click()
+    page.locator("nav [data-tab=arena]").click()
+    for control in ["start", "step"]:
+        page.locator(f"#{control}").click()
+        expect(page.locator("#notice")).to_contain_text("Stop the readiness check")
+    previous_series = page.locator("#series-results").inner_text()
+    page.locator("nav [data-tab=evals]").click()
+    page.locator("#run-series").click()
+    expect(page.locator("#notice")).to_contain_text("Stop the readiness check")
+    assert page.locator("#series-results").inner_text() == previous_series
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#academy-pair").click()
+    expect(page.locator("#academy-status")).to_contain_text("Stop the readiness check")
+    page.locator("nav [data-tab=lab]").click()
+    page.locator("#lab-start").click()
+    expect(page.locator("#lab-status")).to_contain_text("Stop the readiness check")
+    page.locator("nav [data-tab=duel]").click()
+    page.locator("#duel-create").click()
+    expect(page.locator("#duel-status")).to_contain_text("Stop the readiness check")
+    assert len(held) == 1
+    assert page.locator("#metric-moves").inner_text() == "0"
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#readiness-stop").click()
+    expect(page.locator("#readiness-status")).to_contain_text("Check stopped early")
+    assert "10 skipped" in page.locator("#readiness-output").inner_text()
+    held[0].fulfill(json={"choices": [{"message": {"content": '{"move":"0"}'}}]})
+    assert len(held) == 1
+
+    # The reciprocal guard includes an in-flight local Lab preparation/worker.
+    # A synthetic held worker avoids doing training or paid inference in this test.
+    page.evaluate("""() => {
+      window.realWorker = Worker;
+      window.labWorkers = 0;
+      window.Worker = class {
+        constructor(url, options) {
+          if (options?.name !== 'builderwars-local-lab') return new window.realWorker(url, options);
+          window.labWorkers++;
+        }
+        postMessage() {}
+        terminate() {}
+      };
+    }""")
+    page.locator("nav [data-tab=lab]").click()
+    page.locator("#lab-start").click()
+    page.wait_for_function("window.labWorkers === 1")
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#academy-readiness").click()
+    expect(page.locator("#readiness-status")).to_contain_text("stop Lab work")
+    assert len(held) == 1
+    page.locator("nav [data-tab=lab]").click()
+    page.locator("#lab-cancel").click()
+    expect(page.locator("#lab-start")).to_be_enabled()
+    page.evaluate("window.Worker = window.realWorker")
     # The Academy explicitly clears configured contenders; no synthetic inference needed.
     page.locator("nav [data-tab=academy]").click()
     page.locator("#academy-variant").click()
@@ -121,7 +191,7 @@ with sync_playwright() as p:
     page.locator("#close-dialog").click()
     # Agent Readiness Check over the free built-in contender: local workers only, no network.
     page.locator("nav [data-tab=academy]").click()
-    page.locator("#readiness-agent").select_option(index=0)
+    page.locator("#readiness-agent").select_option("0")
     page.locator("#readiness-suite").select_option("tictactoe")
     page.locator("#academy-readiness").click()
     page.wait_for_function("() => document.querySelector('#readiness-output').textContent.includes('10/10 valid')", timeout=30000)
@@ -149,4 +219,4 @@ with sync_playwright() as p:
     assert not errors, errors
     context.close()
     browser.close()
-    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "syntheticReadinessCalls": len(readiness_caps), "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "readiness selected token cap", "readiness check local built-in", "responsive lessons/evals"]}))
+    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "syntheticReadinessCalls": len(readiness_caps), "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "readiness explicit contender identity", "readiness selected token cap", "reciprocal execution exclusion", "readiness Stop while response held", "readiness check local built-in", "responsive lessons/evals"]}))

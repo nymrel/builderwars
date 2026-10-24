@@ -220,27 +220,40 @@ export async function runReadinessCheck(options: {
       options.onPosition?.(result, index, suite.sequences.length);
       continue;
     }
-    const started = Date.now();
-    // A cleared per-position timer with an explicit abort relay: the cap always
-    // governs (no AbortSignal.any required), nothing outlives the check, and
-    // external stops propagate into this position's signal.
+    const started = performance.now();
+    // Settle on abort even if the decider ignores its signal. Late completions
+    // are discarded; a monotonic check also catches replies that block the timer.
     const controller = new AbortController();
+    const timeout = () => new DOMException("No usable reply within the readiness time cap.", "TimeoutError");
     const timer = setTimeout(
-      () =>
-        controller.abort(
-          new DOMException("No usable reply within the readiness time cap.", "TimeoutError"),
-        ),
+      () => controller.abort(timeout()),
       timeCapMs,
     );
     const relayStop = () => controller.abort(options.signal?.reason);
     options.signal?.addEventListener("abort", relayStop, { once: true });
+    let rejectOnAbort: () => void;
+    const aborted = new Promise<never>((_, reject) => {
+      rejectOnAbort = () => reject(controller.signal.reason);
+      controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
+    });
     try {
-      const decision = await decider(state, agent, controller.signal);
+      const decision = await Promise.race([
+        Promise.resolve().then(() => {
+          controller.signal.throwIfAborted();
+          return decider(state, agent, controller.signal);
+        }),
+        aborted,
+      ]);
+      controller.signal.throwIfAborted();
+      if (performance.now() - started >= timeCapMs) {
+        controller.abort(timeout());
+        controller.signal.throwIfAborted();
+      }
       const result: ReadinessPositionResult = {
         ...base,
         outcome: "valid",
         latencyMs: Math.round(
-          Number.isFinite(decision.elapsed) ? decision.elapsed : Date.now() - started,
+          Number.isFinite(decision.elapsed) ? decision.elapsed : performance.now() - started,
         ),
         replyMove: decision.move,
         reportedModel: decision.model,
@@ -255,7 +268,7 @@ export async function runReadinessCheck(options: {
       const result: ReadinessPositionResult = {
         ...base,
         outcome: externallyStopped ? "skipped" : failure.outcome,
-        latencyMs: Date.now() - started,
+        latencyMs: Math.round(performance.now() - started),
         replyMove: null,
         reportedModel: null,
         detail: externallyStopped
@@ -267,6 +280,7 @@ export async function runReadinessCheck(options: {
     } finally {
       clearTimeout(timer);
       options.signal?.removeEventListener("abort", relayStop);
+      controller.signal.removeEventListener("abort", rejectOnAbort!);
     }
   }
 

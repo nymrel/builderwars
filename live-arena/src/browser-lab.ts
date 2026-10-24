@@ -219,5 +219,5 @@ export function mountLab(options: { storage: () => StoragePort | undefined; ensu
   };
   document.addEventListener("visibilitychange", () => { if (document.hidden) cancel("Work stopped when the app went into the background. No work restarts automatically."); });
   render(); void initialize();
-  return { cancel };
+  return { cancel, active: () => busy || working };
 }

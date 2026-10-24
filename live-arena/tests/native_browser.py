@@ -97,6 +97,7 @@ with sync_playwright() as p:
     page.route("https://openrouter.ai/api/v1/chat/completions", hold_readiness)
     page.locator("nav [data-tab=academy]").click()
     page.locator("#readiness-suite").select_option("tictactoe")
+    page.locator("#readiness-agent").select_option("0")  # Explicitly choose the replacement contender.
     with page.expect_request("**/chat/completions"):
         page.locator("#academy-readiness").click()
     page.evaluate("__native.emit('pause')")
