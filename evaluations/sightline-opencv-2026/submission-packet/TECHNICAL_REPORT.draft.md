@@ -29,7 +29,7 @@ OpenCV 5.0.0 performs image decoding, absolute difference, grayscale conversion,
 
 ## Evaluation
 
-The generated offline baseline covers missing-region, unexpected-region, and layout-shift cases. All three expected task outcomes pass. Two fail-closed controls cover unreadable images and dimension mismatch. The full hosted unit suite contains 33 tests.
+The generated offline baseline covers missing-region, unexpected-region, and layout-shift cases. All three expected task outcomes pass. Two fail-closed controls cover unreadable images and dimension mismatch. The merged Stage 1 hosted unit suite contains 35 tests, including pre-decode PNG expansion and dimension-mismatch regressions. The local journey extension adds four demo-approval regressions, for 39 local tests; this extension has not yet received an independent review or merged release.
 
 A separate browser workflow serves tracked Nymrel-owned BuilderWars Mobile Arena source on loopback and evaluates six labeled workflows at fixed 1040×900 desktop and 390×844 mobile viewports independently in managed Chromium and Firefox: a stable Arena, a missing featured receipt, unexpectedly open local-session and proof sheets, and Arena misroutes to Watch and Build. Each browser passes 12/12 outcomes against OpenCV 5.0.0, with 10 true positives, 2 true negatives, zero false positives, and zero false negatives. Across both receipts, all 24 case executions pass with 20 true positives and 4 true negatives. Precision, recall, specificity, and accuracy are each 1.0 within each twelve-case browser set.
 
@@ -54,3 +54,21 @@ Inputs are size-bounded and must be PNG. Invalid base64, unreadable images, dime
 ## Current Limitations
 
 The corpus combines generated arrays with six labeled loopback workflow types at two fixed viewports in Chromium and Firefox; it remains too small to represent browser traffic, devices, broad browser coverage, responsive breakpoints, or production conditions. The classifier is intentionally narrow. No AWS deployment, production endpoint, user study, or competition submission has occurred. See `LIMITATIONS.md` for the complete claim boundary.
+
+## Measured End-to-End Demonstration
+
+The 167.72-second English-captioned local recording uses the actual tracked BuilderWars Arena. It compares the normal view with a controlled hidden featured receipt. Real OpenCV 5.0.0 produces 54 retained connected components and 62,432 changed pixels; the unchanged policy requests human approval. A restore without approval is rejected and the screenshot remains byte-identical.
+
+A separate demonstration controller then consumes one candidate-bound approval event to restore only the injected DOM visibility property. The event is explicitly labeled `automated_demo_operator`, with `human_approval_observed=false` and no production authority. It illustrates a control boundary; it does not establish actual human approval, production authentication, or general autonomous repair. The planner itself retains false execution authority.
+
+After restoration, a fresh screenshot is byte-identical to the original baseline and a new OpenCV pass returns zero findings. This verifies this one known injected fault at a 1040x900 viewport. The fault injection supplies the cause; pixel evidence alone does not diagnose an unknown root cause.
+
+The recording retains actual malformed-PNG, dimension-mismatch and oversized-IHDR rejections. Earlier fragmented-materiality false negatives, mobile below-fold framing errors, reversed fixture polarity and the repaired compressed-PNG expansion vulnerability remain in the evidence record.
+
+Source lineage: Stage 1 merge `c41a83d5761dd98edf1d776686555e21ba4803b9`; current-main base `1745c0a0cc8aaa31aaf8f67edc7765f32de6b547`; local recording revision `e46cc424229beb2d4b138772b6d56f374582be85`. The retained receipt contains exact source-file and input hashes. A current-main Firefox 146.0.1 rerun passes 12/12 controlled cases. Historical Chromium evidence is retained as historical, not represented as a fresh current-main rerun.
+
+## Delivery Status - October 24, 2026
+
+Meaningful AWS execution, judge endpoint or arranged screen share, public/unlisted video hosting, live Devpost form/terms review, and final submission remain unverified. No AWS account was mutated, billing changed, credits accepted, or paid compute started. The execution environment has no AWS CLI/profile/credential access; the available browser returned Site Unavailable for the AWS console. The Devpost connection requires reauthentication. These are access blockers, not successful deployments or evidence of an unsubmitted authenticated project.
+
+The documentation, source, controlled evidence and local video can be reviewed now. A candidate CloudShell runbook is preparation only: CloudShell has no additional service charge, but AWS documents standard data-transfer charges and charges for other services. Account access, permitted cost envelope and real execution must be verified before running. No end-to-end time saving, detection uplift against a simpler baseline, production benefit, cloud cost or cloud latency has been measured.
