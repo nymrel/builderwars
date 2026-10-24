@@ -222,6 +222,45 @@ with sync_playwright() as p:
         name = handoff["files"][0].removeprefix("file:///cache/")
         payload = base64.b64decode(readiness_page.evaluate("name => __files.cache.get(name)", name))
         json.loads(payload)  # Both native handoffs retain valid JSON bytes.
+
+    # A lifecycle transition during either hash invalidates preparation before
+    # any cache write or share. Foregrounding alone must not resume the handoff.
+    for held_digest in (1, 2):
+        before = readiness_page.evaluate("""() => ({
+          shares: __files.shares.length,
+          writes: __files.calls.filter(call => call.plugin === 'Filesystem' &&
+            call.method === 'writeFile' && call.options.directory === 'CACHE').length,
+          cache: __files.cache.size
+        })""")
+        readiness_page.evaluate("""heldDigest => {
+          const digest = crypto.subtle.digest.bind(crypto.subtle);
+          let calls = 0;
+          delete window.__finishWorldDigest;
+          crypto.subtle.digest = async (...args) => {
+            const result = await digest(...args);
+            if (++calls === heldDigest) {
+              crypto.subtle.digest = digest;
+              await new Promise(resolve => window.__finishWorldDigest = resolve);
+            }
+            return result;
+          };
+        }""", held_digest)
+        readiness_page.locator("#readiness-world").click()
+        readiness_page.wait_for_function("() => typeof __finishWorldDigest === 'function'")
+        readiness_page.evaluate("""() => {
+          __files.emit('pause');
+          __files.emit('appStateChange', {isActive: true});
+          __finishWorldDigest();
+        }""")
+        expect(readiness_page.locator("#notice")).to_contain_text("backgrounded during preparation")
+        assert readiness_page.evaluate("__files.shares.length") == before["shares"]
+        assert readiness_page.evaluate("""__files.calls.filter(call => call.plugin === 'Filesystem' &&
+          call.method === 'writeFile' && call.options.directory === 'CACHE').length""") == before["writes"]
+        assert readiness_page.evaluate("__files.cache.size") == before["cache"]
+        # Only a new explicit click may prepare and hand off another file.
+        readiness_page.locator("#readiness-world").click()
+        readiness_page.wait_for_function("count => __files.shares.length === count + 1", arg=before["shares"])
+        expect(readiness_page.locator("#notice")).to_contain_text("Share sheet closed")
     assert not readiness_downloads, "Academy native exports must use the native share sheet"
     assert not errors, errors
     browser.close()
