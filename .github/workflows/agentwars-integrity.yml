@@ -36,6 +36,22 @@ jobs:
             bin/run_factorial_study.py \
             bin/check_factorial_study.py \
             entrants/study_naive_harness.py
+      - name: Validate Nebius NVIDIA hackathon lane
+        run: |
+          python -m unittest -v \
+            tests/test_nebius_backend.py \
+            tests/test_nebius_structured_patch.py \
+            tests/test_nebius_live_run.py
+          python -m py_compile \
+            bin/run_nebius_policy_repair.py \
+            bin/run_nebius_policy_repair_live.py \
+            competitions/nebius_nvidia_2026/structured_patch.py \
+            competitions/nebius_nvidia_2026/report.py \
+            competitions/nebius_nvidia_2026/live_run.py \
+            competitions/nebius_nvidia_2026/live_report.py \
+            entrants/nebius_backend.py
+          python bin/run_nebius_policy_repair.py --print-task > /tmp/nebius-task.json
+
       - name: Run existing adversarial checks
         run: |
           python bin/selfcheck.py

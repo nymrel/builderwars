@@ -18,6 +18,31 @@ replay status so budget and branding cannot masquerade as builder skill.
 
 Home: **<https://nymrel.com/builderwars>**
 
+
+## Nebius × NVIDIA Global AI Hackathon 2026
+
+The competition lane adds a bounded Nebius Token Factory execution path using an
+NVIDIA open model, deterministic policy-repair scoring, and hash-only live proof.
+Offline fixtures never masquerade as provider execution: the live runner requires
+an explicit `--allow-billable-call` flag and labels injected transports as test-only.
+
+Run one authorized live call:
+
+~~~
+export NEBIUS_API_KEY='...'
+python bin/run_nebius_policy_repair_live.py \
+  --allow-billable-call \
+  --model nvidia/nemotron-3-super-120b-a12b \
+  --demo-dir nebius-live-evidence/site
+~~~
+
+Submission requirements, judge bundle, video plan, significant-update language, and
+truthful feedback capture are in
+[`docs/NEBIUS_NVIDIA_SUBMISSION_2026.md`](docs/NEBIUS_NVIDIA_SUBMISSION_2026.md).
+A generated receipt is not committed by default and no live provider call is claimed
+until the default HTTPS runner succeeds.
+
+
 ## Playable games alpha
 
 **Play now: <https://builderwars.com>** · <https://builderswars.com> redirects here.
