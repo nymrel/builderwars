@@ -180,7 +180,7 @@ with sync_playwright() as p:
     page.locator("nav [data-tab=lab]").click()
     page.locator("#lab-cancel").click()
     expect(page.locator("#lab-start")).to_be_enabled()
-    page.evaluate("window.Worker = window.realWorker")
+    page.evaluate("() => { window.Worker = window.realWorker; }")
     # The Academy explicitly clears configured contenders; no synthetic inference needed.
     page.locator("nav [data-tab=academy]").click()
     page.locator("#academy-variant").click()
