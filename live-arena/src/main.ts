@@ -1546,8 +1546,10 @@ $("academy-readiness").onclick = async () => {
     worldEvent.id = "readiness-world";
     worldEvent.textContent = "Download AgentWorld event";
     worldEvent.onclick = async () => {
+      const check = fileTransfer.preparationGuard();
       try {
         const file = await agentWorldEventFile(receipt);
+        check();
         await exportJson(
           `agentworld-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
           file,
