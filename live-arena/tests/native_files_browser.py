@@ -199,5 +199,56 @@ with sync_playwright() as p:
     web.locator("#import-proof").set_input_files(proof_path)
     expect(web.locator("#proof-status")).to_contain_text("7 plies reproduced")
     assert not errors, errors
+
+    # Exercise the actual Academy buttons through Capacitor's native dispatch.
+    readiness_context = browser.new_context(viewport={"width": 390, "height": 844})
+    readiness_context.add_init_script(BRIDGE)
+    readiness_page = readiness_context.new_page()
+    readiness_downloads = []
+    readiness_page.on("download", lambda value: readiness_downloads.append(value))
+    readiness_page.on("pageerror", lambda value: errors.append(str(value)))
+    readiness_page.goto(BASE)
+    readiness_page.wait_for_function("() => __files.ready")
+    readiness_page.locator("nav [data-tab=academy]").click()
+    readiness_page.locator("#academy-readiness").click()
+    expect(readiness_page.locator("#readiness-status")).to_contain_text("Check complete")
+    # The experimental AgentWorld handoff is not part of this release.
+    assert readiness_page.locator("#readiness-world").count() == 0
+    assert readiness_page.get_by_role("button", name="Download AgentWorld event").count() == 0
+    receipt_button = readiness_page.get_by_role("button", name="Download readiness receipt")
+    share_count = readiness_page.evaluate("__files.shares.length")
+    receipt_button.click()
+    readiness_page.wait_for_function("count => __files.shares.length > count", arg=share_count)
+    expect(readiness_page.locator("#notice")).to_contain_text("Share sheet closed")
+    expect(readiness_page.locator("#notice")).to_contain_text("not confirmed")
+    handoff = readiness_page.evaluate("__files.shares.at(-1)")
+    name = handoff["files"][0].removeprefix("file:///cache/")
+    payload = base64.b64decode(readiness_page.evaluate("name => __files.cache.get(name)", name))
+    receipt = json.loads(payload)
+    assert receipt["schema"] == "builderwars.readiness.receipt.v1"
+    assert receipt["summary"]["valid"] == 10
+    assert "key" not in json.dumps(receipt) and "endpoint" not in json.dumps(receipt)
+
+    # Backgrounding during the ordinary receipt's cache write must not open
+    # a stale share sheet after foregrounding. A new click is still required.
+    share_count = readiness_page.evaluate("__files.shares.length")
+    cache_count = readiness_page.evaluate("__files.cache.size")
+    readiness_page.evaluate("__files.outcome='hold-write'")
+    receipt_button.click()
+    readiness_page.wait_for_function("() => typeof __files.finishWrite === 'function'")
+    readiness_page.evaluate("""() => {
+      __files.emit('pause');
+      __files.emit('appStateChange', {isActive: true});
+      __files.finishWrite();
+    }""")
+    expect(readiness_page.locator("#notice")).to_contain_text("backgrounded during preparation")
+    assert readiness_page.evaluate("__files.shares.length") == share_count
+    assert readiness_page.evaluate("__files.cache.size") == cache_count
+    readiness_page.evaluate("__files.outcome='closed'")
+    receipt_button.click()
+    readiness_page.wait_for_function("count => __files.shares.length === count + 1", arg=share_count)
+    expect(readiness_page.locator("#notice")).to_contain_text("Share sheet closed")
+    assert not readiness_downloads, "Academy native exports must use the native share sheet"
+    assert not errors, errors
     browser.close()
 print("PASS: synthetic native profile/replay/package/proof/verifier/PNG/rules/eval/text sharing, failure/concurrency, clean web import. Not OS share-sheet or physical-device acceptance.")

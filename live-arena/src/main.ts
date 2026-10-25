@@ -37,6 +37,7 @@ import {
 import { Broadcast } from "./broadcast";
 import { keyboardCell } from "./board-keyboard";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
+import { READINESS_SUITES, runReadinessCheck, type ReadinessReceipt } from "./readiness";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
 import { PracticeMemory, MEMORY_KEY, supportsLearning, scoreTactics, analyzePractice, type MemorySnapshot, type MemoryContext } from "./learning";
@@ -92,6 +93,10 @@ function ensureDeviceReady(agent?: Agent) {
   if (isNativeApp && (!nativeReady || !nativeActive))
     throw Error("Mobile lifecycle protection is not ready. Return to the app or restart it before playing.");
   if (agent && !agent.localVersion) validateNativeEndpoint(agent.kind, agent.endpoint, isNativeApp);
+}
+function ensureExecutionReady(agent?: Agent) {
+  if (readinessController) throw Error("Stop the readiness check in Academy before starting another run.");
+  ensureDeviceReady(agent);
 }
 async function exportPublicFile(name: string, blob: Blob, kind: ExportKind) {
   if (isNativeApp) {
@@ -831,6 +836,7 @@ function tab(name: string, route = true) {
   if (name !== "duel" && duelUI?.room.view().active) duelUI.room.close("Duel stopped when you left the room. Replay remains in Duel a friend.");
   if (name === "duel") { if (spectating) leaveWatch(); stop("Paused for duel setup"); duelUI?.render(); }
   activeTab = name;
+  if (name === "academy") refreshReadinessTargets();
   if(name==='evals'&&!evalDiscovery)evalDiscovery=import('./eval-hub').then(module=>{
     module.mountEvalDirectory($("eval-discovery"),true,isNativeApp?{storage:null,publicOrigin:"https://builderwars.com",download:async(value,name)=>transferMessage(await exportJson(name,value,"evaluation"))}:undefined);
     if(activeTab==='evals'){const heading=$("eval-discovery").querySelector<HTMLElement>('h1')!;heading.tabIndex=-1;heading.focus({preventScroll:true});}
@@ -899,6 +905,7 @@ const chessPieceNames: Record<string, string> = {
   bp: "black pawn",
 };
 function render() {
+  refreshReadinessTargets();
   const active = document.activeElement as HTMLElement | null;
   const focusedCell = active?.dataset.cell;
   const focusedSeat = active?.dataset.seat;
@@ -1197,7 +1204,7 @@ async function oneMove() {
     agents[state.turn].kind === "human"
   )
     return;
-  ensureDeviceReady(agents[state.turn]);
+  ensureExecutionReady(agents[state.turn]);
   const limits = getMatchLimits();
   if (state.moves.length >= limits.moveLimit)
     throw Error("Exhibition move limit reached. Start a rematch.");
@@ -1247,7 +1254,7 @@ async function play() {
   if (pending) return;
   let moveLimit: number;
   try {
-    ensureDeviceReady(agents[state.turn]);
+    ensureExecutionReady(agents[state.turn]);
     moveLimit = getMatchLimits().moveLimit;
   } catch (e) {
     notify((e as Error).message);
@@ -1450,6 +1457,124 @@ $<HTMLSelectElement>("pace").onchange = (e) => {
 };
 $("connections").onclick = () => openAgent(0);
 $("learn-connect").onclick = () => openAgent(0);
+function readinessStatus(message: string) {
+  $("readiness-status").textContent = message;
+}
+const escapeReadiness = (value: string) =>
+  value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
+let readinessTargets: Agent[] = [];
+function refreshReadinessTargets() {
+  const select = $<HTMLSelectElement>("readiness-agent");
+  const previous = select.value;
+  // Seat numbers are not contender identities. A replacement needs a fresh choice,
+  // even if it occupies the same seat or uses the same display name.
+  const changed = readinessTargets.length > 0 &&
+    (previous === "" || readinessTargets[Number(previous)] !== agents[Number(previous)]);
+  readinessTargets = agents.slice();
+  select.innerHTML = "";
+  if (changed) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Contender changed — choose one before running";
+    select.append(option);
+  }
+  agents.forEach((agent, index) => {
+    if (agent.kind === "human") return;
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${agent.name} · ${agent.kind === "bot" ? "built-in" : agent.kind === "openrouter" ? "OpenRouter" : "harness"}${agent.model ? ` · ${agent.model.slice(0, 48)}` : ""}`;
+    select.append(option);
+  });
+  if (!select.options.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No contender configured — connect one first";
+    select.append(option);
+  }
+  if (changed) select.value = "";
+  else if ([...select.options].some((option) => option.value === previous)) select.value = previous;
+}
+let readinessController: AbortController | null = null;
+$("readiness-stop").onclick = () => readinessController?.abort();
+$("academy-readiness").onclick = async () => {
+  const select = $<HTMLSelectElement>("readiness-agent");
+  const button = $<HTMLButtonElement>("academy-readiness");
+  if (readinessController) {
+    readinessStatus("A readiness check is already running. Stop it before starting another.");
+    return;
+  }
+  if (pending || running || spectating || duelUI?.room.view().active || localLab.active()) {
+    readinessStatus("Pause the current match, stop Lab work, or leave the duel/spectator session before running a readiness check.");
+    return;
+  }
+  const agentIndex = Number(select.value);
+  const agent = readinessTargets[agentIndex];
+  if (select.value === "" || !agent || agent !== agents[agentIndex] || agent.kind === "human") {
+    refreshReadinessTargets();
+    readinessStatus("Choose a current contender before running. Changed contenders are never selected automatically.");
+    return;
+  }
+  const suiteId = $<HTMLSelectElement>("readiness-suite").value;
+  let maxTokens: number;
+  try {
+    ensureDeviceReady();
+    maxTokens = numberInput("max-tokens", 256, 16384);
+  } catch (error) {
+    readinessStatus((error as Error).message);
+    return;
+  }
+  const controller = new AbortController();
+  readinessController = controller;
+  button.disabled = true;
+  $("readiness-stop").hidden = false;
+  $("readiness-output").innerHTML = "";
+  try {
+    const receipt: ReadinessReceipt = await runReadinessCheck({
+      agent,
+      suiteId,
+      models,
+      maxTokens,
+      signal: controller.signal,
+      onPosition: (result, index, total) =>
+        readinessStatus(`Position ${index + 1}/${total} · ${result.id} · ${result.outcome}.`),
+    });
+    const cards = receipt.positions
+      .map(
+        (position) =>
+          `<div class="telemetry readiness-card"><div><span>${escapeReadiness(position.id)}</span><strong>${position.outcome}</strong></div><div><span>REPLY</span><strong>${escapeReadiness(position.replyMove ?? "—")}</strong></div><div><span>LATENCY</span><strong>${position.latencyMs === null ? "—" : `${position.latencyMs} ms`}</strong></div><div><span>DETAIL</span><strong>${escapeReadiness(position.detail)}</strong></div></div>`,
+      )
+      .join("");
+    const summary = `Readiness: ${receipt.summary.valid}/${receipt.summary.positions} valid · ${receipt.summary.invalidReply} invalid reply · ${receipt.summary.timeout} timeout · ${receipt.summary.connectionError} connection error${receipt.summary.skipped ? ` · ${receipt.summary.skipped} skipped` : ""}.`;
+    const container = $("readiness-output");
+    container.innerHTML = `<p class="subtitle">${escapeReadiness(summary)} Protocol readiness only — no ranking.</p>${cards}`;
+    const download = document.createElement("button");
+    download.textContent = "Download readiness receipt";
+    download.onclick = async () => {
+      try {
+        await exportJson(
+          `readiness-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
+          receipt,
+          "replay",
+        );
+      } catch (error) {
+        notify((error as Error).message);
+      }
+    };
+    container.append(download);
+    readinessStatus(
+      receipt.summary.skipped
+        ? "Check stopped early. The partial receipt marks every position that did not run as skipped."
+        : `Check complete over the ${receipt.suite.game} suite. One suite is practice evidence, not a leaderboard.`,
+    );
+  } catch (error) {
+    readinessStatus((error as Error).message);
+  } finally {
+    readinessController = null;
+    button.disabled = false;
+    $("readiness-stop").hidden = true;
+  }
+};
+refreshReadinessTargets();
 $("create-game-shortcut").onclick = () => tab("forge");
 function openAgent(seat: number) {
   if (duelUI?.room.view().active && (duelUI.room.view().ready || duelUI.room.view().seat === 0))
@@ -2047,6 +2172,7 @@ function runSeries() {
   }
   let nextLimits: { moveLimit: number; maxTokens: number }, nextTotal: number;
   try {
+    ensureExecutionReady();
     nextLimits = { moveLimit: numberInput("move-limit", 2, 400), maxTokens: numberInput("max-tokens", 256, 16384) };
     nextTotal = numberInput("series-length", 2, 10);
     if (![2, 4, 10].includes(nextTotal)) throw Error("Choose 2, 4 or 10 games.");
@@ -2089,6 +2215,10 @@ $("export-series").onclick = async () => {
   catch (error) { notify((error as Error).message); }
 };
 function prepareAcademy(variant: boolean) {
+  if (readinessController) {
+    $("academy-status").textContent = "Stop the readiness check before starting an exercise.";
+    return false;
+  }
   if (running || pending || spectating) {
     $("academy-status").textContent = "Pause the current match or leave spectator mode before starting an exercise.";
     return false;
@@ -2294,7 +2424,7 @@ duelUI = mountDuel({ agent: currentDuelAgent, models: () => models, configure: (
     }
   }, useFree: () => { duelAgentOverride = freeAgents()[0]; },
   rename: name => { duelAgentOverride = { ...currentDuelAgent(), name: name.slice(0, 64) }; },
-  enter: () => tab("duel"), ensure: ensureDeviceReady, share: copyOrNativeShare,
+  enter: () => tab("duel"), ensure: ensureExecutionReady, share: copyOrNativeShare,
   download: (name, value) => exportJson(name, value, "replay"),
 });
 window.addEventListener("beforeunload", () => {
@@ -2360,12 +2490,12 @@ function loadFragment() {
 }
 const localLab = mountLab({
   storage: () => { try { return isNativeApp ? deviceStorage : localStorage; } catch { return undefined; } },
-  ensure: () => ensureDeviceReady(),
+  ensure: () => ensureExecutionReady(),
   export: (name, data) => exportJson(name, data, "evaluation"),
   use: async raw => {
     const parent = await validateLabVersion(raw);
     const version = await arenaLabVersion(parent);
-    ensureDeviceReady();
+    ensureExecutionReady();
     if (running || pending || duelUI?.room.view().active) throw Error("Pause the current match and leave the duel before changing a contender.");
     if (record.events.length && !state.over && !confirm("Prepare this Lab version instead of your unfinished match? Export the match first if you need it.")) return;
     if (spectating) leaveWatch();
@@ -2383,6 +2513,7 @@ const localLab = mountLab({
   },
 });
 function suspendNative() {
+  readinessController?.abort();
   localLab.cancel("Local work stopped when the app left the foreground. No experiment restarts automatically.");
   if (duelUI?.room.view().active) duelUI.room.close("Duel stopped when the app left the foreground.");
   if (!nativeActive) return;
