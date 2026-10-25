@@ -38,7 +38,6 @@ import { Broadcast } from "./broadcast";
 import { keyboardCell } from "./board-keyboard";
 import { academyMarkup, freeAcademyRecipe } from "./academy";
 import { READINESS_SUITES, runReadinessCheck, type ReadinessReceipt } from "./readiness";
-import { agentWorldEventFile } from "./agentworld-events";
 import { summarizeSeries, type SeriesAttempt } from "./evaluation";
 import { isExhibitionLimit } from "./outcome";
 import { PracticeMemory, MEMORY_KEY, supportsLearning, scoreTactics, analyzePractice, type MemorySnapshot, type MemoryContext } from "./learning";
@@ -1562,24 +1561,6 @@ $("academy-readiness").onclick = async () => {
       }
     };
     container.append(download);
-    const worldEvent = document.createElement("button");
-    worldEvent.id = "readiness-world";
-    worldEvent.textContent = "Download AgentWorld event";
-    worldEvent.onclick = async () => {
-      const check = fileTransfer.preparationGuard();
-      try {
-        const file = await agentWorldEventFile(receipt);
-        check();
-        await exportJson(
-          `agentworld-${receipt.suite.id}-${receipt.generatedAt.slice(0, 10)}.json`,
-          file,
-          "replay",
-        );
-      } catch (error) {
-        notify((error as Error).message);
-      }
-    };
-    container.append(worldEvent);
     readinessStatus(
       receipt.summary.skipped
         ? "Check stopped early. The partial receipt marks every position that did not run as skipped."
