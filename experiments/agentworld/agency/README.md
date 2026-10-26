@@ -44,8 +44,21 @@ this review host blocks direct file navigation.
 Start with **Next choice**, or select a suggestion for the next companion. Let
 the companions choose for several turns and inspect the decision journal. Stop
 halts automatic turns. Export a visit to keep it; import reconstructs the saved
-requests and policy before replacing the current visit. There is no automatic
-save or background world in this slice.
+requests and policy before replacing the current visit. Device saving is optional:
+enable **Save this visit in this browser** to keep one checkpoint as choices occur.
+On return, **Resume saved visit** opens a recap and confirmation, then continues
+the verified visit paused. No turns run while the page is closed. Opting out stops
+new saves and retains the earlier checkpoint; **Forget saved visit** removes that
+checkpoint and disables saving. Export a file for a separate or cross-device backup.
+
+A different unsaved visit cannot silently replace an existing checkpoint. Resume
+or forget it first. Storage failures preserve earlier data where available and
+explain that current progress needs an export. Another tab's change pauses this
+view and disables its saving; browser storage is not transactional across tabs.
+There is no cloud backup, background world or new learning across visits.
+
+The [pilot plan](PILOT_PLAN.md) defines the staged visitor, connected-agent and
+repeat-use work. The [study protocol](PILOT_STUDY.md) is prepared and has not been run.
 
 ## Mechanics and evidence
 
@@ -84,7 +97,7 @@ the 240-turn cap is an incomplete visit, not success.
 ## Verify
 
 ```sh
-node --test experiments/agentworld/agency/policy.test.mjs
+node --test experiments/agentworld/agency/policy.test.mjs experiments/agentworld/agency/return-visit.test.mjs
 node --test experiments/agentworld/test.mjs experiments/agentworld/consumer-quests.test.mjs experiments/agentworld/world-evidence.test.mjs
 python experiments/agentworld/agency/browser_test.py
 ```

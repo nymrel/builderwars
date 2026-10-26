@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent
 def build(output: Path) -> None:
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     hashes = []
-    for filename in ["../engine.js", "policy.js", "app.js"]:
+    for filename in ["../engine.js", "policy.js", "return-visit.js", "app.js"]:
         script = (ROOT / filename).read_text(encoding="utf-8")
         if "</script" in script.lower():
             raise ValueError("Script contains an unsafe HTML closing tag")

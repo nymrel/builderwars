@@ -1,18 +1,46 @@
 /* A local, offline view over the replayable AgentWorld agency policy. */
 (function () {
   'use strict';
-  const E = globalThis.Agentworld, A = globalThis.AgentworldAgency;
+  const E = globalThis.Agentworld, A = globalThis.AgentworldAgency, R = globalThis.AgentworldReturn;
   const $ = (id) => document.getElementById(id);
   const notice = (message, error = false) => { $('notice').textContent = message; $('notice').className = 'notice' + (error ? ' error' : ''); $('notice').hidden = false; };
-  if (!E || !A) { notice('The world could not start. Open this page with its companion files together.', true); return; }
+  if (!E || !A || !R) { notice('The world could not start. Open this page with its companion files together.', true); return; }
   const GOALS = { help: 'Bring supplies home', explore: 'Explore', rest: 'Recover' };
   const COLORS = ['#ad613b', '#43898a', '#8b773c', '#637ba2'];
   const profiles = A.PROFILES;
   let session = A.create({ seed: 481516, mode: 'cooperative' });
   let selected = profiles[0].id, timer = null, playing = false, revision = 0, pending = null, showAll = false, importToken = 0;
+  const checkpoint = R.createStore(() => globalThis.localStorage);
+  let saved = checkpoint.load(), saving = false;
   const profile = (id) => profiles.find((p) => p.id === id) || { id, name: id, role: 'Companion', description: '' };
   const color = (id) => COLORS[Math.max(0, E.ORDER.indexOf(id)) % COLORS.length];
   const goal = (value) => GOALS[value] || 'Finding a direction';
+  function renderReturn() {
+    $('save-visit').checked = saving;
+    $('forget-visit').disabled = saved.raw === null || saved.raw === undefined;
+    $('return-banner').hidden = !saved.session || saving;
+    if (saved.session) {
+      const world = saved.session.world, last = saved.session.history.at(-1);
+      $('return-recap').textContent = `Your last visit ended after ${world.turn} choices, with ${world.scores.amber + world.scores.tide} of 16 supplies home.` +
+        (last ? ` ${profile(last.actor).name}'s last plan: ${goal(last.goal)}. Last choice: ${actionText(last.action).toLowerCase()}.` : ' The companions have not taken their first step yet.');
+    }
+    $('save-status').textContent = saved.error || (saving && saved.session
+      ? `Saved through choice ${saved.session.world.turn} in this browser. Export for a separate backup.`
+      : saved.session ? `Saving is off. The earlier visit at choice ${saved.session.world.turn} is kept; your current progress is not being saved.`
+      : 'Device saving is off. Export a file to keep this visit.');
+  }
+  function saveCurrentVisit() {
+    if (!saving) return;
+    try {
+      const raw = checkpoint.save(session, saved.raw);
+      saved = { raw, session: A.verify(raw), error: null };
+    } catch {
+      saving = false;
+      saved = checkpoint.load();
+      notice('This progress could not be saved or confirmed. Export this visit to keep your current progress.', true);
+    }
+    renderReturn();
+  }
   const position = (a) => `${String.fromCharCode(65 + a.x)}${a.y + 1}`;
   const svgNode = (tag, attrs = {}, text) => {
     const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -152,11 +180,11 @@
     const world=session.world, visited=new Set(session.actors.flatMap((a)=>a.visited));
     $('deliveries').replaceChildren(String(world.scores.amber+world.scores.tide)+' ',htmlNode('small','','/ 16'));$('turn-count').replaceChildren(String(world.turn)+' ',htmlNode('small','','/ 240'));$('explored-count').replaceChildren(String(visited.size)+' ',htmlNode('small','','/ 64'));
     $('seed-label').textContent=`Seed ${world.config.seed}`;$('visit-seed').textContent=`World seed ${world.config.seed}`;
-    renderControls();renderMap();renderCards();renderLog();
+    renderControls();renderMap();renderCards();renderLog();renderReturn();
   }
   function step(request=null) {
     if(session.world.status!=='running')return;
-    try{session=A.advance(session,request);revision++;render();if(session.world.status!=='running')pause();}
+    try{session=A.advance(session,request);revision++;saveCurrentVisit();render();if(session.world.status!=='running')pause();}
     catch(error){pause();notice(error.message||'This choice could not be completed.',true);}
   }
   function schedule() {
@@ -172,10 +200,12 @@
     }catch(error){notice(error.message||'This visit could not be exported.',true);}
   }
   function openDialog(kind, imported=null) {
-    if(kind==='new')importToken++;
+    if(kind==='new'||kind==='resume')importToken++;
     pause();pending={kind,imported,revision};$('dialog-error').hidden=true;$('seed-field').hidden=kind!=='new';
     $('dialog-title').textContent=kind==='new'?'Begin a new world?':'Open this saved visit?';$('dialog-confirm').textContent=kind==='new'?'Begin new world':'Open saved visit';
     $('dialog-description').textContent=kind==='new'?'Export this visit first if you want to return. A new world replaces the current visit in this page.':`This visit was checked and is ready: seed ${imported.world.config.seed}, ${imported.world.turn} choices. Export your current visit first if you want to keep it.`;
+    if (saving || kind === 'resume') $('dialog-description').textContent += ' The opened visit will be saved in this browser, replacing its one device checkpoint.';
+    if (kind === 'resume') pending.savedRaw = saved.raw;
     if(kind==='new') {const value=new Uint32Array(1);if(globalThis.crypto&&crypto.getRandomValues)crypto.getRandomValues(value);else value[0]=Date.now()>>>0;$('new-seed').value=String(value[0]||1);}
     $('replace-dialog').showModal();
   }
@@ -186,6 +216,32 @@
   $('log-more').addEventListener('click',()=>{showAll=!showAll;renderLog();});
   $('export-visit').addEventListener('click',exportVisit);$('dialog-export').addEventListener('click',exportVisit);
   $('new-world').addEventListener('click',()=>openDialog('new'));
+  $('save-visit').addEventListener('change', () => {
+    if (!$('save-visit').checked) { saving = false; renderReturn(); return; }
+    const current = checkpoint.load();
+    if (current.error) {
+      saved = current; saving = false; renderReturn();
+      notice('Device saving is unavailable or the saved visit could not be verified. Export your current visit to keep it.', true);
+      return;
+    }
+    const different = saved.session && JSON.stringify(A.pack(session)) !== JSON.stringify(A.pack(saved.session));
+    if (current.raw !== saved.raw || (!saving && different)) {
+      saved = current; saving = false; renderReturn();
+      notice('Resume or forget the saved visit before saving a different visit here. Export your current visit if you want to keep it.', true);
+      return;
+    }
+    saving = true; saveCurrentVisit();
+  });
+  $('forget-visit').addEventListener('click', () => {
+    pause();
+    try { checkpoint.forget(saved.raw); saving = false; saved = checkpoint.load(); renderReturn(); notice('Saved visit removed. This page stays open; future choices will not be saved unless you enable saving.'); }
+    catch { saving = false; saved = checkpoint.load(); renderReturn(); notice('The saved visit changed or could not be removed. Your current visit is still here.', true); }
+  });
+  $('resume-visit').addEventListener('click', () => {
+    pause(); saved = checkpoint.load(); renderReturn();
+    if (!saved.session) return;
+    openDialog('resume', saved.session);
+  });
   $('import-visit').addEventListener('click',()=>{importToken++;pause();$('import-file').click();});
   $('import-file').addEventListener('change',async(event)=>{
     const file=event.target.files[0];event.target.value='';if(!file)return;pause();const startedRevision=revision, token=++importToken;
@@ -202,15 +258,22 @@
   $('dialog-confirm').addEventListener('click',()=>{
     try{
       if(!pending)return;if(pending.revision!==revision)throw new Error('The current world changed. Close this dialog and try again.');
+      if(pending.kind==='resume' && checkpoint.load().raw !== pending.savedRaw)throw new Error('The saved visit changed. Close this dialog and choose Resume again.');
       let replacement;
       if(pending.kind==='new'){
         const raw=$('new-seed').value, seed=Number(raw);if(!/^\d+$/.test(raw)||!Number.isSafeInteger(seed)||seed<1||seed>4294967295)throw new Error('Choose a whole-number seed from 1 to 4294967295.');
         replacement=A.create({seed,mode:'cooperative'});
       }else replacement=pending.imported;
-      session=replacement;revision++;selected=profiles[0].id;showAll=false;pending=null;$('replace-dialog').close();$('notice').hidden=true;render();$('next-choice').focus();
+      if(pending.kind==='resume')saving=true;
+      session=replacement;revision++;selected=profiles[0].id;showAll=false;pending=null;$('replace-dialog').close();$('notice').hidden=true;saveCurrentVisit();render();$('next-choice').focus();
     }catch(error){$('dialog-error').textContent=error.message;$('dialog-error').hidden=false;}
   });
   document.addEventListener('visibilitychange',()=>{if(document.hidden){const wasPlaying=playing;pause();if(wasPlaying)notice('The world paused while you were away. Let them choose when you are ready.');}});
   globalThis.addEventListener('pagehide',pause);
+  globalThis.addEventListener('storage', (event) => {
+    if (event.key !== R.KEY && event.key !== null) return;
+    pause(); saving = false; saved = checkpoint.load(); renderReturn();
+    notice('Device history changed in another tab. This visit is paused and still here; export it before replacing anything.');
+  });
   createCards();render();
 })();
