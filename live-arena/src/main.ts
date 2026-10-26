@@ -1463,7 +1463,12 @@ function readinessStatus(message: string) {
 const escapeReadiness = (value: string) =>
   value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
 let readinessTargets: Agent[] = [];
+let readinessController: AbortController | null = null;
+let readinessAgent: Agent | null = null;
 function refreshReadinessTargets() {
+  // Removing or replacing a connection also revokes the rest of its readiness
+  // run. The picker can change mid-check, so bind cancellation to the actual agent.
+  if (readinessAgent && !agents.includes(readinessAgent)) readinessController?.abort();
   const select = $<HTMLSelectElement>("readiness-agent");
   const previous = select.value;
   // Seat numbers are not contender identities. A replacement needs a fresh choice,
@@ -1494,7 +1499,6 @@ function refreshReadinessTargets() {
   if (changed) select.value = "";
   else if ([...select.options].some((option) => option.value === previous)) select.value = previous;
 }
-let readinessController: AbortController | null = null;
 $("readiness-stop").onclick = () => readinessController?.abort();
 $("academy-readiness").onclick = async () => {
   const select = $<HTMLSelectElement>("readiness-agent");
@@ -1524,6 +1528,7 @@ $("academy-readiness").onclick = async () => {
     return;
   }
   const controller = new AbortController();
+  readinessAgent = agent;
   readinessController = controller;
   button.disabled = true;
   $("readiness-stop").hidden = false;
@@ -1570,6 +1575,7 @@ $("academy-readiness").onclick = async () => {
     readinessStatus((error as Error).message);
   } finally {
     readinessController = null;
+    readinessAgent = null;
     button.disabled = false;
     $("readiness-stop").hidden = true;
   }
