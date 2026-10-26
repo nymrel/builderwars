@@ -94,3 +94,39 @@ test("pending readiness blocks Start, Step, evaluation and exercises before disp
   ]);
   assert.throws(() => context.ensureExecutionReady(), /Stop the readiness check/);
 });
+
+test("replacing or removing a running readiness contender cancels its remaining requests", () => {
+  for (const replacement of [
+    { kind: "harness", name: "Tactician", model: "replacement" },
+    { kind: "human", name: "You", model: "human" },
+  ]) {
+    const { context, calls, run } = harness();
+    void run();
+    const { signal } = calls[0] as { signal: AbortSignal };
+    assert.equal(signal.aborted, false);
+    context.agents[0] = replacement;
+    context.refreshReadinessTargets();
+    assert.equal(signal.aborted, true, replacement.kind);
+  }
+});
+
+test("readiness cancellation follows the running contender when the picker changes", () => {
+  const { context, $, calls, run } = harness();
+  void run();
+  const { signal } = calls[0] as { signal: AbortSignal };
+  $("readiness-agent").value = "1";
+  context.agents[0] = { kind: "bot", name: "Replacement", model: "random" };
+  context.refreshReadinessTargets();
+  assert.equal(signal.aborted, true);
+});
+
+test("unchanged contenders and changes to the other seat do not cancel readiness", () => {
+  const { context, calls, run } = harness();
+  void run();
+  const { signal } = calls[0] as { signal: AbortSignal };
+  context.refreshReadinessTargets();
+  assert.equal(signal.aborted, false);
+  context.agents[1] = { kind: "bot", name: "Other contender", model: "random" };
+  context.refreshReadinessTargets();
+  assert.equal(signal.aborted, false);
+});

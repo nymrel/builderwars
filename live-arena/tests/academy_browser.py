@@ -207,6 +207,74 @@ with sync_playwright() as p:
     # AgentWorld remains experimental; the release exposes only the ordinary receipt.
     assert page.locator("#readiness-world").count() == 0
     assert page.get_by_role("button", name="Download AgentWorld event").count() == 0
+
+    # Replacing a contender revokes its pending readiness run, even after the
+    # picker moves to the other seat. A late reply must not trigger more requests.
+    harness_url = "https://readiness.example/move"
+    def configure_readiness_harness():
+        page.locator("#connections").click()
+        page.locator("#agent-kind").select_option("harness")
+        page.locator("#harness-url").fill(harness_url)
+        page.locator("#harness-model").fill("synthetic/readiness")
+        page.locator("#agent-name").fill("Readiness fixture")
+        page.locator("#agent-key").fill("synthetic-readiness-revocation-sentinel")
+        page.locator("#use-contender").click()
+        page.locator("nav [data-tab=academy]").click()
+        page.locator("#readiness-agent").select_option("0")
+
+    revoked_calls = []
+    page.route(harness_url, lambda route: revoked_calls.append(route))
+    configure_readiness_harness()
+    with page.expect_request(harness_url):
+        page.locator("#academy-readiness").click()
+    page.locator("#readiness-agent").select_option("1")
+    page.locator("#connections").click()
+    page.locator("#agent-kind").select_option("bot")
+    # Keep the display name: cancellation follows object identity, not labels.
+    page.locator("#use-contender").click()
+    expect(page.locator("#readiness-status")).to_contain_text("Check stopped early")
+    expect(page.locator("#academy-readiness")).to_be_enabled()
+    expect(page.locator("#readiness-stop")).to_be_hidden()
+    with page.expect_download() as result:
+        page.get_by_role("button", name="Download readiness receipt").click()
+    stopped = json.loads(Path(result.value.path()).read_text())
+    assert stopped["contender"]["kind"] == "harness"
+    assert stopped["contender"]["model"] == "synthetic/readiness"
+    assert stopped["summary"]["skipped"] == 10 and stopped["summary"]["valid"] == 0
+    assert all(position["replyMove"] is None for position in stopped["positions"])
+    assert "synthetic-readiness-revocation-sentinel" not in json.dumps(stopped)
+    assert harness_url not in json.dumps(stopped)
+    revoked_calls[0].fulfill(json={"move": "0", "model": "late/synthetic"})
+    page.wait_for_timeout(100)
+    assert len(revoked_calls) == 1
+    assert "10 skipped" in page.locator("#readiness-output").inner_text()
+
+    # A change to the other seat does not revoke the selected contender. Once
+    # its held reply arrives, the same check completes all ten positions.
+    page.unroute(harness_url)
+    continuing_calls = []
+    def continuing_move(route):
+        continuing_calls.append(route)
+        if len(continuing_calls) > 1:
+            body = json.loads(route.request.post_data)
+            route.fulfill(json={"move": body["legalMoves"][0], "model": "synthetic/readiness"})
+    page.route(harness_url, continuing_move)
+    configure_readiness_harness()
+    with page.expect_request(harness_url):
+        page.locator("#academy-readiness").click()
+    page.locator("nav [data-tab=arena]").click()
+    page.locator('#seats [data-seat="1"]').click()
+    page.locator("#agent-name").fill("Other seat replacement")
+    page.locator("#use-contender").click()
+    page.locator("nav [data-tab=academy]").click()
+    expect(page.locator("#readiness-stop")).to_be_visible()
+    assert len(continuing_calls) == 1
+    body = json.loads(continuing_calls[0].request.post_data)
+    continuing_calls[0].fulfill(json={"move": body["legalMoves"][0], "model": "synthetic/readiness"})
+    expect(page.locator("#readiness-output")).to_contain_text("10/10 valid")
+    assert len(continuing_calls) == 10
+    expect(page.locator("#academy-readiness")).to_be_enabled()
+    assert not provider_calls
     for width in [320, 390, 768, 1440]:
         page.set_viewport_size({"width": width, "height": 900})
         for section in ["academy", "forge", "evals"]:
@@ -215,4 +283,4 @@ with sync_playwright() as p:
     assert not errors, errors
     context.close()
     browser.close()
-    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "syntheticReadinessCalls": len(readiness_caps), "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "readiness explicit contender identity", "readiness selected token cap", "reciprocal execution exclusion", "readiness Stop while response held", "readiness check local built-in", "responsive lessons/evals"]}))
+    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "syntheticReadinessCalls": len(readiness_caps), "syntheticRevocationCalls": len(revoked_calls), "syntheticContinuationCalls": len(continuing_calls), "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "readiness explicit contender identity", "readiness selected token cap", "reciprocal execution exclusion", "readiness Stop while response held", "readiness check local built-in", "readiness contender replacement cancellation", "readiness late reply after replacement", "readiness other-seat replacement continuity", "responsive lessons/evals"]}))
