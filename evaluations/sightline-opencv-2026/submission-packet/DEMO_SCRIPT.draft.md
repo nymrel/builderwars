@@ -1,39 +1,69 @@
 # Sightline Demo Script — Draft, Not Submitted
 
-Target duration: 4 minutes 30 seconds. All footage must use generated or provenance-cleared fixtures.
+Target duration: approximately three minutes, below the five-minute competition maximum. The current cut is a silent, English-captioned recording of the functioning local walkthrough. It is a **local evidence cut**, pending independently verified AWS runtime evidence and final submission review.
 
-Before recording, build `sightline-demo-review.zip` with `build_demo_bundle.py`. Use only its synthetic PNG pairs, machine-readable evaluation, and self-contained architecture SVG for the generated-fixture segments. The bundle receipt must report `synthetic_only=true`, `browser_data_included=false`, and false execution, publication, and submission authority.
+## Opening — Start with the user's broken journey
 
-## 0:00–0:35 — Problem
+Show two actual screenshots of the tracked BuilderWars Arena: the expected featured receipt and the same view after a controlled missing-receipt fault. The page still responds. Its proof is missing.
 
-Show a visually broken interface beside its baseline. Explain that conventional health checks can remain green while a missing control or shifted layout harms the user.
+Say or caption: “The page still loads, but the featured receipt has disappeared. This controlled fault uses the real tracked BuilderWars interface.”
 
-## 0:35–1:25 — OpenCV 5 Perception
+## Detect and decide — Show the OpenCV evidence
 
-Run the bounded comparison. Show the typed finding, bounding box, changed-pixel count, and deterministic trace digest. Identify OpenCV 5 operations without claiming model inference.
+Click **Inspect with OpenCV 5**. Run the existing real OpenCV 5.0.0 adapter, not a test double. Show the measured connected components, changed-pixel count, findings digest, and `request_human_approval` decision.
 
-## 1:25–2:05 — Agent Decision and Human Control
+Explain that absolute differences, thresholding, and connected components are deterministic computer vision, not model inference. The known injected fault supplies the cause; pixel evidence alone does not prove the root cause of an unknown defect.
 
-Show the finding entering deterministic policy and returning `request_human_approval`. Emphasize that the agent cannot modify a repository, configuration, or deployment.
+## Enforce approval — Show the failed attempt first
 
-## 2:05–2:50 — Failure Handling
+Click **Try restore without approval**. Require rejection. Show identical before/after screenshot hashes. The page does not change.
 
-Demonstrate unreadable-input and dimension-mismatch failures. Show that both stop before a decision and that no secret value or local path appears in the receipt.
+Then check the explicitly labeled demo-operator approval box. The receipt must identify `actor=automated_demo_operator`, `human_approval_observed=false`, and `production_authority=false`.
 
-## 2:50–3:35 — AWS-Compatible Packaging
+Say or caption: “This recorded event is scripted for the demonstration. It grants one restore of the injected DOM property in this temporary browser. It is not a human approval or a production authorization.”
 
-Build the deterministic source ZIP. Show its SHA-256 and the inert `prepare_only` plan with credentials, deployment, execution, and spend authority false. State clearly that this is local packaging, not AWS deployment evidence.
+## Perform the bounded demo action — Keep the claim narrow
 
-## 3:35–4:10 — Evaluation
+Click **Apply approved local fixture restore**. The separate demo controller consumes the one-use candidate-bound event and restores only the injected visibility property. `SightlineAgent` retains `execution_authorized=false` and has no write operation.
 
-Show 3/3 generated task outcomes and 2/2 fail-closed controls, then the labeled loopback browser corpus: 12/12 desktop/mobile cases, 10 true positives, 2 true negatives, and zero false positives or false negatives. Show the full 33-test hosted result. State that this small managed-Chromium set is not cross-browser or production-accuracy evidence.
+Show the restored screenshot with status **restore applied, not verified**. Do not label the outcome successful yet.
 
-## 4:10–4:30 — Close
+## Verify — Measure the outcome
 
-Use the self-contained architecture graphic to summarize perception → decision → human approval. Identify the next validation steps as broader provenance-cleared browsers/routes and meaningful AWS execution only through an authorized zero-spend path.
+Click **Verify the fresh outcome**. Capture a new screenshot and compare it against the original baseline with the same OpenCV thresholds and policy.
 
-## Recording Rules
+Require zero retained findings, `accept_no_material_change`, and a screenshot hash identical to the baseline. State that this proves this exact controlled fixture at this viewport, not production accuracy or general autonomous remediation.
 
-- Do not display credentials, account identifiers, customer data, private repositories, local-machine paths, dashboards, or billing surfaces.
-- Do not claim AWS deployment, production use, representative accuracy, competition qualification, or submission.
-- Keep the video draft private or unlisted until the exact Submitted Materials scope is reviewed.
+## Retain failures and measurement limits
+
+Show three actual handler rejections: malformed PNG, dimension mismatch, and compressed expansion with oversized IHDR dimensions. Each is a `ValueError`; do not describe it as an HTTP response or AWS error.
+
+Keep the prior fragmented-materiality false negative, mobile below-fold framing mistake, reversed synthetic polarity, and compressed-PNG expansion defect in the record. Explain their fixes without dropping failed attempts from the narrative.
+
+Keep measured scopes separate:
+
+- Merged Stage 1 hosted evidence: 35 tests, 3 generated cases, 2 failure controls, and 24 browser executions across Chromium and Firefox.
+- Current-main local Firefox rerun: 12 cases across six workflow types and two fixed viewports, 10 true positives, 2 true negatives, 0 false positives, and 0 false negatives.
+- This new walkthrough: one injected fault, one temporary DOM restore, one fixed viewport, and a scripted demo-operator event.
+
+These results do not establish representative user traffic, device coverage, semantic correctness, unknown root-cause diagnosis, or production reliability.
+
+## AWS — Use actual execution evidence or state the gap
+
+The current local cut explicitly says **AWS execution remains unverified**. Source packaging and Lambda compatibility do not satisfy the organizer's meaningful-AWS-component requirement.
+
+An AWS segment may be added only after an authorized run is verified. Show a sanitized runtime receipt with exact source and dependency hashes, input hashes, actual returned findings, AWS runtime identity, and retained invocation evidence. Never manufacture those fields or reinterpret local execution as cloud execution.
+
+## Close
+
+“See the defect. Bound the decision. Verify the outcome.”
+
+The source and recorded artifacts remain associated with the existing Sightline entry. This recording does not itself establish a public video URL, legal acceptance, competition qualification, or Devpost submission.
+
+## Recording and rights controls
+
+- Use only tracked Nymrel source, original generated fixtures, and documented dependencies; retain the MIT license and third-party notices with the source package.
+- Display no customer records, private source, credentials, account identifiers, private local paths, or billing screens.
+- Record real browser activity and actual measurements; label the scripted operator event.
+- Preserve the defective inputs and unsuccessful attempts with the fresh verified outcome.
+- Freeze and review the exact submitted-materials corpus before accepting material legal/IP commitments.

@@ -48,6 +48,29 @@ python -m unittest discover \
 
 These generated fixtures establish reproducibility and failure observability only. They do not establish production accuracy, leaderboard performance, or competition qualification.
 
+## Recorded end-to-end local journey
+
+`record_journey_demo.py` extends the existing evaluation with a measured user journey on the tracked BuilderWars interface:
+
+1. Capture the actual local Arena and inject the existing controlled missing-receipt fault.
+2. Run the unchanged OpenCV 5 adapter and policy. Show connected components, changed-pixel counts, and the exact findings digest.
+3. Attempt a local fixture restore without approval; require rejection and identical before/after screenshot hashes.
+4. Record an explicitly labeled **automated demo-operator event**, scoped to one restore of the injected DOM property. This is not evidence of actual human approval.
+5. Consume that one-use, candidate-bound event, restore only the temporary fixture, and capture a fresh image.
+6. Re-run OpenCV and require both zero retained findings and a screenshot hash identical to the original baseline.
+7. Retain malformed-image, dimension-mismatch, compressed-expansion, and prior development-failure evidence.
+
+Use the existing hash-locked OpenCV environment plus `live-arena/tests/requirements-ci.txt` and a managed Playwright browser:
+
+```bash
+python evaluations/sightline-opencv-2026/record_journey_demo.py \
+  --output-dir /tmp/sightline-journey --browser firefox
+```
+
+The roughly three-minute silent, captioned video is a recording of the functioning local walkthrough. PNGs, exact source-file hashes, runtime versions, diagnostic decisions, rejected actions, the labeled demo approval, and the fresh outcome are retained alongside `journey-receipt.json`. A short verification recording can use `--hold-scale 0.02`.
+
+The action controller is deliberately separate from `SightlineAgent`: the planner still has `execution_authorized=false` and cannot modify the product. `demo_approval.py` is a local demonstration gate, **not** production authentication or approval infrastructure. The known injected fault supplies the cause; pixel evidence alone does not establish the root cause of an unknown defect. This is not general autonomous repair. The video explicitly states that meaningful AWS execution and Devpost submission are unverified; a local recording cannot close either requirement.
+
 ## Synthetic demo review bundle
 
 `build_demo_bundle.py` creates a deterministic private-review ZIP containing three synthetic baseline/candidate PNG pairs, the self-contained architecture SVG, a machine-readable evaluation, and a SHA-256 manifest:
@@ -91,7 +114,7 @@ The artifact is neither uploaded nor deployed. A successful receipt must report 
 
 ## Hosted validation
 
-`.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs all 33 tests without skips, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The workflow has read-only repository permission and no AWS or deployment capability.
+`.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs the discovered tests, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The merged Stage 1 head passed 35 tests; the added demo approval gate contributes four focused regressions. The workflow has read-only repository permission and no AWS or deployment capability.
 
 `.github/workflows/sightline-browser-corpus.yml` uses a fail-independent matrix to install pinned Playwright 1.58.0 with managed Chromium and Firefox, renders tracked BuilderWars source only over loopback, and runs the same corpus in each engine without uploading temporary PNGs.
 
