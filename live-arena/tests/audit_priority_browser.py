@@ -160,6 +160,10 @@ with sync_playwright() as p:
     assert page.locator("#watch").is_visible()
     expect(page.locator("#watch-join-status")).to_have_text("Paste a complete BuilderWars watch link.")
     assert "Failed to construct" not in page.locator("#watch-join-status").inner_text()
+    page.locator("#join-link").fill("https://builderwars.com/#watch=invalid%20id")
+    page.locator("#join").click()
+    expect(page.locator("#watch-join-status")).to_have_text("Could not open this broadcast. Check the link or ask the host for a new one.")
+    assert page.locator("#watch").is_visible()
 
     # Forge validation failures stay in Forge and render next to the controls.
     page.locator('nav [data-tab="forge"]').click()
