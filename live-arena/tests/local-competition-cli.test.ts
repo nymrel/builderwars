@@ -67,7 +67,7 @@ test('verification rejects identity tampering, missing matches and source path s
   await assert.rejects(verifyLocalCompetition(traversal), /Unexpected source paths/);
 });
 
-test('existing or incomplete outputs are never overwritten; links and oversized receipts are refused', async () => {
+test('existing or incomplete outputs are never overwritten; links and oversized receipts are refused', async t => {
   const before = await readFile(join(baseline, 'manifest.json'), 'utf8');
   await assert.rejects(runLocalCompetition(baseline), /EEXIST/);
   assert.equal(await readFile(join(baseline, 'manifest.json'), 'utf8'), before);
@@ -75,11 +75,19 @@ test('existing or incomplete outputs are never overwritten; links and oversized 
   await assert.rejects(verifyLocalCompetition(incomplete), /Missing or unexpected/);
   await assert.rejects(runLocalCompetition(incomplete), /EEXIST/);
   const linked = await archive('linked'), plan = join(linked, 'plan.json'); await unlink(plan);
-  await symlink(join(baseline, 'plan.json'), plan);
+  try {
+    await symlink(join(baseline, 'plan.json'), plan, 'file');
+  } catch (error) {
+    if (process.platform !== 'win32' || (error as NodeJS.ErrnoException).code !== 'EPERM') throw error;
+    // Windows may deny file symlinks without Developer Mode. Keep exercising
+    // link rejection with an unprivileged directory junction at the receipt path.
+    t.diagnostic('File symlink unavailable; testing a junction at the receipt path.');
+    await symlink(baseline, plan, 'junction');
+  }
   await assert.rejects(verifyLocalCompetition(linked), /regular receipt/);
   const oversized = await archive('oversized'); await writeFile(join(oversized, 'plan.json'), ' '.repeat(1_500_001));
   await assert.rejects(verifyLocalCompetition(oversized), /bounded regular/);
-  const target = join(root, 'target'), link = join(root, 'parent-link'); await mkdir(target); await symlink(target, link, 'dir');
+  const target = join(root, 'target'), link = join(root, 'parent-link'); await mkdir(target); await symlink(target, link, process.platform === 'win32' ? 'junction' : 'dir');
   await assert.rejects(runLocalCompetition(join(link, 'new', 'cup')), /regular directories/);
   await assert.rejects(lstat(join(target, 'new')), /ENOENT/);
 });

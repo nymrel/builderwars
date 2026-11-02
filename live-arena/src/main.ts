@@ -2382,7 +2382,9 @@ async function join(id: string) {
 $("rejoin-watch").onclick = () => {
   if (watchId) void join(watchId).catch((e) => notify(e.message));
 };
+let watchJoinAttempt = 0;
 $("join").onclick = () => {
+  const attempt = ++watchJoinAttempt;
   const status = $("watch-join-status");
   try {
     const raw = $<HTMLInputElement>("join-link").value.trim();
@@ -2392,7 +2394,13 @@ $("join").onclick = () => {
     const id = new URLSearchParams(url.hash.slice(1)).get("watch");
     if (!id) throw Error("Paste a BuilderWars watch link containing a broadcast id.");
     status.textContent = "Opening live board…";
-    void join(id).catch((e) => notify(e.message));
+    void join(id).then(() => {
+      if (attempt === watchJoinAttempt) status.textContent = "Connecting to the live board. Check the Arena for updates.";
+    }).catch((e) => {
+      if (attempt !== watchJoinAttempt) return;
+      status.textContent = "Could not open this broadcast. Check the link or ask the host for a new one.";
+      notify(e instanceof Error ? e.message : "Could not open the broadcast.");
+    });
   } catch (e) {
     status.textContent = (e as Error).message;
   }
