@@ -11,7 +11,9 @@
 @media(max-width:900px){.layout{grid-template-columns:minmax(0,1fr) 270px}.wrap{padding:0 18px}.hero-note{display:none}.world-wrap{padding:12px}.piece{padding:3px 2px}.cell{gap:0}.lower{grid-template-columns:1fr 1fr}}
 @media(max-width:680px){header .wrap{min-height:65px}.brand{font-size:18px}.tag{font-size:9px}.wrap{padding:0 14px}.hero{padding:26px 0 20px}h1{letter-spacing:-1.6px}.lead{font-size:15px}.layout,.lower{grid-template-columns:1fr}.side{grid-template-columns:1fr}.world-wrap{max-width:490px;padding:10px}.world{gap:3px;padding:5px}.terrain{font-size:9px}.piece{font-size:10px}.stat{padding:13px}.stat strong{font-size:22px}.toolbar{padding:12px}.toolbar .subtle{width:100%;margin:0}.card-body{padding:16px}footer{display:block}.hero .tag{display:none}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
-.card table{border-collapse:collapse;margin:10px 0;width:100%;font-size:12px}.card th,.card td{border:1px solid var(--line);padding:5px 8px;text-align:left}.card th{background:var(--soft);font-weight:700}</style>
+.card table{border-collapse:collapse;margin:10px 0;width:100%;font-size:12px}.card th,.card td{border:1px solid var(--line);padding:5px 8px;text-align:left}.card th{background:var(--soft);font-weight:700}
+.quest-list{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0;margin:0}.quest{border:1px solid var(--line);border-radius:10px;padding:16px;position:relative}.quest.current{border:2px solid var(--accent);padding:15px}.quest.complete{background:#edf2e8}.quest-number{font-size:12px;font-weight:800;color:var(--accent)}.quest h3{font-size:16px;line-height:1.35;margin:8px 0}.quest p{font-size:13px;color:var(--muted)}.quest-state{font-size:12px;display:block;margin-top:12px}.quest-outcome{margin:14px 0 0;font-size:13px;color:var(--muted)}@media(max-width:680px){.quest-list{grid-template-columns:1fr}.quest h3{margin:4px 0}}
+</style>
 </head>
 <body>
 <header><div class="wrap"><div class="brand">BuilderWars <span>/ Lab</span></div><span class="tag">Experimental · local only</span></div></header>
@@ -19,12 +21,13 @@
 <section class="hero"><div><div class="eyebrow">Build agents. Give them a world.</div><h1>Agentworld.</h1><p class="lead">A shared world for agents to cooperate, compete, and leave a trail you can replay. Start with a simple mission: get the supplies home.</p></div><div class="hero-note">A working concept for BuilderWars.<br>Not a separate platform. Not a live league.</div></section>
 <div class="notice"><strong>Scripted sandbox, not live AI.</strong> Four deterministic actors. No model calls, credentials, external code, or public rankings. Saved sessions stay in this browser.</div>
 <div id="message" class="message" role="status" aria-live="polite">Ready. Watch the scripted crews or take a manual turn.</div>
+<section class="card" aria-labelledby="quest-title"><div class="card-head"><div><h2 id="quest-title">Bring the supplies home together</h2><div class="subtle">Three quests · one shared visit</div></div><span class="subtle" id="quest-status" role="status" aria-live="polite">0 / 3 quests complete</span></div><div class="card-body"><ol id="quests" class="quest-list"></ol><p id="quest-outcome" class="quest-outcome"></p></div></section>
 <div class="layout">
 <section class="card" aria-labelledby="world-title">
 <div class="card-head"><div><h2 id="world-title">Relay Commons</h2><div class="subtle">Two crews · one 8 × 8 world · versioned rules</div></div><span class="tag" id="world-status">Ready</span></div>
 <div class="stats"><div class="stat"><strong id="delivered">0 / 16</strong><span>Supplies delivered</span></div><div class="stat"><strong id="turn">0 / 240</strong><span>Accepted turns</span></div><div class="stat"><strong id="remaining">16</strong><span>Still to deliver</span></div></div>
 <div class="world-wrap"><div id="world" class="world" role="img" aria-label="World board. Actor locations and carried supplies are also listed in the crew panel."></div><div class="legend"><span><i class="dot"></i>Amber crew</span><span><i class="dot tide"></i>Tide crew</span><span>□ Supply cache</span><span>⌂ Home base</span><span>+ Carrying supply</span></div></div>
-<div class="toolbar"><button id="play" class="primary">Watch crews</button><button id="step">Step once</button><button id="batch">Run 16 turns</button><span class="subtle" id="next">Next: Amber 01</span></div>
+<div class="toolbar"><button id="play" class="primary">Watch crews</button><button id="stop">Stop</button><button id="step">Step once</button><button id="batch">Run 16 turns</button><span class="subtle" id="next">Next: Amber 01</span></div>
 </section>
 <aside class="side">
 <section class="card"><div class="card-head"><h2>The crews</h2><span class="subtle">Scripted by default</span></div><div class="card-body" id="agents"></div></section>
@@ -41,6 +44,6 @@
 <noscript><h2>Relay Commons rules</h2><p>Four scripted actors alternate turns in a seeded 8 × 8 world. An actor can move one orthogonal cell, collect one supply from its cell, deliver at its own base, or wait. Actors can share cells. The world ends when all 16 supplies are delivered or after 240 accepted turns. Crew comparison is unranked; no model, identity, or hosted-execution claims are made. JavaScript is required for this local simulation, not for reading these rules.</p></noscript>
 <footer><span><strong>BuilderWars · Agentworld Lab v0.1</strong><br>Proposed experience. Local persistence is not a shared server or cloud backup.</span><span>No inference cost. No hosted entrants. No attested identities.<br>Replay consistency is not an independent rerun or ranking admission.</span></footer>
 </main>
-<script src="engine.js"></script><script src="ledger.js"></script><script src="app.js"></script>
+<script src="engine.js"></script><script src="ledger.js"></script><script src="consumer-quests.js"></script><script src="app.js"></script>
 </body>
 </html>
