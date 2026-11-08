@@ -1,6 +1,6 @@
 # Sightline Requirements Traceability — Draft, Not Submitted
 
-Official-source snapshot: 2026-09-24 UTC.
+Public official-source snapshot: 2026-10-24. Authenticated Devpost requirements and custom fields unavailable: connection requires reauthentication. This is a provisional readiness review, not ready-to-submit approval.
 
 Sources:
 
@@ -22,11 +22,11 @@ Status vocabulary:
 | Substantive OpenCV 5 image or video analysis | `OpenCV5Perception` uses OpenCV 5.0.0 for decoding, absolute difference, grayscale conversion, thresholding, and connected-component extraction; official wheels are hash-locked in hosted CI and six labeled BuilderWars workflows run independently in managed Chromium and Firefox. | **Implemented** | Broaden the small provenance-cleared workflow corpus across routes and viewport classes. |
 | Meaningful component running on AWS | Lambda-compatible handler, deterministic source artifact, and inert AWS plan exist. The plan explicitly has no credentials, upload, execution, deployment, or spend authority. | **Partial** | A real AWS deployment and evidence are still required; local compatibility is not AWS execution. |
 | Technical report | `TECHNICAL_REPORT.draft.md` covers problem, users, architecture, OpenCV role, AWS boundary, evaluation, limitations, and responsible operation. | **Prepared** | Reconcile with final measured corpus and actual AWS evidence. |
-| Judge-accessible repository or archive | Private draft PR and deterministic review-only source ZIP exist. | **Partial** | Freeze the exact authorized corpus and establish judge access without exposing excluded private assets. |
+| Judge-accessible repository or archive | Public merged repository and an additional local source candidate exist. A scoped code archive is prepared with MIT notices. | **Partial** | Freeze the exact authorized corpus and establish judge access without exposing excluded private assets. |
 | Pinned dependencies and build/deploy/test instructions | OpenCV 5.0.0 and NumPy 2.3.5 wheels are hash-locked; local and hosted test/build commands are documented. | **Implemented** for local validation | Add real deployment instructions only after an authorized, zero-spend AWS path exists. |
 | Architecture diagram | `ARCHITECTURE.draft.md` and the self-contained `ARCHITECTURE.draft.svg` trace PNG inputs, OpenCV perception, typed findings, policy, human approval, evidence digest, Lambda handler, and inert AWS plan. | **Prepared** | Replace the inert AWS box with verified runtime evidence if deployment occurs. |
 | Working endpoint or arranged live screen-share | No endpoint is deployed and no demonstration session is arranged. | **Blocked** | Requires an authorized deployment or later organizer coordination; do not claim availability. |
-| Public or unlisted video no longer than five minutes | A 4:30 draft script and deterministic synthetic-only review-bundle builder exist with recording safeguards. | **Partial** | Record only with provenance-cleared fixtures after the exact Submitted Materials scope is authorized. |
+| Public or unlisted video no longer than five minutes | A 167.72-second local English-captioned screen recording, source/input hashes, controlled outcome receipt and revised demo script exist. AWS and public hosting remain unverified. | **Partial** | Add verified AWS evidence and architecture to the presentation cut; establish public/unlisted judge access and review the exact final materials. |
 | Evaluation including failure cases or limitations | Generated baseline passes 3/3 task cases and 2/2 fail-closed controls. Six labeled loopback workflow types run at desktop and mobile fixed viewports in managed Chromium and Firefox. Each browser passes 12/12 with 10 true positives, 2 true negatives, zero false positives, and zero false negatives; all 24 case executions pass across both receipts. Limitations are explicit. | **Partial** | Broaden beyond the two-browser, twelve-case-per-engine corpus across more Nymrel-owned routes, states, and responsive breakpoints before making a competition-quality claim. |
 
 ## Agentic Vision category
@@ -50,11 +50,11 @@ Sightline does not currently claim the Best Use of COOL Award. No COOL integrati
 
 | Criterion | Weight | Current evidence | Primary gap |
 |---|---:|---|---|
-| Technical execution | 30% | Exact OpenCV 5 runtime, typed findings, aggregate/fragmented materiality guards, deterministic traces, bounded handler, 33 passing hosted tests, and digest-bound labeled Chromium and Firefox receipts. | Broader representative-workflow performance and deployed AWS evidence. |
+| Technical execution | 30% | Exact OpenCV 5 runtime, typed findings, aggregate/fragmented materiality guards, deterministic traces, bounded handler, 35 passing merged hosted tests, and digest-bound labeled Chromium and Firefox receipts. | Broader representative-workflow performance and deployed AWS evidence. |
 | Innovation | 20% | Perception-to-auditable-decision loop with explicit no-execution authority. | Comparative positioning and demonstrated iteration beyond a narrow pixel-difference baseline. |
 | Real-world impact | 20% | Clear visual-regression problem and human-control model. | User evidence, representative workflows, and measured benefit. |
-| User experience | 10% | Typed results and explicit approval state. | Judge-visible interface or live demonstration. |
-| Documentation and presentation | 10% | Draft report, architecture, limitations, demo script, deterministic synthetic-only review bundle, terms matrix, and this traceability matrix. | Recorded demonstration and final packet review. |
+| User experience | 10% | Typed results and explicit approval state. | Local recorded journey prepared; judge endpoint or arranged screen share still missing. |
+| Documentation and presentation | 10% | Draft report, architecture, limitations, demo script, deterministic synthetic-only review bundle, terms matrix, and this traceability matrix. | Finalize cloud segment, judge hosting and exact-materials review. |
 | Cloud delivery, reproducibility, responsible operation | 10% | Hash-locked runtime, deterministic artifact, credential/spend guards, fail-closed tests. | Actual AWS deployment, runtime observability, latency/cost evidence, and reproducible deployment instructions. |
 
 ## Fail-closed conclusion

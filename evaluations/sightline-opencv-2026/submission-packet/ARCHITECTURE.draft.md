@@ -27,3 +27,7 @@ A self-contained companion rendering is stored in `ARCHITECTURE.draft.svg`. It c
 - The AWS plan is metadata only and cannot execute.
 - Credential, deployment, and spend authority must remain false.
 - Judge-facing materials exclude secrets, customer data, and private operational details.
+
+## Demonstration extension
+
+The recorded local journey adds a separate fixture controller. OpenCV evidence changes the approval request; an unapproved action is rejected; a scripted one-use, candidate-bound demo event permits only restoration of the injected DOM visibility; a fresh screenshot is measured again. This does not add a production mutation tool to the planner. A real human approval was not observed. The revised delivery diagram shows this loop and places the unverified AWS runtime in a separately labeled boundary.

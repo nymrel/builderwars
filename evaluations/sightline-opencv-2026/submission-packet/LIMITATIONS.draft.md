@@ -36,3 +36,7 @@ The agent cannot apply a change. Medium- and high-risk findings return `request_
 ## Data and Rights
 
 Only generated fixtures and materials with documented Nymrel ownership or public-license provenance may enter the judge-facing packet. Customer data, private source, credentials, operational records, and third-party material without documented permission are excluded.
+
+## Local recording extension - October 24, 2026
+
+The controlled demonstration restores one injected DOM property through a separate one-use, candidate-bound demo gate. The approval event is scripted, explicitly labeled automated_demo_operator, and is not observed human approval or production authentication. The verified fresh image equals the original baseline; this establishes only this known injected fault at one fixed viewport. The local extension has 39 tests; the merged hosted Stage 1 record has 35. No cloud-runtime, time-saving or baseline-superiority evidence was added.
