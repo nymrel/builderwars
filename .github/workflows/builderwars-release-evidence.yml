@@ -12,7 +12,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   release-evidence:
-    runs-on: ubuntu-latest
+    # Match the browser suite: pinned Playwright 1.58.0 does not support Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     defaults:
       run:
