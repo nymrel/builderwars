@@ -118,6 +118,12 @@ nav a {
   text-decoration: none;
 }
 
+.site-header nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
 nav a[aria-current="page"] {
   text-decoration: underline;
   text-decoration-thickness: 2px;
