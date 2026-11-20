@@ -67,7 +67,7 @@ python evaluations/sightline-opencv-2026/record_journey_demo.py \
   --output-dir /tmp/sightline-journey --browser firefox
 ```
 
-The roughly three-minute silent, captioned video is a recording of the functioning local walkthrough. PNGs, exact source-file hashes, runtime versions, diagnostic decisions, rejected actions, the labeled demo approval, and the fresh outcome are retained alongside `journey-receipt.json`. A short verification recording can use `--hold-scale 0.02`.
+A roughly three-minute silent, captioned local walkthrough was previously reported. Its original video and matching `journey-receipt.json` were not available for this review, so its measurements and provenance remain unverified. A new run produces PNGs, source hashes, runtime versions, diagnostic decisions, rejected actions, the labeled demo approval, and the fresh outcome alongside its own receipt. A short verification recording can use `--hold-scale 0.02`.
 
 The action controller is deliberately separate from `SightlineAgent`: the planner still has `execution_authorized=false` and cannot modify the product. `demo_approval.py` is a local demonstration gate, **not** production authentication or approval infrastructure. The known injected fault supplies the cause; pixel evidence alone does not establish the root cause of an unknown defect. This is not general autonomous repair. The video explicitly states that meaningful AWS execution and Devpost submission are unverified; a local recording cannot close either requirement.
 

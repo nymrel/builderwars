@@ -1,6 +1,6 @@
 # Sightline Demo Script — Draft, Not Submitted
 
-Target duration: approximately three minutes, below the five-minute competition maximum. The current cut is a silent, English-captioned recording of the functioning local walkthrough. It is a **local evidence cut**, pending independently verified AWS runtime evidence and final submission review.
+Target duration: approximately three minutes, below the five-minute competition maximum. A silent, English-captioned local walkthrough was previously reported, but its video and receipt were unavailable for this review. A newly generated cut would be **local evidence**,  pending independently verified AWS runtime evidence and final submission review.
 
 ## Opening — Start with the user's broken journey
 
@@ -36,7 +36,7 @@ Require zero retained findings, `accept_no_material_change`, and a screenshot ha
 
 ## Retain failures and measurement limits
 
-Show three actual handler rejections: malformed PNG, dimension mismatch, and compressed expansion with oversized IHDR dimensions. Each is a `ValueError`; do not describe it as an HTTP response or AWS error.
+Show three actual handler rejections: malformed PNG, dimension mismatch, and an oversized declared IHDR. Each is a `ValueError`; do not describe it as an HTTP response or AWS error.
 
 Keep the prior fragmented-materiality false negative, mobile below-fold framing mistake, reversed synthetic polarity, and compressed-PNG expansion defect in the record. Explain their fixes without dropping failed attempts from the narrative.
 
@@ -58,7 +58,7 @@ An AWS segment may be added only after an authorized run is verified. Show a san
 
 “See the defect. Bound the decision. Verify the outcome.”
 
-The source and recorded artifacts remain associated with the existing Sightline entry. This recording does not itself establish a public video URL, legal acceptance, competition qualification, or Devpost submission.
+The original recorded artifacts were unavailable for this review; retain a newly generated receipt alongside any new recording. This recording does not itself establish a public video URL, legal acceptance, competition qualification, or Devpost submission.
 
 ## Recording and rights controls
 

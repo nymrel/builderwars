@@ -8,7 +8,7 @@ Status: prepared local candidate; final competition requirements remain incomple
 | --- | --- | --- |
 | AWS runtime | Not verified; no AWS CLI, profile or credentials in this execution runtime; AWS console browser returned Site Unavailable | Authorized account/role and cost envelope, observed AWS-hosted session or invocation, real OpenCV outputs and failure controls, exact source/input/dependency hashes |
 | Judge application access | No working Sightline endpoint or arranged screen share established | Functional endpoint checks or organizer-confirmed live demonstration arrangement |
-| Video | 167.72-second local recording prepared; no public/unlisted URL established | Judge-accessible video, under five minutes, including team, architecture, principal results and real AWS evidence |
+| Video | A 167.72-second local recording was previously reported; its video and receipt were unavailable for review; no public/unlisted URL established | Judge-accessible video, under five minutes, including team, architecture, principal results and real AWS evidence |
 | Devpost account | whoami returned UNAUTHORIZED / reconnect required | Reauthenticated account, existing Sightline project ID and hackathon submitted_at read live |
 | Form | Authenticated custom questions unavailable | Fetch live submission requirements and answer exact required fields; never invent IDs or attestations |
 | Legal/IP | Published rules reviewed; final authenticated click-through unseen | Review exact final materials, verified rights and eligibility; operator acceptance of material terms if required |
@@ -41,10 +41,10 @@ The scoped package manifest freezes each included file by SHA-256. Changes to fo
 
 - Stage 1 merge: c41a83d5761dd98edf1d776686555e21ba4803b9 (PR 69).
 - Main checked through GitHub: 1745c0a0cc8aaa31aaf8f67edc7765f32de6b547.
-- Existing local recording revision: e46cc424229beb2d4b138772b6d56f374582be85; this local revision is retained in the source bundle/patch, not assumed to be a public commit.
+- Existing local recording revision: e46cc424229beb2d4b138772b6d56f374582be85; this revision and its recording receipt were unavailable for this review; not assumed to be a public commit.
 - Merged hosted result: 35 tests; historical Chromium and Firefox 24 case executions across six workflow types and two viewports.
-- Reproduced local extension: 39 tests, 3 generated task cases, 2 fail-closed controls; one controlled end-to-end journey.
-- Current-main Firefox receipt: 12/12 cases, 10 TP, 2 TN, 0 FP, 0 FN. Historical Chromium is not called a fresh rerun.
-- Walkthrough: 54 components, 62,432 changed pixels, approval requested; denied attempt does not change screenshot; scripted one-use demo approval restores a temporary DOM property; fresh verification returns zero findings and baseline-identical bytes.
+- Previously reported local extension (original receipt unavailable): 39 tests, 3 generated task cases, 2 fail-closed controls; one controlled end-to-end journey.
+- Previously reported current-main Firefox receipt (unavailable for this review): 12/12 cases, 10 TP, 2 TN, 0 FP, 0 FN. Historical Chromium is not called a fresh rerun.
+- Previously reported walkthrough (original video and matching receipt unavailable): 54 components, 62,432 changed pixels, approval requested; denied attempt does not change screenshot; scripted one-use demo approval restores a temporary DOM property; fresh verification returns zero findings and baseline-identical bytes.
 
 No production accuracy, baseline superiority, root-cause inference, real human approval, general autonomous remediation, user time saving, cloud cost/latency, AWS execution or Devpost submission is claimed.

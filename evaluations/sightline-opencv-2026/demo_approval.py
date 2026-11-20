@@ -49,7 +49,7 @@ class DemoApprovalGate:
         )
         return asdict(self._approval)
 
-    def consume(self, *, action: str, current_candidate_sha256: str) -> DemoApproval:
+    def consume(self, *, action: str, current_candidate_sha256: str, current_findings_sha256: str) -> DemoApproval:
         if self._approval is None:
             raise PermissionError("explicit demo operator approval is required")
         if self._consumed:
@@ -58,5 +58,7 @@ class DemoApprovalGate:
             raise PermissionError("action is outside the approved demo scope")
         if current_candidate_sha256 != self.candidate_sha256:
             raise PermissionError("candidate changed after the diagnostic decision")
+        if current_findings_sha256 != self.findings_sha256:
+            raise PermissionError("findings changed after the diagnostic decision")
         self._consumed = True
         return self._approval

@@ -14,6 +14,7 @@ import base64
 from dataclasses import asdict
 from datetime import datetime, timezone
 from hashlib import sha256
+from importlib.metadata import version
 import json
 from pathlib import Path
 import struct
@@ -55,18 +56,23 @@ def thumbnail_hash(value: str) -> str:
 
 
 def git_source() -> dict[str, Any]:
+    status = subprocess.run(["git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=REPO, check=True, capture_output=True).stdout
+    if status:
+        raise RuntimeError("recording requires a clean worktree")
+    extras = subprocess.run(["git", "ls-files", "--others", "-z", "--", "mobile-arena"], cwd=REPO, check=True, capture_output=True).stdout
+    if extras:
+        raise RuntimeError("mobile-arena contains untracked or ignored files")
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=REPO, check=True, text=True, capture_output=True
     )
     head = result.stdout.strip()
-    paths = sorted(
-        [path for path in (REPO / "mobile-arena").rglob("*") if path.is_file()]
-        + [HERE / name for name in (
-            "sightline.py", "aws_lambda_handler.py", "demo_approval.py",
-            "journey_demo.html", "record_journey_demo.py",
-        )]
-    )
-    files = [{"path": str(path.relative_to(REPO)), "sha256": digest(path.read_bytes())} for path in paths]
+    scope = ["mobile-arena"] + [str((HERE / name).relative_to(REPO)) for name in (
+        "sightline.py", "aws_lambda_handler.py", "demo_approval.py",
+        "journey_demo.html", "record_journey_demo.py", "evaluate_browser_corpus.py",
+    )]
+    tracked = subprocess.run(["git", "ls-files", "-z", "--", *scope], cwd=REPO, check=True, capture_output=True).stdout
+    paths = sorted(p.decode("utf-8") for p in tracked.split(b"\0") if p)
+    files = [{"path": path, "sha256": digest((REPO / path).read_bytes())} for path in paths]
     return {
         "repository": "https://github.com/nymrel/builderwars",
         "base_commit": head,
@@ -134,7 +140,7 @@ class Journey:
             "text": {
                 "baseline-hash": thumbnail_hash(digest(self.baseline)),
                 "observed-hash": thumbnail_hash(digest(self.candidate)),
-                "source": f"BuilderWars · {self.source['base_commit'][:12]} · Firefox 146",
+                "source": f"BuilderWars · {self.source['base_commit'][:12]} · local browser",
                 "caption": self.caption("The page still loads, but its featured receipt has disappeared. This controlled fault uses the real tracked BuilderWars interface."),
             },
         }
@@ -192,7 +198,7 @@ class Journey:
             assert self.gate is not None
             before = await self.capture("before-denied-attempt.png")
             try:
-                self.gate.consume(action=DEMO_ACTION, current_candidate_sha256=digest(before))
+                self.gate.consume(action=DEMO_ACTION, current_candidate_sha256=digest(before), current_findings_sha256=self.agent.plan(self.findings).findings_sha256)
             except PermissionError as exc:
                 error = str(exc)
             else:
@@ -237,7 +243,7 @@ class Journey:
         if name == "apply":
             assert self.gate is not None
             current = await self.capture("before-approved-restore.png")
-            approved = self.gate.consume(action=DEMO_ACTION, current_candidate_sha256=digest(current))
+            approved = self.gate.consume(action=DEMO_ACTION, current_candidate_sha256=digest(current), current_findings_sha256=self.agent.plan(self.findings).findings_sha256)
             marker = await self.app.locator(TARGET).get_attribute("data-sightline-demo-injected")
             if marker != "true":
                 raise RuntimeError("the controlled fixture marker is missing")
@@ -284,11 +290,11 @@ class Journey:
         if name == "failures":
             assert self.baseline
             # Use the exact bounded handler, including pre-decode IHDR checks.
-            baseline64 = base64.b64encode(self.baseline).decode("ascii")
+            baseline64 = self._different_dimension_png(16)
             cases = [
                 ("Malformed PNG", "must be a PNG image with an IHDR chunk", {"baseline_png_base64": "bm90LXBvbmc=", "candidate_png_base64": baseline64}),
                 ("Dimension mismatch", "dimensions must match", {"baseline_png_base64": baseline64, "candidate_png_base64": self._different_dimension_png()}),
-                ("Compressed expansion", "dimensions exceed 4096px", {"baseline_png_base64": baseline64, "candidate_png_base64": self._oversize_header_png()}),
+                ("Oversized declared IHDR", "dimensions exceed 4096px", {"baseline_png_base64": baseline64, "candidate_png_base64": self._oversize_header_png()}),
             ]
             for label, expected, event in cases:
                 try:
@@ -310,7 +316,7 @@ class Journey:
                     "digest": "handler: three ValueError rejections\nvalid outcome: separately measured\nAWS invoked: false",
                     "caption": self.caption("The existing bounded handler rejects malformed PNGs, unequal dimensions, and a small payload declaring oversized dimensions. These failures remain visible in the receipt."),
                 },
-                "html": {"details": "<table><tr><td>Malformed PNG</td><td>Rejected</td></tr><tr><td>Dimension mismatch</td><td>Rejected</td></tr><tr><td>Compressed expansion</td><td>Rejected</td></tr></table><p style='margin-top:16px'>The prior PNG expansion vulnerability was fixed in the merged implementation. We retain it as an adversarial regression.</p>", "controls": '<button id="limits" class="secondary">Show the measurement limits</button>'},
+                "html": {"details": "<table><tr><td>Malformed PNG</td><td>Rejected</td></tr><tr><td>Dimension mismatch</td><td>Rejected</td></tr><tr><td>Oversized declared IHDR</td><td>Rejected</td></tr></table><p style='margin-top:16px'>The prior PNG expansion vulnerability was fixed in the merged implementation. We retain it as an adversarial regression.</p>", "controls": '<button id="limits" class="secondary">Show the measurement limits</button>'},
             }
         if name == "limits":
             self.stage = 7
@@ -322,7 +328,7 @@ class Journey:
                     "digest": "Historical defects retained:\nfragmented materiality · below-fold framing\nfixture polarity · compressed PNG expansion",
                     "caption": self.caption("The evaluation is small and controlled. Prior false negatives, capture-framing mistakes, reversed fixture polarity, and the PNG expansion issue are preserved in the record, not erased."),
                 },
-                "html": {"details": "<ul><li>One repaired fixture and one fixed viewport in this walkthrough.</li><li>Current Firefox corpus: 12 cases, six workflow types, two viewports; 10 TP and 2 TN.</li><li>Historic Chromium results stay separate from this local rerun.</li><li>Pixels do not establish semantic intent or the root cause of an unknown defect.</li></ul>", "controls": '<button id="cloud" class="secondary">Show the AWS truth boundary</button>'},
+                "html": {"details": "<ul><li>One repaired fixture and one fixed viewport in this walkthrough.</li><li>A prior Firefox corpus was reported as 12 cases; its receipt was unavailable for this review.</li><li>Historic Chromium results stay separate from this local run.</li><li>Pixels do not establish semantic intent or the root cause of an unknown defect.</li></ul>", "controls": '<button id="cloud" class="secondary">Show the AWS truth boundary</button>'},
             }
         if name == "cloud":
             self.stage = 8
@@ -347,24 +353,27 @@ class Journey:
             "html": {"controls": "<div style='font-size:15px;color:#9eb5cf'>OpenCV 5.0.0 · deterministic policy · MIT source<br>Controlled local demonstration</div>"},
         }
 
-    def _different_dimension_png(self) -> str:
-        okay, encoded = cv2.imencode(".png", np.zeros((16, 16, 3), dtype=np.uint8))
+    def _different_dimension_png(self, size: int = 8) -> str:
+        okay, encoded = cv2.imencode(".png", np.zeros((size, size, 3), dtype=np.uint8))
         if not okay:
             raise RuntimeError("cannot encode mismatch control")
         return base64.b64encode(encoded.tobytes()).decode("ascii")
 
     def _oversize_header_png(self) -> str:
         # Pre-decode header rejection: under 1 MiB, declares 4097 x 1 pixels.
-        payload = bytearray(self.baseline[:33])
+        payload = bytearray(base64.b64decode(self._different_dimension_png())[:33])
         payload[16:24] = struct.pack(">II", 4097, 1)
         return base64.b64encode(payload).decode("ascii")
 
 
 async def record(output: Path, hold_scale: float, browser_engine: str) -> dict[str, Any]:
     if cv2.__version__ != "5.0.0" or np.__version__ != "2.3.5":
-        raise RuntimeError("use the existing exact, hash-locked OpenCV/NumPy environment")
-    output.mkdir(parents=True, exist_ok=True)
+        raise RuntimeError("OpenCV 5.0.0 and NumPy 2.3.5 are required")
+    playwright_version = version("playwright")
+    if playwright_version != "1.58.0":
+        raise RuntimeError("playwright 1.58.0 is required")
     source = git_source()
+    output.mkdir(parents=True, exist_ok=True)
     external_requests: list[str] = []
     warnings: list[str] = []
     with loopback_server() as url:
@@ -406,11 +415,11 @@ async def record(output: Path, hold_scale: float, browser_engine: str) -> dict[s
                     await asyncio.sleep(2 * hold_scale)
                 await demo.locator(f"#{action}").click()
                 if action == "finish":
-                    await demo.wait_for_function("() => document.getElementById('status').textContent === 'local_journey_complete'")
+                    await demo.wait_for_function("() => document.body.dataset.error === 'true' || document.getElementById('status').textContent === 'local_journey_complete'")
                 else:
-                    await demo.wait_for_function("stage => document.body.dataset.step === String(stage)", arg=stage)
+                    await demo.wait_for_function("stage => document.body.dataset.error === 'true' || document.body.dataset.step === String(stage)", arg=stage)
                 if await demo.get_attribute("body", "data-error"):
-                    raise RuntimeError("the displayed demo stopped on an error")
+                    raise RuntimeError(f"demo action {action} failed: {await demo.locator('#details').inner_text()}")
                 await demo.screenshot(path=str(output / f"{stage + 1:02d}-{action}.png"))
                 await asyncio.sleep(hold * hold_scale)
             elapsed = time.monotonic() - journey.started
@@ -429,7 +438,7 @@ async def record(output: Path, hold_scale: float, browser_engine: str) -> dict[s
         "schema": "sightline.local-journey.v1",
         "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
         "source": source,
-        "runtime": {"opencv": cv2.__version__, "numpy": np.__version__, "playwright": "1.58.0", "browser": browser_engine, "browser_version": browser_version, "source_viewport": VIEWPORT, "recording_viewport": SCREEN},
+        "runtime": {"opencv": cv2.__version__, "numpy": np.__version__, "playwright": playwright_version, "browser": browser_engine, "browser_version": browser_version, "source_viewport": VIEWPORT, "recording_viewport": SCREEN},
         "scope": "controlled_fault_in_tracked_local_builderwars",
         "events": journey.events,
         "verification": journey.verification,

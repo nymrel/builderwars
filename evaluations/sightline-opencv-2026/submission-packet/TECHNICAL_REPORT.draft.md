@@ -57,15 +57,15 @@ The corpus combines generated arrays with six labeled loopback workflow types at
 
 ## Measured End-to-End Demonstration
 
-The 167.72-second English-captioned local recording uses the actual tracked BuilderWars Arena. It compares the normal view with a controlled hidden featured receipt. Real OpenCV 5.0.0 produces 54 retained connected components and 62,432 changed pixels; the unchanged policy requests human approval. A restore without approval is rejected and the screenshot remains byte-identical.
+A 167.72-second English-captioned local recording was previously reported, but its video and matching receipt were unavailable for this review. The reported walkthrough used the actual tracked BuilderWars Arena. It compares the normal view with a controlled hidden featured receipt. It reported OpenCV 5.0.0 producing 54 retained connected components and 62,432 changed pixels; the unchanged policy requests human approval. A restore without approval is rejected and the screenshot remains byte-identical.
 
 A separate demonstration controller then consumes one candidate-bound approval event to restore only the injected DOM visibility property. The event is explicitly labeled `automated_demo_operator`, with `human_approval_observed=false` and no production authority. It illustrates a control boundary; it does not establish actual human approval, production authentication, or general autonomous repair. The planner itself retains false execution authority.
 
 After restoration, a fresh screenshot is byte-identical to the original baseline and a new OpenCV pass returns zero findings. This verifies this one known injected fault at a 1040x900 viewport. The fault injection supplies the cause; pixel evidence alone does not diagnose an unknown root cause.
 
-The recording retains actual malformed-PNG, dimension-mismatch and oversized-IHDR rejections. Earlier fragmented-materiality false negatives, mobile below-fold framing errors, reversed fixture polarity and the repaired compressed-PNG expansion vulnerability remain in the evidence record.
+The reported recording included malformed-PNG, dimension-mismatch and oversized-IHDR rejections. Earlier fragmented-materiality false negatives, mobile below-fold framing errors, reversed fixture polarity and the repaired compressed-PNG expansion vulnerability remain in the evidence record.
 
-Source lineage: Stage 1 merge `c41a83d5761dd98edf1d776686555e21ba4803b9`; current-main base `1745c0a0cc8aaa31aaf8f67edc7765f32de6b547`; local recording revision `e46cc424229beb2d4b138772b6d56f374582be85`. The retained receipt contains exact source-file and input hashes. A current-main Firefox 146.0.1 rerun passes 12/12 controlled cases. Historical Chromium evidence is retained as historical, not represented as a fresh current-main rerun.
+Source lineage: Stage 1 merge `c41a83d5761dd98edf1d776686555e21ba4803b9`; current-main base `1745c0a0cc8aaa31aaf8f67edc7765f32de6b547`; local recording revision `e46cc424229beb2d4b138772b6d56f374582be85`. The original receipt was unavailable for this review, so its source-file hashes, input hashes, and measurements remain unverified. A current-main Firefox 146.0.1 rerun was reported as passing 12/12 controlled cases; its receipt was also unavailable. Historical Chromium evidence is retained as historical, not represented as a fresh current-main rerun.
 
 ## Delivery Status - October 24, 2026
 
