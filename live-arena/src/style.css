@@ -1173,16 +1173,21 @@ dialog [id$="fields"] {
     gap: 16px;
   }
 }
+@media (max-width: 430px) {
+  .page-heading {
+    flex-direction: column;
+  }
+  .page-heading .subtitle {
+    max-width: none;
+  }
+  .page-heading .primary {
+    margin-top: 2px;
+  }
+}
 @media (max-width: 359px) {
   nav {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-  .page-heading {
-    flex-direction: column;
-  }
-  .page-heading .primary {
-    margin-top: 2px;
   }
   .topbar {
     padding: 0 11px;
@@ -1356,6 +1361,24 @@ dialog [id$="fields"] {
   #duel[data-duel-phase="playing"] .duel-stage, #duel[data-duel-phase="finished"] .duel-stage, #duel[data-duel-phase="stopped"] .duel-stage { order: -1; }
   .duel-step { padding: 18px; }
 }
+
+#recording-dialog h2 { margin: 0; font-size: 21px; }
+#recording-dialog p { margin: 0; line-height: 1.6; }
+.recording-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.recording-actions button { min-width: 0; white-space: normal; }
+
+.readiness-settings { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.readiness-settings label { min-width: 0; }
+.readiness-settings select { width: 100%; min-width: 0; }
+.telemetry.readiness-card { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.telemetry.readiness-card > div { min-width: 0; }
+.telemetry.readiness-card strong { font-size: 18px; overflow-wrap: anywhere; }
+.telemetry.readiness-card > div:last-child { grid-column: 1 / -1; }
+.telemetry.readiness-card > div:last-child strong { font-size: 14px; font-weight: 400; line-height: 1.5; letter-spacing: normal; }
+@media (min-width: 640px) {
+  .readiness-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* Model development stays a compact operational workspace, not a dashboard. */
 .model-development { max-width: 850px; }
 .model-development select, .model-development textarea { max-width: 100%; min-width: 0; }

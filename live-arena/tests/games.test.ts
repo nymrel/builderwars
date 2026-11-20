@@ -116,6 +116,22 @@ test("tic tac toe diagonal win and full-board draw", () => {
   assert.equal(s.over, true);
   assert.equal(s.winner, null);
 });
+test("creator identifies invalid Game name separately from board validation", () => {
+  const rules = { kind: "custom", name: "My game", rows: 5, cols: 5, connect: 4, gravity: false };
+  const nameError = { message: "Game name must contain 1–48 characters and cannot be blank." };
+  for (const name of ["", " \t\n ", "x".repeat(49), null, 123, undefined])
+    assert.throws(() => validateRules({ ...rules, name }), nameError);
+  for (const name of ["x", "x".repeat(48), " My game "])
+    assert.equal(validateRules({ ...rules, name }).name, name);
+  for (const invalid of [
+    { rows: 2 }, { rows: 11 }, { rows: 3.5 },
+    { cols: 2 }, { cols: 11 }, { cols: 3.5 },
+    { connect: 2 }, { connect: 6 }, { connect: 3.5 }, { gravity: "false" },
+  ])
+    assert.throws(() => validateRules({ ...rules, ...invalid }), {
+      message: "Use a 3–10 square board and a valid connect length.",
+    });
+});
 test("creator rejects unsafe bounds and built-ins cannot be overridden", () => {
   assert.throws(() =>
     validateRules({

@@ -3,6 +3,7 @@ import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
+import {buildEvalRoutes} from './build-eval-catalogue.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = b => createHash('sha256').update(b).digest('hex');
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -63,7 +64,8 @@ for (const directory of directories) {
 }
 routes.push({path:'/circuits',kind:'catalogue',title:'Agent competitions and public replays · BuilderWars',description:'Browse actual agent matches, inspect local baseline standings and prepare your contender for the open practice challenge.',ssr:`<p class="eyebrow">BUILDERWARS CIRCUITS</p><h1>The games end.<br>The evidence stays.</h1><p>Explore completed local baseline competitions and their verified move histories.</p><ul>${circuits.map(c=>`<li><a href="/circuits/${c.id}">${esc(c.title)}</a>: ${c.matchCount} completed matches.</li>`).join('')}</ul><a href="/#compete">Prepare your own contender</a>`});
 routes.push({path:'/developers',kind:'developers',title:'Build and connect your agent · BuilderWars',description:'Runnable Python and JavaScript agents, a bounded move protocol and an authenticated local bridge. Start with a legal move, then build your own contender.',ssr:'<p class="eyebrow">BUILDERWARS DEVELOPERS</p><h1>Your agent. One legal move.</h1><p>Start with a dependency-free Python or JavaScript contender, then connect through the existing authenticated local bridge.</p><a href="/starters/starter_agent.py">Download Python starter</a> · <a href="/starters/starter_agent.mjs">Download JavaScript starter</a> · <a href="/agent-setup.md">Read connection instructions</a>'});
-await writeFile(path.join(root,'src/public-catalogue-manifest.ts'),`// Generated from reviewed immutable public cohorts.\nexport default ${JSON.stringify({circuits,routes:routes.map(({ssr,...r})=>r)})} as const;\n`);
+routes.push(...await buildEvalRoutes());
+await writeFile(path.join(root,'src/public-catalogue-manifest.ts'),`// Generated from reviewed public cohorts and evaluation sources.\nexport default ${JSON.stringify({circuits,routes:routes.map(({ssr,...r})=>r)})} as const;\n`);
 await writeFile(path.join(root,'public/competition/page-routes.json'),JSON.stringify(routes,null,2)+'\n');
 const origin='https://builderwars.com';
 const pages=['/','/about','/games','/guide','/verify','/duels','/agent-setup.md','/duel-agent.md',...routes.map(r=>r.path)];
@@ -71,7 +73,7 @@ await writeFile(path.join(root,'public/sitemap.xml'),'<?xml version="1.0" encodi
 console.log(`Public catalogue: ${circuits.length} retained circuit, ${routes.length} prerendered routes; all matches and proofs verified.`);
 
 const configPath = path.join(root,'vercel.json'), config = JSON.parse(await readFile(configPath,'utf8'));
-config.rewrites = config.rewrites.filter(r => !/^\/(circuits|matches|agents|developers)(?:\/|$)/.test(r.source));
+config.rewrites = config.rewrites.filter(r => !/^\/(circuits|matches|agents|developers|evals|rankings|compete)(?:\/|$)/.test(r.source));
 const fallback = config.rewrites.pop();
 config.rewrites.push(...routes.flatMap(r => [{source:r.path,destination:r.path+'.html'},{source:r.path+'/',destination:r.path+'.html'}]), fallback);
 await writeFile(configPath,JSON.stringify(config,null,2)+'\n');

@@ -108,13 +108,13 @@ with sync_playwright() as p:
     recipient.evaluate("localStorage.setItem('builderwars.match.opt-out', '1')")
     prior_moves = recipient.locator("#metric-moves").inner_text()
     prior_seats = recipient.locator("#seats").inner_text()
-    recipient.once("dialog", lambda dialog: dialog.dismiss())
     recipient.goto(replay_url)
-    recipient.wait_for_function("() => document.querySelector('#notice').textContent.includes('Replay dismissed')")
+    recipient.locator("#keep-current-match").click()
+    recipient.wait_for_function("() => document.querySelector('#notice').textContent.includes('Recording dismissed')")
     assert recipient.locator("#metric-moves").inner_text() == prior_moves
     assert recipient.locator("#seats").inner_text() == prior_seats
-    recipient.once("dialog", lambda dialog: dialog.accept())
     recipient.goto(replay_url)
+    recipient.locator("#open-recording").click()
     recipient.locator("#result-title").filter(has_text="Scripted human 1 wins").wait_for()
     # Legal replay is still compatible with arbitrary legacy declarations, but
     # never advertises an arbitrary frontier model as a trusted built-in.

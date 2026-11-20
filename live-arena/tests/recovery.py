@@ -38,6 +38,8 @@ with sync_playwright() as p:
     page.wait_for_function(f"() => Number(document.querySelector('#metric-moves').textContent) === {recovered + 1}")
     page.wait_for_function(f"() => document.querySelector('.saved-match')?.textContent.includes('{recovered + 1} plies')")
     page.locator('[data-saved-replay]').first.click()
+    page.locator('#open-recording').click()
+    page.wait_for_function("() => document.querySelector('#start').disabled")
     assert page.locator('#start').is_disabled()
     page.locator('#replay-prev').click()
     assert page.locator('#ply').inner_text() == f'PLY {recovered:02}'

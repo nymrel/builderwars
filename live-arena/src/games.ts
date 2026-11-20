@@ -88,10 +88,14 @@ export function validateRules(raw: unknown): Rules {
   }
   if (Object.keys(RULES).includes(r.kind)) return { ...RULES[r.kind] };
   if (
+    r.kind === "custom" &&
+    (typeof r.name !== "string" ||
+      r.name.trim().length < 1 ||
+      r.name.length > 48)
+  )
+    throw Error("Game name must contain 1–48 characters and cannot be blank.");
+  if (
     r.kind !== "custom" ||
-    typeof r.name !== "string" ||
-    r.name.length < 1 ||
-    r.name.length > 48 ||
     !Number.isInteger(r.rows) ||
     r.rows < 3 ||
     r.rows > 10 ||

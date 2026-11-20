@@ -2,7 +2,7 @@
 import json
 import os
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 BASE = os.environ.get("BUILDERWARS_TEST_URL", "http://127.0.0.1:5178").rstrip("/")
 OUT = Path(__file__).parents[1] / "output" / "playwright"
@@ -92,6 +92,95 @@ with sync_playwright() as p:
     assert failed["attempts"][0]["exit"] == "failed"
     assert len(failed["games"]) == 1 and not failed["games"][0]["events"]
     assert "synthetic-academy-sentinel" not in json.dumps(failed)
+    # Readiness snapshots the selected nondefault Tokens/move cap before dispatch.
+    readiness_caps = []
+    page.unroute("https://openrouter.ai/api/v1/chat/completions")
+    page.locator("nav [data-tab=arena]").click()
+    settings = page.locator(".match-settings").filter(has=page.locator("#max-tokens"))
+    if not settings.evaluate("el => el.open"):
+        settings.locator("summary").click()
+    def readiness_move(route):
+        body = json.loads(route.request.post_data)
+        readiness_caps.append(body["max_tokens"])
+        route.fulfill(json={"model": "test/model", "choices": [{"message": {"content": '{"move":"illegal"}'}}]})
+    page.route("https://openrouter.ai/api/v1/chat/completions", readiness_move)
+    page.locator("#max-tokens").fill("256")
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#readiness-suite").select_option("tictactoe")
+    # Replacing the selected built-in with a provider must be visible, but not
+    # silently approved by a Run click or subsequent navigation/rerender.
+    assert page.locator("#readiness-agent").input_value() == ""
+    assert "OpenRouter" in page.locator('#readiness-agent option[value="0"]').inner_text()
+    page.locator("#academy-readiness").click()
+    expect(page.locator("#readiness-status")).to_contain_text("Choose a current contender")
+    assert not readiness_caps
+    page.locator("nav [data-tab=arena]").click()
+    page.locator("nav [data-tab=academy]").click()
+    assert page.locator("#readiness-agent").input_value() == ""
+    page.locator("#readiness-agent").select_option("0")
+    page.locator("#academy-readiness").click()
+    page.wait_for_function("() => document.querySelector('#readiness-status').textContent.includes('Check complete')", timeout=30000)
+    assert readiness_caps == [256] * 10
+    assert "10 invalid reply" in page.locator("#readiness-output").inner_text()
+    # Hold one synthetic readiness response. Other execution entry points must
+    # not start a second provider request or mutate the evaluation series.
+    page.unroute("https://openrouter.ai/api/v1/chat/completions")
+    held = []
+    page.route("https://openrouter.ai/api/v1/chat/completions", lambda route: held.append(route))
+    with page.expect_request("https://openrouter.ai/api/v1/chat/completions"):
+        page.locator("#academy-readiness").click()
+    page.locator("nav [data-tab=arena]").click()
+    for control in ["start", "step"]:
+        page.locator(f"#{control}").click()
+        expect(page.locator("#notice")).to_contain_text("Stop the readiness check")
+    previous_series = page.locator("#series-results").inner_text()
+    page.locator("nav [data-tab=evals]").click()
+    page.locator("#run-series").click()
+    expect(page.locator("#notice")).to_contain_text("Stop the readiness check")
+    assert page.locator("#series-results").inner_text() == previous_series
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#academy-pair").click()
+    expect(page.locator("#academy-status")).to_contain_text("Stop the readiness check")
+    page.locator("nav [data-tab=lab]").click()
+    page.locator("#lab-start").click()
+    expect(page.locator("#lab-status")).to_contain_text("Stop the readiness check")
+    page.locator("nav [data-tab=duel]").click()
+    page.locator("#duel-create").click()
+    expect(page.locator("#duel-status")).to_contain_text("Stop the readiness check")
+    assert len(held) == 1
+    assert page.locator("#metric-moves").inner_text() == "0"
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#readiness-stop").click()
+    expect(page.locator("#readiness-status")).to_contain_text("Check stopped early")
+    assert "10 skipped" in page.locator("#readiness-output").inner_text()
+    held[0].fulfill(json={"choices": [{"message": {"content": '{"move":"0"}'}}]})
+    assert len(held) == 1
+
+    # The reciprocal guard includes an in-flight local Lab preparation/worker.
+    # A synthetic held worker avoids doing training or paid inference in this test.
+    page.evaluate("""() => {
+      window.realWorker = Worker;
+      window.labWorkers = 0;
+      window.Worker = class {
+        constructor(url, options) {
+          if (options?.name !== 'builderwars-local-lab') return new window.realWorker(url, options);
+          window.labWorkers++;
+        }
+        postMessage() {}
+        terminate() {}
+      };
+    }""")
+    page.locator("nav [data-tab=lab]").click()
+    page.locator("#lab-start").click()
+    page.wait_for_function("window.labWorkers === 1")
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#academy-readiness").click()
+    expect(page.locator("#readiness-status")).to_contain_text("stop Lab work")
+    assert len(held) == 1
+    page.locator("nav [data-tab=lab]").click()
+    page.locator("#lab-cancel").click()
+    expect(page.locator("#lab-start")).to_be_enabled()
+    page.evaluate("() => { window.Worker = window.realWorker; }")
     # The Academy explicitly clears configured contenders; no synthetic inference needed.
     page.locator("nav [data-tab=academy]").click()
     page.locator("#academy-variant").click()
@@ -100,6 +189,92 @@ with sync_playwright() as p:
     page.locator("#connections").click()
     assert page.locator("#agent-key").input_value() == ""
     page.locator("#close-dialog").click()
+    # Agent Readiness Check over the free built-in contender: local workers only, no network.
+    page.locator("nav [data-tab=academy]").click()
+    page.locator("#readiness-agent").select_option("0")
+    page.locator("#readiness-suite").select_option("tictactoe")
+    page.locator("#academy-readiness").click()
+    page.wait_for_function("() => document.querySelector('#readiness-output').textContent.includes('10/10 valid')", timeout=30000)
+    assert "10/10 valid" in page.locator("#readiness-output").inner_text()
+    assert not provider_calls
+    with page.expect_download() as result:
+        page.get_by_role("button", name="Download readiness receipt").click()
+    readiness = json.loads(Path(result.value.path()).read_text())
+    assert readiness["schema"] == "builderwars.readiness.receipt.v1"
+    assert readiness["summary"]["valid"] == 10 and readiness["summary"]["positions"] == 10
+    assert readiness["summary"]["invalidReply"] == 0 and readiness["summary"]["skipped"] == 0
+    assert "key" not in json.dumps(readiness) and "endpoint" not in json.dumps(readiness)
+    # AgentWorld remains experimental; the release exposes only the ordinary receipt.
+    assert page.locator("#readiness-world").count() == 0
+    assert page.get_by_role("button", name="Download AgentWorld event").count() == 0
+
+    # Replacing a contender revokes its pending readiness run, even after the
+    # picker moves to the other seat. A late reply must not trigger more requests.
+    harness_url = "https://readiness.example/move"
+    def configure_readiness_harness():
+        page.locator("#connections").click()
+        page.locator("#agent-kind").select_option("harness")
+        page.locator("#harness-url").fill(harness_url)
+        page.locator("#harness-model").fill("synthetic/readiness")
+        page.locator("#agent-name").fill("Readiness fixture")
+        page.locator("#agent-key").fill("synthetic-readiness-revocation-sentinel")
+        page.locator("#use-contender").click()
+        page.locator("nav [data-tab=academy]").click()
+        page.locator("#readiness-agent").select_option("0")
+
+    revoked_calls = []
+    page.route(harness_url, lambda route: revoked_calls.append(route))
+    configure_readiness_harness()
+    with page.expect_request(harness_url):
+        page.locator("#academy-readiness").click()
+    page.locator("#readiness-agent").select_option("1")
+    page.locator("#connections").click()
+    page.locator("#agent-kind").select_option("bot")
+    # Keep the display name: cancellation follows object identity, not labels.
+    page.locator("#use-contender").click()
+    expect(page.locator("#readiness-status")).to_contain_text("Check stopped early")
+    expect(page.locator("#academy-readiness")).to_be_enabled()
+    expect(page.locator("#readiness-stop")).to_be_hidden()
+    with page.expect_download() as result:
+        page.get_by_role("button", name="Download readiness receipt").click()
+    stopped = json.loads(Path(result.value.path()).read_text())
+    assert stopped["contender"]["kind"] == "harness"
+    assert stopped["contender"]["model"] == "synthetic/readiness"
+    assert stopped["summary"]["skipped"] == 10 and stopped["summary"]["valid"] == 0
+    assert all(position["replyMove"] is None for position in stopped["positions"])
+    assert "synthetic-readiness-revocation-sentinel" not in json.dumps(stopped)
+    assert harness_url not in json.dumps(stopped)
+    revoked_calls[0].fulfill(json={"move": "0", "model": "late/synthetic"})
+    page.wait_for_timeout(100)
+    assert len(revoked_calls) == 1
+    assert "10 skipped" in page.locator("#readiness-output").inner_text()
+
+    # A change to the other seat does not revoke the selected contender. Once
+    # its held reply arrives, the same check completes all ten positions.
+    page.unroute(harness_url)
+    continuing_calls = []
+    def continuing_move(route):
+        continuing_calls.append(route)
+        if len(continuing_calls) > 1:
+            body = json.loads(route.request.post_data)
+            route.fulfill(json={"move": body["legalMoves"][0], "model": "synthetic/readiness"})
+    page.route(harness_url, continuing_move)
+    configure_readiness_harness()
+    with page.expect_request(harness_url):
+        page.locator("#academy-readiness").click()
+    page.locator("nav [data-tab=arena]").click()
+    page.locator('#seats [data-seat="1"]').click()
+    page.locator("#agent-name").fill("Other seat replacement")
+    page.locator("#use-contender").click()
+    page.locator("nav [data-tab=academy]").click()
+    expect(page.locator("#readiness-stop")).to_be_visible()
+    assert len(continuing_calls) == 1
+    body = json.loads(continuing_calls[0].request.post_data)
+    continuing_calls[0].fulfill(json={"move": body["legalMoves"][0], "model": "synthetic/readiness"})
+    expect(page.locator("#readiness-output")).to_contain_text("10/10 valid")
+    assert len(continuing_calls) == 10
+    expect(page.locator("#academy-readiness")).to_be_enabled()
+    assert not provider_calls
     for width in [320, 390, 768, 1440]:
         page.set_viewport_size({"width": width, "height": 900})
         for section in ["academy", "forge", "evals"]:
@@ -108,4 +283,4 @@ with sync_playwright() as p:
     assert not errors, errors
     context.close()
     browser.close()
-    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "responsive lessons/evals"]}))
+    print(json.dumps({"status": "PASS", "actualProviderCalls": 0, "syntheticReadinessCalls": len(readiness_caps), "syntheticRevocationCalls": len(revoked_calls), "syntheticContinuationCalls": len(continuing_calls), "journeys": ["free paired lesson", "active-run guard", "creator recipe/export", "capped != complete", "pause accounting", "synthetic illegal move accounting", "secret stripping", "readiness explicit contender identity", "readiness selected token cap", "reciprocal execution exclusion", "readiness Stop while response held", "readiness check local built-in", "readiness contender replacement cancellation", "readiness late reply after replacement", "readiness other-seat replacement continuity", "responsive lessons/evals"]}))

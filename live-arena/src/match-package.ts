@@ -59,7 +59,7 @@ export function makeMatchPackage(record: RecordData, declarations: MatchDeclarat
   } as const;
 }
 /** Legacy replays have unknown attribution/resources; editor defaults are never evidence. */
-export function readMatchFile(raw: unknown) {
+export function readMatchFile(raw: unknown, options: { reverifyOlderRefereeDigest?: string } = {}) {
   if ((raw as { schema?: unknown } | null)?.schema === "builderwars.exhibition.v1")
     return { parsed: replay(raw), declarations: unknownDeclarations(), limits: null };
   exact(raw, ["schema", "record", "declarations", "resources", "fixture", "seed", "verification"]);
@@ -67,11 +67,18 @@ export function readMatchFile(raw: unknown) {
     throw Error("Unsupported match package version or fixture.");
   exact(raw.verification, ["scope", "verifierVersion", "verifierDigest", "identityAttested", "modelAttested", "resourcesAttested"]);
   const v = raw.verification;
-  if (v.scope !== "legal-moves-only" || v.verifierVersion !== "builderwars-board-js/1" || v.verifierDigest !== refereeManifest.digest ||
+  const olderDigest = options.reverifyOlderRefereeDigest;
+  const validOlderDigest = typeof olderDigest === "string" && /^[0-9a-f]{64}$/.test(olderDigest) &&
+    olderDigest !== refereeManifest.digest && olderDigest === v.verifierDigest;
+  const acceptedDigest = v.verifierDigest === refereeManifest.digest || validOlderDigest;
+  if (v.scope !== "legal-moves-only" || v.verifierVersion !== "builderwars-board-js/1" ||
+      !acceptedDigest ||
       v.identityAttested !== false || v.modelAttested !== false || v.resourcesAttested !== false)
     throw Error("Unsupported verifier or attestation claim. Import a compatible legacy replay instead.");
   const declarations = readDeclarations(raw.declarations), limits = readResources(raw.resources);
-  // Recompute legality rather than trusting the exported verification label.
+  // Recompute legality rather than trusting the exported verification label. The
+  // retained public sample opts into this path with its pinned historical digest;
+  // a new local replay still verifies every move here.
   const parsed = replay(safeReplay(replay(raw.record).record));
   if (limits && parsed.record.events.length > limits.moveLimit) throw Error("Record exceeds declared move limit.");
   return { parsed, declarations, limits };

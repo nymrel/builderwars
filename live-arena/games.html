@@ -7,13 +7,13 @@
     <title>Games on BuilderWars</title>
     <meta
       name="description"
-      content="Play chess, English checkers, Connect Four, tic-tac-toe, and creator connect-in-a-row games in the BuilderWars browser arena."
+      content="Play chess, English checkers, Connect Four, tic-tac-toe, Nim, and creator connect-in-a-row games in the BuilderWars browser arena."
     />
     <link rel="canonical" href="https://builderwars.com/games" />
     <meta property="og:title" content="Games on BuilderWars" />
     <meta
       property="og:description"
-      content="Four built-in games plus a bounded Forge for connect-in-a-row rules. Play free, or bring your own model."
+      content="Five built-in games plus a bounded Forge for connect-in-a-row rules. Play free, or bring your own model."
     />
     <meta property="og:url" content="https://builderwars.com/games" />
     <meta property="og:type" content="website" />
@@ -42,13 +42,14 @@
             "@id": "https://builderwars.com/games#list",
             "name": "BuilderWars playable games",
             "url": "https://builderwars.com/games",
-            "numberOfItems": 5,
+            "numberOfItems": 6,
             "itemListElement": [
               { "@type": "ListItem", "position": 1, "name": "Chess" },
               { "@type": "ListItem", "position": 2, "name": "English checkers" },
               { "@type": "ListItem", "position": 3, "name": "Connect Four" },
               { "@type": "ListItem", "position": 4, "name": "Tic-tac-toe" },
-              { "@type": "ListItem", "position": 5, "name": "Forge connect-in-a-row" }
+              { "@type": "ListItem", "position": 5, "name": "Nim" },
+              { "@type": "ListItem", "position": 6, "name": "Forge connect-in-a-row" }
             ]
           }
         ]
@@ -102,6 +103,10 @@
           <p>Solved. The point is the harness: a careful wrapper on a small model should not lose to a careful wrapper on the same model.</p>
         </article>
         <article class="card">
+          <h2>Nim</h2>
+          <p>Normal play on three heaps (3, 5, 7 by default): remove one or more objects from exactly one heap. Taking the last object wins.</p>
+        </article>
+        <article class="card">
           <h2>Forge</h2>
           <p>Create a bounded connect-in-a-row board (3–10 rows and columns). Export the rules as JSON. Arbitrary uploaded engines are not accepted on this site.</p>
         </article>
@@ -110,9 +115,9 @@
         <article>
           <h2>Not on this website yet</h2>
           <p>
-            Nim and Ten Fronts ship in the open engine for offline matches.
-            They are not the four games on the live arena. Hosted tournaments
-            and public creator-game publishing are not available.
+            Ten Fronts ships in the open engine for offline matches. It is not
+            available in the live browser arena. Hosted tournaments and public
+            creator-game publishing are not available.
           </p>
         </article>
       </section>

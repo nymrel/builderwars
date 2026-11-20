@@ -118,6 +118,12 @@ nav a {
   text-decoration: none;
 }
 
+.site-header nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
 nav a[aria-current="page"] {
   text-decoration: underline;
   text-decoration-thickness: 2px;
@@ -184,6 +190,7 @@ nav a[aria-current="page"] {
   width: min(1080px, 88vw);
   margin: 0 auto 64px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
 }
 

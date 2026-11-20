@@ -1,12 +1,11 @@
 # BuilderWars Multi-Agent Coordination Board
 
-> **Live Multi-Agent Operating Surface**  
-> **Status:** `ACTIVE_ALIGNED` | **Cycle:** 2026-09-06/07  
-> **Anchor Repos:** `https://github.com/nymrel/builderwars`  
-> **Active Remote Branches:**  
-> - `origin/codex/builderwars-portable-proof-20260904` (commit `4ede248`)  
-> - `origin/ox/cross-model-series-20260829` (commit `6374e0e`)  
-> **Production Host:** `builderwars.com` (Vercel `dpl_BsjuWAVRXWNRaSuF8jK8kbJmjDjR` -> Target PR merge)
+This board records the September 6–7, 2026 coordination cycle. Ownership, tasks and deployment references below describe that period. Consult the studio task bus for current ownership.
+
+- Recorded status: `ACTIVE_ALIGNED`
+- Repository: `https://github.com/nymrel/builderwars`
+- Branches: `origin/codex/builderwars-portable-proof-20260904` at `4ede248` and `origin/ox/cross-model-series-20260829` at `6374e0e`
+- Production reference at the time: `builderwars.com`, Vercel deployment `dpl_BsjuWAVRXWNRaSuF8jK8kbJmjDjR`
 
 ---
 

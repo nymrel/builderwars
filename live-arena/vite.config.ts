@@ -26,14 +26,14 @@ function originCleanUrls(): Plugin {
   const rewrite = (req: IncomingMessage) => {
     const raw = req.url?.split("?")[0] || "";
     const path = raw.length > 1 ? raw.replace(/\/$/, "") : raw;
-    const dest = originRoutes[path] ?? (/^\/(circuits(?:\/[a-z0-9-]+)?|matches\/[a-z0-9-]+|agents\/[a-z0-9-]+\/[a-z0-9-]+|developers)$/.test(path) ? (process.env.NODE_ENV === "development" ? "/archive.html" : `${path}.html`) : undefined);
+    const dest = originRoutes[path] ?? (/^\/(circuits(?:\/[a-z0-9-]+)?|matches\/[a-z0-9-]+|agents\/[a-z0-9-]+\/[a-z0-9-]+|developers|evals(?:\/[a-z0-9-]+)?|rankings|compete)$/.test(path) ? (process.env.NODE_ENV === "development" ? "/archive.html" : `${path}.html`) : undefined);
     if (dest) req.url = dest + (req.url?.includes("?") ? `?${req.url.split("?")[1]}` : "");
   };
   return {
     name: "origin-clean-urls",
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
-        if (/^\/(circuits|matches|agents|developers)(?:\/|$)/.test(req.url?.split("?")[0] ?? "")) req.url = "/archive.html";
+        if (/^\/(circuits|matches|agents|developers|evals|rankings|compete)(?:\/|$)/.test(req.url?.split("?")[0] ?? "")) req.url = "/archive.html";
         else rewrite(req);
         next();
       });

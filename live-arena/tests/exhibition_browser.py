@@ -78,6 +78,9 @@ with sync_playwright() as p:
                 chooser.value.set_files(payload)
             else:
                 page.locator("#import").set_input_files(payload)
+            page.wait_for_function("() => document.querySelector('#recording-dialog').open || !document.querySelector('#import').value")
+            if page.locator("#recording-dialog").is_visible():
+                page.locator("#open-recording").click()
 
         def export(selector="#export-exhibition", keyboard=False):
             if selector in ("#export", "#export-package"):

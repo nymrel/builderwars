@@ -1,0 +1,32 @@
+{
+  "schema": "builderwars.local-competition-plan.v1",
+  "id": "local-cup-6759e194c02f7186",
+  "createdAt": "2026-10-21T23:52:01.182Z",
+  "agents": [
+    {
+      "id": "first-legal",
+      "name": "First Legal",
+      "policy": "first-legal"
+    },
+    {
+      "id": "seeded-wildcard",
+      "name": "Seeded Wildcard",
+      "policy": "seeded-random"
+    },
+    {
+      "id": "tactician",
+      "name": "Tactician",
+      "policy": "tactician"
+    }
+  ],
+  "games": [
+    "tictactoe",
+    "connect4",
+    "nim"
+  ],
+  "seeds": [
+    20261021,
+    817263
+  ],
+  "maxPlies": 42
+}

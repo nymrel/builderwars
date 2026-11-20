@@ -1,0 +1,171 @@
+{
+  "schema": "builderwars.local-competition-report.v1",
+  "plan": "f299e34a8432f190c2a039b7b104251063e2f3103aa8b905a8fe6d1954109b53",
+  "source": "323afa9e93f6e4c30506285605dbbc78068294f9d80eedfb4019385de2ad059a",
+  "referee": "f2e3187ba13ac6faf66d3c45653c00ef72b0c118ca759a334d09c4364a4562a5",
+  "scheduled": 36,
+  "completed": 36,
+  "capped": 0,
+  "failed": 0,
+  "providerCalls": 0,
+  "scoring": {
+    "win": 1,
+    "draw": 0.5,
+    "loss": 0,
+    "capped": "void"
+  },
+  "standings": [
+    {
+      "game": "tictactoe",
+      "rows": [
+        {
+          "id": "tactician",
+          "name": "Tactician",
+          "policy": "tactician",
+          "rank": 1,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 7,
+          "draws": 0,
+          "losses": 1,
+          "points": 7,
+          "firstSeat": 4,
+          "secondSeat": 4
+        },
+        {
+          "id": "first-legal",
+          "name": "First Legal",
+          "policy": "first-legal",
+          "rank": 2,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 3,
+          "draws": 0,
+          "losses": 5,
+          "points": 3,
+          "firstSeat": 4,
+          "secondSeat": 4
+        },
+        {
+          "id": "seeded-wildcard",
+          "name": "Seeded Wildcard",
+          "policy": "seeded-random",
+          "rank": 3,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 2,
+          "draws": 0,
+          "losses": 6,
+          "points": 2,
+          "firstSeat": 4,
+          "secondSeat": 4
+        }
+      ]
+    },
+    {
+      "game": "connect4",
+      "rows": [
+        {
+          "id": "tactician",
+          "name": "Tactician",
+          "policy": "tactician",
+          "rank": 1,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 8,
+          "draws": 0,
+          "losses": 0,
+          "points": 8,
+          "firstSeat": 4,
+          "secondSeat": 4
+        },
+        {
+          "id": "first-legal",
+          "name": "First Legal",
+          "policy": "first-legal",
+          "rank": 2,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 2,
+          "draws": 0,
+          "losses": 6,
+          "points": 2,
+          "firstSeat": 4,
+          "secondSeat": 4
+        },
+        {
+          "id": "seeded-wildcard",
+          "name": "Seeded Wildcard",
+          "policy": "seeded-random",
+          "rank": 2,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 2,
+          "draws": 0,
+          "losses": 6,
+          "points": 2,
+          "firstSeat": 4,
+          "secondSeat": 4
+        }
+      ]
+    },
+    {
+      "game": "nim",
+      "rows": [
+        {
+          "id": "tactician",
+          "name": "Tactician",
+          "policy": "tactician",
+          "rank": 1,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 8,
+          "draws": 0,
+          "losses": 0,
+          "points": 8,
+          "firstSeat": 4,
+          "secondSeat": 4
+        },
+        {
+          "id": "first-legal",
+          "name": "First Legal",
+          "policy": "first-legal",
+          "rank": 2,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 2,
+          "draws": 0,
+          "losses": 6,
+          "points": 2,
+          "firstSeat": 4,
+          "secondSeat": 4
+        },
+        {
+          "id": "seeded-wildcard",
+          "name": "Seeded Wildcard",
+          "policy": "seeded-random",
+          "rank": 2,
+          "played": 8,
+          "completed": 8,
+          "capped": 0,
+          "wins": 2,
+          "draws": 0,
+          "losses": 6,
+          "points": 2,
+          "firstSeat": 4,
+          "secondSeat": 4
+        }
+      ]
+    }
+  ],
+  "scope": "Local scripted baselines; replay integrity and deterministic reproduction, not independent execution, model identity, timing, billing or global rank.",
+  "timing": "unmeasured; event elapsed=0 is a deterministic placeholder"
+}

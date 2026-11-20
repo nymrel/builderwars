@@ -1,0 +1,90 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "hle",
+  "sourceUrl": "https://lastexam.ai/",
+  "sourceSha256": "1ceab46b10ee69777117db9af5851f3e59efd67ff698984f37c1b196bd7e041c",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "Gemini 3 Pro",
+      "score": 38.3,
+      "detail": "Calibration error 57.2% (lower is better)",
+      "date": null,
+      "rank": 1,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "GPT-5",
+      "score": 25.3,
+      "detail": "Calibration error 50.0% (lower is better)",
+      "date": null,
+      "rank": 2,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "Grok 4",
+      "score": 24.5,
+      "detail": "Calibration error 56.4% (lower is better)",
+      "date": null,
+      "rank": 3,
+      "sourceRowId": "3"
+    },
+    {
+      "name": "Gemini 2.5 Pro",
+      "score": 21.6,
+      "detail": "Calibration error 72.0% (lower is better)",
+      "date": null,
+      "rank": 4,
+      "sourceRowId": "4"
+    },
+    {
+      "name": "GPT-5-mini",
+      "score": 19.4,
+      "detail": "Calibration error 65.0% (lower is better)",
+      "date": null,
+      "rank": 5,
+      "sourceRowId": "5"
+    },
+    {
+      "name": "Claude 4.5 Sonnet",
+      "score": 13.7,
+      "detail": "Calibration error 65.0% (lower is better)",
+      "date": null,
+      "rank": 6,
+      "sourceRowId": "6"
+    },
+    {
+      "name": "Gemini 2.5 Flash",
+      "score": 12.1,
+      "detail": "Calibration error 80.0% (lower is better)",
+      "date": null,
+      "rank": 7,
+      "sourceRowId": "7"
+    },
+    {
+      "name": "DeepSeek-R1*",
+      "score": 8.5,
+      "detail": "Calibration error 73.0% (lower is better)",
+      "date": null,
+      "rank": 8,
+      "sourceRowId": "8"
+    },
+    {
+      "name": "o1",
+      "score": 8.0,
+      "detail": "Calibration error 83.0% (lower is better)",
+      "date": null,
+      "rank": 9,
+      "sourceRowId": "9"
+    },
+    {
+      "name": "GPT-4o",
+      "score": 2.7,
+      "detail": "Calibration error 89.0% (lower is better)",
+      "date": null,
+      "rank": 10,
+      "sourceRowId": "10"
+    }
+  ]
+}

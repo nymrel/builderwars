@@ -1,0 +1,234 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "livecodebench",
+  "sourceUrl": "https://livecodebench.github.io/performances_generation.json",
+  "sourceSha256": "17f9a1d69e3f6290fc8b967a4dd13fbb46e34dd05716fdee793780a1cfadd0c1",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "O4-Mini (High)",
+      "score": 80.2,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 1,
+      "sourceRowId": "8"
+    },
+    {
+      "name": "O3 (High)",
+      "score": 75.8,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 2,
+      "sourceRowId": "11"
+    },
+    {
+      "name": "O4-Mini (Medium)",
+      "score": 74.2,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 3,
+      "sourceRowId": "9"
+    },
+    {
+      "name": "Gemini-2.5-Pro-06-05",
+      "score": 73.6,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 4,
+      "sourceRowId": "18"
+    },
+    {
+      "name": "DeepSeek-R1-0528",
+      "score": 73.1,
+      "detail": "454 problems · source eligibility date 2024-06-30 (unverified release date)",
+      "date": null,
+      "rank": 5,
+      "sourceRowId": "23"
+    },
+    {
+      "name": "Gemini-2.5-Pro-05-06",
+      "score": 71.8,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 6,
+      "sourceRowId": "19"
+    },
+    {
+      "name": "EXAONE-4.0-32B",
+      "score": 70.0,
+      "detail": "454 problems · source eligibility date 2024-04-01 (unverified release date)",
+      "date": null,
+      "rank": 7,
+      "sourceRowId": "28"
+    },
+    {
+      "name": "OpenReasoning-Nemotron-32B",
+      "score": 69.8,
+      "detail": "454 problems · source eligibility date 2024-04-01 (unverified release date)",
+      "date": null,
+      "rank": 8,
+      "sourceRowId": "26"
+    },
+    {
+      "name": "O3-Mini-2025-01-31 (High)",
+      "score": 67.4,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 9,
+      "sourceRowId": "7"
+    },
+    {
+      "name": "OpenCodeReasoning-Nemotron-1.1-32B",
+      "score": 66.8,
+      "detail": "454 problems · source eligibility date 2024-04-01 (unverified release date)",
+      "date": null,
+      "rank": 10,
+      "sourceRowId": "25"
+    },
+    {
+      "name": "Grok-3-Mini (High)",
+      "score": 66.7,
+      "detail": "454 problems · source eligibility date 2024-03-01 (unverified release date)",
+      "date": null,
+      "rank": 11,
+      "sourceRowId": "24"
+    },
+    {
+      "name": "O4-Mini (Low)",
+      "score": 65.9,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 12,
+      "sourceRowId": "10"
+    },
+    {
+      "name": "Qwen3-235B-A22B",
+      "score": 65.9,
+      "detail": "454 problems · source eligibility date 2024-06-30 (unverified release date)",
+      "date": null,
+      "rank": 12,
+      "sourceRowId": "22"
+    },
+    {
+      "name": "XBai-o4-medium",
+      "score": 65.0,
+      "detail": "454 problems · source eligibility date 2024-04-01 (unverified release date)",
+      "date": null,
+      "rank": 14,
+      "sourceRowId": "27"
+    },
+    {
+      "name": "O3-Mini-2025-01-31 (Med)",
+      "score": 63.0,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 15,
+      "sourceRowId": "6"
+    },
+    {
+      "name": "Gemini-2.5-Flash-05-20",
+      "score": 61.9,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 16,
+      "sourceRowId": "21"
+    },
+    {
+      "name": "Gemini-2.5-Flash-04-17",
+      "score": 60.6,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 17,
+      "sourceRowId": "20"
+    },
+    {
+      "name": "O3-Mini-2025-01-31 (Low)",
+      "score": 57.0,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 18,
+      "sourceRowId": "5"
+    },
+    {
+      "name": "Claude-Opus-4 (Thinking)",
+      "score": 56.6,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 19,
+      "sourceRowId": "15"
+    },
+    {
+      "name": "Claude-Sonnet-4 (Thinking)",
+      "score": 55.9,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 20,
+      "sourceRowId": "14"
+    },
+    {
+      "name": "Claude-Sonnet-4",
+      "score": 47.1,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 21,
+      "sourceRowId": "17"
+    },
+    {
+      "name": "Claude-Opus-4",
+      "score": 46.9,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 22,
+      "sourceRowId": "16"
+    },
+    {
+      "name": "Claude-3.5-Sonnet-20241022",
+      "score": 36.4,
+      "detail": "454 problems · source eligibility date 2024-03-31 (unverified release date)",
+      "date": null,
+      "rank": 23,
+      "sourceRowId": "12"
+    },
+    {
+      "name": "GPT-4O-2024-08-06",
+      "score": 29.5,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 24,
+      "sourceRowId": "3"
+    },
+    {
+      "name": "GPT-4-Turbo-2024-04-09",
+      "score": 28.7,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 25,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "GPT-4O-mini-2024-07-18",
+      "score": 27.5,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 26,
+      "sourceRowId": "4"
+    },
+    {
+      "name": "DeepSeek-V3",
+      "score": 27.2,
+      "detail": "454 problems · source eligibility date 2024-06-30 (unverified release date)",
+      "date": null,
+      "rank": 27,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "Claude-3-Haiku",
+      "score": 20.2,
+      "detail": "454 problems · source eligibility date 2023-04-30 (unverified release date)",
+      "date": null,
+      "rank": 28,
+      "sourceRowId": "13"
+    }
+  ]
+}

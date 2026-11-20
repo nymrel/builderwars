@@ -1,0 +1,42 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "matharena-expected",
+  "sourceUrl": "https://matharena.ai/",
+  "sourceSha256": "6815e5a1bd93bb2780937c309bea1ba284d26eedd42d0abf4eb49cc64403e0c1",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "GPT-6.1 Sol (max)",
+      "score": 90.1,
+      "detail": "#1 overall · OpenAI · source uncertainty ±2.3 percentage points · expected cost $0.55 ±$0.045",
+      "date": "2026-09-29",
+      "rank": 1,
+      "sourceRowId": "1"
+    },
+    {
+      "name": "GPT-6 Astra (max)",
+      "score": 88.0,
+      "detail": "#2 overall · OpenAI · source uncertainty ±2.0 percentage points · expected cost $2.42 ±$0.28",
+      "date": "2026-09-04",
+      "rank": 2,
+      "sourceRowId": "2"
+    },
+    {
+      "name": "GPT-6 Sol (max)",
+      "score": 84.9,
+      "detail": "#3 overall · OpenAI · source uncertainty ±2.5 percentage points · expected cost $1.57 ±$0.17",
+      "date": "2026-09-22",
+      "rank": 3,
+      "sourceRowId": "3"
+    },
+    {
+      "name": "Qwen3.8-Max",
+      "score": 56.1,
+      "detail": "Best open model · Qwen · source uncertainty ±7.6 percentage points · expected cost $3.07 ±$0.35",
+      "date": "2026-08-02",
+      "rank": null,
+      "sourceRowId": "4"
+    }
+  ]
+}

@@ -1,0 +1,386 @@
+{
+  "schema": "builderwars.eval-source-extract.v1",
+  "id": "swe-mini",
+  "sourceUrl": "https://www.swebench.com/",
+  "sourceSha256": "5d031921be2267f0d210fde3c654d56e9be7fc5ee45b3bab3b9f5888cce73d5a",
+  "capturedAt": "2026-10-07T07:01:28Z",
+  "extraction": "Retained reported score columns; not complete source page or execution evidence",
+  "rows": [
+    {
+      "name": "Claude 4.5 Opus (high)",
+      "score": 76.8,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 1,
+      "sourceRowId": "20260217_mini-v2.0.0_claude-4-5-opus-high"
+    },
+    {
+      "name": "Gemini 3 Flash (high)",
+      "score": 75.8,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 2,
+      "sourceRowId": "20260217_mini-v2.0.0_gemini-3-flash-high"
+    },
+    {
+      "name": "MiniMax M2.5 (high)",
+      "score": 75.8,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 2,
+      "sourceRowId": "20260217_mini-v2.0.0_minimax-2-5-high"
+    },
+    {
+      "name": "Claude 4.6 Opus",
+      "score": 75.6,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 4,
+      "sourceRowId": "20260217_mini-v2.0.0_claude-4-6-opus"
+    },
+    {
+      "name": "Claude 4.5 Opus (20251101) (medium)",
+      "score": 74.4,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.16.0 · Reasoning medium · System: Attempts - 1",
+      "date": "2025-11-24",
+      "rank": 5,
+      "sourceRowId": "20251124_mini-v1.16.0_claude-opus-4-5-20251101"
+    },
+    {
+      "name": "Gemini 3 Pro Preview (2025-11-18)",
+      "score": 74.2,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.15.0 · System: Attempts - 1",
+      "date": "2025-11-18",
+      "rank": 6,
+      "sourceRowId": "20251118_mini-v1.15.0_gemini-3-pro-preview-20251118"
+    },
+    {
+      "name": "GLM 5 (high)",
+      "score": 72.8,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 7,
+      "sourceRowId": "20260217_mini-v2.0.0_glm-5-high"
+    },
+    {
+      "name": "GPT 5.2 (high)",
+      "score": 72.8,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 7,
+      "sourceRowId": "20260217_mini-v2.0.0_gpt-5-2-high"
+    },
+    {
+      "name": "GPT 5.2 Codex",
+      "score": 72.8,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · System: Attempts - 1",
+      "date": "2026-02-19",
+      "rank": 7,
+      "sourceRowId": "20260219_mini-v2.0.0_gpt-5-2-codex"
+    },
+    {
+      "name": "GPT 5.2 (2025-12-11) (high)",
+      "score": 71.8,
+      "detail": "mini-SWE-agent · Submission · Harness version 1.17.2 · Reasoning high · System: Attempts - 1",
+      "date": "2025-12-11",
+      "rank": 10,
+      "sourceRowId": "20251211_mini-v1.17.2_gpt-5.2-2025-12-11-high"
+    },
+    {
+      "name": "Claude 4.5 Sonnet (high)",
+      "score": 71.4,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 11,
+      "sourceRowId": "20260217_mini-v2.0.0_claude-4-5-sonnet-high"
+    },
+    {
+      "name": "Kimi K2.5 (high)",
+      "score": 70.8,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 12,
+      "sourceRowId": "20260217_mini-v2.0.0_kimi-k2-5-high"
+    },
+    {
+      "name": "Claude 4.5 Sonnet (20250929)",
+      "score": 70.6,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.13.3 · System: Attempts - 1",
+      "date": "2025-09-29",
+      "rank": 13,
+      "sourceRowId": "20250929_mini-v1.13.3_sonnet-4-5-20250929"
+    },
+    {
+      "name": "DeepSeek V3.2 (high)",
+      "score": 70.0,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 14,
+      "sourceRowId": "20260217_mini-v2.0.0_deepseek-3-2-high"
+    },
+    {
+      "name": "Gemini 3 Pro",
+      "score": 69.6,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-26",
+      "rank": 15,
+      "sourceRowId": "20260226_mini-v2.0.0_gemini-3-pro-high"
+    },
+    {
+      "name": "GPT 5.2 (2025-12-11)",
+      "score": 69.0,
+      "detail": "mini-SWE-agent · Submission · Harness version 1.17.2 · System: Attempts - 1",
+      "date": "2025-12-11",
+      "rank": 16,
+      "sourceRowId": "20251211_mini-v1.17.2_gpt-5.2-2025-12-11"
+    },
+    {
+      "name": "Claude 4 Opus (20250514)",
+      "score": 67.6,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-08-02",
+      "rank": 17,
+      "sourceRowId": "20250802_mini-v1.0.0_claude-4-opus-20250514"
+    },
+    {
+      "name": "Claude 4.5 Haiku (high)",
+      "score": 66.6,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · Reasoning high · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 18,
+      "sourceRowId": "20260217_mini-v2.0.0_claude-4-5-haiku-high"
+    },
+    {
+      "name": "GPT 5.1 (2025-11-13) (medium)",
+      "score": 66.0,
+      "detail": "mini-SWE-agent · Submission · Harness version 1.15.0 · Reasoning medium · System: Attempts - 1",
+      "date": "2025-11-20",
+      "rank": 19,
+      "sourceRowId": "20251120_mini-v1.15.0_gpt-5.1-2025-11-13"
+    },
+    {
+      "name": "GPT 5.1 Codex (medium)",
+      "score": 66.0,
+      "detail": "mini-SWE-agent · Submission · Harness version 1.16.0 · Reasoning medium · System: Attempts - 1",
+      "date": "2025-11-24",
+      "rank": 19,
+      "sourceRowId": "20251124_mini-v1.16.0_gpt-5.1-codex"
+    },
+    {
+      "name": "GPT 5 (2025-08-07) (medium)",
+      "score": 65.0,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.7.0 · Reasoning medium · System: Attempts - 1",
+      "date": "2025-08-07",
+      "rank": 21,
+      "sourceRowId": "20250807_mini-v1.7.0_gpt-5"
+    },
+    {
+      "name": "Claude 4 Sonnet (20250514)",
+      "score": 64.93,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-07-26",
+      "rank": 22,
+      "sourceRowId": "20250726_mini-v1.0.0_claude-sonnet-4-20250514"
+    },
+    {
+      "name": "Kimi K2 Thinking",
+      "score": 63.4,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.17.2 · System: Attempts - 1",
+      "date": "2025-12-10",
+      "rank": 23,
+      "sourceRowId": "20251210_mini-v1.17.2_kimi-k2-thinking"
+    },
+    {
+      "name": "MiniMax M2",
+      "score": 61.0,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.17.0 · System: Attempts - 1",
+      "date": "2025-11-24",
+      "rank": 24,
+      "sourceRowId": "20251124_mini-v1.17.0_minimax-m2"
+    },
+    {
+      "name": "DeepSeek V3.2 Reasoner",
+      "score": 60.0,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.17.1 · System: Attempts - 1",
+      "date": "2025-12-01",
+      "rank": 25,
+      "sourceRowId": "20251201_mini-v1.17.1_deepseek-v3.2-reasoner"
+    },
+    {
+      "name": "GPT 5 mini (2025-08-07) (medium)",
+      "score": 59.8,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.7.0 · Reasoning medium · System: Attempts - 1",
+      "date": "2025-08-07",
+      "rank": 26,
+      "sourceRowId": "20250807_mini-v1.7.0_gpt-5-mini"
+    },
+    {
+      "name": "o3 (2025-04-16)",
+      "score": 58.4,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-07-26",
+      "rank": 27,
+      "sourceRowId": "20250726_mini-v1.0.0_o3-2025-04-16"
+    },
+    {
+      "name": "Devstral Small (2512)",
+      "score": 56.4,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.17.2 · System: Attempts - 1",
+      "date": "2025-12-09",
+      "rank": 28,
+      "sourceRowId": "20251209_mini-v1.17.2_devstral-small-2512"
+    },
+    {
+      "name": "GPT 5 mini",
+      "score": 56.2,
+      "detail": "mini-SWE-agent · Submission · Harness version 2.0.0 · System: Attempts - 1",
+      "date": "2026-02-17",
+      "rank": 29,
+      "sourceRowId": "20260217_mini-v2.0.0_gpt-5-mini"
+    },
+    {
+      "name": "GLM 4.6 (T=1)",
+      "score": 55.4,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.17.1 · System: Attempts - 1",
+      "date": "2025-12-01",
+      "rank": 30,
+      "sourceRowId": "20251201_mini-v1.17.1_glm-4.6"
+    },
+    {
+      "name": "Qwen3-Coder 480B/A35B Instruct",
+      "score": 55.4,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-08-02",
+      "rank": 30,
+      "sourceRowId": "20250802_mini-v1.0.0_qwen3-coder-480b-a35b-instruct"
+    },
+    {
+      "name": "GLM 4.5 (2025-08-22)",
+      "score": 54.2,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.9.1 · System: Attempts - 1",
+      "date": "2025-08-22",
+      "rank": 32,
+      "sourceRowId": "20250822_mini-v1.9.1_glm-4.5"
+    },
+    {
+      "name": "Devstral (2512)",
+      "score": 53.8,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.17.2 · System: Attempts - 1",
+      "date": "2025-12-09",
+      "rank": 33,
+      "sourceRowId": "20251209_mini-v1.17.2_devstral-2512"
+    },
+    {
+      "name": "Gemini 2.5 Pro (2025-05-06)",
+      "score": 53.6,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-07-26",
+      "rank": 34,
+      "sourceRowId": "20250726_mini-v1.0.0_gemini-2.5-pro"
+    },
+    {
+      "name": "Claude 3.7 Sonnet (20250219)",
+      "score": 52.8,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 0.0.0 · System: Attempts - 1",
+      "date": "2025-07-20",
+      "rank": 35,
+      "sourceRowId": "20250720_mini-v0.0.0-claude-3-7-sonnet-20250219"
+    },
+    {
+      "name": "o4-mini (2025-04-16)",
+      "score": 45.0,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-07-26",
+      "rank": 36,
+      "sourceRowId": "20250726_mini-v1.0.0_o4-mini-2025-04-16"
+    },
+    {
+      "name": "Kimi K2 Instruct",
+      "score": 43.8,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.7.0 · System: Attempts - 1",
+      "date": "2025-08-07",
+      "rank": 37,
+      "sourceRowId": "20250807_mini-v1.7.0_kimi-k2-instruct"
+    },
+    {
+      "name": "GPT 4.1 (2025-04-14)",
+      "score": 39.58,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-07-26",
+      "rank": 38,
+      "sourceRowId": "20250726_mini-v1.0.0_gpt-4.1-2025-04-14"
+    },
+    {
+      "name": "GPT 5 nano (2025-08-07) (medium)",
+      "score": 34.8,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.7.0 · Reasoning medium · System: Attempts - 1",
+      "date": "2025-08-07",
+      "rank": 39,
+      "sourceRowId": "20250807_mini-v1.7.0_gpt-5-nano"
+    },
+    {
+      "name": "Gemini 2.5 Flash (2025-04-17)",
+      "score": 28.73,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-07-26",
+      "rank": 40,
+      "sourceRowId": "20250726_mini-v1.0.0_gemini-2.5-flash"
+    },
+    {
+      "name": "gpt-oss-120b",
+      "score": 26.0,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.7.0 · System: Attempts - 1",
+      "date": "2025-08-07",
+      "rank": 41,
+      "sourceRowId": "20250807_mini-v1.7.0_gpt-oss-120b"
+    },
+    {
+      "name": "GPT 4.1 mini (2025-04-14)",
+      "score": 23.94,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 0.0.0 · System: Attempts - 1",
+      "date": "2025-07-20",
+      "rank": 42,
+      "sourceRowId": "20250720_mini-v0.0.0_gpt-4.1-mini-2025-04-14"
+    },
+    {
+      "name": "GPT 4o (2024-11-20)",
+      "score": 21.62,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 0.0.0 · System: Attempts - 1",
+      "date": "2025-07-20",
+      "rank": 43,
+      "sourceRowId": "20250720_mini-v0.0.0-gpt-4o-2024-11-20"
+    },
+    {
+      "name": "Llama 4 Maverick Instruct",
+      "score": 21.04,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 0.0.0 · System: Attempts - 1",
+      "date": "2025-07-20",
+      "rank": 44,
+      "sourceRowId": "20250720_mini-v0.0.0-Llama-4-Maverick-17B-Instruct"
+    },
+    {
+      "name": "Gemini 2.0 Flash",
+      "score": 13.52,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 0.0.0 · System: Attempts - 1",
+      "date": "2025-07-26",
+      "rank": 45,
+      "sourceRowId": "20250726_mini-v1.0.0_gemini-2.0-flash"
+    },
+    {
+      "name": "Llama 4 Scout Instruct",
+      "score": 9.06,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 0.0.0 · System: Attempts - 1",
+      "date": "2025-07-20",
+      "rank": 46,
+      "sourceRowId": "20250720_mini-v0.0.0-Llama-4-Scout-17B-Instruct"
+    },
+    {
+      "name": "Qwen2.5-Coder 32B Instruct",
+      "score": 9.0,
+      "detail": "mini-SWE-agent · Organizer-checked · Harness version 1.0.0 · System: Attempts - 1",
+      "date": "2025-08-03",
+      "rank": 47,
+      "sourceRowId": "20250803_mini-v1.0.0_qwen2-5-coder-32b-instruct"
+    }
+  ]
+}
