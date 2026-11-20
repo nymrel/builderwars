@@ -43,7 +43,7 @@ No tracked builder produces the claimed scoped demo-source archive or its manife
 - Main checked through GitHub: 1745c0a0cc8aaa31aaf8f67edc7765f32de6b547.
 - Existing local recording revision: e46cc424229beb2d4b138772b6d56f374582be85; this revision and its recording receipt were unavailable for this review; not assumed to be a public commit.
 - Merged hosted result: 35 tests; historical Chromium and Firefox 24 case executions across six workflow types and two viewports.
-- At candidate `151c19d2840e5215708fd4031661b6416a6b3226`, 43 tests passed locally on Windows (35 historical Stage 1, five approval, and three journey-evidence cases). Earlier generated cases and the historical end-to-end journey remain reported without their original receipt.
+- The current suite contains 46 tests and passed locally on Windows at `fef975866deef24b00d5399f558e6d1965e888ed` (35 historical Stage 1, five approval, and six journey-evidence cases). Earlier generated cases and the historical end-to-end journey remain reported without their original receipt.
 - Previously reported current-main Firefox receipt (unavailable for this review): 12/12 cases, 10 TP, 2 TN, 0 FP, 0 FN. Historical Chromium is not called a fresh rerun.
 - Previously reported walkthrough (original video and matching receipt unavailable): 54 components, 62,432 changed pixels, approval requested; denied attempt does not change screenshot; scripted one-use demo approval restores a temporary DOM property; fresh verification returns zero findings and baseline-identical bytes.
 

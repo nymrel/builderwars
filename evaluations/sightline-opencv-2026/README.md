@@ -114,7 +114,7 @@ The artifact is neither uploaded nor deployed. A successful receipt must report 
 
 ## Hosted validation
 
-`.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs the discovered tests, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The merged Stage 1 head passed 35 tests; at candidate `151c19d2840e5215708fd4031661b6416a6b3226`, 43 tests passed locally on Windows, including five demo-approval cases and three journey-evidence cases. The workflow has read-only repository permission and no AWS or deployment capability.
+`.github/workflows/sightline-opencv5.yml` repeats the hash-checked installation on Ubuntu 24.04 with CPython 3.12, verifies `cv2==5.0.0` and `numpy==2.3.5`, runs the discovered tests, compiles every Python module, emits the measured baseline, builds the deterministic review-only AWS artifact, and verifies the draft judge packet. The merged Stage 1 head passed 35 tests; the current suite contains 46 tests and passed locally on Windows at `fef975866deef24b00d5399f558e6d1965e888ed`, including five demo-approval cases and six journey-evidence cases. The workflow has read-only repository permission and no AWS or deployment capability.
 
 `.github/workflows/sightline-browser-corpus.yml` uses a fail-independent matrix to install pinned Playwright 1.58.0 with managed Chromium and Firefox, renders tracked BuilderWars source only over loopback, and runs the same corpus in each engine without uploading temporary PNGs.
 
