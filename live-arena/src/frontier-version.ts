@@ -2,6 +2,7 @@
 import { sha256, refereeManifest, validateRules, legalMoves, createGame, replayStepper, type Rules, type GameState } from "./runtime";
 import { FEATURE_COUNT, FEATURE_VERSION, policyMove, seeded, WorkBudget } from "./self-improvement";
 import { STRATEGIC_FEATURE_COUNT, STRATEGIC_FEATURE_VERSION, STRATEGIC_MODEL, strategicMove } from "./strategic-value";
+import { withDeadline } from "./abort-signals";
 
 export const VERSION_SCHEMA = "builderwars.frontier-version.v1";
 export type RuntimeIdentity = {
@@ -165,9 +166,10 @@ export async function openVersionSession(raw: Version, transport?: VersionTransp
         if (JSON.stringify(snapshot[field]) !== JSON.stringify(state[field])) throw Error("Versioned position contradicts replay.");
       }
       freeze(snapshot);
-      const combined = AbortSignal.any([abort.signal, signal, AbortSignal.timeout(Math.max(1, Math.ceil(budget.deadline - performance.now())))]);
-      combined.throwIfAborted(); budget.tick(); busy = true; calls++;
+      const deadline = withDeadline([abort.signal, signal], Math.max(1, Math.ceil(budget.deadline - performance.now())));
+      const combined = deadline.signal;
       try {
+        combined.throwIfAborted(); budget.tick(); busy = true; calls++;
         let result: VersionDecision;
         if (c.harness.kind !== "model") {
           result = { move: numericVersionMove(version, snapshot, budget),
@@ -190,7 +192,7 @@ export async function openVersionSession(raw: Version, transport?: VersionTransp
         const receipt = freeze({ ...result, version: version.digest, identity, ply: snapshot.moves.length });
         receipts.push(receipt); return receipt;
       } catch (error) { stopped = true; abort.abort(); throw error; }
-      finally { busy = false; }
+      finally { busy = false; deadline.dispose(); }
     },
   };
 }

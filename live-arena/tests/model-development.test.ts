@@ -1,16 +1,31 @@
 import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { ModelDevelopment, developmentTotals } from '../src/model-development';
+import { withDeadline } from '../src/abort-signals';
 import { connectedVersionConfig } from '../src/model-version-transport';
 import { createVersion, type VersionConfig } from '../src/frontier-version';
 import { PracticeMemory, analyzePractice } from '../src/learning';
-import { RULES, replay, sha256, type Rules } from '../src/runtime';
+import { RULES, botMove, replay, sha256, type Rules } from '../src/runtime';
 import type { Agent } from '../src/models';
 
 const agent = (): Agent => ({ kind: 'harness', name: 'Test contender', model: 'test/requested', effort: 'high',
   strategy: 'Frozen strategy.', key: 'secret-credential-never-export', endpoint: 'https://private-endpoint.example/move' });
 const limits = () => ({ nodes: 100000, milliseconds: 30000, maxTokens: 256, maxCalls: 24 });
 const json = (value: unknown) => new Response(JSON.stringify(value), { status: 200 });
+// Node has no browser Worker. The browser suite exercises the actual worker.
+test.beforeEach(() => {
+  class TestWorker {
+    onmessage: ((event: { data: { ready?: boolean; move?: string } }) => void) | null = null;
+    onerror: (() => void) | null = null;
+    private stopped = false;
+    constructor() { queueMicrotask(() => { if (!this.stopped) this.onmessage?.({ data: { ready: true } }); }); }
+    postMessage({ state, style }: Parameters<typeof botMove> extends [infer S, infer T] ? { state: S; style: T } : never) {
+      queueMicrotask(() => { if (!this.stopped) this.onmessage?.({ data: { move: botMove(state, style) } }); });
+    }
+    terminate() { this.stopped = true; }
+  }
+  Object.defineProperty(globalThis, 'Worker', { configurable: true, writable: true, value: TestWorker });
+});
 type Body = { game: Rules; legalMoves: string[]; turn: number; moves: string[]; strategy: string; practiceMemory?: string; model: string; effort: string; maxTokens: number };
 function harness(t: TestContext, answer: (body: Body, init: RequestInit) => unknown | Promise<unknown> = body => ({ move: body.legalMoves[0], model: 'test/resolved', outputTokens: 3 })) {
   const requests: { url: string; body: Body; init: RequestInit }[] = [];
@@ -205,6 +220,57 @@ test('operation admission rechecks the host after probe preflight and does not r
   assert.equal(admissions, 1); assert.equal(requests.length, 0); assert.equal(d.busy, false); assert.equal(d.attempts.length, 0);
   await baseline(d); await assert.rejects(d.run('practice', agent(), [], 4), /Arena operation active/);
   assert.equal(admissions, 2); assert.equal(requests.length, 0); assert.equal(d.attempts.length, 0);
+});
+
+test('setup and receipt failures release the operation for a later probe', async t => {
+  harness(t);
+  let failNotification = true;
+  const d = new ModelDevelopment(() => { if (failNotification) throw Error('display failed'); });
+  await assert.rejects(d.probe(agent(), RULES.connect4, [], limits()), /display failed/);
+  assert.equal(d.busy, false);
+  failNotification = false;
+  assert.equal((await d.probe(agent(), RULES.connect4, [], limits())).exit, 'complete');
+  assert.equal(d.busy, false);
+  const originalDigest = crypto.subtle.digest.bind(crypto.subtle);
+  let count = 0;
+  const mock = t.mock.method(crypto.subtle, 'digest', (...args: Parameters<SubtleCrypto['digest']>) => {
+    count++;
+    if (count === 3) return Promise.reject(Error('receipt hashing failed'));
+    return originalDigest(...args);
+  });
+  await assert.rejects(d.probe(agent(), RULES.connect4, [], limits()), /receipt hashing failed/);
+  assert.equal(d.busy, false);
+  mock.mock.restore();
+  assert.equal((await d.probe(agent(), RULES.connect4, [], limits())).exit, 'complete');
+});
+
+test('development works when AbortSignal.any is unavailable', async t => {
+  harness(t);
+  const original = Object.getOwnPropertyDescriptor(AbortSignal, 'any');
+  Object.defineProperty(AbortSignal, 'any', { configurable: true, value: undefined });
+  t.after(() => { if (original) Object.defineProperty(AbortSignal, 'any', original); });
+  const d = new ModelDevelopment();
+  assert.equal((await d.probe(agent(), RULES.connect4, [], limits())).exit, 'complete');
+  assert.equal((await d.run('practice', agent(), [], 4)).exit, 'complete');
+  assert.equal(d.busy, false);
+});
+
+test('fallback deadlines relay cancellation and release listeners on disposal', async t => {
+  const original = Object.getOwnPropertyDescriptor(AbortSignal, 'any');
+  Object.defineProperty(AbortSignal, 'any', { configurable: true, value: undefined });
+  t.after(() => { if (original) Object.defineProperty(AbortSignal, 'any', original); });
+  const controller = new AbortController();
+  const remove = t.mock.method(controller.signal, 'removeEventListener');
+  const deadline = withDeadline([controller.signal], 30000);
+  controller.abort(Error('cancelled'));
+  assert.equal(deadline.signal.aborted, true);
+  assert.match(String(deadline.signal.reason), /cancelled/);
+  assert.equal(remove.mock.callCount(), 1);
+  deadline.dispose();
+  const expired = withDeadline([], 1);
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(expired.signal.reason.name, 'TimeoutError');
+  expired.dispose();
 });
 
 test('racing probes admit only one request even when both pass the initial idle check', async t => {

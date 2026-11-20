@@ -1,6 +1,7 @@
 /** Explicit tab-local development, never admission or provider-weight training. */
-import { applyMove, botMove, createGame, moveLabel, sha256, refereeManifest, type Rules, type RecordData } from './runtime';
-import { decide, publicAgent, type Agent, type Model } from './models';
+import { applyMove, createGame, moveLabel, sha256, refereeManifest, type Rules, type RecordData } from './runtime';
+import { builtinMove, decide, publicAgent, type Agent, type Model } from './models';
+import { withDeadline } from './abort-signals';
 import { createVersion, parseVersion, openVersionSession, freeze, integer, type Version, type VersionConfig } from './frontier-version';
 import { assertBrowserVersion, connectedVersionConfig, browserVersionTransport } from './model-version-transport';
 import { PracticeMemory, supportsLearning } from './learning';
@@ -84,20 +85,32 @@ export class ModelDevelopment {
     this.idle();
     this.beforeStart();
     if (this.results.length >= MAX_ATTEMPTS) throw Error('This tab holds 12 attempts. Download results before starting a new tab.');
-    const abort = new AbortController(); this.operation = abort;
+    const abort = new AbortController();
     const draft: AttemptDraft = { schema: DEVELOPMENT_SCHEMA, id: crypto.randomUUID(), kind, source: source.digest, referee: refereeManifest.digest,
       startedAt: new Date().toISOString(), finishedAt: '', exit: 'failed', versions: [...versions], candidate: null, probe: null,
       limits: { games, maxPlies, maxCalls: kind === 'probe' ? 1 : games * limits.maxCalls, milliseconds: limits.milliseconds, maxTokens: limits.maxTokens },
       calls: [], games: [], message: '' };
-    const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(limits.milliseconds)]);
-    this.tell(`${kind === 'probe' ? 'Probing' : kind === 'practice' ? 'Practicing' : 'Comparing'} with fixed limits. Cancel is available.`);
-    return { abort, signal, draft };
+    const deadline = withDeadline([abort.signal], limits.milliseconds);
+    this.operation = abort;
+    try {
+      this.tell(`${kind === 'probe' ? 'Probing' : kind === 'practice' ? 'Practicing' : 'Comparing'} with fixed limits. Cancel is available.`);
+      return { signal: deadline.signal, draft, dispose: deadline.dispose };
+    } catch (error) {
+      this.operation = null;
+      deadline.dispose();
+      throw error;
+    }
   }
-  private async finish(draft: AttemptDraft) {
-    draft.finishedAt = new Date().toISOString();
-    const body = structuredClone(draft);
-    this.results.push(freeze({ ...body, digest: await sha256(JSON.stringify(body)) }));
-    this.operation = null; this.tell(draft.message);
+  private async finish(draft: AttemptDraft, dispose: () => void) {
+    try {
+      draft.finishedAt = new Date().toISOString();
+      const body = structuredClone(draft);
+      this.results.push(freeze({ ...body, digest: await sha256(JSON.stringify(body)) }));
+    } finally {
+      dispose();
+      this.operation = null;
+    }
+    this.tell(draft.message);
   }
   async probe(agent: Agent, rules: Rules, models: Model[], limits: VersionConfig['limits'] = DEFAULT_VERSION_LIMITS) {
     this.idle(); this.room();
@@ -106,10 +119,10 @@ export class ModelDevelopment {
     const privateAgent = structuredClone(agent), frozenModels = structuredClone(models), frozenRules = structuredClone(rules);
     limits = freeze(structuredClone(limits));
     await createVersion(connectedVersionConfig(privateAgent, frozenRules, privateAgent.model, limits));
-    const { signal, draft } = this.begin('probe', [], 0, 1, limits);
-    draft.probe = publicAgent(privateAgent);
+    const { signal, draft, dispose } = this.begin('probe', [], 0, 1, limits);
     const call: Call = { version: null, game: 0, ply: 0, exit: 'pending', model: null, tokens: null, outputTokens: null, cost: null };
     try {
+      draft.probe = publicAgent(privateAgent);
       signal.throwIfAborted(); draft.calls.push(call);
       // No ambient practice memory: this exact strategy is the frozen baseline.
       const decision = await decide(createGame(frozenRules), privateAgent, limits.maxTokens, signal, frozenModels, undefined, undefined, "version");
@@ -122,7 +135,7 @@ export class ModelDevelopment {
       if (this.selected && this.selected !== version.digest) this.history.push(this.selected);
       this.selected = version.digest; draft.exit = 'complete'; draft.message = 'Baseline frozen from one returned move identity. Selected for development only; this is not strength evidence.';
     } catch { call.exit = signal.aborted ? 'cancelled' : 'failed'; draft.exit = signal.aborted ? 'cancelled' : 'failed'; draft.message = safeFailure(signal.aborted); }
-    finally { await this.finish(draft); }
+    finally { await this.finish(draft, dispose); }
     return this.results.at(-1)!;
   }
   async run(kind: 'practice' | 'compare', agent: Agent, models: Model[], maxPlies = 40) {
@@ -146,10 +159,10 @@ export class ModelDevelopment {
       if (privateAgent.kind !== v.config.runtime.provider || privateAgent.model !== v.config.runtime.requestedModel || privateAgent.effort !== v.config.runtime.reasoning)
         throw Error('Connect the selected version’s provider, model and effort in Arena seat 1.');
     }
-    const { signal, draft } = this.begin(kind, versions, versions.length * 2, maxPlies, selected.config.limits);
-    const practice = new PracticeMemory();
+    const { signal, draft, dispose } = this.begin(kind, versions, versions.length * 2, maxPlies, selected.config.limits);
     let currentGame: DevelopmentGame | undefined;
     try {
+      const practice = new PracticeMemory();
       for (const seat of [0, 1]) for (const version of versions) {
         signal.throwIfAborted();
         const players = seat === 0 ? [policyAgent(privateAgent, version), opponent] : [opponent, policyAgent(privateAgent, version)];
@@ -171,7 +184,7 @@ export class ModelDevelopment {
                 move = result.move; model = result.model; tokens = result.tokens; cost = result.cost;
                 Object.assign(call, { exit: 'accepted', model, tokens, cost, outputTokens: result.outputTokens });
               } catch { call.exit = signal.aborted ? 'cancelled' : 'failed'; throw Error('Development request rejected.'); }
-            } else move = botMove(state, 'tactician');
+            } else move = await builtinMove(state, 'tactician', signal);
             signal.throwIfAborted(); state = applyMove(state, move);
             record.events.push({ move, model, tokens, cost, elapsed: performance.now() - started, comment: '', seat: turn, ply: state.moves.length, label: moveLabel(move, labelState) });
             this.tell(`${kind === 'practice' ? 'Practice' : 'Compare'} game ${draft.games.length}/${draft.limits.games}, ply ${state.moves.length}/${maxPlies}; ${draft.calls.length} model requests submitted.`);
@@ -200,7 +213,7 @@ export class ModelDevelopment {
     } catch {
       if (currentGame && currentGame.exit === 'failed') { currentGame.exit = signal.aborted ? 'cancelled' : 'failed'; currentGame.record.status = safeFailure(signal.aborted); }
       draft.exit = signal.aborted ? 'cancelled' : 'failed'; draft.message = safeFailure(signal.aborted);
-    } finally { await this.finish(draft); }
+    } finally { await this.finish(draft, dispose); }
     return this.results.at(-1)!;
   }
 }

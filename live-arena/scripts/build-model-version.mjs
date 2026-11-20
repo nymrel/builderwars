@@ -5,7 +5,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 // referee digest separately binds game rules and the bundled tactical opponent.
 export async function buildModelVersion(referee) {
   const sources = {};
-  for (const name of ['src/models.ts', 'src/model-version-transport.ts', 'src/model-development.ts',
+  for (const name of ['src/models.ts', 'src/model-version-transport.ts', 'src/model-development.ts', 'src/abort-signals.ts',
     'src/frontier-version.ts', 'src/self-improvement.ts', 'src/strategic-value.ts', 'src/learning.ts', 'package-lock.json']) {
     const text = (await readFile(new URL('../' + name, import.meta.url), 'utf8')).replaceAll('\r\n', '\n');
     sources[name] = createHash('sha256').update(text).digest('hex');

@@ -1,4 +1,5 @@
 import { botMove, gamePosition, gamePrompt, legalMoves, type GameState } from "./runtime";
+import { withDeadline } from "./abort-signals";
 import type { MemoryContext } from "./learning";
 import type { Version } from "./frontier-version";
 export type Agent = {
@@ -179,7 +180,8 @@ export async function checkConnection(a: Agent, models: Model[], signal: AbortSi
     checked: a.kind !== "harness",
     message: a.kind === "harness" ? "HTTPS configuration is valid. Authentication, CORS, connectivity and limits are unchecked: this harness has no standard non-inference probe. Start a capped match only when your endpoint is ready." : "Local play needs no provider connection or model request.",
   };
-  const timeout = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
+  const deadline = withDeadline([signal], 15000);
+  const timeout = deadline.signal;
   let result: ConnectionCheck;
   try {
     const response = await fetch(local ? "http://127.0.0.1:8765/health" : "https://openrouter.ai/api/v1/key", {
@@ -211,7 +213,7 @@ export async function checkConnection(a: Agent, models: Model[], signal: AbortSi
     }
     if (error instanceof TypeError || error instanceof SyntaxError) throw Error("Connection check failed. Check network/CORS, bridge version and browser local-network permission.");
     throw error;
-  }
+  } finally { deadline.dispose(); }
   signal.throwIfAborted();
   if (identity !== connectionIdentity(a) || generation !== (connectionGenerations.get(a) ?? 0))
     throw Error("Connection changed during the check. Check the current configuration again.");
@@ -219,7 +221,7 @@ export async function checkConnection(a: Agent, models: Model[], signal: AbortSi
   return result;
 }
 const BUILTIN_SEARCH_TIMEOUT_MS = 5000;
-async function builtinMove(s: GameState, style: string, signal: AbortSignal): Promise<string> {
+export async function builtinMove(s: GameState, style: string, signal: AbortSignal): Promise<string> {
   if (style === "random") return botMove(s, style);
   signal.throwIfAborted();
   const worker = new Worker(new URL("./bot-worker.ts", import.meta.url), {
@@ -310,7 +312,9 @@ export async function decide(
     rawOutputTokens: unknown,
     cost: number | null = null,
     content: unknown;
-  const timeout = AbortSignal.any([signal, AbortSignal.timeout(120000)]);
+  const deadline = withDeadline([signal], 120000);
+  const timeout = deadline.signal;
+  try {
   if (a.kind === "openrouter") {
     if (!a.key) throw Error("Add your OpenRouter key in Connections.");
     const model = models.find((m) => m.id === a.model);
@@ -398,6 +402,7 @@ export async function decide(
     ...(evidence === "version" ? { outputTokens: reportedOutputTokens(rawOutputTokens, maxTokens) } : {}),
     cost: cost !== null && cost >= 0 ? cost : null,
   };
+  } finally { deadline.dispose(); }
 }
 async function boundedJson(response: Response, limit = 1000000) {
   const reader = response.body?.getReader();
