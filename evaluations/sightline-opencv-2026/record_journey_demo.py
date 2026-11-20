@@ -24,7 +24,6 @@ from typing import Any
 
 import cv2
 import numpy as np
-from playwright.async_api import async_playwright
 
 from aws_lambda_handler import lambda_handler
 from demo_approval import DEMO_ACTION, DemoApprovalGate
@@ -392,6 +391,8 @@ class Journey:
 
 
 async def record(output: Path, hold_scale: float, browser_engine: str) -> dict[str, Any]:
+    from playwright.async_api import async_playwright
+
     if cv2.__version__ != "5.0.0" or np.__version__ != "2.3.5":
         raise RuntimeError("OpenCV 5.0.0 and NumPy 2.3.5 are required")
     playwright_version = version("playwright")
