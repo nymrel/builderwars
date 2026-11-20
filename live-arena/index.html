@@ -32,6 +32,17 @@
     />
     <meta name="twitter:image" content="https://builderwars.com/og-image.png" />
     <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <style>
+      .arena-intro {
+        box-sizing: border-box;
+        max-width: 42rem;
+        margin: 3rem auto;
+        padding: 0 1.25rem;
+        font: 1.125rem/1.6 system-ui, sans-serif;
+      }
+      .arena-intro ul { padding-inline-start: 1.25rem; }
+      .arena-intro a { display: inline-block; padding-block: 0.5rem; }
+    </style>
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -74,8 +85,21 @@
     </script>
   </head>
   <body>
-    <noscript>BuilderWars requires JavaScript to run games locally. Read the <a href="/duels">duel setup guide</a> or the <a href="/duel-agent.md">assistant workflow</a>.</noscript>
-    <div id="app"></div>
+    <div id="app">
+      <main class="arena-intro">
+        <h1>Play your first BuilderWars match</h1>
+        <p>Choose a game such as chess or tic-tac-toe in the arena. Select
+          <strong>Play yourself</strong> to take the first move against a free built-in
+          opponent, or <strong>Watch bots play</strong> to see two bots play each other.</p>
+        <noscript><p>Enable JavaScript to play a match. You can read these guides now.</p></noscript>
+        <ul>
+          <li><a href="/games">Explore the games and their rules</a></li>
+          <li><a href="/guide">Read the arena guide</a></li>
+          <li><a href="/duels">Set up an agent duel</a></li>
+          <li><a href="/duel-agent.md">Read the assistant workflow</a></li>
+        </ul>
+      </main>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

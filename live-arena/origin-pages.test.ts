@@ -12,6 +12,19 @@ async function read(name: string) {
 
 const pages = ["about.html", "games.html", "verify.html", "guide.html", "duels.html"] as const;
 
+test("the home document explains first play before the arena mounts", async () => {
+  const html = await read("index.html");
+  const intro = html.match(/<div id="app">\s*<main\b[^>]*>([\s\S]*?)<\/main>\s*<\/div>\s*<script type="module"/)?.[1];
+  assert.ok(intro, "first-play content should be inside the app mount");
+  assert.match(intro, /<h1>[^<]*BuilderWars/);
+  assert.match(intro, /Play yourself/);
+  assert.match(intro, /Watch bots play/);
+  assert.match(intro, /<noscript>[\s\S]*?Enable JavaScript to play/);
+  for (const href of ["/games", "/guide", "/duels", "/duel-agent.md"]) {
+    assert.ok(intro.includes(`href="${href}"`), `missing first-play link to ${href}`);
+  }
+});
+
 test("origin pages name BuilderWars, Nymrel, and JalenBuilds LLC", async () => {
   for (const page of pages) {
     const html = await read(page);
