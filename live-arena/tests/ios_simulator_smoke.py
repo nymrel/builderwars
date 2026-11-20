@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 
@@ -74,19 +75,35 @@ def main():
         time.sleep(8)  # Bounded rendering delay; screenshots are inspected, not an assertion.
         run("xcrun", "simctl", "io", udid, "screenshot", str(out / "launch.png"))
         receipt["screenshot"] = "launch.png"
-        time.sleep(30)  # A second bounded frame distinguishes cold WebView startup from first-frame blankness.
-        run("xcrun", "simctl", "io", udid, "screenshot", str(out / "settled.png"))
-        receipt["settledScreenshot"] = "settled.png"
+        # WebKit startup can outlast the first settled frame on a cold simulator.
+        # Preserve each frame and OCR result, but keep the same strict screen gate.
         receipt["initialScreenTextVerified"] = False
-        try:
-            screen_text = run("swift", "tests/ios_screen_check.swift", str(out / "settled.png"), timeout=90)
-        except subprocess.CalledProcessError as error:
-            (out / "screen-text.json").write_text((error.stdout or "") + "\n", encoding="utf-8")
-            raise
-        (out / "screen-text.json").write_text(screen_text + "\n", encoding="utf-8")
-        receipt.update(status="launched", launch=launched, screenshot="launch.png",
-                       settledScreenshot="settled.png", initialScreenTextVerified=True,
-                       classification="unsigned simulator launch and initial-screen OCR; manual inspection still required")
+        receipt["screenAttempts"] = []
+        for attempt in range(1, 6):
+            time.sleep(30 if attempt == 1 else 15)
+            screenshot = out / "settled.png"
+            run("xcrun", "simctl", "io", udid, "screenshot", str(screenshot))
+            attempt_screenshot = out / f"settled-attempt-{attempt}.png"
+            shutil.copyfile(screenshot, attempt_screenshot)
+            receipt["settledScreenshot"] = screenshot.name
+            screen_attempt = {"screenshot": attempt_screenshot.name, "verified": False}
+            receipt["screenAttempts"].append(screen_attempt)
+            try:
+                screen_text = run("swift", "tests/ios_screen_check.swift", str(screenshot), timeout=90)
+            except subprocess.CalledProcessError as error:
+                screen_text = error.stdout or ""
+                (out / f"screen-text-attempt-{attempt}.json").write_text(screen_text + "\n", encoding="utf-8")
+                (out / "screen-text.json").write_text(screen_text + "\n", encoding="utf-8")
+                if attempt == 5:
+                    raise
+            else:
+                (out / f"screen-text-attempt-{attempt}.json").write_text(screen_text + "\n", encoding="utf-8")
+                (out / "screen-text.json").write_text(screen_text + "\n", encoding="utf-8")
+                screen_attempt["verified"] = True
+                receipt.update(status="launched", launch=launched, screenshot="launch.png",
+                               initialScreenTextVerified=True,
+                               classification="unsigned simulator launch and initial-screen OCR; manual inspection still required")
+                break
         print(json.dumps(receipt))
     except Exception as error:
         receipt.update(status="failed", error=type(error).__name__)
