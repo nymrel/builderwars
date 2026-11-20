@@ -14,7 +14,7 @@ function functionSource(name: string) {
 }
 const section = source.slice(source.indexOf("function readinessStatus("), source.indexOf("\nrefreshReadinessTargets();") + "\nrefreshReadinessTargets();".length);
 const code = ts.transpileModule([
-  ...["ensureExecutionReady", "oneMove", "play", "runSeries", "prepareAcademy"].map(functionSource), section,
+  ...["ensureDeviceReady", "ensureExecutionReady", "ensureModelDevelopmentReady", "oneMove", "play", "runSeries", "prepareAcademy"].map(functionSource), section,
 ].join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 class Element {
   value = ""; textContent = ""; options: Element[] = []; disabled = false; hidden = false;
@@ -32,8 +32,8 @@ function harness() {
     agents: [bot, { ...bot }], models: [], pending: false, running: false, spectating: false,
     state: { over: false, turn: 0, moves: [] },
     duelUI: { room: { view: () => ({ active: context.duelActive }) } },
-    localLab: { active: () => context.labActive },
-    ensureDeviceReady: () => {}, numberInput: () => 256,
+    localLab: { active: () => context.labActive }, development: { busy: false }, seriesRemaining: 0,
+    isNativeApp: false, validateNativeEndpoint: () => {}, numberInput: () => 256,
     runReadinessCheck: (options: unknown) => { calls.push(options); return new Promise(() => {}); },
     notify: (message: string) => messages.push(message), tab: () => {},
     getMatchLimits: () => { throw Error("Unexpected match dispatch"); },
@@ -93,6 +93,25 @@ test("pending readiness blocks Start, Step, evaluation and exercises before disp
     "Stop the readiness check in Academy before starting another run.",
   ]);
   assert.throws(() => context.ensureExecutionReady(), /Stop the readiness check/);
+});
+
+test("model development waits for Academy readiness and local Lab work", () => {
+  const { context, calls, run } = harness();
+  context.ensureModelDevelopmentReady();
+  context.labActive = true;
+  assert.throws(() => context.ensureModelDevelopmentReady(), /stop Lab work/);
+  context.labActive = false;
+  void run();
+  assert.equal(calls.length, 1);
+  assert.throws(() => context.ensureModelDevelopmentReady(), /Stop the readiness check/);
+});
+
+test("Academy readiness waits for model development before dispatch", async () => {
+  const { context, $, calls, run } = harness();
+  context.development.busy = true;
+  await run();
+  assert.equal(calls.length, 0);
+  assert.match($("readiness-status").textContent, /cancel the model-development operation/);
 });
 
 test("replacing or removing a running readiness contender cancels its remaining requests", () => {

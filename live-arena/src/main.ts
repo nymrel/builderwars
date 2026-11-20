@@ -273,13 +273,14 @@ $("clear-learning").onclick = async () => {
   } catch { renderLearning("Cleared in this tab only. Device removal failed; retry Clear."); }
 };
 renderLearning();
+function ensureModelDevelopmentReady() {
+  ensureExecutionReady(agents[0]);
+  if (running || pending || seriesRemaining || spectating || duelUI?.room.view().active || localLab.active())
+    throw Error("Pause Arena, stop Lab work and leave any evaluation, broadcast or duel before model development.");
+}
 development = mountModelDevelopment($("evals"), {
   connection: () => ({ agent: agents[0], rules, models }),
-  ready: () => {
-    ensureDeviceReady(agents[0]);
-    if (running || pending || seriesRemaining || spectating || duelUI?.room.view().active)
-      throw Error("Pause Arena and leave any evaluation, broadcast or duel before model development.");
-  },
+  ready: ensureModelDevelopmentReady,
   connect: () => openAgent(0),
   download: exportJson,
 });
