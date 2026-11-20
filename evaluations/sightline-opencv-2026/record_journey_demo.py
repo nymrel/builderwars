@@ -140,7 +140,9 @@ class Journey:
         return content
 
     async def prepare(self, url: str) -> dict[str, Any]:
-        await self.app.goto(url, wait_until="domcontentloaded")
+        response = await self.app.goto(url, wait_until="domcontentloaded")
+        if response is None or not response.ok:
+            raise RuntimeError("loopback BuilderWars shell did not return HTTP success")
         await self.app.wait_for_function("() => document.body.dataset.sourceMode === 'verified_corpus'")
         await self.app.evaluate("""() => {
             const style=document.createElement('style');

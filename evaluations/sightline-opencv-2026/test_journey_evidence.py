@@ -3,13 +3,24 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 from demo_approval import DEMO_ACTION, DemoApprovalGate
 from record_journey_demo import Diagnostics, Journey
 
 
 class JourneyEvidenceTests(unittest.TestCase):
+    def test_unavailable_loopback_shell_fails_before_waiting(self):
+        import asyncio
+        for response in (None, Mock(ok=False)):
+            with self.subTest(response=response), tempfile.TemporaryDirectory() as directory:
+                app = Mock()
+                app.goto = AsyncMock(return_value=response)
+                app.wait_for_function = AsyncMock()
+                with self.assertRaisesRegex(RuntimeError, "did not return HTTP success"):
+                    asyncio.run(Journey(Path(directory), app, {}).prepare("http://127.0.0.1/"))
+                app.wait_for_function.assert_not_awaited()
+
     def test_current_capture_findings_can_invalidate_prior_approval(self):
         with tempfile.TemporaryDirectory() as directory:
             journey = Journey(Path(directory), None, {})

@@ -30,4 +30,4 @@ A self-contained companion rendering is stored in `ARCHITECTURE.draft.svg`. It c
 
 ## Demonstration extension
 
-The recorded local journey adds a separate fixture controller. OpenCV evidence changes the approval request; an unapproved action is rejected; a scripted one-use, candidate-bound demo event permits only restoration of the injected DOM visibility; a fresh screenshot is measured again. This does not add a production mutation tool to the planner. A real human approval was not observed. The revised delivery diagram shows this loop and places the unverified AWS runtime in a separately labeled boundary.
+The proposed local journey uses a separate fixture controller. It is designed to request approval from OpenCV evidence, reject an unapproved action, and allow a scripted one-use, candidate-bound event to restore only the injected DOM visibility before remeasurement. The historical recording and its receipt were unavailable for this review. This does not add a production mutation tool to the planner. A real human approval was not observed. The revised delivery diagram shows this loop and places the unverified AWS runtime in a separately labeled boundary.

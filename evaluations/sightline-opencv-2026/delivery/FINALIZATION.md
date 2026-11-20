@@ -28,12 +28,12 @@ No AWS account, payment method, promotional credit, Marketplace purchase, IAM po
 
 | Material | Basis | Exclusions / required notice |
 | --- | --- | --- |
-| Sightline source and BuilderWars mobile-arena source | Tracked Nymrel work under repository MIT license | Preserve MIT copyright/license; submit only the scoped source archive |
+| Sightline source and BuilderWars mobile-arena source | Tracked Nymrel work under repository MIT license | Preserve MIT copyright/license; prepare and review any scoped source archive before use |
 | Screenshots and walkthrough | Real loopback rendering of tracked Nymrel interface; known injected fault; original captions and annotations | No private/customer/account screens, stock media, third-party portraits, audio/music or synthesized voice |
 | Report, diagram and Devpost prose | New project-specific explanatory material | No proprietary customer material, credentials or private operational records |
-| OpenCV 5.0.0 / opencv-python-headless 5.0.0.93 | Dependency, not relicensed Nymrel code | Official package wheel + license notices retained; pinned hash. No dependency binary included in source archive |
+| OpenCV 5.0.0 / opencv-python-headless 5.0.0.93 | Dependency, not relicensed Nymrel code | Official package wheel + license notices retained; pinned hash. The tracked AWS source artifact does not include dependency binaries |
 | NumPy 2.3.5 | Dependency | BSD license and bundled-library notices retained from installed wheel; pinned hash |
-| Playwright 1.58.0 / managed Firefox 146.0.1 | Recording and evaluation tools | Apache-2.0 / browser distribution terms; installed from official package distribution, not included in source archive |
+| Playwright 1.58.0 / managed Firefox 146.0.1 | Recording and evaluation tools | Apache-2.0 / browser distribution terms; installed from official package distribution; not included in the tracked AWS source artifact |
 
 No tracked builder produces the claimed scoped demo-source archive or its manifest. A future submission bundle must have its own reviewed file inventory, hashes and rights evidence. This is a rights inventory, not acceptance of the competition license or an organizer determination.
 
