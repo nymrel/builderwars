@@ -54,12 +54,13 @@ def main():
     failures = 0
     names = []
     try:
-        for name in ['engine.js', 'ledger.js', 'app.js'] + ([] if args.controller_fixture else ['index.html']):
+        for name in ['engine.js', 'ledger.js', 'consumer-quests.js', 'app.js'] + ([] if args.controller_fixture else ['index.html']):
             raw = (args.root / name).read_bytes()
             report['source_files'][name] = {'sha256': hashlib.sha256(raw).hexdigest(),
                 'git_blob_sha1': hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest()}
         engine = (args.root/'engine.js').read_text()
         ledger = (args.root/'ledger.js').read_text()
+        quests = (args.root/'consumer-quests.js').read_text()
         app = (args.root/'app.js').read_text()
         # Deliberately minimal DOM. Do not report fixture results as whole-page tests.
         controls = {'import': '<input id="import" type="file">',
@@ -68,7 +69,7 @@ def main():
                     'mode': '<select id="mode"><option value="cooperative">cooperative</option><option value="crew-race">crew-race</option></select>',
                     'autosave': '<input id="autosave" type="checkbox" checked>',
                     'action-json': '<textarea id="action-json"></textarea>'}
-        buttons = {'play','step','batch','new','verify','export','clear','sample-action','apply-action','observation','ledger-build','ledger-export'}
+        buttons = {'play','stop','step','batch','new','verify','export','clear','sample-action','apply-action','observation','ledger-build','ledger-export'}
         ids = sorted(set(re.findall(r"\$\('([^']+)'\)", app)) | buttons)
         fixture = '<!doctype html><html lang="en"><title>Controller fixture only</title><body>' + ''.join(
             controls.get(i, f'<button id="{i}">{i}</button>' if i in buttons else f'<div id="{i}"></div>') for i in ids) + '</body></html>'
@@ -106,6 +107,7 @@ def main():
                     page.set_content(fixture)
                     page.add_script_tag(content=engine)
                     page.add_script_tag(content=ledger)
+                    page.add_script_tag(content=quests)
                     page.add_script_tag(content=app)
                 else:
                     page.add_init_script('''window.cspViolations=[]; document.addEventListener('securitypolicyviolation', event => {
@@ -164,12 +166,12 @@ def main():
                 page.locator('#step').click(); page.on('dialog', lambda d:d.dismiss())
                 text=make_packet(page,5)
                 page.locator('#import').set_input_files({'name':'valid.json','mimeType':'application/json','buffer':text.encode()})
-                page.wait_for_function('document.querySelector("#import").value === ""')
+                page.wait_for_function('() => document.querySelector("#import").value === ""')
                 assert page.locator('#turn').inner_text()=='1 / 240'
                 assert page.locator('#seed').input_value()=='20260920'
             def oversized(page):
                 page.locator('#import').set_input_files({'name':'large.json','mimeType':'application/json','buffer':b' ' * 131073})
-                page.wait_for_function('document.querySelector("#message").textContent.includes("128 KiB")')
+                page.wait_for_function('() => document.querySelector("#message").textContent.includes("128 KiB")')
                 assert page.locator('#turn').inner_text()=='0 / 240'
             def keyboard_focus(page):
                 if not args.controller_fixture:
@@ -312,13 +314,76 @@ def main():
                 assert 'new.json' in page.locator('#ledger-out').inner_text() and 'old.json' not in page.locator('#ledger-out').inner_text()
                 assert expected['runs'][0]['seed']==7 and export_ledger(page)==expected
             def portable_scripts(page):
-                assert page.locator('script[src]').count()==0 and page.locator('script').count()==3
+                assert page.locator('script[src]').count()==0 and page.locator('script').count()==4
                 policy=page.locator('meta[http-equiv="Content-Security-Policy"]').get_attribute('content')
                 script_policy=next(p.strip() for p in policy.split(';') if p.strip().startswith('script-src '))
-                assert script_policy.count("'sha256-")==3
+                assert script_policy.count("'sha256-")==4
                 assert "'self'" not in script_policy and 'unsafe-' not in script_policy
                 assert "connect-src 'none'" in policy
                 assert page.evaluate('typeof AgentworldLedger.tallyRuns')=='function'
+                assert page.evaluate('typeof AgentworldQuests.project')=='function'
+            def quest_packet(page, turns=None, seed=20260920):
+                return page.evaluate('''([limit,seed]) => {
+                    const config = {seed, mode:'cooperative'}, actions = [];
+                    let state = Agentworld.create(config);
+                    while (state.status === 'running' && (limit === null || actions.length < limit)) {
+                        const action = Agentworld.scripted(state); actions.push(action); state = Agentworld.step(state,action);
+                    }
+                    return JSON.stringify(Agentworld.pack(config,actions));
+                }''', [turns,seed])
+            def open_quest_packet(page, text):
+                page.locator('#import').set_input_files({'name':'quest.json','mimeType':'application/json','buffer':text.encode()})
+                page.wait_for_function('() => document.querySelector("#import").value === ""')
+                assert 'Imported after' in page.locator('#message').inner_text()
+            def quest_milestones(page):
+                page.on('dialog',lambda d:d.accept())
+                for turns,count in [(12,0),(13,1),(33,1),(34,2),(195,2),(196,3)]:
+                    open_quest_packet(page,quest_packet(page,turns))
+                    assert page.locator('#quests .complete').count()==count
+                    assert page.locator('#quest-status').inner_text()==f'{count} / 3 quests complete'
+                for index,turns in enumerate([13,34,196]):
+                    assert page.locator('#quests .quest-state').nth(index).inner_text()==f'Complete · turn {turns}'
+                open_quest_packet(page,quest_packet(page,196))
+                assert page.locator('#quests .complete').count()==3, 'Reopening does not award additional milestones'
+                assert 'Amber 8, Tide 8' in page.locator('#quest-outcome').inner_text()
+            def quest_incomplete(page):
+                open_quest_packet(page,quest_packet(page,None,34))
+                assert page.locator('#quests .complete').count()==2
+                assert 'action limit reached' in page.locator('#quest-status').inner_text()
+                assert 'Finish together is incomplete' in page.locator('#quest-outcome').inner_text()
+                assert page.locator('#quests .quest-state').nth(2).inner_text()=='Incomplete · action limit reached'
+                assert page.locator('#quests .current').count()==0
+            def quest_mode(page):
+                page.locator('#mode').select_option('crew-race'); page.locator('#new').click()
+                assert page.locator('#quests .complete').count()==0
+                assert page.locator('#quests .current').count()==0
+                assert page.locator('#quest-status').inner_text()=='Choose Cooperate for shared quests.'
+            def quest_stop(page):
+                page.locator('#play').click()
+                page.wait_for_function('() => Number(document.querySelector("#turn").textContent.split(" / ")[0]) >= 2')
+                page.locator('#stop').focus(); page.keyboard.press('Enter')
+                stopped=page.locator('#turn').inner_text()
+                page.wait_for_timeout(500)
+                assert page.locator('#turn').inner_text()==stopped
+                assert page.locator('#stop').evaluate('(button) => button === document.activeElement')
+                assert 'Stopped watching' in page.locator('#message').inner_text()
+            def quest_return(page):
+                open_quest_packet(page,quest_packet(page,34))
+                page.reload()
+                assert page.locator('#turn').inner_text()=='34 / 240'
+                assert page.locator('#quests .complete').count()==2
+                assert page.locator('#play').inner_text()=='Watch crews'
+                page.wait_for_timeout(350)
+                assert page.locator('#turn').inner_text()=='34 / 240'
+                assert page.locator('#proof').text_content()=='Local replay pass'
+            def quest_layout(page):
+                open_quest_packet(page,quest_packet(page,13))
+                for width in [320,390,768,1280]:
+                    page.set_viewport_size({'width':width,'height':900})
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), f'Overflow at {width}px'
+                page.screenshot(path=str(args.output/'quests-desktop.png'),full_page=True)
+                page.set_viewport_size({'width':390,'height':844})
+                page.screenshot(path=str(args.output/'quests-mobile.png'),full_page=True)
             cases=[('pending import refuses intervening turn',step_race),('pending import refuses same-turn reset',reset_race),
                    ('latest file selection wins: older resolves first',oldest_first),('newer success survives late older read',newest_first),
                    ('invalid latest selection does not resurrect older import',newest_invalid),
@@ -328,9 +393,14 @@ def main():
                    ('hive file bounds prevent reads and preserve per-file refusals',ledger_file_bounds),
                    ('hive input change cancels pending build without exporting stale results',ledger_selection_cancels),
                    ('hive newer build survives older read error',ledger_newest_build),
-                   ('hive newer selection survives older success with matching export',ledger_newest_selection)]
+                   ('hive newer selection survives older success with matching export',ledger_newest_selection),
+                   ('quest milestones derive from verified prefixes and repeated imports',quest_milestones),
+                   ('capped visit preserves earlier quests without completing the final quest',quest_incomplete),
+                   ('crew comparison does not earn cooperative quests',quest_mode),
+                   ('keyboard Stop preserves progress and halts automatic turns',quest_stop)]
             if not args.controller_fixture:
-                cases += [('checkpoint reload verified',reload_checkpoint),('corrupt checkpoint not overwritten',corrupt_checkpoint),('real same-origin tabs preserve checkpoint on conflict',tabs)]
+                cases += [('checkpoint reload verified',reload_checkpoint),('corrupt checkpoint not overwritten',corrupt_checkpoint),('real same-origin tabs preserve checkpoint on conflict',tabs),
+                          ('return restores verified quest progress with watching paused',quest_return),('quest cards fit phone and desktop widths',quest_layout)]
             if args.portable_preview:
                 cases += [('standalone preview embeds all scripts under hash-only script CSP',portable_scripts)]
             names=[name for name,_ in cases]

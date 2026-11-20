@@ -1,0 +1,105 @@
+{
+  "schema": "builderwars.agentworld.consumer-fixtures.v1",
+  "rules": "builderwars.agentworld.relay.v0.1",
+  "sourceSha256": {
+    "engine.js": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+    "consumer-quests.js": "1aae2a0434d1ae932950013d8a0db31500a8d18930931845a25981a0470a8f9f",
+    "consumer-fixtures.mjs": "c04bedc6b8b7868ec9c3c132ffde1b11b4d9551928bb38bb3a817affd706aab7"
+  },
+  "records": {
+    "original": {
+      "sha256": "bd589418edaf009ae2b0b977d766317efec0947a9c40dceecaf37d940447ead9",
+      "config": {
+        "seed": 20260920,
+        "mode": "cooperative"
+      },
+      "status": "complete",
+      "acceptedTurns": 196,
+      "crewDeliveries": {
+        "amber": 8,
+        "tide": 8
+      },
+      "remaining": 0,
+      "milestoneTurns": [
+        13,
+        34,
+        196
+      ]
+    },
+    "checkpoint-turn-34": {
+      "sha256": "06f388fe04775399e5dabaa752496c82c4b716421e7f62bcb9e584479852663b",
+      "config": {
+        "seed": 20260920,
+        "mode": "cooperative"
+      },
+      "status": "running",
+      "acceptedTurns": 34,
+      "crewDeliveries": {
+        "amber": 1,
+        "tide": 1
+      },
+      "remaining": 14,
+      "milestoneTurns": [
+        13,
+        34,
+        null
+      ]
+    },
+    "alternative-north-turn-3": {
+      "sha256": "f35dd2515546c212f94a29413d90494d68e8d72a6477b0c61f2a5dfd26de3e97",
+      "config": {
+        "seed": 20260920,
+        "mode": "cooperative"
+      },
+      "status": "complete",
+      "acceptedTurns": 196,
+      "crewDeliveries": {
+        "amber": 8,
+        "tide": 8
+      },
+      "remaining": 0,
+      "milestoneTurns": [
+        13,
+        34,
+        196
+      ]
+    },
+    "capped-seed-34": {
+      "sha256": "ddb7c868702c1ff6a3f077ff01f94ee2079eafdf65bb14d3092b16356529c05b",
+      "config": {
+        "seed": 34,
+        "mode": "cooperative"
+      },
+      "status": "capped",
+      "acceptedTurns": 240,
+      "crewDeliveries": {
+        "amber": 7,
+        "tide": 8
+      },
+      "remaining": 1,
+      "milestoneTurns": [
+        17,
+        42,
+        null
+      ]
+    }
+  },
+  "alternative": {
+    "original": "original",
+    "prefixTurns": 3,
+    "action": {
+      "turn": 3,
+      "actor": "tide-2",
+      "source": "manual",
+      "type": "move",
+      "direction": "north"
+    },
+    "changedPath": true,
+    "improvedOutcome": false
+  },
+  "boundaries": [
+    "Deterministic scripted/manual fixtures; no model or identity attestation.",
+    "File digests establish content references, not execution authenticity.",
+    "Quest progress describes this verified recording, not transferable capability."
+  ]
+}
