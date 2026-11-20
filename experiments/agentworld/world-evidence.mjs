@@ -62,7 +62,7 @@ async function readBoundedStdin() {
 function isCliEntry() {
   if (!process.argv[1]) return false;
   try {
-    return realpathSync.native(process.argv[1]) === realpathSync.native(fileURLToPath(import.meta.url));
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
   } catch {
     // An importing host can supply an argument that is not a filesystem entry.
     return false;
