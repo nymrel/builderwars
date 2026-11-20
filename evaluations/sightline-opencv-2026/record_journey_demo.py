@@ -54,6 +54,11 @@ def thumbnail_hash(value: str) -> str:
     return f"SHA-256 · {value[:20]}…"
 
 
+def reserve_output(output: Path) -> None:
+    """Atomically reserve a new output directory; never reuse prior artifacts."""
+    output.mkdir(parents=True, exist_ok=False)
+
+
 class Diagnostics:
     """Persist bounded event categories only, never browser messages or URLs."""
 
@@ -143,7 +148,16 @@ class Journey:
         response = await self.app.goto(url, wait_until="domcontentloaded")
         if response is None or not response.ok:
             raise RuntimeError("loopback BuilderWars shell did not return HTTP success")
-        await self.app.wait_for_function("() => document.body.dataset.sourceMode === 'verified_corpus'")
+        try:
+            await self.app.wait_for_function("() => document.body.dataset.sourceMode && document.body.dataset.sourceMode !== 'loading'", timeout=10000)
+        except Exception as exc:
+            mode = await self.app.get_attribute("body", "data-source-mode")
+            safe_mode = mode if mode in {"loading", "demo_fixture_fallback"} else "missing_or_unrecognized"
+            raise RuntimeError(f"loopback source mode did not become ready; observed {safe_mode}") from exc
+        mode = await self.app.get_attribute("body", "data-source-mode")
+        if mode != "verified_corpus":
+            safe_mode = mode if mode == "demo_fixture_fallback" else "missing_or_unrecognized"
+            raise RuntimeError(f"expected verified_corpus source; observed {safe_mode}")
         await self.app.evaluate("""() => {
             const style=document.createElement('style');
             style.textContent='*{animation:none!important;transition:none!important;caret-color:transparent!important}';
@@ -314,7 +328,6 @@ class Journey:
                 "html": {"details": "<p><strong>Observe → diagnose → explicit approval boundary → bounded local action → re-measure.</strong></p><p>The outcome is tied to the actual PNGs, source snapshot, runtime versions, and decision digests.</p><p>The original defective input and all failed/denied steps remain in the evidence.</p>", "controls": '<button id="failures" class="secondary">Check failure handling</button>'},
             }
         if name == "failures":
-            assert self.baseline
             # Use the exact bounded handler, including pre-decode IHDR checks.
             baseline64 = self._different_dimension_png(16)
             cases = [
@@ -401,7 +414,7 @@ async def record(output: Path, hold_scale: float, browser_engine: str) -> dict[s
     if playwright_version != "1.58.0":
         raise RuntimeError("playwright 1.58.0 is required")
     source = git_source()
-    output.mkdir(parents=True, exist_ok=True)
+    reserve_output(output)
     diagnostics = Diagnostics(output)
     with loopback_server() as url:
         async with async_playwright() as runtime:
