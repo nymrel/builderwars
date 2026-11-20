@@ -35,7 +35,7 @@ No AWS account, payment method, promotional credit, Marketplace purchase, IAM po
 | NumPy 2.3.5 | Dependency | BSD license and bundled-library notices retained from installed wheel; pinned hash |
 | Playwright 1.58.0 / managed Firefox 146.0.1 | Recording and evaluation tools | Apache-2.0 / browser distribution terms; installed from official package distribution, not included in source archive |
 
-The scoped package manifest freezes each included file by SHA-256. Changes to footage, report, source, images or cloud evidence invalidate that freeze and require a new manifest/review. This is a rights inventory, not acceptance of the competition license or an organizer determination.
+No tracked builder produces the claimed scoped demo-source archive or its manifest. A future submission bundle must have its own reviewed file inventory, hashes and rights evidence. This is a rights inventory, not acceptance of the competition license or an organizer determination.
 
 ## Source and evidence lineage
 
@@ -43,7 +43,7 @@ The scoped package manifest freezes each included file by SHA-256. Changes to fo
 - Main checked through GitHub: 1745c0a0cc8aaa31aaf8f67edc7765f32de6b547.
 - Existing local recording revision: e46cc424229beb2d4b138772b6d56f374582be85; this revision and its recording receipt were unavailable for this review; not assumed to be a public commit.
 - Merged hosted result: 35 tests; historical Chromium and Firefox 24 case executions across six workflow types and two viewports.
-- Previously reported local extension (original receipt unavailable): 39 tests, 3 generated task cases, 2 fail-closed controls; one controlled end-to-end journey.
+- The reviewed local candidate passed 40 tests (35 historical Stage 1 plus five approval cases); subsequent evidence tests are additional. Earlier generated cases and the historical end-to-end journey remain reported without their original receipt.
 - Previously reported current-main Firefox receipt (unavailable for this review): 12/12 cases, 10 TP, 2 TN, 0 FP, 0 FN. Historical Chromium is not called a fresh rerun.
 - Previously reported walkthrough (original video and matching receipt unavailable): 54 components, 62,432 changed pixels, approval requested; denied attempt does not change screenshot; scripted one-use demo approval restores a temporary DOM property; fresh verification returns zero findings and baseline-identical bytes.
 

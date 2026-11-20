@@ -43,7 +43,7 @@ Keep the prior fragmented-materiality false negative, mobile below-fold framing 
 Keep measured scopes separate:
 
 - Merged Stage 1 hosted evidence: 35 tests, 3 generated cases, 2 failure controls, and 24 browser executions across Chromium and Firefox.
-- Current-main local Firefox rerun: 12 cases across six workflow types and two fixed viewports, 10 true positives, 2 true negatives, 0 false positives, and 0 false negatives.
+- Previously reported current-main local Firefox rerun (receipt unavailable for this review): 12 cases across six workflow types and two fixed viewports, 10 true positives, 2 true negatives, 0 false positives, and 0 false negatives.
 - This new walkthrough: one injected fault, one temporary DOM restore, one fixed viewport, and a scripted demo-operator event.
 
 These results do not establish representative user traffic, device coverage, semantic correctness, unknown root-cause diagnosis, or production reliability.

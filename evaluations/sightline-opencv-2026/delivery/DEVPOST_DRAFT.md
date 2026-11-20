@@ -20,7 +20,7 @@ A previously reported local demonstration used BuilderWars Arena; the original v
 OpenCV 5.0.0 performs PNG decoding, absolute difference, grayscale conversion, thresholding and connected-component extraction. Python dataclasses hold typed evidence; deterministic policy and SHA-256 traces preserve reproducibility. Browser tests render tracked Nymrel source on loopback. The exact CPython 3.12/Linux x86_64 dependency lock pins OpenCV and NumPy wheel hashes. The existing bounded Lambda-compatible handler is a source packaging path, not evidence of cloud execution.
 
 ## Results and failures
-The merged Stage 1 hosted record has 35 passing tests and 24 controlled browser executions across Chromium and Firefox. The local journey extension has 39 passing tests. A fresh current-main Firefox run covers twelve cases: ten true positives and two true negatives. These tiny controlled sets do not establish production accuracy or representative traffic.
+The merged Stage 1 hosted record has 35 passing tests and 24 controlled browser executions across Chromium and Firefox. The reviewed local candidate passed 40 tests, including five approval tests. A previously reported current-main Firefox run covered twelve cases, but its receipt was unavailable to this review. These tiny controlled sets do not establish production accuracy or representative traffic.
 
 We retain the earlier fragmented-materiality miss, below-fold mobile framing error, reversed synthetic polarity and repaired compressed-PNG expansion vulnerability. Malformed PNG, mismatched dimensions and oversized declared dimensions are rejected. We have not measured time savings, detection uplift against a simpler diff baseline, general repair success, cloud latency or cost.
 
@@ -32,7 +32,7 @@ Meaningful AWS runtime execution is not yet verified. A public endpoint or arran
 
 ## Source and dependencies
 Existing public source: https://github.com/nymrel/builderwars/tree/main/evaluations/sightline-opencv-2026
-The scoped source archive also contains the local demonstration extension with retained exact file hashes and MIT notices. No customer data or private account material is included.
+The tracked AWS artifact builder packages its four declared runtime files only; it does not create a demo-source archive. A separately assembled submission bundle and its license inventory require review before use.
 
 ## Award path
 Overall and Agentic Vision are the intended paths, pending live field/eligibility review. No COOL, Graviton or Arm claim is made.

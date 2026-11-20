@@ -55,6 +55,24 @@ def thumbnail_hash(value: str) -> str:
     return f"SHA-256 · {value[:20]}…"
 
 
+class Diagnostics:
+    """Persist bounded event categories only, never browser messages or URLs."""
+
+    def __init__(self, output: Path) -> None:
+        self.path = output / "browser-diagnostics.json"
+        self.counts: dict[str, int] = {}
+        self.events: list[dict[str, str]] = []
+
+    def record(self, page: str, kind: str) -> None:
+        if page not in {"app", "demo"} or kind not in {"console_warning", "console_error", "pageerror", "blocked_external_request"}:
+            raise ValueError("unknown diagnostic category")
+        key = f"{page}.{kind}"
+        self.counts[key] = self.counts.get(key, 0) + 1
+        if len(self.events) < 20:
+            self.events.append({"page": page, "kind": kind})
+        self.path.write_bytes(json_bytes({"counts": self.counts, "events": self.events}))
+
+
 def git_source() -> dict[str, Any]:
     status = subprocess.run(["git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=REPO, check=True, capture_output=True).stdout
     if status:
@@ -107,6 +125,13 @@ class Journey:
         payload = await self.app.screenshot(full_page=False, animations="disabled")
         (self.output / name).write_bytes(payload)
         return payload
+
+    def current_findings_digest(self, name: str) -> str:
+        findings = self.perception.analyze_files(
+            self.output / "baseline.png", self.output / name,
+            threshold=24, min_component_pixels=64,
+        )
+        return self.agent.plan(findings).findings_sha256
 
     def event(self, name: str, **values: Any) -> None:
         self.events.append({"event": name, **values})
@@ -198,7 +223,7 @@ class Journey:
             assert self.gate is not None
             before = await self.capture("before-denied-attempt.png")
             try:
-                self.gate.consume(action=DEMO_ACTION, current_candidate_sha256=digest(before), current_findings_sha256=self.agent.plan(self.findings).findings_sha256)
+                self.gate.consume(action=DEMO_ACTION, current_candidate_sha256=digest(before), current_findings_sha256=self.current_findings_digest("before-denied-attempt.png"))
             except PermissionError as exc:
                 error = str(exc)
             else:
@@ -243,7 +268,7 @@ class Journey:
         if name == "apply":
             assert self.gate is not None
             current = await self.capture("before-approved-restore.png")
-            approved = self.gate.consume(action=DEMO_ACTION, current_candidate_sha256=digest(current), current_findings_sha256=self.agent.plan(self.findings).findings_sha256)
+            approved = self.gate.consume(action=DEMO_ACTION, current_candidate_sha256=digest(current), current_findings_sha256=self.current_findings_digest("before-approved-restore.png"))
             marker = await self.app.locator(TARGET).get_attribute("data-sightline-demo-injected")
             if marker != "true":
                 raise RuntimeError("the controlled fixture marker is missing")
@@ -374,30 +399,37 @@ async def record(output: Path, hold_scale: float, browser_engine: str) -> dict[s
         raise RuntimeError("playwright 1.58.0 is required")
     source = git_source()
     output.mkdir(parents=True, exist_ok=True)
-    external_requests: list[str] = []
-    warnings: list[str] = []
+    diagnostics = Diagnostics(output)
     with loopback_server() as url:
         async with async_playwright() as runtime:
             browser = await getattr(runtime, browser_engine).launch(headless=True)
             browser_version = browser.version
             app_context = await browser.new_context(viewport=VIEWPORT, device_scale_factor=1, color_scheme="dark", reduced_motion="reduce", locale="en-US")
             await app_context.add_init_script("localStorage.setItem('builderwars.mobile-arena.starter-guide.v1','complete')")
-            async def only_loopback(route: Any) -> None:
+            async def only_loopback(route: Any, page: str) -> None:
                 from urllib.parse import urlparse
                 parsed = urlparse(route.request.url)
                 if parsed.scheme in {"http", "https"} and parsed.hostname not in {"127.0.0.1", "localhost"}:
-                    external_requests.append(route.request.url)
+                    diagnostics.record(page, "blocked_external_request")
                     await route.abort()
                 else:
                     await route.continue_()
-            await app_context.route("**/*", only_loopback)
+            async def app_only_loopback(route: Any) -> None:
+                await only_loopback(route, "app")
+            async def demo_only_loopback(route: Any) -> None:
+                await only_loopback(route, "demo")
+            await app_context.route("**/*", app_only_loopback)
             app = await app_context.new_page()
-            app.on("console", lambda message: warnings.append(message.text) if message.type in {"error", "warning"} else None)
+            app.on("console", lambda message: diagnostics.record("app", f"console_{message.type}") if message.type in {"error", "warning"} else None)
+            app.on("pageerror", lambda _error: diagnostics.record("app", "pageerror"))
             journey = Journey(output, app, source)
             initial = await journey.prepare(url)
             initial["text"]["source"] = f"BuilderWars · {source['base_commit'][:12]} · {browser_engine} {browser_version}"
             demo_context = await browser.new_context(viewport=SCREEN, device_scale_factor=1, color_scheme="dark", reduced_motion="reduce", record_video_dir=str(output / "raw-video"), record_video_size=SCREEN)
+            await demo_context.route("**/*", demo_only_loopback)
             demo = await demo_context.new_page()
+            demo.on("console", lambda message: diagnostics.record("demo", f"console_{message.type}") if message.type in {"error", "warning"} else None)
+            demo.on("pageerror", lambda _error: diagnostics.record("demo", "pageerror"))
             await demo.expose_function("performDemoAction", journey.perform)
             await demo.set_content((HERE / "journey_demo.html").read_text(encoding="utf-8"))
             journey.started = time.monotonic()
@@ -429,8 +461,10 @@ async def record(output: Path, hold_scale: float, browser_engine: str) -> dict[s
             await video.save_as(str(output / "sightline-local-walkthrough.webm"))
             await app_context.close()
             await browser.close()
-    if external_requests or warnings:
-        raise RuntimeError("unexpected external request or browser warning; inspect private runtime logs")
+    if diagnostics.counts:
+        raise RuntimeError("browser diagnostics recorded in browser-diagnostics.json: " + json.dumps(diagnostics.counts, sort_keys=True))
+    if git_source() != source:
+        raise RuntimeError("source changed while recording")
     if journey.verification is None or not journey.verification["passed"]:
         raise RuntimeError("the journey did not produce a verified outcome")
     artifact_files = sorted(path for path in output.iterdir() if path.is_file())
