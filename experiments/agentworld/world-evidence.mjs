@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import './engine.js';
@@ -59,12 +59,21 @@ async function readBoundedStdin() {
   return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, bytes));
 }
 
-const invokedPath = process.argv[1] && path.resolve(process.argv[1]);
-if (invokedPath === fileURLToPath(import.meta.url)) {
+function isCliEntry() {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync.native(process.argv[1]) === realpathSync.native(fileURLToPath(import.meta.url));
+  } catch {
+    // An importing host can supply an argument that is not a filesystem entry.
+    return false;
+  }
+}
+
+if (isCliEntry()) {
   try {
     const text = await readBoundedStdin();
     const result = projectWorldEvidence(text);
-    process.stdout.write(`${JSON.stringify(result)}\n`);
+    process.stdout.write(`${A.canonical(result)}\n`);
   } catch (error) {
     process.stderr.write(`${error.message || 'Replay refused.'}\n`);
     process.exitCode = 1;

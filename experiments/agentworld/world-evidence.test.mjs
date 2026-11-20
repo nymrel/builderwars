@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import './engine.js';
 import './ledger.js';
@@ -77,6 +78,30 @@ test('formatting and property-order copies produce identical evidence', () => {
   const expected = projectWorldEvidence(compact);
   assert.deepEqual(expected, projectWorldEvidence(formatted));
   assert.deepEqual(expected, projectWorldEvidence(reordered));
+  for (const input of [compact, formatted, reordered]) {
+    const run = spawnSync(process.execPath, [CLI], { input, encoding: 'utf8' });
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(run.stdout, A.canonical(expected) + '\n');
+  }
+});
+
+test('CLI works through a linked directory and an import stays silent', t => {
+  const temp = mkdtempSync(path.join(tmpdir(), 'agentworld-cli-'));
+  const link = path.join(temp, 'world');
+  t.after(() => rmdirSync(temp));
+  symlinkSync(HERE, link, process.platform === 'win32' ? 'junction' : 'dir');
+  try {
+    const input = replay(config, []);
+    const linked = spawnSync(process.execPath, [path.join(link, 'world-evidence.mjs')], { input, encoding: 'utf8' });
+    assert.equal(linked.status, 0, linked.stderr);
+    assert.equal(linked.stdout, A.canonical(projectWorldEvidence(input)) + '\n');
+    const script = 'await import(' + JSON.stringify(pathToFileURL(CLI).href) + ')';
+    const imported = spawnSync(process.execPath, ['--input-type=module', '-e', script, path.join(temp, 'missing')], { input, encoding: 'utf8' });
+    assert.equal(imported.status, 0, imported.stderr);
+    assert.equal(imported.stdout, '');
+  } finally {
+    unlinkSync(link);
+  }
 });
 
 test('rejects tampered claims, duplicate keys, and oversized replay text', () => {

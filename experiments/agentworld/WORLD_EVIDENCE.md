@@ -33,7 +33,7 @@ Schema: `builderwars.agentworld.world-evidence.v1`.
 | `hive` | Existing descriptive one-recording ledger with a fixed representative label |
 | `boundaries` | Limits of the evidence and its interpretation |
 
-Reformatting a recording or changing JSON property order produces the same export. The identity describes recording content, not a unique attested execution. Different accepted actions remain different evidence even when the final result is the same. Capped visits retain an incomplete final quest; crew-comparison visits have no cooperative quest completion.
+For the same source revision, reformatting a recording or changing JSON property order produces identical CLI output bytes. The CLI sorts object keys recursively, preserves array order and ends its UTF-8 JSON output with one newline. The JavaScript API returns the corresponding object. The identity describes recording content, not a unique attested execution. Different accepted actions remain different evidence even when the final result is the same. Capped visits retain an incomplete final quest; crew-comparison visits have no cooperative quest completion.
 
 A receiver should reconstruct the original replay using its supported rules/verifier and compare derived fields. It should select trusted source code independently: a hash or an imported claim does not authenticate an actor, model, provider, or verifier. Source labels remain self-declared. The export carries no authority to execute code, register an identity, promote a skill or change another system.
 
