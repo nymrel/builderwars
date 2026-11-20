@@ -67,5 +67,6 @@ try {
 `;
 await writeFile(path.join(root, "public", manifest.verifier), cli);
 console.log(`Referee ${digest} (${bytes.length} bytes); portable verifier generated.`);
+await (await import('./build-model-version.mjs')).buildModelVersion(digest);
 
 await import("./build-public-catalogue.mjs");

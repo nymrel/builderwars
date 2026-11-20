@@ -12,6 +12,7 @@ __pycache__/
 .env*
 public/referee/
 src/referee-manifest.ts
+src/model-version-manifest.ts
 src/referee-worker.ts
 src/lab-source-manifest.ts
 output/playwright/

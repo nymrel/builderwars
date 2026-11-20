@@ -1,4 +1,5 @@
 import { botMove, gamePosition, gamePrompt, legalMoves, type GameState } from "./runtime";
+import { withDeadline } from "./abort-signals";
 import type { MemoryContext } from "./learning";
 import type { Version } from "./frontier-version";
 export type Agent = {
@@ -29,6 +30,8 @@ export type Decision = {
   elapsed: number;
   model: string;
   tokens: number | null;
+  /** Provider-reported output count, when available; tokens remains the total. */
+  outputTokens?: number | null;
   cost: number | null;
 };
 export const EFFORTS = [
@@ -40,6 +43,12 @@ export const EFFORTS = [
   "xhigh",
   "max",
 ];
+function reportedOutputTokens(value: unknown, maxTokens: number): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0 || value > maxTokens)
+    throw Error("Invalid or over-limit reported output token count; no replacement move.");
+  return value;
+}
 export function publicAgent(a: Agent): PublicAgent {
   return {
     name: a.name.slice(0, 64),
@@ -171,7 +180,8 @@ export async function checkConnection(a: Agent, models: Model[], signal: AbortSi
     checked: a.kind !== "harness",
     message: a.kind === "harness" ? "HTTPS configuration is valid. Authentication, CORS, connectivity and limits are unchecked: this harness has no standard non-inference probe. Start a capped match only when your endpoint is ready." : "Local play needs no provider connection or model request.",
   };
-  const timeout = AbortSignal.any([signal, AbortSignal.timeout(15000)]);
+  const deadline = withDeadline([signal], 15000);
+  const timeout = deadline.signal;
   let result: ConnectionCheck;
   try {
     const response = await fetch(local ? "http://127.0.0.1:8765/health" : "https://openrouter.ai/api/v1/key", {
@@ -203,7 +213,7 @@ export async function checkConnection(a: Agent, models: Model[], signal: AbortSi
     }
     if (error instanceof TypeError || error instanceof SyntaxError) throw Error("Connection check failed. Check network/CORS, bridge version and browser local-network permission.");
     throw error;
-  }
+  } finally { deadline.dispose(); }
   signal.throwIfAborted();
   if (identity !== connectionIdentity(a) || generation !== (connectionGenerations.get(a) ?? 0))
     throw Error("Connection changed during the check. Check the current configuration again.");
@@ -211,7 +221,7 @@ export async function checkConnection(a: Agent, models: Model[], signal: AbortSi
   return result;
 }
 const BUILTIN_SEARCH_TIMEOUT_MS = 5000;
-async function builtinMove(s: GameState, style: string, signal: AbortSignal): Promise<string> {
+export async function builtinMove(s: GameState, style: string, signal: AbortSignal): Promise<string> {
   if (style === "random") return botMove(s, style);
   signal.throwIfAborted();
   const worker = new Worker(new URL("./bot-worker.ts", import.meta.url), {
@@ -257,6 +267,7 @@ export async function decide(
   models: Model[],
   memory?: MemoryContext,
   matchId?: string,
+  evidence?: "version",
 ): Promise<Decision> {
   const started = performance.now(),
     legal = legalMoves(s);
@@ -298,9 +309,12 @@ export async function decide(
   let res: Response,
     actual = "",
     tokens: number | null = null,
+    rawOutputTokens: unknown,
     cost: number | null = null,
     content: unknown;
-  const timeout = AbortSignal.any([signal, AbortSignal.timeout(120000)]);
+  const deadline = withDeadline([signal], 120000);
+  const timeout = deadline.signal;
+  try {
   if (a.kind === "openrouter") {
     if (!a.key) throw Error("Add your OpenRouter key in Connections.");
     const model = models.find((m) => m.id === a.model);
@@ -340,6 +354,7 @@ export async function decide(
     tokens = Number.isFinite(data.usage?.total_tokens)
       ? data.usage.total_tokens
       : null;
+    rawOutputTokens = data.usage?.completion_tokens;
     cost = Number.isFinite(data.usage?.cost) ? data.usage.cost : null;
   } else {
     const url = validateEndpoint(a.endpoint);
@@ -375,14 +390,19 @@ export async function decide(
     actual =
       typeof data.model === "string" && data.model.trim() ? data.model : "harness/unreported";
     tokens = Number.isFinite(data.tokens) ? data.tokens : null;
+    rawOutputTokens = data.outputTokens;
   }
+  // A version receipt must not truncate a different identity into a match.
+  if (evidence === "version" && actual.length > 160) throw Error("Reported model identity exceeds the supported length.");
   return {
     ...parseDecision(content, legal),
     elapsed: performance.now() - started,
     model: actual.slice(0, 160),
     tokens: tokens !== null && tokens >= 0 ? tokens : null,
+    ...(evidence === "version" ? { outputTokens: reportedOutputTokens(rawOutputTokens, maxTokens) } : {}),
     cost: cost !== null && cost >= 0 ? cost : null,
   };
+  } finally { deadline.dispose(); }
 }
 async function boundedJson(response: Response, limit = 1000000) {
   const reader = response.body?.getReader();

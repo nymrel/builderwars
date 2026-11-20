@@ -46,6 +46,7 @@ import { matchLimits as validateMatchLimits, limitsLabel, type MatchLimits } fro
 import { publicLinkOrigin } from "./public-links";
 import { makeProfile, readProfile, disconnectedProfile, compareProfiles, PROFILE_MAX_BYTES } from "./profiles";
 import { connectionDialogMarkup, agentSetupBrief } from "./connection-guide";
+import { mountModelDevelopment } from "./model-development-ui";
 import { EXHIBITION_SCHEMA, readExhibition, exhibitionDescription, type Exhibition } from "./exhibition";
 import { MatchLibrary, canResume, type SavedMatch } from "./library";
 import { RecordingTransitions, recordingDialogMarkup, recordingRecoveryMessage, recordingError } from "./recording-transition";
@@ -76,6 +77,7 @@ const PROOF_GAME_KINDS = new Set(["chess", "checkers", "connect4", "tictactoe", 
 const proofAdmitted = (kind: string) => PROOF_GAME_KINDS.has(kind);
 let deviceStorage: DeviceStorage | undefined;
 let deviceStorageFailed = false;
+let development: ReturnType<typeof mountModelDevelopment> | undefined;
 if (isNativeApp) {
   try {
     const { nativeCheckpointPort } = await import("./native-checkpoint-port");
@@ -90,6 +92,7 @@ let nativeReady = !isNativeApp, nativeActive = true;
 let nativeEpoch = 0;
 let disposeNative: (() => Promise<void>) | undefined;
 function ensureDeviceReady(agent?: Agent) {
+  if (development?.busy) throw Error("Finish or cancel the model-development operation in Evals first.");
   if (isNativeApp && (!nativeReady || !nativeActive))
     throw Error("Mobile lifecycle protection is not ready. Return to the app or restart it before playing.");
   if (agent && !agent.localVersion) validateNativeEndpoint(agent.kind, agent.endpoint, isNativeApp);
@@ -270,6 +273,18 @@ $("clear-learning").onclick = async () => {
   } catch { renderLearning("Cleared in this tab only. Device removal failed; retry Clear."); }
 };
 renderLearning();
+function ensureModelDevelopmentReady() {
+  ensureExecutionReady(agents[0]);
+  if (running || pending || seriesRemaining || spectating || duelUI?.room.view().active || localLab.active())
+    throw Error("Pause Arena, stop Lab work and leave any evaluation, broadcast or duel before model development.");
+}
+development = mountModelDevelopment($("evals"), {
+  connection: () => ({ agent: agents[0], rules, models }),
+  ready: ensureModelDevelopmentReady,
+  connect: () => openAgent(0),
+  download: exportJson,
+});
+document.addEventListener("visibilitychange", () => { if (document.hidden) development?.cancel(); });
 // Visual thesis: a quiet scoreline and one board-led result image, no extra dashboard.
 // Content: outcome, exact evidence level, then replay/share/runback actions.
 // Interaction: reveal on pause/result, native setup dialog, existing button feedback.
@@ -1246,6 +1261,7 @@ async function oneMove() {
   }
 }
 async function play() {
+  if (development?.busy) { notify("Cancel or finish model development in Evals first."); return; }
   if (spectating || state.over) return;
   if (running) {
     stop();
@@ -1765,6 +1781,7 @@ $<HTMLSelectElement>("model-id").onchange = () => { importedSelection = null; up
 $<HTMLSelectElement>("effort").onchange = () => { importedSelection = null; };
 $("close-dialog").onclick = () => $<HTMLDialogElement>("agent-dialog").close();
 $("forget-key").onclick = () => {
+  development?.cancel();
   cancelConnectionProbe();
   if (activeTab === "duel" && !duelAgentOverride) duelAgentOverride = { ...currentDuelAgent() };
   forgetConnectionCheck(connectionAgent());
@@ -2166,7 +2183,7 @@ function renderSeries() {
   $("academy-status").textContent = `${summary.completed} rule-complete games in the current evaluation, ${summary.completePairs} complete pairs. Inspect Evals before drawing a conclusion. No automatic training or promotion occurred.`;
 }
 function runSeries() {
-  if (running || pending || spectating) {
+  if (running || pending || spectating || development?.busy) {
     notify("Pause or leave the current match first.");
     tab("arena");
     return;
@@ -2442,6 +2459,7 @@ duelUI = mountDuel({ agent: currentDuelAgent, models: () => models, configure: (
   download: (name, value) => exportJson(name, value, "replay"),
 });
 window.addEventListener("beforeunload", () => {
+  development?.cancel();
   duelUI?.room.close();
   controller?.abort();
   broadcast.close();
@@ -2528,6 +2546,7 @@ const localLab = mountLab({
 });
 function suspendNative() {
   readinessController?.abort();
+  development?.cancel();
   localLab.cancel("Local work stopped when the app left the foreground. No experiment restarts automatically.");
   if (duelUI?.room.view().active) duelUI.room.close("Duel stopped when the app left the foreground.");
   if (!nativeActive) return;

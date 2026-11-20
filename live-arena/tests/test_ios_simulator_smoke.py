@@ -25,7 +25,7 @@ class SimulatorHarnessTests(unittest.TestCase):
             try:
                 os.chdir(directory)
                 Path(".native-build/Build/Products/Debug-iphonesimulator/App.app").mkdir(parents=True)
-                with patch("ios_simulator_smoke.run", side_effect=simulated_run), patch("ios_simulator_smoke.time.sleep"), patch("ios_simulator_smoke.cleanup") as shut_down:
+                with patch("ios_simulator_smoke.run", side_effect=simulated_run), patch("ios_simulator_smoke.time.sleep"), patch("ios_simulator_smoke.shutil.copyfile"), patch("ios_simulator_smoke.cleanup") as shut_down:
                     with self.assertRaises(subprocess.CalledProcessError):
                         main()
                     shut_down.assert_called_once_with(udid)
@@ -36,8 +36,45 @@ class SimulatorHarnessTests(unittest.TestCase):
                 self.assertEqual(receipt["screenshot"], "launch.png")
                 self.assertEqual(receipt["settledScreenshot"], "settled.png")
                 self.assertFalse(receipt["initialScreenTextVerified"])
+                self.assertEqual(len(receipt["screenAttempts"]), 5)
+                self.assertTrue(all(not attempt["verified"] for attempt in receipt["screenAttempts"]))
                 self.assertFalse(receipt["userFlowsTested"])
                 self.assertEqual(json.loads((out / "screen-text.json").read_text()), ["Your agent", "Your arena"])
+            finally:
+                os.chdir(previous)
+
+    def test_screen_can_become_ready_after_a_blank_frame(self):
+        udid = "11111111-1111-1111-1111-111111111111"
+        attempts = []
+
+        def simulated_run(*args, **kwargs):
+            if args[:3] == ("xcrun", "simctl", "list"):
+                return json.dumps({"devices": {"iOS-26": [{"name": "iPhone Test", "udid": udid, "isAvailable": True, "state": "Shutdown"}]}})
+            if args[:3] == ("xcrun", "simctl", "launch"):
+                return "com.nymrel.builderwars: 123"
+            if args[0] == "swift":
+                attempts.append(args[-1])
+                if len(attempts) == 1:
+                    raise subprocess.CalledProcessError(1, args, output='{"recognizedText": ["2:12"]}')
+                return '{"recognizedText": ["Your agent", "Your arena"]}'
+            return "test-source"
+
+        previous = Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            try:
+                os.chdir(directory)
+                Path(".native-build/Build/Products/Debug-iphonesimulator/App.app").mkdir(parents=True)
+                with patch("ios_simulator_smoke.run", side_effect=simulated_run), patch("ios_simulator_smoke.time.sleep"), patch("ios_simulator_smoke.shutil.copyfile"), patch("ios_simulator_smoke.cleanup") as shut_down:
+                    main()
+                    shut_down.assert_called_once_with(udid)
+                out = Path("output/playwright/native-ios")
+                receipt = json.loads((out / "receipt.json").read_text())
+                self.assertEqual(receipt["status"], "launched")
+                self.assertEqual(receipt["settledScreenshot"], "settled.png")
+                self.assertEqual([item["verified"] for item in receipt["screenAttempts"]], [False, True])
+                self.assertTrue(receipt["initialScreenTextVerified"])
+                self.assertEqual(json.loads((out / "screen-text-attempt-1.json").read_text())["recognizedText"], ["2:12"])
+                self.assertEqual(json.loads((out / "screen-text.json").read_text())["recognizedText"], ["Your agent", "Your arena"])
             finally:
                 os.chdir(previous)
 
