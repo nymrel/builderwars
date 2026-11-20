@@ -1,0 +1,275 @@
+{
+  "browser": "151.0.7922.173",
+  "checks": [
+    {
+      "mode": "origin",
+      "name": "Four companions and four map actors render",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Rule-based simulation disclosed before controls",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "No horizontal overflow at 320px",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "No horizontal overflow at 390px",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "No horizontal overflow at 768px",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "No horizontal overflow at 1280px",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Primary choice is reachable in first phone viewport",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Self-directed step advances exactly once",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Accepted recovery changes material action from baseline",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Mara refuses exploration visibly",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Kite accepts the same exploration suggestion",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Stop cancels automatic advancement",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Stop retains useful keyboard focus",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Suggestion selection survives renders",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Tampered import leaves current visit intact",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Duplicate-key import refused",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Cancel import preserves current visit",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Confirmed import restores exact checkpoint",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Pending import cannot replace a newer world step",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Newest import owns dialog and late old failure is ignored",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Newest selected file becomes current only on confirmation",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Simulated hidden-page event pauses automatic turns",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "Capped visit is incomplete and cannot advance",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "No JavaScript errors",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "No external requests",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Four companions and four map actors render",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Rule-based simulation disclosed before controls",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "No horizontal overflow at 320px",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "No horizontal overflow at 390px",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "No horizontal overflow at 768px",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "No horizontal overflow at 1280px",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Primary choice is reachable in first phone viewport",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Self-directed step advances exactly once",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Accepted recovery changes material action from baseline",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Mara refuses exploration visibly",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Kite accepts the same exploration suggestion",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Stop cancels automatic advancement",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Stop retains useful keyboard focus",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Suggestion selection survives renders",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Tampered import leaves current visit intact",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Duplicate-key import refused",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Cancel import preserves current visit",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Confirmed import restores exact checkpoint",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Pending import cannot replace a newer world step",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Newest import owns dialog and late old failure is ignored",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Newest selected file becomes current only on confirmation",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Simulated hidden-page event pauses automatic turns",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "Capped visit is incomplete and cannot advance",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "No JavaScript errors",
+      "passed": true
+    },
+    {
+      "mode": "portable-origin",
+      "name": "No external requests",
+      "passed": true
+    },
+    {
+      "mode": "origin",
+      "name": "No-JavaScript recovery text is visible",
+      "passed": true
+    }
+  ],
+  "sourceSha256": {
+    "../engine.js": "cf2cf6c70f68adb86409c8aba983dee473509a8bec0ddeb9fcfdd01a465f65cc",
+    "policy.js": "5634acbeb5e88cfac6f7119953c3fb8ec517cf806db7b95ce045836a07c9aa8d",
+    "app.js": "837ae7e049dd20394808686a5559cf2e676f674bfb030ee564296db73797a4a0",
+    "index.html": "0dce46e3ac8cee25a3abd6f0d3f7f5c3f29035f5d241fc3e8939d58794e940af",
+    "build_preview.py": "22e341734b55cf711441da6efef3930662207a50653b61f9885c68020d6c904a",
+    "browser_test.py": "53c988726f22fc848a5952c459bf10eed24c4f29a98db17e7e8ab2d84fad1f91"
+  },
+  "limitations": [
+    "Chromium only",
+    "No physical phone or screen-reader acceptance",
+    "Visibility event is simulated",
+    "Portable HTML tested over loopback; file navigation is blocked by this host policy",
+    "Local deterministic companions; zero provider calls"
+  ]
+}

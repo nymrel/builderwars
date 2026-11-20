@@ -1,0 +1,216 @@
+{
+  "research_cutoff": "2026-10-16",
+  "disposition": "documented research; proposed architecture and experiment",
+  "selected_sources": 20,
+  "independently_replicated_here": false,
+  "source_date_convention": "date of inspected version/publication; null for undated live docs",
+  "discovery": {
+    "exa_requested_result_slots": 60,
+    "exa_returned_results": 0,
+    "exa_error": "HTTP 402 credits exhausted",
+    "alternate_discovery": "Two workstreams performed one brief alternate-search batch each before retrieval constraints were clarified. Substantive claims checked with direct primary reads.",
+    "coverage": "targeted synthesis, not exhaustive"
+  },
+  "sources": [
+    {
+      "id": "R01",
+      "title": "Generative Agents: Interactive Simulacra of Human Behavior",
+      "url": "https://arxiv.org/html/2304.03442v2",
+      "inspected_version_date": "2023-08-06",
+      "version": "v2",
+      "evidence_type": "research paper; UIST 2023",
+      "read_depth": "targeted full-text methods/results/limits",
+      "scope_and_limit": "Believable social behavior; finite simulation, seeded ambition, not compounding capability."
+    },
+    {
+      "id": "R02",
+      "title": "Project Sid / PIANO",
+      "url": "https://arxiv.org/html/2411.00114v1",
+      "inspected_version_date": "2024-10-31",
+      "version": "v1",
+      "evidence_type": "first-party technical report",
+      "read_depth": "targeted full-text architecture/experiments/limits",
+      "scope_and_limit": "Concurrency and coherent execution; cultural scale differs from collective problem-solving."
+    },
+    {
+      "id": "R03",
+      "title": "Concordia",
+      "url": "https://arxiv.org/html/2312.03664v2",
+      "inspected_version_date": "2023-12-13",
+      "version": "v2",
+      "evidence_type": "architecture research paper",
+      "read_depth": "targeted full-text architecture/limits",
+      "scope_and_limit": "Separate agent observations and proposed actions from world authority; no learning benchmark."
+    },
+    {
+      "id": "R04",
+      "title": "GovSim: Cooperate or Collapse",
+      "url": "https://arxiv.org/html/2404.16698v4",
+      "inspected_version_date": "2024-12-08",
+      "version": "v4",
+      "evidence_type": "research paper; NeurIPS 2024",
+      "read_depth": "targeted full-text methods/results/limits",
+      "scope_and_limit": "Consequential resource cooperation; bounded game outcomes, not cumulative skill learning."
+    },
+    {
+      "id": "R05",
+      "title": "GovSim reproduction and heterogeneous-agent extension",
+      "url": "https://arxiv.org/html/2505.09289v1",
+      "inspected_version_date": "2025-05-14",
+      "version": "v1",
+      "evidence_type": "independent reproduction preprint",
+      "read_depth": "targeted full-text methods/results/limits",
+      "scope_and_limit": "Composition and timing matter; small samples and run-count ambiguity constrain confidence."
+    },
+    {
+      "id": "R06",
+      "title": "Voyager: An Open-Ended Embodied Agent with Large Language Models",
+      "url": "https://arxiv.org/html/2305.16291v2",
+      "inspected_version_date": "2023-10-19",
+      "version": "v2",
+      "evidence_type": "implemented research system",
+      "read_depth": "targeted full-text methods/transfer/limits",
+      "scope_and_limit": "Executable skill library and bounded transfer; domain-specific interface and small transfer samples."
+    },
+    {
+      "id": "R07",
+      "title": "LongMemEval",
+      "url": "https://arxiv.org/html/2410.10813v2",
+      "inspected_version_date": "2025-03-04",
+      "version": "v2",
+      "evidence_type": "memory benchmark research",
+      "read_depth": "targeted full-text methods/experiments/limits",
+      "scope_and_limit": "Indexing, retrieval and reading are separate; conversational QA does not prove procedural learning."
+    },
+    {
+      "id": "R08",
+      "title": "A-MEM: Agentic Memory for LLM Agents",
+      "url": "https://arxiv.org/html/2502.12110v11",
+      "inspected_version_date": "2025-10-08",
+      "version": "v11",
+      "evidence_type": "memory-system research",
+      "read_depth": "targeted full-text methods/ablations/category results",
+      "scope_and_limit": "Associative links and evolving derived memory; category-level regressions remain relevant."
+    },
+    {
+      "id": "R09",
+      "title": "Learning from Others, Acting for You: Cross-User Memory Sharing for LLM Agents",
+      "url": "https://arxiv.org/html/2609.32511v1",
+      "inspected_version_date": "2026-09-26",
+      "version": "v1",
+      "evidence_type": "work-in-progress preprint",
+      "read_depth": "targeted full-text methods/ablations/limits",
+      "scope_and_limit": "Scope-first shared experience with personal preferences separated; source quality and coverage limit transfer."
+    },
+    {
+      "id": "R10",
+      "title": "Break It Down, Pass It On: Cross-Task Skill Transfer in LLM Agents",
+      "url": "https://arxiv.org/html/2608.20274v1",
+      "inspected_version_date": "2026-08-20",
+      "version": "v1",
+      "evidence_type": "controlled research preprint",
+      "read_depth": "targeted full-text methods/results/limits",
+      "scope_and_limit": "Task-level skills can harm; subtask procedures help on average in tested conditions, not universally."
+    },
+    {
+      "id": "R11",
+      "title": "Towards a Science of Scaling Agent Systems",
+      "url": "https://arxiv.org/html/2512.08296v3",
+      "inspected_version_date": "2026-04-08",
+      "version": "v3",
+      "evidence_type": "controlled research study",
+      "read_depth": "targeted full-text methods/results/uncertainty",
+      "scope_and_limit": "260 configurations, six benchmarks; task-dependent effects and limited predictive/statistical confidence."
+    },
+    {
+      "id": "R12",
+      "title": "Why Do Multi-Agent LLM Systems Fail?",
+      "url": "https://arxiv.org/html/2503.13657v3",
+      "inspected_version_date": "2025-10-26",
+      "version": "v3",
+      "evidence_type": "failure-trace analysis",
+      "read_depth": "targeted full-text methods/taxonomy/limits",
+      "scope_and_limit": "1600+ traces, seven frameworks, 14 failure modes; differing tasks prevent framework ranking."
+    },
+    {
+      "id": "R13",
+      "title": "More Agents Is All You Need",
+      "url": "https://arxiv.org/html/2402.05120v2",
+      "inspected_version_date": "2024-10-11",
+      "version": "v2",
+      "evidence_type": "research paper; TMLR",
+      "read_depth": "targeted full-text methods/evaluation/limits",
+      "scope_and_limit": "Sampling and aggregation form a baseline; they do not require persistent shared learning."
+    },
+    {
+      "id": "R14",
+      "title": "Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs",
+      "url": "https://arxiv.org/html/2311.17371v3",
+      "inspected_version_date": "2024-07-18",
+      "version": "v3",
+      "evidence_type": "comparative debate research",
+      "read_depth": "targeted full-text comparisons/limits",
+      "scope_and_limit": "Debate and forced disagreement have mixed effects in mostly older multiple-choice settings."
+    },
+    {
+      "id": "R15",
+      "title": "Self-Taught Optimizer (STOP)",
+      "url": "https://arxiv.org/pdf/2310.02304v3",
+      "inspected_version_date": "2024-08-16",
+      "version": "v3",
+      "evidence_type": "research paper; COLM 2024",
+      "read_depth": "targeted full-text methods/transfer/negative results",
+      "scope_and_limit": "Fixed-model scaffold improvement with selected transfer; weak-model degradation and selection costs matter."
+    },
+    {
+      "id": "R16",
+      "title": "Darwin Godel Machine: Open-Ended Evolution of Self-Improving Agents",
+      "url": "https://arxiv.org/html/2505.22954v3",
+      "inspected_version_date": "2026-03-12",
+      "version": "v3",
+      "evidence_type": "self-improvement research",
+      "read_depth": "targeted full-text methods/transfer/limitations; author report",
+      "scope_and_limit": "Diverse agent archive, benchmark improvements and transfer; finite coding domain, cost and grader manipulation limits."
+    },
+    {
+      "id": "R17",
+      "title": "AlphaEvolve: A Gemini-powered coding agent for designing advanced algorithms",
+      "url": "https://deepmind.google/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/",
+      "inspected_version_date": "2025-05-14",
+      "version": "announcement and linked technical report",
+      "evidence_type": "first-party technical evidence",
+      "read_depth": "announcement and selected linked technical-report sections",
+      "scope_and_limit": "Generation/evaluation/program database; verified computable domains, not general social-world learning."
+    },
+    {
+      "id": "R18",
+      "title": "Paired Open-Ended Trailblazer (POET)",
+      "url": "https://arxiv.org/html/1901.01753v3",
+      "inspected_version_date": "2019-02-21",
+      "version": "v3",
+      "evidence_type": "open-ended learning research",
+      "read_depth": "targeted full-text architecture/results",
+      "scope_and_limit": "Task-solution coevolution and cross-environment transfer in bipedal obstacle courses."
+    },
+    {
+      "id": "R19",
+      "title": "OMNI-EPIC",
+      "url": "https://arxiv.org/abs/2405.15568v3",
+      "inspected_version_date": "2025-02-14",
+      "version": "v3",
+      "evidence_type": "research paper; ICLR 2025",
+      "read_depth": "abstract and official project/repository surfaces only",
+      "scope_and_limit": "Generated environment/reward code and interesting learnable tasks; full experimental protocol not reviewed."
+    },
+    {
+      "id": "R20",
+      "title": "LangGraph persistence documentation",
+      "url": "https://docs.langchain.com/oss/python/langgraph/persistence",
+      "inspected_version_date": null,
+      "version": "live documentation retrieved 2026-10-16",
+      "evidence_type": "official engineering documentation",
+      "read_depth": "relevant persistence/checkpoint/store sections",
+      "scope_and_limit": "Thread checkpoints differ from cross-thread stores; RAM savers do not survive restart. No intelligence experiment."
+    }
+  ]
+}
