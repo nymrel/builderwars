@@ -36,3 +36,7 @@ The agent cannot apply a change. Medium- and high-risk findings return `request_
 ## Data and Rights
 
 Only generated fixtures and materials with documented Nymrel ownership or public-license provenance may enter the judge-facing packet. Customer data, private source, credentials, operational records, and third-party material without documented permission are excluded.
+
+## Local recording extension - October 24, 2026
+
+The previously reported controlled demonstration, whose original video and receipt were unavailable for this review, reportedly restored one injected DOM property through a separate one-use, candidate-bound demo gate. The approval event is scripted, explicitly labeled automated_demo_operator, and is not observed human approval or production authentication. The historical fresh-image claim remains unverified without the original receipt; any new local run proves only its own known fixture. The current suite contains 46 tests and passed locally on Windows at `fef975866deef24b00d5399f558e6d1965e888ed`, including five approval and six journey-evidence cases; the merged hosted Stage 1 record has 35. No cloud-runtime, time-saving or baseline-superiority evidence was added.

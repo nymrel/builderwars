@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sightline · visual troubleshooting walkthrough</title>
+  <style>
+    :root {color-scheme:dark;font-family:Arial,Helvetica,sans-serif;background:#0b1221;color:#edf3ff}
+    *{box-sizing:border-box}body{margin:0;padding:30px 36px;width:1600px;height:900px;overflow:hidden}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+    .brand{font-size:30px;font-weight:800;letter-spacing:-1px}.brand span{font-weight:400;color:#8fa6c4;font-size:18px;letter-spacing:0;margin-left:16px}
+    .badge{padding:10px 14px;background:#153243;color:#97e3e7;border:1px solid #2b5666;border-radius:8px;font-size:15px;font-weight:700}
+    .eyebrow{text-transform:uppercase;letter-spacing:2px;color:#89a6cc;font-size:13px;font-weight:700;margin:0 0 7px}
+    h1{font-size:36px;letter-spacing:-1px;line-height:1.15;margin:0 0 9px}h2{font-size:23px;line-height:1.25;margin:0 0 15px}h3{font-size:17px;margin:0 0 9px}
+    .intro{font-size:17px;color:#abbdd3;margin:0 0 22px}.layout{display:grid;grid-template-columns:1fr 438px;gap:22px}
+    .images{display:grid;grid-template-columns:1fr 1fr;gap:16px}.surface{background:#131f32;border:1px solid #2c3c54;border-radius:12px;overflow:hidden}
+    .surface-head{display:flex;justify-content:space-between;padding:12px 16px;font-size:15px}.surface-head span{color:#8da2bd;font-size:13px}
+    .surface img{display:block;width:100%;height:360px;object-fit:contain;background:#060910}.surface-foot{color:#91a8c7;font:12px monospace;padding:10px 15px;border-top:1px solid #273750}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.metric{background:#132238;border:1px solid #293e5a;padding:10px 17px;border-radius:10px}.metric strong{display:block;font-size:21px;color:#92e4de;margin-bottom:5px}.metric span{font-size:13px;color:#aebed2}
+    .panel{background:#142137;border:1px solid #30445e;border-radius:12px;padding:21px;height:538px;position:relative}
+    .pill{display:inline-block;margin-bottom:15px;padding:7px 10px;border-radius:5px;font:12px monospace;background:#2b3446;color:#f8c590}.pill.good{color:#89e5be;background:#153c38}.pill.stop{color:#ffb3ac;background:#442831}
+    #details{font-size:16px;line-height:1.5;color:#c3d1e4;min-height:168px}#details p{margin:0 0 12px}#details ul{margin:0;padding-left:20px}#details li{margin:0 0 9px}
+    .code{font:13px/1.5 monospace;color:#a3d7e9;word-break:break-all;background:#0d192a;border:1px solid #263c57;border-radius:7px;padding:10px;margin:14px 0;max-height:88px;overflow:hidden}
+    .controls{position:absolute;left:21px;right:21px;bottom:21px}button{font:700 16px Arial,Helvetica,sans-serif;width:100%;border:0;border-radius:7px;background:#7ce4d2;color:#0c262e;padding:13px 15px;cursor:pointer;margin-top:9px}button.secondary{background:#213853;border:1px solid #416184;color:#d2e1f3}button:disabled{opacity:.4;cursor:default}
+    label{font-size:14px;line-height:1.45;color:#c4d2e4;display:flex;align-items:flex-start;gap:9px}input{width:19px;height:19px;flex:none;accent-color:#7ce4d2;margin:0}
+    .caption{position:absolute;left:36px;right:36px;bottom:28px;min-height:86px;background:#172941;border-left:4px solid #7ce4d2;border-radius:5px;padding:16px 22px;font-size:20px;line-height:1.4;color:#f3f7fe}
+    .footer{position:absolute;left:36px;right:36px;bottom:124px;display:flex;justify-content:space-between;color:#8399b8;font-size:12px}.progress{display:flex;gap:7px}.progress i{display:block;width:29px;height:4px;border-radius:4px;background:#2b415d}.progress i.active{background:#78ddcc}
+    #working{color:#a4bad9;font-size:13px;margin-top:10px}table{border-collapse:collapse;width:100%;font-size:14px}td{border-bottom:1px solid #30465e;padding:8px 0}td:last-child{text-align:right;color:#9aead0}
+  </style>
+</head>
+<body>
+  <header><div class="brand">Sightline<span>Nymrel / BuilderWars</span></div><div class="badge">OpenCV 5 · measured local demonstration</div></header>
+  <div class="eyebrow" id="step-label">01 / Observe</div>
+  <h1 id="headline">The page loaded. The proof disappeared.</h1>
+  <p class="intro" id="intro">A controlled missing-receipt fault on the actual tracked BuilderWars interface.</p>
+  <div class="layout">
+    <section>
+      <div class="images">
+        <div class="surface"><div class="surface-head">Expected view<span>Before fault injection</span></div><img id="baseline" alt="Measured baseline screenshot of the BuilderWars Arena"><div class="surface-foot" id="baseline-hash">SHA-256 · waiting for captured source</div></div>
+        <div class="surface"><div class="surface-head" id="observed-label">Observed view<span>Controlled fault</span></div><img id="observed" alt="Current measured screenshot of the same BuilderWars Arena"><div class="surface-foot" id="observed-hash">SHA-256 · waiting for captured source</div></div>
+      </div>
+      <div class="metrics"><div class="metric"><strong id="finding-count">—</strong><span>OpenCV components</span></div><div class="metric"><strong id="changed-pixels">—</strong><span>Changed pixels retained</span></div><div class="metric"><strong id="authority">No write</strong><span>Planner authority</span></div></div>
+    </section>
+    <aside class="panel">
+      <div class="pill" id="status">comparison_pending</div>
+      <h2 id="decision">Start with the user's missing evidence.</h2>
+      <div id="details"><p>The featured receipt is absent even though the page responds and its navigation still works.</p><p>Compare the same viewport before and after the injected fault.</p></div>
+      <div class="code" id="digest">Baseline and candidate are captured from the running local app.</div>
+      <div class="controls" id="controls"><button id="inspect">Inspect with OpenCV 5</button></div>
+    </aside>
+  </div>
+  <div class="footer"><span>Controlled local fixture · scripted operator event · no production action · AWS execution unverified</span><div class="progress" id="progress"></div><span id="source">Source: loading</span></div>
+  <div class="caption" id="caption">Sightline turns visible defects into bounded decisions, keeps approval explicit, and checks the result.</div>
+  <script>
+    const $=id=>document.getElementById(id);
+    let state={};
+    function fill(p){
+      state={...state,...p};
+      for(const [k,v] of Object.entries(p.text||{})) $(k).textContent=v;
+      for(const [k,v] of Object.entries(p.html||{})) $(k).innerHTML=v;
+      for(const [k,v] of Object.entries(p.images||{})) $(k).src=v;
+      if(p.step!==undefined){$('progress').innerHTML=Array.from({length:9},(_,i)=>`<i class="${i<=p.step?'active':''}"></i>`).join('');document.body.dataset.step=String(p.step);}
+      if(p.statusClass!==undefined)$('status').className='pill '+p.statusClass;
+      bind();
+    }
+    function bind(){
+      document.querySelectorAll('button').forEach(button=>{button.onclick=async()=>{button.disabled=true;try{fill(await window.performDemoAction(button.id));}catch(error){$('status').textContent='demo_stopped';$('details').textContent=String(error);document.body.dataset.error='true';}};});
+      const check=$('approval-check');if(check)check.onchange=()=>{$('approve').disabled=!check.checked;};
+    }
+    window.fill=fill;bind();
+  </script>
+</body>
+</html>
