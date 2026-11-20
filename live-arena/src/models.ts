@@ -265,6 +265,7 @@ export async function decide(
   models: Model[],
   memory?: MemoryContext,
   matchId?: string,
+  evidence?: "version",
 ): Promise<Decision> {
   const started = performance.now(),
     legal = legalMoves(s);
@@ -306,7 +307,7 @@ export async function decide(
   let res: Response,
     actual = "",
     tokens: number | null = null,
-    outputTokens: number | null = null,
+    rawOutputTokens: unknown,
     cost: number | null = null,
     content: unknown;
   const timeout = AbortSignal.any([signal, AbortSignal.timeout(120000)]);
@@ -349,7 +350,7 @@ export async function decide(
     tokens = Number.isFinite(data.usage?.total_tokens)
       ? data.usage.total_tokens
       : null;
-    outputTokens = reportedOutputTokens(data.usage?.completion_tokens, maxTokens);
+    rawOutputTokens = data.usage?.completion_tokens;
     cost = Number.isFinite(data.usage?.cost) ? data.usage.cost : null;
   } else {
     const url = validateEndpoint(a.endpoint);
@@ -385,16 +386,16 @@ export async function decide(
     actual =
       typeof data.model === "string" && data.model.trim() ? data.model : "harness/unreported";
     tokens = Number.isFinite(data.tokens) ? data.tokens : null;
-    outputTokens = reportedOutputTokens(data.outputTokens, maxTokens);
+    rawOutputTokens = data.outputTokens;
   }
-  // Never truncate a reported identity into a different apparently matching one.
-  if (actual.length > 160) throw Error("Reported model identity exceeds the supported length.");
+  // A version receipt must not truncate a different identity into a match.
+  if (evidence === "version" && actual.length > 160) throw Error("Reported model identity exceeds the supported length.");
   return {
     ...parseDecision(content, legal),
     elapsed: performance.now() - started,
     model: actual.slice(0, 160),
     tokens: tokens !== null && tokens >= 0 ? tokens : null,
-    outputTokens,
+    ...(evidence === "version" ? { outputTokens: reportedOutputTokens(rawOutputTokens, maxTokens) } : {}),
     cost: cost !== null && cost >= 0 ? cost : null,
   };
 }

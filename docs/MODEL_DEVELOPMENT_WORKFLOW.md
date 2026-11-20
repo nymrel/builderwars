@@ -28,9 +28,10 @@ run details; no decorative motion or new design system.
   imported/evaluation games. Chess/checkers support manual strategy/memory versions
   and comparison; automated chess engine error-to-memory adaptation is still open.
   Saving a reminder is not training model weights or evidence of improved play.
-- Cancel stops local acceptance and further requests. A remote provider may still
-  finish/bill an already submitted request. Preserve failed/cancelled attempts and
-  unknown usage; no retry or automatic resume.
+- Switching browser tabs, minimizing the window or choosing Cancel stops local
+  acceptance and further requests. A provider may still finish and bill a request
+  already sent. Failed and cancelled attempts retain their status and any unknown
+  usage. Resuming requires a new operation.
 - Versions/results remain in the tab unless explicitly downloaded. Import validates
   versions, does not restore credentials, and never starts an operation.
 

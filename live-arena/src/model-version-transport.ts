@@ -70,7 +70,7 @@ export function browserVersionTransport(agent: Agent, models: Model[]): VersionT
       schema: MEMORY_SCHEMA, mode: "frozen-evaluation", digest: await sha256(c.memory.content), sources: [], prompt: c.memory.content,
     } : undefined;
     signal.throwIfAborted();
-    const result = await decide(state, { ...connection, strategy: c.prompt }, c.limits.maxTokens, signal, catalog, memory);
+    const result = await decide(state, { ...connection, strategy: c.prompt }, c.limits.maxTokens, signal, catalog, memory, undefined, "version");
     signal.throwIfAborted();
     if (result.model !== c.runtime.resolvedModel) throw Error("Browser response identity differs from the frozen version; no fallback.");
     const outputTokens = result.outputTokens ?? null;

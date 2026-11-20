@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { assertBrowserVersion, connectedVersionConfig, browserVersionTransport, MODEL_BROWSER_PROTOCOL } from "../src/model-version-transport";
 import { createVersion, openVersionSession, type VersionConfig } from "../src/frontier-version";
 import { createGame, RULES, gamePrompt } from "../src/runtime";
-import { type Agent, type Model } from "../src/models";
+import { decide, type Agent, type Model } from "../src/models";
 import { labBaseline, arenaLabVersion } from "../src/browser-lab-core";
 import { ModelDevelopment } from "../src/model-development";
 import manifest from "../src/model-version-manifest";
@@ -17,6 +17,25 @@ const response = (model: unknown = "test/resolved", usage: unknown = { total_tok
   model, usage, choices: [{ message: { content: '{"move":"0","comment":"Private provider comment"}' } }],
 });
 const config = (a = agent(), memory = "") => connectedVersionConfig(a, RULES.connect4, "test/resolved", limits, memory);
+
+test("ordinary game moves accept long provider identities and ignore optional output accounting", async t => {
+  const longModel = "m".repeat(161);
+  const harness: Agent = { ...agent(), kind: "harness", endpoint: "https://example.com/move" };
+  for (const outputTokens of [257, "3", 1.5]) {
+    const mock = t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
+      if (String(url).endsWith("/key")) return json({ data: { is_free_tier: true } });
+      if (String(url) === harness.endpoint) return json({ move: "0", model: longModel, outputTokens });
+      return json(response(longModel, { completion_tokens: outputTokens }));
+    });
+    for (const seat of [agent(), harness]) {
+      const result = await decide(createGame(RULES.connect4), seat, limits.maxTokens, new AbortController().signal, models());
+      assert.equal(result.move, "0");
+      assert.equal(result.model, longModel.slice(0, 160));
+      assert.equal(Object.hasOwn(result, "outputTokens"), false);
+    }
+    mock.mock.restore();
+  }
+});
 
 test("Lab policies cannot become remote model versions or dispatch through the connected transport", async t => {
   let calls = 0; t.mock.method(globalThis, "fetch", () => { calls++; throw Error("Unexpected network"); });

@@ -112,7 +112,7 @@ export class ModelDevelopment {
     try {
       signal.throwIfAborted(); draft.calls.push(call);
       // No ambient practice memory: this exact strategy is the frozen baseline.
-      const decision = await decide(createGame(frozenRules), privateAgent, limits.maxTokens, signal, frozenModels);
+      const decision = await decide(createGame(frozenRules), privateAgent, limits.maxTokens, signal, frozenModels, undefined, undefined, "version");
       signal.throwIfAborted();
       call.model = decision.model; call.tokens = decision.tokens; call.outputTokens = decision.outputTokens ?? null; call.cost = decision.cost;
       const version = await createVersion(connectedVersionConfig(privateAgent, frozenRules, decision.model, limits));

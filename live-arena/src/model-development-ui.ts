@@ -29,7 +29,7 @@ export function mountModelDevelopment(host: HTMLElement, options: {
     <label class="checkbox"><input id="dev-consent" type="checkbox">I authorize the next operation to use my connected model account.</label>
     <div class="form-actions"><button id="dev-probe">Probe & freeze · 1 request</button><button id="dev-practice">Practice → memory candidate</button><button id="dev-compare" class="primary">Compare selected with parent</button><button id="dev-cancel">Cancel operation</button></div>
     <p id="dev-practice-scope" class="muted"></p>
-    <p class="muted">One operation at a time. No automatic retries, selection or promotion. Cancel stops further local requests; an already submitted request may still be billed. Browser requests declare no extra tools; a connected backend’s internals remain unverified.</p>
+    <p class="muted">One operation at a time. No automatic retries, selection or promotion. Switching browser tabs, minimizing the window or choosing Cancel stops further requests. A provider may still bill a request already sent. Browser requests declare no extra tools. A connected backend’s internals remain unverified.</p>
     <details><summary>Retained attempts & replay files</summary><div id="dev-results"></div></details>
     <p class="muted">Tab-only workspace: download versions and results before closing. Imports restore no keys or endpoints and start no inference. Downloads include strategy/memory and full run evidence; review before sharing.</p>
   </section>`);
